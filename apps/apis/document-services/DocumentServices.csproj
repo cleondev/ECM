@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../../libs/ServiceDefaults/ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>
