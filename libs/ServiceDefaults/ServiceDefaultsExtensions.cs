@@ -34,7 +34,8 @@ public static class ServiceDefaultsExtensions
             .WithTracing(tracing =>
             {
                 tracing.AddSource("System.Net.Http.HttpClient");
-            });
+            })
+            .UseOtlpExporter();
 
         return builder;
     }
