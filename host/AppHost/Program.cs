@@ -7,6 +7,9 @@ const string dashboardUrlVariable = "ASPNETCORE_URLS";
 const string dashboardGrpcVariable = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
 const string dashboardHttpVariable = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
 const string allowUnsecuredTransportVariable = "ASPIRE_ALLOW_UNSECURED_TRANSPORT";
+const string dashboardUnsecured = "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS";
+Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://localhost:18888");
+Environment.SetEnvironmentVariable(dashboardUnsecured, "true");
 
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(allowUnsecuredTransportVariable)))
 {
