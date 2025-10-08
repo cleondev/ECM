@@ -215,36 +215,36 @@ Thư viện `ServiceDefaults` chứa cấu hình mặc định cho mọi service
 
 ```
 repo/
-e ├─ apps/
- │   ├─ ecm/
- │   ├─ document-services/
- │   ├─ file-services/
- │   ├─ workflow/
- │   ├─ ocr/                   # Python
- │   ├─ search-api/
- │   ├─ search-indexer/
- │   ├─ notify/
- │   ├─ audit/
- │   ├─ retention/
- │   ├─ signature/
- │   └─ outbox-dispatcher/
- ├─ libs/
- │   ├─ shared-interfaces/
- │   ├─ shared-utils/
- │   ├─ storage-minio-adapter/
- │   ├─ authz-postgres-rls-adapter/
- │   ├─ search-helpers/
- │   └─ search-index-contracts/
- ├─ docker/
- │   ├─ compose.yml
- │   └─ init/
- │       ├─ db-init.sql
- │       ├─ mc-init.sh
- │       └─ topics-init.sh
- ├─ db/
- │   ├─ migrations/
- │   └─ seeds/
- └─ .env
+├─ host/
+│  └─ AppHost/                        # .NET Aspire orchestrator
+├─ apps/
+│  ├─ ecm/
+│  │  └─ Ecm.Api/                     # Gateway/BFF + serve UI tĩnh (wwwroot)
+│  │     └─ wwwroot/                  # Build SPA (copy vào đây)
+│  ├─ document/                       # Bounded Context: Document (Clean Architecture)
+│  │  ├─ Document.Api/
+│  │  ├─ Document.Application/
+│  │  ├─ Document.Domain/
+│  │  └─ Document.Infrastructure/
+│  ├─ workflow/                       # Bounded Context: Workflow (Clean Architecture)
+│  │  ├─ Workflow.Api/
+│  │  ├─ Workflow.Application/
+│  │  ├─ Workflow.Domain/
+│  │  └─ Workflow.Infrastructure/
+│  ├─ search/
+│  │  └─ Search.Indexer/              # Worker build index từ events
+│  └─ background/
+│     └─ OutboxDispatcher.Worker/     # Poll DB outbox → publish Redpanda
+├─ libs/
+│   ├─ ServiceDefaults/                # OTel, health, resilience defaults cho mọi host
+│   ├─ SharedKernel/                   # Abstractions trung tính domain (Result, Id, etc.)
+│   └─ Contracts/                      # Event/DTO contracts dùng xuyên context
+└─ docker/
+   ├─ compose.yml
+   └─ init/
+       ├─ db-init.sql
+       ├─ mc-init.sh
+       └─ topics-init.sh
 ```
 
 ---
