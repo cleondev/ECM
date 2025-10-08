@@ -1,0 +1,23 @@
+# .NET build artifacts
+bin/
+obj/
+
+# Visual Studio / VS Code
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db
