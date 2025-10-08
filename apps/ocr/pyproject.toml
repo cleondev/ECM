@@ -1,0 +1,13 @@
+[project]
+name = "ecm-ocr"
+version = "0.1.0"
+description = "OCR microservice placeholder for ECM"
+authors = [{ name = "ECM Team" }]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+]
+requires-python = ">=3.11"
+
+[tool.uvicorn]
+factory = false
