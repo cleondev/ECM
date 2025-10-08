@@ -3,8 +3,7 @@ using ServiceDefaults;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.AddDefaultConfiguration()
-       .AddServiceDefaults();
+builder.AddServiceDefaults();
 
 builder.Services.AddHostedService<RetentionWorker>();
 

@@ -2,14 +2,13 @@ using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddDefaultConfiguration()
-       .AddServiceDefaults();
+builder.AddServiceDefaults();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapDefaultEndpoints();
 app.MapControllers();
 
 app.Run();

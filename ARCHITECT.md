@@ -67,8 +67,15 @@ var minio = builder.AddConnectionString("minio");
 var document = builder.AddProject<Projects.DocumentServices>("document-services")
     .WithReference(pg).WithReference(kafka).WithReference(minio);
 
+builder.AddProject<Projects.Ecm>("ecm").WithReference(pg).WithReference(kafka);
+builder.AddProject<Projects.FileServices>("file-services").WithReference(minio).WithReference(pg);
+builder.AddProject<Projects.Workflow>("workflow").WithReference(pg).WithReference(kafka);
+builder.AddProject<Projects.SearchApi>("search-api").WithReference(pg).WithReference(kafka);
 builder.AddProject<Projects.SearchIndexer>("search-indexer").WithReference(pg).WithReference(kafka);
 builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher").WithReference(pg).WithReference(kafka);
+builder.AddProject<Projects.Notify>("notify").WithReference(kafka);
+builder.AddProject<Projects.Audit>("audit").WithReference(pg).WithReference(kafka);
+builder.AddProject<Projects.Retention>("retention").WithReference(pg).WithReference(kafka);
 
 builder.Build().Run();
 ```
