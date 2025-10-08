@@ -2,8 +2,7 @@ using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddDefaultConfiguration()
-       .AddServiceDefaults();
+builder.AddServiceDefaults();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -16,6 +15,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.MapDefaultEndpoints();
 app.MapGet("/api/documents", () => Results.Ok(Array.Empty<object>()))
    .WithName("ListDocuments")
    .WithDescription("List all documents available to the caller.");

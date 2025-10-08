@@ -6,9 +6,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../../libs/ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../../apps/ecm/Ecm.csproj" />
     <ProjectReference Include="../../apps/document-services/DocumentServices.csproj" />
+    <ProjectReference Include="../../apps/file-services/FileServices.csproj" />
+    <ProjectReference Include="../../apps/workflow/Workflow.csproj" />
+    <ProjectReference Include="../../apps/search-api/SearchApi.csproj" />
     <ProjectReference Include="../../apps/search-indexer/SearchIndexer.csproj" />
     <ProjectReference Include="../../apps/outbox-dispatcher/OutboxDispatcher.csproj" />
+    <ProjectReference Include="../../apps/notify/Notify.csproj" />
+    <ProjectReference Include="../../apps/audit/Audit.csproj" />
+    <ProjectReference Include="../../apps/retention/Retention.csproj" />
   </ItemGroup>
 </Project>

@@ -2,11 +2,11 @@ using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddDefaultConfiguration()
-       .AddServiceDefaults();
+builder.AddServiceDefaults();
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapGet("/api/workflows", () => Results.Ok(Array.Empty<object>()))
    .WithName("ListWorkflowDefinitions")
    .WithDescription("List available workflow definitions.");

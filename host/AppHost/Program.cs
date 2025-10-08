@@ -1,11 +1,49 @@
-using Microsoft.Extensions.Hosting;
+using Aspire.Hosting;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = DistributedApplication.CreateBuilder(args);
 
-// TODO: Replace with .NET Aspire DistributedApplication configuration when Aspire packages are added.
-// The placeholders below document the intended wiring between projects.
-var host = builder.Build();
+var postgres = builder.AddConnectionString("postgres");
+var kafka = builder.AddConnectionString("kafka");
+var minio = builder.AddConnectionString("minio");
 
-Console.WriteLine("AppHost placeholder ready. Configure DistributedApplication here.");
+builder.AddProject<Projects.Ecm>("ecm")
+    .WithReference(postgres)
+    .WithReference(kafka);
 
-host.Run();
+builder.AddProject<Projects.DocumentServices>("document-services")
+    .WithReference(postgres)
+    .WithReference(kafka)
+    .WithReference(minio);
+
+builder.AddProject<Projects.FileServices>("file-services")
+    .WithReference(minio)
+    .WithReference(postgres);
+
+builder.AddProject<Projects.Workflow>("workflow")
+    .WithReference(postgres)
+    .WithReference(kafka);
+
+builder.AddProject<Projects.SearchApi>("search-api")
+    .WithReference(postgres)
+    .WithReference(kafka);
+
+builder.AddProject<Projects.SearchIndexer>("search-indexer")
+    .WithReference(postgres)
+    .WithReference(kafka);
+
+builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
+    .WithReference(postgres)
+    .WithReference(kafka);
+
+builder.AddProject<Projects.Notify>("notify")
+    .WithReference(kafka);
+
+builder.AddProject<Projects.Audit>("audit")
+    .WithReference(postgres)
+    .WithReference(kafka);
+
+builder.AddProject<Projects.Retention>("retention")
+    .WithReference(postgres)
+    .WithReference(kafka);
+
+builder.Build().Run();
