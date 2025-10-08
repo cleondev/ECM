@@ -10,15 +10,15 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../libs/ServiceDefaults/ServiceDefaults.csproj" />
-    <ProjectReference Include="../../apps/ecm/Ecm.csproj" />
-    <ProjectReference Include="../../apps/document-services/DocumentServices.csproj" />
-    <ProjectReference Include="../../apps/file-services/FileServices.csproj" />
-    <ProjectReference Include="../../apps/workflow/Workflow.csproj" />
-    <ProjectReference Include="../../apps/search-api/SearchApi.csproj" />
-    <ProjectReference Include="../../apps/search-indexer/SearchIndexer.csproj" />
-    <ProjectReference Include="../../apps/outbox-dispatcher/OutboxDispatcher.csproj" />
-    <ProjectReference Include="../../apps/notify/Notify.csproj" />
-    <ProjectReference Include="../../apps/audit/Audit.csproj" />
-    <ProjectReference Include="../../apps/retention/Retention.csproj" />
+    <ProjectReference Include="../../apps/apis/ecm/Ecm.csproj" />
+    <ProjectReference Include="../../apps/apis/document-services/DocumentServices.csproj" />
+    <ProjectReference Include="../../apps/apis/file-services/FileServices.csproj" />
+    <ProjectReference Include="../../apps/workers/workflow/Workflow.csproj" />
+    <ProjectReference Include="../../apps/apis/search-api/SearchApi.csproj" />
+    <ProjectReference Include="../../apps/workers/search-indexer/SearchIndexer.csproj" />
+    <ProjectReference Include="../../apps/workers/outbox-dispatcher/OutboxDispatcher.csproj" />
+    <ProjectReference Include="../../apps/workers/notify/Notify.csproj" />
+    <ProjectReference Include="../../apps/workers/audit/Audit.csproj" />
+    <ProjectReference Include="../../apps/workers/retention/Retention.csproj" />
   </ItemGroup>
 </Project>
