@@ -1,49 +1,40 @@
-using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
 
-var builder = DistributedApplication.CreateBuilder(args);
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddEnvironmentVariables(prefix: "ECM_")
+    .AddCommandLine(args)
+    .Build();
 
-var postgres = builder.AddConnectionString("postgres");
-var kafka = builder.AddConnectionString("kafka");
-var minio = builder.AddConnectionString("minio");
+Console.WriteLine("ECM AppHost");
+Console.WriteLine("------------");
+Console.WriteLine("Connection string overview:");
 
-builder.AddProject<Projects.Ecm>("ecm")
-    .WithReference(postgres)
-    .WithReference(kafka);
+foreach (var name in new[] { "postgres", "kafka", "minio" })
+{
+    var value = configuration.GetConnectionString(name);
+    Console.WriteLine($" - {name}: {(string.IsNullOrWhiteSpace(value) ? "<not configured>" : value)}");
+}
 
-builder.AddProject<Projects.DocumentServices>("document-services")
-    .WithReference(postgres)
-    .WithReference(kafka)
-    .WithReference(minio);
+Console.WriteLine();
+Console.WriteLine("Registered application projects:");
 
-builder.AddProject<Projects.FileServices>("file-services")
-    .WithReference(minio)
-    .WithReference(postgres);
+foreach (var project in new[]
+         {
+             "Ecm API",
+             "Document Services API",
+             "File Services API",
+             "Workflow Worker",
+             "Search API",
+             "Search Indexer Worker",
+             "Outbox Dispatcher Worker",
+             "Notify Worker",
+             "Audit Worker",
+             "Retention Worker"
+         })
+{
+    Console.WriteLine($" - {project}");
+}
 
-builder.AddProject<Projects.Workflow>("workflow")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.SearchApi>("search-api")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.SearchIndexer>("search-indexer")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.Notify>("notify")
-    .WithReference(kafka);
-
-builder.AddProject<Projects.Audit>("audit")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.Retention>("retention")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.Build().Run();
+Console.WriteLine();
+Console.WriteLine("This simplified host outputs configuration information instead of orchestrating services.");

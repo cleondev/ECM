@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -18,19 +21,20 @@ public static class ServiceDefaultsExtensions
         builder.AddDefaultHealthChecks();
 
         builder.Services.AddHttpClient();
-        builder.Services.AddServiceDiscovery();
-        builder.Services.ConfigureHttpClientDefaults(http =>
-        {
-            http.AddStandardResilienceHandler();
-            http.AddServiceDiscovery();
-        });
+        builder.Services.AddHttpClient("resilient-test")
+            .AddStandardResilienceHandler();
 
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
-            .WithMetrics(metrics => metrics.AddMeter("Microsoft.AspNetCore.Hosting").AddMeter("System.Net.Http"))
-            .WithTracing(tracing => tracing.AddSource("System.Net.Http.HttpClient"))
-            .UseOtlpExporter()
-            .UseConsoleExporter();
+            .WithMetrics(metrics =>
+            {
+                metrics.AddMeter("Microsoft.AspNetCore.Hosting");
+                metrics.AddMeter("System.Net.Http");
+            })
+            .WithTracing(tracing =>
+            {
+                tracing.AddSource("System.Net.Http.HttpClient");
+            });
 
         return builder;
     }
@@ -45,5 +49,16 @@ public static class ServiceDefaultsExtensions
     {
         builder.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy());
         return builder;
+    }
+}
+
+public static class ServiceDefaultsApplicationBuilderExtensions
+{
+    public static WebApplication MapDefaultEndpoints(this WebApplication app)
+    {
+        app.MapHealthChecks("/health");
+        app.MapGet("/", () => Results.Ok(new { status = "Healthy" }));
+
+        return app;
     }
 }
