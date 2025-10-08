@@ -1,6 +1,30 @@
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+var dashboardDefaults = new Dictionary<string, string?>();
+
+const string dashboardUrlVariable = "ASPNETCORE_URLS";
+const string dashboardGrpcVariable = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
+const string dashboardHttpVariable = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
+
+if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardUrlVariable]))
+{
+    dashboardDefaults[dashboardUrlVariable] = "http://+:18888";
+}
+
+if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardGrpcVariable])
+    && string.IsNullOrWhiteSpace(builder.Configuration[dashboardHttpVariable]))
+{
+    dashboardDefaults[dashboardHttpVariable] = "http://localhost:4318";
+}
+
+if (dashboardDefaults.Count > 0)
+{
+    builder.Configuration.AddInMemoryCollection(dashboardDefaults);
+}
 
 var postgres = builder.AddConnectionString("postgres");
 var kafka = builder.AddConnectionString("kafka");
