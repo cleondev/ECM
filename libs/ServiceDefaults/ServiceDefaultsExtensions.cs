@@ -7,6 +7,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http.Resilience;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -34,8 +35,10 @@ public static class ServiceDefaultsExtensions
             .WithTracing(tracing =>
             {
                 tracing.AddSource("System.Net.Http.HttpClient");
-            })
-            .UseOtlpExporter();
+                tracing.AddOtlpExporter(options =>
+                {
+                });
+            });
 
         return builder;
     }
