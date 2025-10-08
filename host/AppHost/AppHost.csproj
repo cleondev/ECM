@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.Dashboard" />
     <ProjectReference Include="../../libs/ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../../apps/apis/ecm/Ecm.csproj" />
     <ProjectReference Include="../../apps/apis/document-services/DocumentServices.csproj" />
