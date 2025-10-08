@@ -2,8 +2,6 @@ using Aspire.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddDashboard("dashboard");
-
 var postgres = builder.AddConnectionString("postgres");
 var kafka = builder.AddConnectionString("kafka");
 var minio = builder.AddConnectionString("minio");
