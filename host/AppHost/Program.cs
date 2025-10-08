@@ -3,10 +3,6 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 
-var builder = DistributedApplication.CreateBuilder(args);
-
-var dashboardDefaults = new Dictionary<string, string?>();
-
 const string dashboardUrlVariable = "ASPNETCORE_URLS";
 const string dashboardGrpcVariable = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
 const string dashboardHttpVariable = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
@@ -16,6 +12,10 @@ if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(allowUnsecuredT
 {
     Environment.SetEnvironmentVariable(allowUnsecuredTransportVariable, "true");
 }
+
+var builder = DistributedApplication.CreateBuilder(args);
+
+var dashboardDefaults = new Dictionary<string, string?>();
 
 if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardUrlVariable]))
 {
