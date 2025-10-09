@@ -1,15 +1,23 @@
 using Microsoft.Extensions.Hosting;
 using ServiceDefaults;
 
-var builder = Host.CreateApplicationBuilder(args);
+namespace SearchIndexer;
 
-builder.AddServiceDefaults();
+public static class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddHostedService<SearchIndexerWorker>();
+        builder.AddServiceDefaults();
 
-await builder.Build().RunAsync();
+        builder.Services.AddHostedService<SearchIndexerWorker>();
 
-class SearchIndexerWorker : BackgroundService
+        await builder.Build().RunAsync();
+    }
+}
+
+internal class SearchIndexerWorker : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

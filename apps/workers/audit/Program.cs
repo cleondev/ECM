@@ -1,15 +1,23 @@
 using Microsoft.Extensions.Hosting;
 using ServiceDefaults;
 
-var builder = Host.CreateApplicationBuilder(args);
+namespace Audit;
 
-builder.AddServiceDefaults();
+public static class Program
+{
+    public static async Task Main(string[] args)
+    {
+        var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddHostedService<AuditWorker>();
+        builder.AddServiceDefaults();
 
-await builder.Build().RunAsync();
+        builder.Services.AddHostedService<AuditWorker>();
 
-class AuditWorker : BackgroundService
+        await builder.Build().RunAsync();
+    }
+}
+
+internal class AuditWorker : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
