@@ -44,17 +44,17 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Host", "src\ECM\ECM.Hos
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.BuildingBlocks", "src\ECM\ECM.BuildingBlocks\ECM.BuildingBlocks.csproj", "{878B98EE-28B2-4B63-8464-1560A149A0FD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Abstractions", "src\Modules\Abstractions\ECM.Modules.Abstractions.csproj", "{76067658-16AD-47FB-A247-5C5DCFB1E427}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Abstractions", "src\Modules\Abstractions\ECM.Abstractions.csproj", "{76067658-16AD-47FB-A247-5C5DCFB1E427}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document", "src\Modules\Document\ECM.Modules.Document.csproj", "{9936EEEA-FDC2-4772-A0DE-2556D4921905}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Document", "src\Modules\Document\ECM.Document.csproj", "{9936EEEA-FDC2-4772-A0DE-2556D4921905}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File", "src\Modules\File\ECM.Modules.File.csproj", "{B77ABD68-3942-46CD-BF56-85C59BB202E0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.File", "src\Modules\File\ECM.File.csproj", "{B77ABD68-3942-46CD-BF56-85C59BB202E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow", "src\Modules\Workflow\ECM.Modules.Workflow.csproj", "{6F199300-8A79-439E-992D-32B66A632952}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Workflow", "src\Modules\Workflow\ECM.Workflow.csproj", "{6F199300-8A79-439E-992D-32B66A632952}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature", "src\Modules\Signature\ECM.Modules.Signature.csproj", "{5C7EC85F-4B2F-400A-81E2-FFC23318026A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Signature", "src\Modules\Signature\ECM.Signature.csproj", "{5C7EC85F-4B2F-400A-81E2-FFC23318026A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.SearchRead", "src\Modules\SearchRead\ECM.Modules.SearchRead.csproj", "{245D2AD7-E006-45F3-B895-3F5888EF0502}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.SearchRead", "src\Modules\SearchRead\ECM.SearchRead.csproj", "{245D2AD7-E006-45F3-B895-3F5888EF0502}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Contracts", "src\AppGateway\AppGateway.Contracts\AppGateway.Contracts.csproj", "{52A13C99-8786-461D-A1F1-22E7CE02F0D4}"
 EndProject
