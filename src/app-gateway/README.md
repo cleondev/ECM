@@ -1,3 +1,27 @@
-# app-gateway
+# App Gateway
 
-Placeholder for the edge gateway (BFF + reverse proxy + UI). Keep UI assets and gateway host here as described in `ARCHITECT.md`.
+The edge gateway hosts the reverse proxy, BFF APIs, authentication pipeline, and the SPA frontend. The structure mirrors the high level architecture described in `ARCHITECT.md`:
+
+```
+app-gateway/
+├── AppGateway.Api/            # ASP.NET Core host (BFF + proxy + auth)
+│   ├── Controllers/
+│   ├── Middlewares/
+│   ├── ReverseProxy/
+│   ├── Auth/
+│   ├── appsettings.json
+│   └── Program.cs
+├── AppGateway.Contracts/
+├── AppGateway.Infrastructure/
+└── ui/                        # SPA UI (React/Next/Vite)
+    ├── package.json
+    ├── public/
+    ├── src/
+    │   ├── app/
+    │   ├── features/
+    │   ├── services/
+    │   └── shared/
+    └── dist/                  # built UI (served under /app)
+```
+
+Populate the folders with implementation code as the gateway evolves.

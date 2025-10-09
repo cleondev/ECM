@@ -11,7 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
-    <ProjectReference Include="../../modules/ECM.Modules.Abstractions/ECM.Modules.Abstractions.csproj" />
-    <ProjectReference Include="../../modules/document/ECM.Modules.Document.Api/ECM.Modules.Document.Api.csproj" />
+    <ProjectReference Include="../Modules/Abstractions/ECM.Modules.Abstractions.csproj" />
+    <ProjectReference Include="../Modules/Document/Api/ECM.Modules.Document.Api.csproj" />
   </ItemGroup>
 </Project>
