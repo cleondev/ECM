@@ -10,20 +10,20 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   ├── Aspire
   │   ├── ECM.AppHost         # Điểm khởi chạy Aspire (DistributedApplication)
   │   └── ECM.ServiceDefaults # Cấu hình chia sẻ cho mọi service .NET
-  ├── app-gateway
+  ├── AppGateway
   │   ├── AppGateway.Api/     # BFF + reverse proxy host (ASP.NET Core)
   │   ├── AppGateway.Infrastructure/
   │   ├── AppGateway.Contracts/
   │   └── ui/                 # SPA (React/Next/Vite) + build output
-  ├── ecm
+  ├── ECM
   │   ├── ECM.Host/           # Modular monolith host (nạp các module domain)
   │   ├── ECM.BuildingBlocks/ # Shared kernel, outbox, event abstractions
   │   └── Modules/            # Các module độc lập: Document, File, Workflow, Signature, SearchRead
-  ├── workers                # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
-  ├── ocr
+  ├── Workers                # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
+  ├── Ocr
   │   ├── ocr-engine          # Service Python cho OCR
   │   └── labeling-ui         # UI gán nhãn dữ liệu OCR
-  └── shared                  # Contracts, messaging, utilities, extensions dùng chung
+  └── Shared                  # Contracts, messaging, utilities, extensions dùng chung
 /tests                  # Test project (xUnit) cho shared libraries
 /deploy                 # Tập tin phục vụ khởi tạo hạ tầng DEV (Docker Compose, init scripts)
 /docs                   # Tài liệu kiến trúc, API, quy trình

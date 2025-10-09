@@ -16,11 +16,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ECM", "ECM", "{7A90AA6D-356
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Workers", "Workers", "{6E0E7B25-96FE-4D18-A954-4E67804C8621}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "OCR", "OCR", "{3D58D91D-9D54-40D1-B4B5-6B46D504F877}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ocr", "Ocr", "{3D58D91D-9D54-40D1-B4B5-6B46D504F877}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "app-gateway", "app-gateway", "{36764501-FFBB-4C5A-8826-027A842FDF32}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AppGateway", "AppGateway", "{36764501-FFBB-4C5A-8826-027A842FDF32}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{FFEA8955-09A4-4B2C-ACE5-CB54BFE158E2}"
 EndProject
@@ -32,69 +32,69 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults.Tests", "te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "src\Aspire\ECM.ServiceDefaults\ServiceDefaults.csproj", "{505CAA70-78FC-4746-8C40-B6EB1AB8F5F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Api", "src\app-gateway\AppGateway.Api\AppGateway.Api.csproj", "{2978D62D-CC1C-4189-B11A-193D5583D73B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Api", "src\AppGateway\AppGateway.Api\AppGateway.Api.csproj", "{2978D62D-CC1C-4189-B11A-193D5583D73B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchIndexer", "src\workers\SearchIndexer.Worker\SearchIndexer.csproj", "{FA18F88D-0695-47DC-8C79-B9946CA6222A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchIndexer", "src\Workers\SearchIndexer.Worker\SearchIndexer.csproj", "{FA18F88D-0695-47DC-8C79-B9946CA6222A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutboxDispatcher", "src\workers\OutboxDispatcher.Worker\OutboxDispatcher.csproj", "{565B30EA-E91F-451B-B101-73D21E6ABA24}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutboxDispatcher", "src\Workers\OutboxDispatcher.Worker\OutboxDispatcher.csproj", "{565B30EA-E91F-451B-B101-73D21E6ABA24}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notify", "src\workers\Notify.Worker\Notify.csproj", "{9882E492-235A-42A3-8A64-F1077BC3A286}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notify", "src\Workers\Notify.Worker\Notify.csproj", "{9882E492-235A-42A3-8A64-F1077BC3A286}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Host", "src\ecm\ECM.Host\ECM.Host.csproj", "{2879C29D-7276-464A-B841-53ABD4F4C294}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Host", "src\ECM\ECM.Host\ECM.Host.csproj", "{2879C29D-7276-464A-B841-53ABD4F4C294}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.BuildingBlocks", "src\ecm\ECM.BuildingBlocks\ECM.BuildingBlocks.csproj", "{878B98EE-28B2-4B63-8464-1560A149A0FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.BuildingBlocks", "src\ECM\ECM.BuildingBlocks\ECM.BuildingBlocks.csproj", "{878B98EE-28B2-4B63-8464-1560A149A0FD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Abstractions", "src\ecm\Modules\Abstractions\ECM.Modules.Abstractions.csproj", "{76067658-16AD-47FB-A247-5C5DCFB1E427}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Abstractions", "src\ECM\Modules\Abstractions\ECM.Modules.Abstractions.csproj", "{76067658-16AD-47FB-A247-5C5DCFB1E427}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Domain", "src\ecm\Modules\Document\Domain\ECM.Modules.Document.Domain.csproj", "{8D6E48A5-C74D-4370-AD91-CB5376C7D287}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Domain", "src\ECM\Modules\Document\Domain\ECM.Modules.Document.Domain.csproj", "{8D6E48A5-C74D-4370-AD91-CB5376C7D287}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Application", "src\ecm\Modules\Document\Application\ECM.Modules.Document.Application.csproj", "{F1859ED4-B97F-4DA3-87B6-8F58EF0129B0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Application", "src\ECM\Modules\Document\Application\ECM.Modules.Document.Application.csproj", "{F1859ED4-B97F-4DA3-87B6-8F58EF0129B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Infrastructure", "src\ecm\Modules\Document\Infrastructure\ECM.Modules.Document.Infrastructure.csproj", "{35A17F7E-32F5-4A0C-8286-BA714986049B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Infrastructure", "src\ECM\Modules\Document\Infrastructure\ECM.Modules.Document.Infrastructure.csproj", "{35A17F7E-32F5-4A0C-8286-BA714986049B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Api", "src\ecm\Modules\Document\Api\ECM.Modules.Document.Api.csproj", "{F5BA7511-7AA7-45EC-9327-946C1D07E9F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Document.Api", "src\ECM\Modules\Document\Api\ECM.Modules.Document.Api.csproj", "{F5BA7511-7AA7-45EC-9327-946C1D07E9F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Contracts", "src\app-gateway\AppGateway.Contracts\AppGateway.Contracts.csproj", "{52A13C99-8786-461D-A1F1-22E7CE02F0D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Contracts", "src\AppGateway\AppGateway.Contracts\AppGateway.Contracts.csproj", "{52A13C99-8786-461D-A1F1-22E7CE02F0D4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Infrastructure", "src\app-gateway\AppGateway.Infrastructure\AppGateway.Infrastructure.csproj", "{10F5A1F1-F7C8-4425-9747-DEB9FADA5E17}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Infrastructure", "src\AppGateway\AppGateway.Infrastructure\AppGateway.Infrastructure.csproj", "{10F5A1F1-F7C8-4425-9747-DEB9FADA5E17}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Domain", "src\ecm\Modules\File\Domain\ECM.Modules.File.Domain.csproj", "{289F4D02-488E-46B8-B88C-994DC73219BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Domain", "src\ECM\Modules\File\Domain\ECM.Modules.File.Domain.csproj", "{289F4D02-488E-46B8-B88C-994DC73219BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Application", "src\ecm\Modules\File\Application\ECM.Modules.File.Application.csproj", "{EAB40091-FAC7-49FC-99CA-5441ACD7DD89}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Application", "src\ECM\Modules\File\Application\ECM.Modules.File.Application.csproj", "{EAB40091-FAC7-49FC-99CA-5441ACD7DD89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Infrastructure", "src\ecm\Modules\File\Infrastructure\ECM.Modules.File.Infrastructure.csproj", "{3EA5D498-91BF-433B-93B5-062EC35EE809}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Infrastructure", "src\ECM\Modules\File\Infrastructure\ECM.Modules.File.Infrastructure.csproj", "{3EA5D498-91BF-433B-93B5-062EC35EE809}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Api", "src\ecm\Modules\File\Api\ECM.Modules.File.Api.csproj", "{F21A84C4-F3D1-417C-8F53-92136EC801F2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.File.Api", "src\ECM\Modules\File\Api\ECM.Modules.File.Api.csproj", "{F21A84C4-F3D1-417C-8F53-92136EC801F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Domain", "src\ecm\Modules\Workflow\Domain\ECM.Modules.Workflow.Domain.csproj", "{67864A41-F987-4DC9-9387-DA4E87D95DB7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Domain", "src\ECM\Modules\Workflow\Domain\ECM.Modules.Workflow.Domain.csproj", "{67864A41-F987-4DC9-9387-DA4E87D95DB7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Application", "src\ecm\Modules\Workflow\Application\ECM.Modules.Workflow.Application.csproj", "{FA609088-D708-445C-A51D-24A647DFD53A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Application", "src\ECM\Modules\Workflow\Application\ECM.Modules.Workflow.Application.csproj", "{FA609088-D708-445C-A51D-24A647DFD53A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Infrastructure", "src\ecm\Modules\Workflow\Infrastructure\ECM.Modules.Workflow.Infrastructure.csproj", "{1231D68F-E99A-40A2-99E2-E9D23F48D48A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Infrastructure", "src\ECM\Modules\Workflow\Infrastructure\ECM.Modules.Workflow.Infrastructure.csproj", "{1231D68F-E99A-40A2-99E2-E9D23F48D48A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Api", "src\ecm\Modules\Workflow\Api\ECM.Modules.Workflow.Api.csproj", "{A3D3D984-C12D-4BD8-9819-DBF1D6FAB79A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Workflow.Api", "src\ECM\Modules\Workflow\Api\ECM.Modules.Workflow.Api.csproj", "{A3D3D984-C12D-4BD8-9819-DBF1D6FAB79A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Domain", "src\ecm\Modules\Signature\Domain\ECM.Modules.Signature.Domain.csproj", "{8AC7E4DD-89D8-4FE7-8E7E-9BDD5AAE7FD6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Domain", "src\ECM\Modules\Signature\Domain\ECM.Modules.Signature.Domain.csproj", "{8AC7E4DD-89D8-4FE7-8E7E-9BDD5AAE7FD6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Application", "src\ecm\Modules\Signature\Application\ECM.Modules.Signature.Application.csproj", "{E539F396-22ED-4047-8F6D-8753574F383C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Application", "src\ECM\Modules\Signature\Application\ECM.Modules.Signature.Application.csproj", "{E539F396-22ED-4047-8F6D-8753574F383C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Infrastructure", "src\ecm\Modules\Signature\Infrastructure\ECM.Modules.Signature.Infrastructure.csproj", "{D657BB0D-9D07-4C89-BDE2-B9D722D67B4B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Infrastructure", "src\ECM\Modules\Signature\Infrastructure\ECM.Modules.Signature.Infrastructure.csproj", "{D657BB0D-9D07-4C89-BDE2-B9D722D67B4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Api", "src\ecm\Modules\Signature\Api\ECM.Modules.Signature.Api.csproj", "{18355111-C25D-4FA6-906B-E1A6E2718956}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.Signature.Api", "src\ECM\Modules\Signature\Api\ECM.Modules.Signature.Api.csproj", "{18355111-C25D-4FA6-906B-E1A6E2718956}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.SearchRead.Application", "src\ecm\Modules\SearchRead\Application\ECM.Modules.SearchRead.Application.csproj", "{949C63BF-7D68-433A-88FE-9785880444CB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.SearchRead.Application", "src\ECM\Modules\SearchRead\Application\ECM.Modules.SearchRead.Application.csproj", "{949C63BF-7D68-433A-88FE-9785880444CB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.SearchRead.Infrastructure", "src\ecm\Modules\SearchRead\Infrastructure\ECM.Modules.SearchRead.Infrastructure.csproj", "{F273721D-B0B7-465C-B3D3-FF8B168569AC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.SearchRead.Infrastructure", "src\ECM\Modules\SearchRead\Infrastructure\ECM.Modules.SearchRead.Infrastructure.csproj", "{F273721D-B0B7-465C-B3D3-FF8B168569AC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.SearchRead.Api", "src\ecm\Modules\SearchRead\Api\ECM.Modules.SearchRead.Api.csproj", "{EE9A79E5-06F8-4B5E-A65C-9C163A2D4B2C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Modules.SearchRead.Api", "src\ECM\Modules\SearchRead\Api\ECM.Modules.SearchRead.Api.csproj", "{EE9A79E5-06F8-4B5E-A65C-9C163A2D4B2C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Contracts", "src\shared\Contracts\Shared.Contracts.csproj", "{1EA6F0B3-890C-4AA4-BD00-0F1372DB7FC4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Contracts", "src\Shared\Contracts\Shared.Contracts.csproj", "{1EA6F0B3-890C-4AA4-BD00-0F1372DB7FC4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Messaging", "src\shared\Messaging\Shared.Messaging.csproj", "{B280D780-878A-437E-A6D8-C8ADF98645C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Messaging", "src\Shared\Messaging\Shared.Messaging.csproj", "{B280D780-878A-437E-A6D8-C8ADF98645C0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Utilities", "src\shared\Utilities\Shared.Utilities.csproj", "{AFA144C0-6B8E-4827-9274-35DCF701563D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Utilities", "src\Shared\Utilities\Shared.Utilities.csproj", "{AFA144C0-6B8E-4827-9274-35DCF701563D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Extensions", "src\shared\Extensions\Shared.Extensions.csproj", "{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Extensions", "src\Shared\Extensions\Shared.Extensions.csproj", "{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

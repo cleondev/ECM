@@ -5,7 +5,7 @@ The modular monolith for ECM lives here. `ECM.Host` bootstraps the application a
 Current layout:
 
 ```
-ecm/
+ECM/
 ├── ECM.Host/                  # Host (IModule loader)
 ├── ECM.BuildingBlocks/        # Shared kernel, abstractions, outbox, events
 └── Modules/

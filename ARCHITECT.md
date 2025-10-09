@@ -9,10 +9,10 @@
 ## 1) System Overview
 
 ```
-[app-gateway] — UI + BFF + Reverse Proxy
+[AppGateway] — UI + BFF + Reverse Proxy
        │
        ▼
-[ecm] (Monolith)
+[ECM] (Monolith)
    ├─ Document
    ├─ File (MinIO adapter)
    ├─ Workflow
@@ -42,10 +42,10 @@ Background Workers:
 
 | Project / Folder | Lang              | Purpose                                                          | Key Components                                                     |
 | ---------------- | ----------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **app-gateway**  | .NET 9 + JS       | Edge Gateway (BFF, Auth, serve UI)                               | `/ui` (SPA), reverse proxy, auth, BFF endpoints                    |
-| **ecm**          | .NET 9            | Core nghiệp vụ (Document, File, Workflow, Signature, SearchRead) | Modular monolith: Domain/Application/Infrastructure/Api per module |
-| **workers**      | .NET 9            | Background processing                                            | OutboxDispatcher, SearchIndexer, Notify                            |
-| **ocr**          | Python            | OCR engine + labeling UI                                         | Tesseract/PaddleOCR, FastAPI, labeling tool                        |
+| **AppGateway**   | .NET 9 + JS       | Edge Gateway (BFF, Auth, serve UI)                               | `/ui` (SPA), reverse proxy, auth, BFF endpoints                    |
+| **ECM**          | .NET 9            | Core nghiệp vụ (Document, File, Workflow, Signature, SearchRead) | Modular monolith: Domain/Application/Infrastructure/Api per module |
+| **Workers**      | .NET 9            | Background processing                                            | OutboxDispatcher, SearchIndexer, Notify                            |
+| **Ocr**          | Python            | OCR engine + labeling UI                                         | Tesseract/PaddleOCR, FastAPI, labeling tool                        |
 | **Aspire**       | .NET 9            | Orchestration / Observability                                    | AppHost + ServiceDefaults                                          |
 | **deploy**       | YAML              | Docker Compose (DEV infra)                                       | Postgres, MinIO, Redpanda                                          |
 | **docs**         | Markdown / Drawio | Documentation                                                    | Architecture, API, Data model                                      |
@@ -57,7 +57,7 @@ Background Workers:
 
 ```
 src/
-├── app-gateway/
+├── AppGateway/
 │   ├── AppGateway.Api/            # ASP.NET host (BFF + proxy + auth)
 │   │   ├── Controllers/
 │   │   ├── Middlewares/
@@ -77,7 +77,7 @@ src/
 │       │   └── shared/
 │       └── dist/                  # built UI (served under /app)
 │
-├── ecm/
+├── ECM/
 │   ├── ECM.Host/                  # Host (IModule loader)
 │   ├── ECM.BuildingBlocks/        # Shared kernel, abstractions, outbox, events
 │   └── Modules/
@@ -87,12 +87,12 @@ src/
 │       ├── Signature/{Domain,Application,Infrastructure,Api}
 │       └── SearchRead/{Application,Infrastructure,Api}
 │
-├── workers/
+├── Workers/
 │   ├── OutboxDispatcher.Worker/
 │   ├── SearchIndexer.Worker/
 │   └── Notify.Worker/
 │
-├── ocr/
+├── Ocr/
 │   ├── ocr-engine/
 │   └── labeling-ui/
 │
@@ -105,7 +105,7 @@ src/
 │       ├── Extensions/
 │       └── Observability/
 │
-└── shared/
+└── Shared/
     ├── Contracts/
     ├── Messaging/
     ├── Utilities/
