@@ -6,23 +6,19 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 
 ```
 /ECM.sln                # Solution gộp tất cả project .NET
-/host/AppHost           # Điểm khởi chạy Aspire (DistributedApplication)
-/libs/ServiceDefaults   # Cấu hình chia sẻ cho mọi service .NET
-/apps                   # Tập hợp các ứng dụng và worker
-  ├── apis              # Nhóm API/HTTP service
-  │   ├── ecm               # API gateway/edge
-  │   ├── document-services # CRUD tài liệu + outbox
-  │   ├── file-services     # Presign MinIO
-  │   └── search-api        # API tra cứu
-  ├── workers           # Nhóm background worker
-  │   ├── workflow          # Quản lý workflow
-  │   ├── search-indexer    # Worker build search index
-  │   ├── outbox-dispatcher # Worker phát sự kiện
-  │   ├── notify            # Worker gửi thông báo
-  │   ├── audit             # Worker lưu vết
-  │   └── retention         # Worker thực thi chính sách lưu trữ
-  └── python            # Service không dùng .NET
-      └── ocr               # Service Python cho OCR
+/src
+  ├── Aspire
+  │   ├── ECM.AppHost         # Điểm khởi chạy Aspire (DistributedApplication)
+  │   └── ECM.ServiceDefaults # Cấu hình chia sẻ cho mọi service .NET
+  ├── app-gateway             # Gateway + UI (placeholder)
+  ├── ecm
+  │   └── ECM.Host            # Modular monolith (nạp các module domain)
+  ├── workers                # Nhóm background worker (Outbox, SearchIndexer, ...)
+  ├── ocr
+  │   ├── ocr-engine          # Service Python cho OCR
+  │   └── labeling-ui         # Placeholder cho UI gán nhãn
+  └── shared                  # Hạ tầng chia sẻ (contracts, messaging, ...)
+/archive                # Lưu lại các microservice cũ để tham chiếu
 /tests                  # Test project (xUnit) cho shared libraries
 /docker                 # Tập tin phục vụ khởi tạo hạ tầng DEV
 ```
@@ -31,5 +27,5 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 
 1. Cài .NET 9 SDK
 2. Mở solution `ECM.sln` hoặc chạy build trực tiếp với `dotnet build ECM.sln`.
-3. Chạy Aspire AppHost: `dotnet run --project host/AppHost`.
+3. Chạy Aspire AppHost: `dotnet run --project src/Aspire/ECM.AppHost`.
 4. Chạy test: `dotnet test ECM.sln` để xác nhận các cấu hình chung hoạt động.
