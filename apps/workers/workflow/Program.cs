@@ -1,14 +1,22 @@
 using ServiceDefaults;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace Workflow;
 
-builder.AddServiceDefaults();
+public static class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+        builder.AddServiceDefaults();
 
-app.MapDefaultEndpoints();
-app.MapGet("/api/workflows", () => Results.Ok(Array.Empty<object>()))
-   .WithName("ListWorkflowDefinitions")
-   .WithDescription("List available workflow definitions.");
+        var app = builder.Build();
 
-app.Run();
+        app.MapDefaultEndpoints();
+        app.MapGet("/api/workflows", () => Results.Ok(Array.Empty<object>()))
+           .WithName("ListWorkflowDefinitions")
+           .WithDescription("List available workflow definitions.");
+
+        app.Run();
+    }
+}

@@ -1,23 +1,31 @@
 using ServiceDefaults;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace DocumentServices;
 
-builder.AddServiceDefaults();
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
+public static class Program
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.AddServiceDefaults();
+
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+
+        var app = builder.Build();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.MapDefaultEndpoints();
+        app.MapGet("/api/documents", () => Results.Ok(Array.Empty<object>()))
+           .WithName("ListDocuments")
+           .WithDescription("List all documents available to the caller.");
+
+        app.Run();
+    }
 }
-
-app.MapDefaultEndpoints();
-app.MapGet("/api/documents", () => Results.Ok(Array.Empty<object>()))
-   .WithName("ListDocuments")
-   .WithDescription("List all documents available to the caller.");
-
-app.Run();

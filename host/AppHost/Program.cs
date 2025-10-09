@@ -3,92 +3,100 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 
-const string dashboardUrlVariable = "ASPNETCORE_URLS";
-const string dashboardGrpcVariable = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
-const string dashboardHttpVariable = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
-const string allowUnsecuredTransportVariable = "ASPIRE_ALLOW_UNSECURED_TRANSPORT";
-const string dashboardUnsecured = "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS";
+namespace AppHost;
 
-var builder = DistributedApplication.CreateBuilder(args);
-
-var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
-
-builder.Configuration
-    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true);
-
-var dashboardDefaults = new Dictionary<string, string?>();
-
-if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardUrlVariable]))
+public static class Program
 {
-    dashboardDefaults[dashboardUrlVariable] = "http://localhost:18888";
+    private const string DashboardUrlVariable = "ASPNETCORE_URLS";
+    private const string DashboardGrpcVariable = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
+    private const string DashboardHttpVariable = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
+    private const string AllowUnsecuredTransportVariable = "ASPIRE_ALLOW_UNSECURED_TRANSPORT";
+    private const string DashboardUnsecured = "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS";
+
+    public static void Main(string[] args)
+    {
+        var builder = DistributedApplication.CreateBuilder(args);
+
+        var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+
+        builder.Configuration
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true);
+
+        var dashboardDefaults = new Dictionary<string, string?>();
+
+        if (string.IsNullOrWhiteSpace(builder.Configuration[DashboardUrlVariable]))
+        {
+            dashboardDefaults[DashboardUrlVariable] = "http://localhost:18888";
+        }
+
+        if (string.IsNullOrWhiteSpace(builder.Configuration[DashboardGrpcVariable])
+            && string.IsNullOrWhiteSpace(builder.Configuration[DashboardHttpVariable]))
+        {
+            dashboardDefaults[DashboardHttpVariable] = "http://localhost:4318";
+        }
+
+        if (string.IsNullOrWhiteSpace(builder.Configuration[DashboardUnsecured]))
+        {
+            dashboardDefaults[DashboardUnsecured] = "true";
+        }
+
+        if (string.IsNullOrWhiteSpace(builder.Configuration[AllowUnsecuredTransportVariable]))
+        {
+            dashboardDefaults[AllowUnsecuredTransportVariable] = "true";
+        }
+
+        if (dashboardDefaults.Count > 0)
+        {
+            builder.Configuration.AddInMemoryCollection(dashboardDefaults);
+        }
+
+        var postgres = builder.AddConnectionString("postgres");
+        var kafka = builder.AddConnectionString("kafka");
+        var minio = builder.AddConnectionString("minio");
+
+        var documentServices = builder.AddProject<Projects.DocumentServices>("document-services")
+            .WithReference(postgres)
+            .WithReference(kafka)
+            .WithReference(minio);
+
+        builder.AddProject<Projects.Ecm>("ecm")
+            .WithReference(postgres)
+            .WithReference(kafka);
+
+        builder.AddProject<Projects.FileServices>("file-services")
+            .WithReference(minio)
+            .WithReference(postgres);
+
+        builder.AddProject<Projects.Workflow>("workflow")
+            .WithReference(postgres)
+            .WithReference(kafka);
+
+        builder.AddProject<Projects.SearchApi>("search-api")
+            .WithReference(postgres)
+            .WithReference(kafka);
+
+        builder.AddProject<Projects.SearchIndexer>("search-indexer")
+            .WithReference(postgres)
+            .WithReference(kafka)
+            .WithReference(documentServices);
+
+        builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
+            .WithReference(postgres)
+            .WithReference(kafka)
+            .WithReference(documentServices);
+
+        builder.AddProject<Projects.Notify>("notify")
+            .WithReference(kafka);
+
+        builder.AddProject<Projects.Audit>("audit")
+            .WithReference(postgres)
+            .WithReference(kafka);
+
+        builder.AddProject<Projects.Retention>("retention")
+            .WithReference(postgres)
+            .WithReference(kafka);
+
+        builder.Build().Run();
+    }
 }
-
-if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardGrpcVariable])
-    && string.IsNullOrWhiteSpace(builder.Configuration[dashboardHttpVariable]))
-{
-    dashboardDefaults[dashboardHttpVariable] = "http://localhost:4318";
-}
-
-if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardUnsecured]))
-{
-    dashboardDefaults[dashboardUnsecured] = "true";
-}
-
-if (string.IsNullOrWhiteSpace(builder.Configuration[allowUnsecuredTransportVariable]))
-{
-    dashboardDefaults[allowUnsecuredTransportVariable] = "true";
-}
-
-if (dashboardDefaults.Count > 0)
-{
-    builder.Configuration.AddInMemoryCollection(dashboardDefaults);
-}
-
-var postgres = builder.AddConnectionString("postgres");
-var kafka = builder.AddConnectionString("kafka");
-var minio = builder.AddConnectionString("minio");
-
-var documentServices = builder.AddProject<Projects.DocumentServices>("document-services")
-    .WithReference(postgres)
-    .WithReference(kafka)
-    .WithReference(minio);
-
-builder.AddProject<Projects.Ecm>("ecm")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.FileServices>("file-services")
-    .WithReference(minio)
-    .WithReference(postgres);
-
-builder.AddProject<Projects.Workflow>("workflow")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.SearchApi>("search-api")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.SearchIndexer>("search-indexer")
-    .WithReference(postgres)
-    .WithReference(kafka)
-    .WithReference(documentServices);
-
-builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
-    .WithReference(postgres)
-    .WithReference(kafka)
-    .WithReference(documentServices);
-
-builder.AddProject<Projects.Notify>("notify")
-    .WithReference(kafka);
-
-builder.AddProject<Projects.Audit>("audit")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.AddProject<Projects.Retention>("retention")
-    .WithReference(postgres)
-    .WithReference(kafka);
-
-builder.Build().Run();
