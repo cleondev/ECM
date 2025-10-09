@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Domain/ECM.Modules.Signature.Domain.csproj" />
-    <ProjectReference Include="../../../ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
+    <ProjectReference Include="../Domain/ECM.Modules.Workflow.Domain.csproj" />
+    <ProjectReference Include="../../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
   </ItemGroup>
 </Project>
