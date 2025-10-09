@@ -12,23 +12,7 @@ obj/
 # Logs
 *.log
 
-# Python
-__pycache__/
-*.py[cod]
-.env
-.venv/
-
 # OS
 .DS_Store
 Thumbs.db
-/.vs/ECM/CopilotIndices/17.14.1231.31060
-/.vs/ECM/FileContentIndex
-/.vs/ECM/v17
-/.vs/ProjectSettings.json
-/.vs/slnx.sqlite
-/.vs/slnx.sqlite-journal
-/.vs/VSWorkspaceState.json
-/.vs/ECM/DesignTimeBuild/.dtbcache.v2
-/.vs/ECM/copilot-chat/2979ccb8/sessions
-/.vs/ProjectEvaluation
-/.vs/ECM
+/.vs
