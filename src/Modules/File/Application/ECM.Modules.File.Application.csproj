@@ -6,6 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Domain/ECM.Modules.File.Domain.csproj" />
-    <ProjectReference Include="../../../ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
+    <ProjectReference Include="../../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
   </ItemGroup>
 </Project>
