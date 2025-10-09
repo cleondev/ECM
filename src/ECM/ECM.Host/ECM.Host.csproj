@@ -11,11 +11,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
-    <ProjectReference Include="../../Modules/Abstractions/ECM.Modules.Abstractions.csproj" />
-    <ProjectReference Include="../../Modules/Document/ECM.Modules.Document.csproj" />
-    <ProjectReference Include="../../Modules/File/ECM.Modules.File.csproj" />
-    <ProjectReference Include="../../Modules/Workflow/ECM.Modules.Workflow.csproj" />
-    <ProjectReference Include="../../Modules/Signature/ECM.Modules.Signature.csproj" />
-    <ProjectReference Include="../../Modules/SearchRead/ECM.Modules.SearchRead.csproj" />
+    <ProjectReference Include="../../Modules/Abstractions/ECM.Abstractions.csproj" />
+    <ProjectReference Include="../../Modules/Document/ECM.Document.csproj" />
+    <ProjectReference Include="../../Modules/File/ECM.File.csproj" />
+    <ProjectReference Include="../../Modules/Workflow/ECM.Workflow.csproj" />
+    <ProjectReference Include="../../Modules/Signature/ECM.Signature.csproj" />
+    <ProjectReference Include="../../Modules/SearchRead/ECM.SearchRead.csproj" />
   </ItemGroup>
 </Project>
