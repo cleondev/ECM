@@ -10,10 +10,7 @@
         "ASPNETCORE_URLS": "http://localhost:18888",
         "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS": "true",
         "ASPIRE_ALLOW_UNSECURED_TRANSPORT": "true",
-        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:4318",
-        "ConnectionStrings__postgres": "Host=localhost;Port=5432;Database=ecm;Username=postgres;Password=postgres",
-        "ConnectionStrings__kafka": "bootstrap.servers=localhost:9092",
-        "ConnectionStrings__minio": "Endpoint=http://localhost:9000;AccessKey=minioadmin;SecretKey=minioadmin"
+        "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL": "http://localhost:4318"
       }
     }
   }
