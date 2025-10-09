@@ -8,27 +8,36 @@ const string dashboardGrpcVariable = "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL";
 const string dashboardHttpVariable = "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL";
 const string allowUnsecuredTransportVariable = "ASPIRE_ALLOW_UNSECURED_TRANSPORT";
 const string dashboardUnsecured = "ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS";
-Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://localhost:18888");
-Environment.SetEnvironmentVariable(dashboardUnsecured, "true");
-
-if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(allowUnsecuredTransportVariable)))
-{
-    Environment.SetEnvironmentVariable(allowUnsecuredTransportVariable, "true");
-}
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true);
 
 var dashboardDefaults = new Dictionary<string, string?>();
 
 if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardUrlVariable]))
 {
-    dashboardDefaults[dashboardUrlVariable] = "http://+:18888";
+    dashboardDefaults[dashboardUrlVariable] = "http://localhost:18888";
 }
 
 if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardGrpcVariable])
     && string.IsNullOrWhiteSpace(builder.Configuration[dashboardHttpVariable]))
 {
     dashboardDefaults[dashboardHttpVariable] = "http://localhost:4318";
+}
+
+if (string.IsNullOrWhiteSpace(builder.Configuration[dashboardUnsecured]))
+{
+    dashboardDefaults[dashboardUnsecured] = "true";
+}
+
+if (string.IsNullOrWhiteSpace(builder.Configuration[allowUnsecuredTransportVariable]))
+{
+    dashboardDefaults[allowUnsecuredTransportVariable] = "true";
 }
 
 if (dashboardDefaults.Count > 0)
