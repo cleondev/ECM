@@ -57,29 +57,20 @@ public static class Program
             .WithReference(kafka)
             .WithReference(minio);
 
-        builder.AddProject<Projects.Workflow>("workflow")
-            .WithReference(postgres)
-            .WithReference(kafka);
+        builder.AddProject<Projects.AppGateway_Api>("app-gateway")
+            .WithReference(ecmHost);
 
-        builder.AddProject<Projects.SearchIndexer>("search-indexer")
+        builder.AddProject<Projects.SearchIndexer_Worker>("search-indexer")
             .WithReference(postgres)
             .WithReference(kafka)
             .WithReference(ecmHost);
 
-        builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
+        builder.AddProject<Projects.OutboxDispatcher_Worker>("outbox-dispatcher")
             .WithReference(postgres)
             .WithReference(kafka)
             .WithReference(ecmHost);
 
-        builder.AddProject<Projects.Notify>("notify")
-            .WithReference(kafka);
-
-        builder.AddProject<Projects.Audit>("audit")
-            .WithReference(postgres)
-            .WithReference(kafka);
-
-        builder.AddProject<Projects.Retention>("retention")
-            .WithReference(postgres)
+        builder.AddProject<Projects.Notify_Worker>("notify")
             .WithReference(kafka);
 
         builder.Build().Run();

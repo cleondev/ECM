@@ -9,12 +9,10 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
     <ProjectReference Include="../ECM.ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../../app-gateway/AppGateway.Api/AppGateway.Api.csproj" />
     <ProjectReference Include="../../ecm/ECM.Host/ECM.Host.csproj" />
-    <ProjectReference Include="../../workers/Workflow.Worker/Workflow.csproj" />
     <ProjectReference Include="../../workers/SearchIndexer.Worker/SearchIndexer.csproj" />
     <ProjectReference Include="../../workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj" />
     <ProjectReference Include="../../workers/Notify.Worker/Notify.csproj" />
-    <ProjectReference Include="../../workers/Audit.Worker/Audit.csproj" />
-    <ProjectReference Include="../../workers/Retention.Worker/Retention.csproj" />
   </ItemGroup>
 </Project>

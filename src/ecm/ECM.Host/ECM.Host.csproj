@@ -13,5 +13,9 @@
     <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../Modules/Abstractions/ECM.Modules.Abstractions.csproj" />
     <ProjectReference Include="../Modules/Document/Api/ECM.Modules.Document.Api.csproj" />
+    <ProjectReference Include="../Modules/File/Api/ECM.Modules.File.Api.csproj" />
+    <ProjectReference Include="../Modules/Workflow/Api/ECM.Modules.Workflow.Api.csproj" />
+    <ProjectReference Include="../Modules/Signature/Api/ECM.Modules.Signature.Api.csproj" />
+    <ProjectReference Include="../Modules/SearchRead/Api/ECM.Modules.SearchRead.Api.csproj" />
   </ItemGroup>
 </Project>

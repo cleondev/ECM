@@ -240,7 +240,7 @@ signature.completed → audit
 # 1) Prepare
 cp .env.example .env   # fill values
 # 2) Start infra + apps
-docker compose -f docker/compose.yml up -d --build
+docker compose -f deploy/compose.yml up -d --build
 # 3) Check UIs
 open http://localhost:9001   # MinIO console
 open http://localhost:5050   # pgAdmin (if enabled)
@@ -248,7 +248,7 @@ open http://localhost:8089   # Redpanda console
 open http://localhost:8080   # Gateway
 ```
 
-**DB init**: put full DDL into `docker/init/db-init.sql` (RLS + schemas).  
+**DB init**: put full DDL into `deploy/init/db-init.sql` (RLS + schemas).  
 **Outbox**: dispatcher will publish events to topics; consumers update read models.
 
 ---

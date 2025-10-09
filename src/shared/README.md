@@ -1,10 +1,8 @@
-# shared
+# Shared Libraries
 
-Cross-cutting concerns that can be reused across services belong here.
+Các thư viện chia sẻ giữa những module .NET:
 
-- `Contracts/` – HTTP/GRPC contracts and DTOs exchanged between bounded contexts.
-- `Messaging/` – Message schemas and integration event definitions shared across the platform.
-- `Utilities/` – Shared utility classes, helpers, and cross-cutting services.
-- `Extensions/` – Common extension methods and adapters.
-
-Add concrete implementations as the solution grows.
+- `Shared.Contracts` – Định nghĩa contract sự kiện/DTO ở cấp tổ chức.
+- `Shared.Messaging` – Abstraction để publish event ra ngoài (Kafka/Redpanda).
+- `Shared.Utilities` – Tiện ích dùng chung như đồng hồ hệ thống.
+- `Shared.Extensions` – Các extension methods cho DI và pipeline.
