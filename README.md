@@ -29,13 +29,7 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 
 ## Bắt đầu phát triển
 
-1. Cài .NET 8 SDK và Python 3.11 trở lên.
+1. Cài .NET 9 SDK
 2. Mở solution `ECM.sln` hoặc chạy build trực tiếp với `dotnet build ECM.sln`.
 3. Chạy Aspire AppHost: `dotnet run --project host/AppHost`.
 4. Chạy test: `dotnet test ECM.sln` để xác nhận các cấu hình chung hoạt động.
-5. Đối với OCR, tạo virtualenv và cài đặt `pip install -e .` trong `apps/python/ocr`.
-6. Cập nhật `docker/compose.yml` để mô phỏng hạ tầng Postgres, MinIO, Redpanda theo kiến trúc.
-
-> **Vì sao trước đây không có `.sln`?** Skeleton ban đầu bỏ trống solution để người dùng linh hoạt sắp xếp project. Phiên bản này đã cung cấp sẵn `ECM.sln` gom toàn bộ AppHost, thư viện và test nhằm đồng bộ với cấu trúc kiến trúc mô tả trong `ARCHITECT.md`.
-
-Các file mã nguồn hiện chủ yếu nhằm mô tả contract, giữ cho dự án biên dịch được khi bổ sung SDK tương ứng.
