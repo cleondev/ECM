@@ -12,10 +12,10 @@
   <ItemGroup>
     <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../../Modules/Abstractions/ECM.Modules.Abstractions.csproj" />
-    <ProjectReference Include="../../Modules/Document/Api/ECM.Modules.Document.Api.csproj" />
-    <ProjectReference Include="../../Modules/File/Api/ECM.Modules.File.Api.csproj" />
-    <ProjectReference Include="../../Modules/Workflow/Api/ECM.Modules.Workflow.Api.csproj" />
-    <ProjectReference Include="../../Modules/Signature/Api/ECM.Modules.Signature.Api.csproj" />
-    <ProjectReference Include="../../Modules/SearchRead/Api/ECM.Modules.SearchRead.Api.csproj" />
+    <ProjectReference Include="../../Modules/Document/ECM.Modules.Document.csproj" />
+    <ProjectReference Include="../../Modules/File/ECM.Modules.File.csproj" />
+    <ProjectReference Include="../../Modules/Workflow/ECM.Modules.Workflow.csproj" />
+    <ProjectReference Include="../../Modules/Signature/ECM.Modules.Signature.csproj" />
+    <ProjectReference Include="../../Modules/SearchRead/ECM.Modules.SearchRead.csproj" />
   </ItemGroup>
 </Project>

@@ -5,9 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Application/ECM.Modules.Signature.Application.csproj" />
-    <ProjectReference Include="../Infrastructure/ECM.Modules.Signature.Infrastructure.csproj" />
-    <ProjectReference Include="../../Abstractions/ECM.Modules.Abstractions.csproj" />
+    <ProjectReference Include="../Abstractions/ECM.Modules.Abstractions.csproj" />
+    <ProjectReference Include="../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
