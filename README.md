@@ -1,6 +1,6 @@
 # ECM
 
-Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được chia thành nhiều thành phần theo kiến trúc trong `ARCHITECT.md`. Repo hiện chứa skeleton để tiếp tục phát triển; chưa có phần cài đặt nghiệp vụ hay gói phụ thuộc cụ thể.
+Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được chia thành nhiều thành phần theo kiến trúc trong `ARCHITECT.md`. Repo đã được tổ chức lại đúng thiết kế, sẵn sàng mở rộng thêm nghiệp vụ.
 
 ## Thư mục chính
 
@@ -12,20 +12,21 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   │   └── ECM.ServiceDefaults # Cấu hình chia sẻ cho mọi service .NET
   ├── app-gateway
   │   ├── AppGateway.Api/     # BFF + reverse proxy host (ASP.NET Core)
-  │   ├── AppGateway.Contracts/
   │   ├── AppGateway.Infrastructure/
+  │   ├── AppGateway.Contracts/
   │   └── ui/                 # SPA (React/Next/Vite) + build output
   ├── ecm
   │   ├── ECM.Host/           # Modular monolith host (nạp các module domain)
   │   ├── ECM.BuildingBlocks/ # Shared kernel, outbox, event abstractions
-  │   └── Modules/            # Các module độc lập: Document, File, Workflow, ...
+  │   └── Modules/            # Các module độc lập: Document, File, Workflow, Signature, SearchRead
   ├── workers                # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
   ├── ocr
   │   ├── ocr-engine          # Service Python cho OCR
   │   └── labeling-ui         # UI gán nhãn dữ liệu OCR
   └── shared                  # Contracts, messaging, utilities, extensions dùng chung
 /tests                  # Test project (xUnit) cho shared libraries
-/docker                 # Tập tin phục vụ khởi tạo hạ tầng DEV
+/deploy                 # Tập tin phục vụ khởi tạo hạ tầng DEV (Docker Compose, init scripts)
+/docs                   # Tài liệu kiến trúc, API, quy trình
 ```
 
 ## Bắt đầu phát triển
