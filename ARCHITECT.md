@@ -1,196 +1,212 @@
 # ARCHITECT.md
 
-> DMS – Document Management System  
-> **Stack:** .NET 8 (services), Python (OCR), PostgreSQL 16, MinIO, Redpanda (Kafka-compatible), Docker Desktop Linux (DEV)  
-> **Style:** Modular-monolith first, split-by-seams later. Event-driven via Outbox → Broker.
+> **ECM – Enterprise Content Management System**  
+> **Stack:** .NET 9 (services), Python (OCR), PostgreSQL 16, MinIO, Redpanda (Kafka-compatible), Docker Desktop Linux (DEV)  
+> **Architecture:** Modular Monolith + Aspire + Event-driven (Outbox → Broker)
 
 ---
 
 ## 1) System Overview
 
 ```
-[ecm]
-   ├─▶ [document-services] ──┬─▶ (file-services ⇄ MinIO)
-   │                              └─▶ (bus.outbox → Redpanda topics)
-   ├─▶ [workflow]
-   ├─▶ [form]
-   └─▶ [ocr (Python)]
+[app-gateway] — UI + BFF + Reverse Proxy
+       │
+       ▼
+[ecm] (Monolith)
+   ├─ Document
+   ├─ File (MinIO adapter)
+   ├─ Workflow
+   ├─ Signature
+   └─ SearchRead
+       └─→ (bus.outbox → Redpanda)
 
-Consumers:
-  - search-indexer  (consume events → build FTS/KV/Vector)
-  - notify          (consume events → email/webhook)
-  - audit           (consume events → append audit)
-  - retention       (jobs + consume retention.*)
-  - outbox-dispatcher (poll DB → publish to Redpanda)
+Background Workers:
+   - OutboxDispatcher  → publish domain events
+   - SearchIndexer     → consume → build FTS/KV/Vector
+   - Notify            → consume → email/webhook
+   - OCR (Python)      → extract, label, emit ocr.* events
 ```
 
 **Principles**
 
-- Clear bounded contexts: `document`, `workflow`, `ocr`, `search`, `signature`, `retention`, `audit`.
-- Single DB (PostgreSQL schemas) for DEV; RLS for read-authorization.
-- Outbox pattern for reliable eventing; consumers idempotent (UPSERT).
-- Hybrid Search: FTS (tsvector) + Vector (pgvector) + KV filter.
-- OCR is **Python** (Tesseract/PaddleOCR) + labeling UI; promote to metadata via API only.
+- Modular monolith: 5 domain modules, độc lập về code + schema.
+- PostgreSQL schemas per module (`doc`, `file`, `wf`, `sign`, `search`).
+- RLS kiểm soát quyền đọc theo RBAC/ReBAC/ABAC.
+- Outbox pattern bảo đảm event reliable + idempotent consumers.
+- Search hybrid (FTS + pgvector + KV).
+- Aspire điều phối toàn bộ môi trường DEV.
 
 ---
 
+## 2) Project Structure (Monolith + Aspire)
 
-## 2) Aspire Integration
+| Project / Folder | Lang              | Purpose                                                          | Key Components                                                     |
+| ---------------- | ----------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **app-gateway**  | .NET 9 + JS       | Edge Gateway (BFF, Auth, serve UI)                               | `/ui` (SPA), reverse proxy, auth, BFF endpoints                    |
+| **ecm**          | .NET 9            | Core nghiệp vụ (Document, File, Workflow, Signature, SearchRead) | Modular monolith: Domain/Application/Infrastructure/Api per module |
+| **workers**      | .NET 9            | Background processing                                            | OutboxDispatcher, SearchIndexer, Notify                            |
+| **ocr**          | Python            | OCR engine + labeling UI                                         | Tesseract/PaddleOCR, FastAPI, labeling tool                        |
+| **Aspire**       | .NET 9            | Orchestration / Observability                                    | AppHost + ServiceDefaults                                          |
+| **deploy**       | YAML              | Docker Compose (DEV infra)                                       | Postgres, MinIO, Redpanda                                          |
+| **docs**         | Markdown / Drawio | Documentation                                                    | Architecture, API, Data model                                      |
+| **tests**        | .NET 9 xUnit      | Unit + Integration Tests                                         | Per module + per worker                                            |
 
-**Purpose:** sử dụng .NET Aspire để điều phối, giám sát và cấu hình nhiều service dễ dàng khi dev.
+---
 
-### 🧩 Cấu trúc Aspire
+## 3) Detailed Module Layout
 
 ```
-repo/
-├─ host/
-│  └─ AppHost/            # Aspire Orchestrator (root)
-├─ libs/
-│  └─ ServiceDefaults/    # Telemetry, Resilience, Health defaults
-└─ apps/
-   ├─ ecm/                # Gateway (edge)
-   ├─ document-services/  # CRUD + Outbox
-   ├─ search-indexer/     # Consumer worker
-   ├─ outbox-dispatcher/  # Producer worker
-   ├─ workflow/           # Camunda client
-   └─ ocr/ (Python)
+src/
+├── app-gateway/
+│   ├── AppGateway.Api/            # ASP.NET host (BFF + proxy + auth)
+│   │   ├── Controllers/
+│   │   ├── Middlewares/
+│   │   ├── ReverseProxy/
+│   │   ├── Auth/
+│   │   ├── appsettings.json
+│   │   └── Program.cs
+│   ├── AppGateway.Contracts/
+│   ├── AppGateway.Infrastructure/
+│   └── ui/                        # SPA UI (React/Next/Vite)
+│       ├── package.json
+│       ├── public/
+│       ├── src/
+│       │   ├── app/
+│       │   ├── features/
+│       │   ├── services/
+│       │   └── shared/
+│       └── dist/                  # built UI (served under /app)
+│
+├── ecm/
+│   ├── ECM.Host/                  # Host (IModule loader)
+│   ├── ECM.BuildingBlocks/        # Shared kernel, abstractions, outbox, events
+│   └── Modules/
+│       ├── Document/{Domain,Application,Infrastructure,Api}
+│       ├── File/{Domain,Application,Infrastructure,Api}
+│       ├── Workflow/{Domain,Application,Infrastructure,Api}
+│       ├── Signature/{Domain,Application,Infrastructure,Api}
+│       └── SearchRead/{Application,Infrastructure,Api}
+│
+├── workers/
+│   ├── OutboxDispatcher.Worker/
+│   ├── SearchIndexer.Worker/
+│   └── Notify.Worker/
+│
+├── ocr/
+│   ├── ocr-engine/
+│   └── labeling-ui/
+│
+├── Aspire/
+│   ├── ECM.AppHost/
+│   │   ├── Program.cs
+│   │   ├── appsettings.json
+│   │   └── Properties/
+│   └── ECM.ServiceDefaults/
+│       ├── Extensions/
+│       └── Observability/
+│
+└── shared/
+    ├── Contracts/
+    ├── Messaging/
+    ├── Utilities/
+    └── Extensions/
 ```
 
-### ⚙️ AppHost cấu hình
+---
 
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-var pg = builder.AddConnectionString("postgres");
-var kafka = builder.AddConnectionString("kafka");
-var minio = builder.AddConnectionString("minio");
+## 4) Aspire Integration
 
-var document = builder.AddProject<Projects.DocumentServices>("document-services")
-    .WithReference(pg).WithReference(kafka).WithReference(minio);
+**AppHost (DistributedApplication):**
+**ServiceDefaults:**
 
-builder.AddProject<Projects.Ecm>("ecm").WithReference(pg).WithReference(kafka);
-builder.AddProject<Projects.FileServices>("file-services").WithReference(minio).WithReference(pg);
-builder.AddProject<Projects.Workflow>("workflow").WithReference(pg).WithReference(kafka);
-builder.AddProject<Projects.SearchApi>("search-api").WithReference(pg).WithReference(kafka);
-builder.AddProject<Projects.SearchIndexer>("search-indexer").WithReference(pg).WithReference(kafka);
-builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher").WithReference(pg).WithReference(kafka);
-builder.AddProject<Projects.Notify>("notify").WithReference(kafka);
-builder.AddProject<Projects.Audit>("audit").WithReference(pg).WithReference(kafka);
-builder.AddProject<Projects.Retention>("retention").WithReference(pg).WithReference(kafka);
+- Add OpenTelemetry (Tracing, Metrics)
+- HealthChecks, Resilience policy (HttpClient)
+- Common logging, retry, discovery settings
 
-builder.Build().Run();
+---
+
+## 5) Database Model Summary
+
+Schemas:
+`iam, doc, wf, search, ocr, ops`
+
+### Core Tables
+
+* `iam.users(id, email, display_name, department, is_active, created_at)` — người dùng hệ thống
+
+* `iam.roles(id, name)` — vai trò định nghĩa sẵn (Admin, Editor, Viewer, …)
+
+* `iam.user_roles(user_id, role_id)` — ánh xạ người dùng ↔ vai trò (RBAC)
+
+* `iam.relations(subject_id, object_type, object_id, relation)` — quan hệ ReBAC (ai có quyền gì với đối tượng nào)
+
+* `doc.document(id, title, type_id, status, sensitivity, owner_id, created_at, updated_at)`
+
+* `doc.version(id, document_id, storage_key, bytes, sha256, created_by)`
+
+* `doc.document_type(id, type_key, type_name, is_active)`
+
+* `doc.metadata(document_id, data jsonb)`
+
+* `doc.tag_namespace(namespace_slug, kind, owner_user_id)` / `doc.tag_label(id, namespace_slug, path)` / `doc.document_tag(document_id, tag_id)`
+
+* `doc.signature_request(id, document_id, provider, status)` / `doc.signature_result(request_id, status, evidence_url)`
+
+* `wf.definition / wf.instance / wf.task / wf.form / wf.form_data`
+
+* `search.fts / search.kv / search.embedding`
+
+* `ocr.result / ocr.page_text / ocr.annotation / ocr.extraction`
+
+* `ops.outbox / ops.audit_event / ops.retention_policy / ops.retention_candidate`
+
+RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (department).
+
+
+---
+
+## 6) Events & Topics Summary
+
+Modules ghi sự kiện vào `ops.outbox`; **Outbox Dispatcher** đọc và publish lên **Redpanda** theo topic.
+
+### Topics
+
+* `iam.events` – user/role thay đổi (tuỳ chọn)
+* `document.events` – CRUD document, metadata, tag
+* `version.events` – version mới → trigger OCR & SearchIndexer
+* `workflow.events` – instance, task update → Notify, Audit
+* `signature.events` – trạng thái ký số (completed/failed)
+* `ocr.events` – OCR kết quả, extraction → SearchIndexer
+* `search.events` – đồng bộ read model / rebuild index
+* `audit.events` – log thao tác người dùng
+* `retention.events` – lịch dọn dữ liệu, purge/archive
+
+### Payload (chuẩn JSON)
+
+```jsonc
+{
+  "eventId": "uuid",
+  "type": "document.created",
+  "aggregate": "document",
+  "aggregateId": "uuid",
+  "occurredAt": "2025-10-09T04:30:00Z",
+  "actorId": "uuid",
+  "data": { ... }
+}
 ```
 
-### 🧠 ServiceDefaults
+### Flow ví dụ
 
-Thư viện `ServiceDefaults` chứa cấu hình mặc định cho mọi service:
-- **OpenTelemetry** (Metrics, Tracing)
-- **HealthChecks** (liveness / readiness)
-- **HttpClient Resilience** (`AddStandardResilienceHandler`)
-
-### 🔍 Dev Flow
-
-- Chạy Aspire Dashboard: `dotnet run --project host/AppHost`.
-- Theo dõi health / logs / dependencies trực quan.
-- Có thể trỏ Aspire tới external Postgres/Redpanda (đã chạy bằng Docker Compose ngoài).
-
-**Lợi ích:**
-- Giảm cấu hình Docker Compose phức tạp khi dev nhiều service.
-- Quản lý môi trường (connection strings, telemetry, secrets) tập trung.
-- Dễ mở rộng ra Observability (Grafana, OTLP, Prometheus) sau này.
+```
+document.created → search-indexer, notify, audit
+version.created → ocr-engine → ocr.extraction.updated → search-indexer
+workflow.task.assigned → notify
+signature.completed → audit
+```
 
 ---
 
-## 2) Projects & Modules
-
-| Project               | Lang       | Purpose                           | Key Modules                                                     |
-| --------------------- | ---------- | --------------------------------- | --------------------------------------------------------------- |
-| **ecm**               | .NET 8     | Edge auth + routing               | main application                                                |
-| **document-services** | .NET 8     | Documents + Versions + Outbox     | documents, versions, metadata-merge, outbox                     |
-| **file-services**     | .NET 8     | Presigned URLs + MinIO adapter    | presign, lifecycle                                              |
-| **workflow**          | .NET 8     | Workflow definition/instance/task | wf-definition, wf-instance, wf-task                             |
-| **ocr**               | **Python** | OCR + labeling + extraction       | ocr-engine, template-registry, labeling-ui, extraction-resolver |
-| **search-api**        | .NET 8     | Search read API (hybrid)          | , ranker                                                        |
-| **search-indexer**    | .NET 8     | Build indexes from events         | indexer, fts-writer, kv-writer, vector-writer                   |
-| **notify**            | .NET 8     | Email/Webhook                     | subscriptions, delivery, templating                             |
-| **signature**         | .NET 8     | Sign/Verify adapters              | sign-adapter, verify, evidence-store                            |
-| **outbox-dispatcher** | .NET 8     | Poll DB → publish events          | poller, publisher, dlq                                          |
-
-**Shared packages** (avoid god-library):
-
-- `shared-interfaces` (IStorage, IAuthzContext, Result, Id types)
-- `shared-utils` (hashing/time/json)
-- `storage-minio-adapter` (S3 SDK)
-- `authz-postgres-rls-adapter` (SET LOCAL app.user\_\*)
-- `search-helpers` (cosine/normalize & DTO)
-- `search-index-contracts` (event payloads)
-
----
-
-## 3) Data Model (DB) – Summary
-
-**Schemas (DEV, single-tenant simplified):** `iam, authz, doc, files, bus, ocr, wf, search, audit, retention, signature`
-
-- `doc.document(id, title, doc_type, status, sensitivity, owner_id, created_at, updated_at)`
-- `doc.version(id, document_id, version_no, storage_key, sha256, bytes, mime_type, created_by, created_at)`
-- `doc.metadata(document_id, data jsonb)` (GIN)
-
-- `files.object(storage_key, legal_hold)` (MinIO key)
-
-- `bus.outbox(id, aggregate, aggregate_id, type, payload, processed_at)` + `bus.outbox_deadletter(...)`
-
-- OCR:
-
-  - `ocr.result(document_id, version_id, pages, lang, summary)`
-  - `ocr.page_text(document_id, version_id, page_no, content)`
-  - `ocr.template(id, name, version, page_side, size_ratio, is_active)`
-  - `ocr.field_def(id, template_id, field_key, bbox_rel, anchor, validator, required, order_no)`
-  - `ocr.annotation(id, document_id, version_id, template_id, field_key, value_text, bbox_abs, confidence, source, created_by)`
-  - `ocr.extraction(document_id, version_id, field_key, value_text, confidence, provenance)`
-  - `ocr.label_project / ocr.label_task` (optional labeling workflow)
-
-- Workflow:
-
-  - `wf.definition(id, name, spec jsonb)`
-  - `wf.instance(id, definition_id, document_id, state, created_at, updated_at)`
-  - `wf.task(id, instance_id, step_id, assignee_id, due_at, status, acted_at)`
-
-- Search:
-
-  - `search.fts(document_id, tsv)` (GIN)
-  - `search.kv(document_id, field_key, field_value)` (+ trigram)
-  - `search.embedding(document_id, title_vec(768), text_vec(1536))` (ivfflat cosine)
-
-- Audit (append-only): `audit.event(id, occurred_at, actor_id, action, object_type, object_id, details)`
-
-- Retention: `retention.policy`, `retention.candidate`
-
-- Signature: `signature.result(document_id, version_id, status, evidence, ...)`
-
-**RLS (read)** on `doc.document` (+ join applies):  
-`authz.fn_can_read(doc_row)` combines RBAC (user_role), ReBAC (relationship), and ABAC (metadata.department).
-
----
-
-## 4) Events & Outbox
-
-**Outbox types → Topics**
-
-| Type (prefix)             | Topic              |
-| ------------------------- | ------------------ |
-| `document.*`, `version.*` | `document.events`  |
-| `workflow.*`              | `workflow.events`  |
-| `ocr.*`                   | `ocr.events`       |
-| `search.*`                | `search.events`    |
-| `retention.*`             | `retention.events` |
-| `signature.*`             | `signature.events` |
-
-**Dispatcher**: `outbox-dispatcher` polls `bus.outbox` in batches (`FOR UPDATE SKIP LOCKED`) → publish → set `processed_at`. DLQ to `bus.outbox_deadletter` for permanent failures.
-
-**Idempotency**: consumers must `UPSERT` (e.g., `ON CONFLICT` for search indexes).
-
----
-
-## 5) APIs (samples)
+## 7) APIs (samples)
 
 ### Document
 
@@ -215,76 +231,6 @@ Thư viện `ServiceDefaults` chứa cấu hình mặc định cho mọi service
 - `POST /ocr/process` (optional trigger)
 - Labeling UI endpoints (annotation CRUD)
 - Resolver promotes `ocr.extraction` and emits `ocr.extraction.updated`
-
----
-
-## 6) Directory Layout
-
-```
-repo/
-├─ host/
-│  └─ AppHost/                        # .NET Aspire orchestrator
-├─ apps/
-│  ├─ ecm/
-│  │  └─ Ecm.Api/                     # Gateway/BFF + serve UI tĩnh (wwwroot)
-│  │     └─ wwwroot/                  # Build SPA (copy vào đây)
-│  ├─ document/                       # Bounded Context: Document (Clean Architecture)
-│  │  ├─ Document.Api/
-│  │  ├─ Document.Application/
-│  │  ├─ Document.Domain/
-│  │  └─ Document.Infrastructure/
-│  ├─ workflow/                       # Bounded Context: Workflow (Clean Architecture)
-│  │  ├─ Workflow.Api/
-│  │  ├─ Workflow.Application/
-│  │  ├─ Workflow.Domain/
-│  │  └─ Workflow.Infrastructure/
-│  ├─ search/
-│  │  └─ Search.Indexer/              # Worker build index từ events
-│  └─ background/
-│     └─ OutboxDispatcher.Worker/     # Poll DB outbox → publish Redpanda
-├─ libs/
-│   ├─ ServiceDefaults/                # OTel, health, resilience defaults cho mọi host
-│   ├─ SharedKernel/                   # Abstractions trung tính domain (Result, Id, etc.)
-│   └─ Contracts/                      # Event/DTO contracts dùng xuyên context
-└─ docker/
-   ├─ compose.yml
-   └─ init/
-       ├─ db-init.sql
-       ├─ mc-init.sh
-       └─ topics-init.sh
-```
-
----
-
-## 7) Docker (DEV) – Summary
-
-**Infra services**
-
-- **Postgres 16** (`5432`): enable `citext`, `pg_trgm`, `vector`
-- **MinIO** (`9000`, console `9001`): bucket `${MINIO_BUCKET}`
-- **Redpanda** (`9092`, admin `9644`) + console (`8089`)
-- **Mailhog** (`8025`) optional
-- **Wiremock** (`8088`) optional
-
-**Applications**
-
-- `gateway` (`8080`)
-- `document-services` (`8081`)
-- `file-services` (`8082`)
-- `workflow` (`8083`)
-- `ocr` (Python) (`8084`)
-- `search-api` (`8085`)
-- Workers: `search-indexer`, `notify`, `audit`, `retention`, `outbox-dispatcher`
-
-**Key ENV**
-
-```
-POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
-MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET
-KAFKA_BROKER=redpanda:9092
-JWT_SECRET=dev-secret
-TESSDATA_LANG=vie+eng
-```
 
 ---
 
@@ -369,4 +315,3 @@ open http://localhost:8080   # Gateway
 - Prefer generating service skeletons per project with minimal REST endpoints and consuming/producing event contracts above.
 - Keep repository interfaces in `shared-interfaces`; infra adapters in specific packages.
 - Respect RLS: all DB-aware code must set user context per-request.
-- OCR (Python) interacts via REST/events; store embeddings via indexer (not directly from OCR).
