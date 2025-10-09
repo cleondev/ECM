@@ -1,3 +1,4 @@
+using Ecm.Presentation.Documents;
 using ServiceDefaults;
 
 namespace Ecm;
@@ -10,6 +11,9 @@ public static class Program
 
         builder.AddServiceDefaults();
 
+        builder.Services.AddApplication();
+        builder.Services.AddInfrastructure();
+
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
@@ -21,22 +25,12 @@ public static class Program
             app.UseSwaggerUI();
         }
 
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
         app.MapDefaultEndpoints();
-
-        app.MapGet("/api/ecm", () => Results.Ok(new { message = "ECM API placeholder" }))
-           .WithName("GetEcmStatus")
-           .WithDescription("Return a placeholder response for the ECM API.");
-
-        app.MapPost("/api/ecm/documents", (DocumentCreateRequest request) =>
-        {
-            var document = new DocumentSummary(Guid.NewGuid(), request.Name, DateTimeOffset.UtcNow);
-            return Results.Created($"/api/ecm/documents/{document.Id}", document);
-        }).WithName("CreateDocument")
-          .WithDescription("Create a placeholder document and return a fake identifier.");
+        app.MapDocumentEndpoints();
 
         app.Run();
     }
 }
-
-internal record DocumentCreateRequest(string Name);
-internal record DocumentSummary(Guid Id, string Name, DateTimeOffset CreatedAt);
