@@ -24,7 +24,6 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   │   ├── ocr-engine          # Service Python cho OCR
   │   └── labeling-ui         # UI gán nhãn dữ liệu OCR
   └── shared                  # Contracts, messaging, utilities, extensions dùng chung
-/archive                # Lưu lại các microservice cũ để tham chiếu
 /tests                  # Test project (xUnit) cho shared libraries
 /docker                 # Tập tin phục vụ khởi tạo hạ tầng DEV
 ```
