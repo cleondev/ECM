@@ -1,12 +1,12 @@
 {
   "profiles": {
-    "Workflow": {
+    "AppGateway.Api": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:63052"
+      "applicationUrl": "https://localhost:50241;http://localhost:50242"
     }
   }
 }
