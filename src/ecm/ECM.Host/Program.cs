@@ -1,4 +1,5 @@
-using ECM.Modules.Document.Api.Documents;
+using ECM.Modules.Abstractions;
+using ECM.Modules.Document.Api;
 using ServiceDefaults;
 
 namespace ECM.Host;
@@ -10,9 +11,7 @@ public static class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.AddServiceDefaults();
-
-        builder.Services.AddDocumentApplication();
-        builder.Services.AddDocumentInfrastructure();
+        builder.AddModule<DocumentModule>();
 
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -29,7 +28,7 @@ public static class Program
         app.UseStaticFiles();
 
         app.MapDefaultEndpoints();
-        app.MapDocumentEndpoints();
+        app.MapModules();
 
         app.Run();
     }
