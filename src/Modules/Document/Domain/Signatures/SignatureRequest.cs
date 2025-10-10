@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ECM.Modules.Document.Domain.Documents;
 using ECM.Modules.Document.Domain.Versions;
+using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
 
 namespace ECM.Modules.Document.Domain.Signatures;
 
@@ -58,7 +59,7 @@ public sealed class SignatureRequest
 
     public Guid VersionId { get; private set; }
 
-    public Document? Document { get; private set; }
+    public DocumentAggregate? Document { get; private set; }
 
     public DocumentVersion? Version { get; private set; }
 

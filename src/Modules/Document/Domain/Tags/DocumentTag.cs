@@ -1,4 +1,5 @@
 using ECM.Modules.Document.Domain.Documents;
+using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
 
 namespace ECM.Modules.Document.Domain.Tags;
 
@@ -28,7 +29,7 @@ public sealed class DocumentTag
 
     public DocumentId DocumentId { get; private set; }
 
-    public Document? Document { get; private set; }
+    public DocumentAggregate? Document { get; private set; }
 
     public Guid TagId { get; private set; }
 
