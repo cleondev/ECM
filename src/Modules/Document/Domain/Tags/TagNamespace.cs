@@ -2,7 +2,7 @@ namespace ECM.Document.Domain.Tags;
 
 public sealed class TagNamespace
 {
-    private readonly List<TagLabel> _labels = new();
+    private readonly List<TagLabel> _labels = [];
 
     private TagNamespace()
     {

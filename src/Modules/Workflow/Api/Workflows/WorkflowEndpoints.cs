@@ -41,7 +41,7 @@ public static class WorkflowEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["workflow"] = result.Errors.ToArray()
+                ["workflow"] = [.. result.Errors]
             });
         }
 

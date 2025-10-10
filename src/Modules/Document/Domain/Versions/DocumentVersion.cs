@@ -6,7 +6,7 @@ namespace ECM.Document.Domain.Versions;
 
 public sealed class DocumentVersion
 {
-    private readonly List<SignatureRequest> _signatureRequests = new();
+    private readonly List<SignatureRequest> _signatureRequests = [];
 
     private DocumentVersion()
     {

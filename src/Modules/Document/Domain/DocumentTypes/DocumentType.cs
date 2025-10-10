@@ -5,7 +5,7 @@ namespace ECM.Document.Domain.DocumentTypes;
 
 public sealed class DocumentType
 {
-    private readonly List<DocumentAggregate> _documents = new();
+    private readonly List<DocumentAggregate> _documents = [];
 
     private DocumentType()
     {

@@ -4,7 +4,7 @@ using ECM.Modules.AccessControl.Domain.Users;
 
 public sealed class Role
 {
-    private readonly List<UserRole> _userRoles = new();
+    private readonly List<UserRole> _userRoles = [];
 
     private Role()
     {

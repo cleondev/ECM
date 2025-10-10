@@ -7,9 +7,9 @@ namespace ECM.Document.Domain.Documents;
 
 public sealed class Document
 {
-    private readonly List<DocumentVersion> _versions = new();
-    private readonly List<DocumentTag> _tags = new();
-    private readonly List<SignatureRequest> _signatureRequests = new();
+    private readonly List<DocumentVersion> _versions = [];
+    private readonly List<DocumentTag> _tags = [];
+    private readonly List<SignatureRequest> _signatureRequests = [];
 
     private Document()
     {

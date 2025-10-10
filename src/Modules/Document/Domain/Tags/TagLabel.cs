@@ -4,7 +4,7 @@ namespace ECM.Document.Domain.Tags;
 
 public sealed class TagLabel
 {
-    private readonly List<DocumentTag> _documentTags = new();
+    private readonly List<DocumentTag> _documentTags = [];
 
     private TagLabel()
     {

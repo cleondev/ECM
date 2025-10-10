@@ -43,7 +43,7 @@ public static class FileEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["file"] = result.Errors.ToArray()
+                ["file"] = [.. result.Errors]
             });
         }
 

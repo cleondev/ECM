@@ -9,13 +9,8 @@ using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Infrastructure.Persistence;
 
-public sealed class DocumentDbContext : DbContext
+public sealed class DocumentDbContext(DbContextOptions<DocumentDbContext> options) : DbContext(options)
 {
-    public DocumentDbContext(DbContextOptions<DocumentDbContext> options)
-        : base(options)
-    {
-    }
-
     public DbSet<DocumentAggregate> Documents => Set<DocumentAggregate>();
 
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();

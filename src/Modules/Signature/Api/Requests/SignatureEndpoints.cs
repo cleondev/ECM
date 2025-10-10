@@ -41,7 +41,7 @@ public static class SignatureEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["signature"] = result.Errors.ToArray()
+                ["signature"] = [.. result.Errors]
             });
         }
 
