@@ -60,17 +60,17 @@ public static class Program
         builder.AddProject<Projects.AppGateway_Api>("app-gateway")
             .WithReference(ecmHost);
 
-        builder.AddProject<Projects.SearchIndexer_Worker>("search-indexer")
+        builder.AddProject<Projects.SearchIndexer>("search-indexer")
             .WithReference(postgres)
             .WithReference(kafka)
             .WithReference(ecmHost);
 
-        builder.AddProject<Projects.OutboxDispatcher_Worker>("outbox-dispatcher")
+        builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
             .WithReference(postgres)
             .WithReference(kafka)
             .WithReference(ecmHost);
 
-        builder.AddProject<Projects.Notify_Worker>("notify")
+        builder.AddProject<Projects.SearchIndexer>("notify")
             .WithReference(kafka);
 
         builder.Build().Run();
