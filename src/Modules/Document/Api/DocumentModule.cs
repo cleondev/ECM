@@ -1,7 +1,6 @@
 using ECM.Modules.Abstractions;
 using ECM.Modules.Document.Api.Documents;
-using ECM.Modules.Document.Application;
-using ECM.Modules.Document.Infrastructure;
+
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
