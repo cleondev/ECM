@@ -5,6 +5,7 @@ using ECM.Modules.Document.Domain.Signatures;
 using ECM.Modules.Document.Domain.Tags;
 using ECM.Modules.Document.Domain.Versions;
 using Microsoft.EntityFrameworkCore;
+using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
 
 namespace ECM.Modules.Document.Infrastructure.Persistence;
 
@@ -15,7 +16,7 @@ public sealed class DocumentDbContext : DbContext
     {
     }
 
-    public DbSet<Document> Documents => Set<Document>();
+    public DbSet<DocumentAggregate> Documents => Set<DocumentAggregate>();
 
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
 

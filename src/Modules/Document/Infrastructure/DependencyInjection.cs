@@ -3,6 +3,7 @@ using ECM.BuildingBlocks.Infrastructure.Time;
 using ECM.Modules.Document.Domain.Documents;
 using ECM.Modules.Document.Infrastructure.Documents;
 using ECM.Modules.Document.Infrastructure.Persistence;
+using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
