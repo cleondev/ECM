@@ -1,3 +1,14 @@
 namespace ECM.Modules.Document.Application.Documents;
 
-public sealed record DocumentSummary(Guid Id, string Title, DateTimeOffset CreatedAtUtc);
+public sealed record DocumentSummary(
+    Guid Id,
+    string Title,
+    string DocType,
+    string Status,
+    string Sensitivity,
+    Guid OwnerId,
+    Guid CreatedBy,
+    string? Department,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    Guid? DocumentTypeId);

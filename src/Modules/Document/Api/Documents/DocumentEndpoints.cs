@@ -31,19 +31,41 @@ public static class DocumentEndpoints
         DocumentApplicationService service,
         CancellationToken cancellationToken)
     {
-        var result = await service.CreateAsync(new CreateDocumentCommand(request.Title), cancellationToken);
+        var result = await service.CreateAsync(
+            new CreateDocumentCommand(
+                request.Title,
+                request.DocType,
+                request.Status,
+                request.OwnerId,
+                request.CreatedBy,
+                request.Department,
+                request.Sensitivity,
+                request.DocumentTypeId),
+            cancellationToken);
 
         if (result.IsFailure || result.Value is null)
         {
             var errors = new Dictionary<string, string[]>
             {
-                [nameof(request.Title).ToLowerInvariant()] = result.Errors.ToArray()
+                ["document"] = result.Errors.ToArray()
             };
 
             return TypedResults.ValidationProblem(errors);
         }
 
-        var response = new DocumentResponse(result.Value.Id, result.Value.Title, result.Value.CreatedAtUtc);
+        var response = new DocumentResponse(
+            result.Value.Id,
+            result.Value.Title,
+            result.Value.DocType,
+            result.Value.Status,
+            result.Value.Sensitivity,
+            result.Value.OwnerId,
+            result.Value.CreatedBy,
+            result.Value.Department,
+            result.Value.CreatedAtUtc,
+            result.Value.UpdatedAtUtc,
+            result.Value.DocumentTypeId);
+
         return TypedResults.Created($"/api/ecm/documents/{response.Id}", response);
     }
 }

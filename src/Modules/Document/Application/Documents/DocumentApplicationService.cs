@@ -28,10 +28,40 @@ public sealed class DocumentApplicationService
             return OperationResult<DocumentSummary>.Failure(exception.Message);
         }
 
-        var document = DocumentEntity.Create(title, _clock.UtcNow);
+        DocumentEntity document;
+        try
+        {
+            document = DocumentEntity.Create(
+                title,
+                command.DocType,
+                command.Status,
+                command.OwnerId,
+                command.CreatedBy,
+                _clock.UtcNow,
+                command.Department,
+                command.Sensitivity,
+                command.DocumentTypeId);
+        }
+        catch (ArgumentException exception)
+        {
+            return OperationResult<DocumentSummary>.Failure(exception.Message);
+        }
+
         document = await _repository.AddAsync(document, cancellationToken);
 
-        var summary = new DocumentSummary(document.Id.Value, document.Title.Value, document.CreatedAtUtc);
+        var summary = new DocumentSummary(
+            document.Id.Value,
+            document.Title.Value,
+            document.DocType,
+            document.Status,
+            document.Sensitivity,
+            document.OwnerId,
+            document.CreatedBy,
+            document.Department,
+            document.CreatedAtUtc,
+            document.UpdatedAtUtc,
+            document.TypeId);
+
         return OperationResult<DocumentSummary>.Success(summary);
     }
 }

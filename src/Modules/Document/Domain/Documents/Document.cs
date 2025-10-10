@@ -1,22 +1,172 @@
+using ECM.Modules.Document.Domain.DocumentTypes;
+using ECM.Modules.Document.Domain.Signatures;
+using ECM.Modules.Document.Domain.Tags;
+using ECM.Modules.Document.Domain.Versions;
+
 namespace ECM.Modules.Document.Domain.Documents;
 
 public sealed class Document
 {
-    private Document(DocumentId id, DocumentTitle title, DateTimeOffset createdAtUtc)
+    private readonly List<DocumentVersion> _versions = new();
+    private readonly List<DocumentTag> _tags = new();
+    private readonly List<SignatureRequest> _signatureRequests = new();
+
+    private Document()
+    {
+        Title = null!;
+        DocType = null!;
+        Status = null!;
+        Sensitivity = "Internal";
+    }
+
+    private Document(
+        DocumentId id,
+        DocumentTitle title,
+        string docType,
+        string status,
+        string sensitivity,
+        Guid ownerId,
+        Guid createdBy,
+        DateTimeOffset createdAtUtc,
+        DateTimeOffset updatedAtUtc,
+        string? department,
+        Guid? typeId)
+        : this()
     {
         Id = id;
         Title = title;
+        DocType = docType;
+        Status = status;
+        Sensitivity = sensitivity;
+        OwnerId = ownerId;
+        CreatedBy = createdBy;
+        Department = department;
         CreatedAtUtc = createdAtUtc;
+        UpdatedAtUtc = updatedAtUtc;
+        TypeId = typeId;
     }
 
-    public DocumentId Id { get; }
+    public DocumentId Id { get; private set; }
 
     public DocumentTitle Title { get; private set; }
 
-    public DateTimeOffset CreatedAtUtc { get; }
+    public string DocType { get; private set; }
 
-    public static Document Create(DocumentTitle title, DateTimeOffset createdAtUtc)
+    public string Status { get; private set; }
+
+    public string Sensitivity { get; private set; }
+
+    public Guid OwnerId { get; private set; }
+
+    public string? Department { get; private set; }
+
+    public Guid CreatedBy { get; private set; }
+
+    public DateTimeOffset CreatedAtUtc { get; private set; }
+
+    public DateTimeOffset UpdatedAtUtc { get; private set; }
+
+    public Guid? TypeId { get; private set; }
+
+    public DocumentType? Type { get; private set; }
+
+    public DocumentMetadata? Metadata { get; private set; }
+
+    public IReadOnlyCollection<DocumentVersion> Versions => _versions.AsReadOnly();
+
+    public IReadOnlyCollection<DocumentTag> Tags => _tags.AsReadOnly();
+
+    public IReadOnlyCollection<SignatureRequest> SignatureRequests => _signatureRequests.AsReadOnly();
+
+    public static Document Create(
+        DocumentTitle title,
+        string docType,
+        string status,
+        Guid ownerId,
+        Guid createdBy,
+        DateTimeOffset now,
+        string? department = null,
+        string? sensitivity = null,
+        Guid? typeId = null)
     {
-        return new Document(DocumentId.New(), title, createdAtUtc);
+        if (string.IsNullOrWhiteSpace(docType))
+        {
+            throw new ArgumentException("Document type is required.", nameof(docType));
+        }
+
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            throw new ArgumentException("Document status is required.", nameof(status));
+        }
+
+        var finalSensitivity = string.IsNullOrWhiteSpace(sensitivity) ? "Internal" : sensitivity.Trim();
+
+        return new Document(
+            DocumentId.New(),
+            title,
+            docType.Trim(),
+            status.Trim(),
+            finalSensitivity,
+            ownerId,
+            createdBy,
+            now,
+            now,
+            string.IsNullOrWhiteSpace(department) ? null : department.Trim(),
+            typeId);
+    }
+
+    public void UpdateTitle(DocumentTitle title, DateTimeOffset updatedAtUtc)
+    {
+        Title = title;
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void UpdateStatus(string status, DateTimeOffset updatedAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            throw new ArgumentException("Document status is required.", nameof(status));
+        }
+
+        Status = status.Trim();
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void UpdateSensitivity(string sensitivity, DateTimeOffset updatedAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(sensitivity))
+        {
+            throw new ArgumentException("Document sensitivity is required.", nameof(sensitivity));
+        }
+
+        Sensitivity = sensitivity.Trim();
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void UpdateDepartment(string? department, DateTimeOffset updatedAtUtc)
+    {
+        Department = string.IsNullOrWhiteSpace(department) ? null : department.Trim();
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void AttachMetadata(DocumentMetadata metadata)
+    {
+        Metadata = metadata;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    internal void AddVersion(DocumentVersion version)
+    {
+        _versions.Add(version);
+    }
+
+    internal void AddTag(DocumentTag tag)
+    {
+        _tags.Add(tag);
+    }
+
+    internal void AddSignatureRequest(SignatureRequest request)
+    {
+        _signatureRequests.Add(request);
     }
 }
