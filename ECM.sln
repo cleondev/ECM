@@ -32,6 +32,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults.Tests", "te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Document.Tests", "tests\Document.Tests\Document.Tests.csproj", "{67FDE2E8-255F-468F-8042-B1EFFA150991}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "File.Tests", "tests\File.Tests\File.Tests.csproj", "{AC7E7806-02F4-4283-B87E-AD70F180B3A3}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccessControl.Test", "tests\AccessControl.Test\AccessControl.Test.csproj", "{9D5FE251-7FB8-4081-869D-9C31FE659D6E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "src\Aspire\ECM.ServiceDefaults\ServiceDefaults.csproj", "{505CAA70-78FC-4746-8C40-B6EB1AB8F5F7}"
@@ -92,6 +94,10 @@ Global
                 {67FDE2E8-255F-468F-8042-B1EFFA150991}.Debug|Any CPU.Build.0 = Debug|Any CPU
                 {67FDE2E8-255F-468F-8042-B1EFFA150991}.Release|Any CPU.ActiveCfg = Release|Any CPU
                 {67FDE2E8-255F-468F-8042-B1EFFA150991}.Release|Any CPU.Build.0 = Release|Any CPU
+                {AC7E7806-02F4-4283-B87E-AD70F180B3A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {AC7E7806-02F4-4283-B87E-AD70F180B3A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {AC7E7806-02F4-4283-B87E-AD70F180B3A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {AC7E7806-02F4-4283-B87E-AD70F180B3A3}.Release|Any CPU.Build.0 = Release|Any CPU
                 {9D5FE251-7FB8-4081-869D-9C31FE659D6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
                 {9D5FE251-7FB8-4081-869D-9C31FE659D6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
                 {9D5FE251-7FB8-4081-869D-9C31FE659D6E}.Release|Any CPU.ActiveCfg = Release|Any CPU

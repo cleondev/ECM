@@ -1,8 +1,9 @@
+using System;
+using System.Linq;
 using ECM.Document.Domain.DocumentTypes;
 using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
-using System.Linq;
 
 namespace ECM.Document.Domain.Documents;
 
@@ -154,6 +155,54 @@ public sealed class Document
     {
         Metadata = metadata;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public DocumentVersion AddVersion(
+        string storageKey,
+        long bytes,
+        string mimeType,
+        string sha256,
+        Guid createdBy,
+        DateTimeOffset createdAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+        {
+            throw new ArgumentException("Storage key is required.", nameof(storageKey));
+        }
+
+        if (string.IsNullOrWhiteSpace(mimeType))
+        {
+            throw new ArgumentException("MIME type is required.", nameof(mimeType));
+        }
+
+        if (string.IsNullOrWhiteSpace(sha256))
+        {
+            throw new ArgumentException("SHA-256 hash is required.", nameof(sha256));
+        }
+
+        if (bytes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(bytes), bytes, "File size must be greater than zero.");
+        }
+
+        var nextVersionNumber = _versions.Count == 0
+            ? 1
+            : _versions.Max(version => version.VersionNo) + 1;
+
+        var version = new DocumentVersion(
+            Guid.NewGuid(),
+            Id,
+            nextVersionNumber,
+            storageKey,
+            bytes,
+            mimeType,
+            sha256,
+            createdBy,
+            createdAtUtc);
+
+        _versions.Add(version);
+        UpdatedAtUtc = createdAtUtc;
+        return version;
     }
 
     internal void AddVersion(DocumentVersion version)

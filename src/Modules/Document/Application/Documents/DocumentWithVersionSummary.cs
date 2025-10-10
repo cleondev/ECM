@@ -1,6 +1,6 @@
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Application.Documents;
 
-public sealed record DocumentResponse(
+public sealed record DocumentWithVersionSummary(
     Guid Id,
     string Title,
     string DocType,
@@ -12,4 +12,4 @@ public sealed record DocumentResponse(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     Guid? DocumentTypeId,
-    DocumentVersionResponse? LatestVersion);
+    DocumentVersionSummary? LatestVersion);
