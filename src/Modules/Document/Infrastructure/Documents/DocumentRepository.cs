@@ -15,4 +15,14 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
         await _context.SaveChangesAsync(cancellationToken);
         return document;
     }
+
+    public Task<DocumentAggregate?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default)
+    {
+        return _context.Documents
+            .Include(document => document.Tags)
+            .FirstOrDefaultAsync(document => document.Id == documentId, cancellationToken);
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        => _context.SaveChangesAsync(cancellationToken);
 }

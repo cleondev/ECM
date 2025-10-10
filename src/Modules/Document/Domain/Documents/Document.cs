@@ -2,6 +2,7 @@ using ECM.Document.Domain.DocumentTypes;
 using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
+using System.Linq;
 
 namespace ECM.Document.Domain.Documents;
 
@@ -160,9 +161,40 @@ public sealed class Document
         _versions.Add(version);
     }
 
-    internal void AddTag(DocumentTag tag)
+    public DocumentTag AssignTag(Guid tagId, Guid? appliedBy, DateTimeOffset appliedAtUtc)
     {
-        _tags.Add(tag);
+        if (tagId == Guid.Empty)
+        {
+            throw new ArgumentException("Tag identifier is required.", nameof(tagId));
+        }
+
+        if (_tags.Any(tag => tag.TagId == tagId))
+        {
+            throw new InvalidOperationException("Tag is already assigned to this document.");
+        }
+
+        var documentTag = new DocumentTag(Id, tagId, appliedBy, appliedAtUtc);
+        _tags.Add(documentTag);
+        UpdatedAtUtc = appliedAtUtc;
+        return documentTag;
+    }
+
+    public bool RemoveTag(Guid tagId, DateTimeOffset removedAtUtc)
+    {
+        if (tagId == Guid.Empty)
+        {
+            throw new ArgumentException("Tag identifier is required.", nameof(tagId));
+        }
+
+        var existingTag = _tags.FirstOrDefault(tag => tag.TagId == tagId);
+        if (existingTag is null)
+        {
+            return false;
+        }
+
+        _tags.Remove(existingTag);
+        UpdatedAtUtc = removedAtUtc;
+        return true;
     }
 
     internal void AddSignatureRequest(SignatureRequest request)
