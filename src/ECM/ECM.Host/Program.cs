@@ -5,6 +5,8 @@ using ECM.File.Api;
 using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
 using ServiceDefaults;
 
 namespace ECM.Host;
@@ -23,6 +25,14 @@ public static class Program
         builder.AddModule<SignatureModule>();
         builder.AddModule<SearchReadModule>();
 
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        }).AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+        builder.Services.AddAuthorization();
+
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
@@ -36,6 +46,9 @@ public static class Program
 
         app.UseDefaultFiles();
         app.UseStaticFiles();
+
+        app.UseAuthentication();
+        app.UseAuthorization();
 
         app.MapDefaultEndpoints();
         app.MapModules();

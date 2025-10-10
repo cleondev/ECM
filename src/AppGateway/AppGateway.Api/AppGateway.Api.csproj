@@ -9,6 +9,7 @@
     <ProjectReference Include="../AppGateway.Infrastructure/AppGateway.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Identity.Web" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 </Project>
