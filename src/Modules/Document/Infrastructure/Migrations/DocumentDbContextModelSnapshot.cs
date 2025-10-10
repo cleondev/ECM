@@ -1,5 +1,5 @@
-using System;
 using System.Text.Json;
+
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.DocumentTypes;
 using ECM.Document.Domain.Files;
@@ -7,11 +7,11 @@ using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
 using ECM.Document.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
 using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 #nullable disable
@@ -23,7 +23,6 @@ partial class DocumentDbContextModelSnapshot : ModelSnapshot
 {
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
-#pragma warning disable 612, 618
         modelBuilder
             .HasDefaultSchema("doc")
             .HasAnnotation("ProductVersion", "8.0.6")
@@ -536,6 +535,5 @@ partial class DocumentDbContextModelSnapshot : ModelSnapshot
             b.Navigation(n => n.Labels)
                 .UsePropertyAccessMode(PropertyAccessMode.Field);
         });
-#pragma warning restore 612, 618
     }
 }
