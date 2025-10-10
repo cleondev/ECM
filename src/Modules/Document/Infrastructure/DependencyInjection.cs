@@ -1,7 +1,9 @@
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.BuildingBlocks.Infrastructure.Time;
 using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.Tags;
 using ECM.Document.Infrastructure.Documents;
+using ECM.Document.Infrastructure.Tags;
 using ECM.Document.Infrastructure.Persistence;
 using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +33,7 @@ public static class DocumentInfrastructureModuleExtensions
         });
 
         services.AddScoped<IDocumentRepository, DocumentRepository>();
+        services.AddScoped<ITagLabelRepository, TagLabelRepository>();
 
         return services;
     }

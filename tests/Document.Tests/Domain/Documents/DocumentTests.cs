@@ -195,4 +195,84 @@ public class DocumentTests
         Assert.Equal("Legal", document.Department);
         Assert.Equal(updatedAt, document.UpdatedAtUtc);
     }
+
+    [Fact]
+    public void AssignTag_WithNewTag_AddsTagAndUpdatesTimestamp()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            now);
+
+        var tagId = Guid.NewGuid();
+        var appliedAt = now.AddMinutes(1);
+
+        var documentTag = document.AssignTag(tagId, Guid.NewGuid(), appliedAt);
+
+        Assert.Single(document.Tags);
+        Assert.Equal(tagId, documentTag.TagId);
+        Assert.Equal(appliedAt, documentTag.AppliedAtUtc);
+        Assert.Equal(appliedAt, document.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public void AssignTag_WithExistingTag_ThrowsInvalidOperationException()
+    {
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        var tagId = Guid.NewGuid();
+        document.AssignTag(tagId, Guid.NewGuid(), DateTimeOffset.UtcNow);
+
+        Assert.Throws<InvalidOperationException>(() => document.AssignTag(tagId, Guid.NewGuid(), DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void RemoveTag_WithAssignedTag_RemovesAndUpdatesTimestamp()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            now);
+
+        var tagId = Guid.NewGuid();
+        document.AssignTag(tagId, Guid.NewGuid(), now.AddMinutes(1));
+
+        var removedAt = now.AddMinutes(2);
+        var removed = document.RemoveTag(tagId, removedAt);
+
+        Assert.True(removed);
+        Assert.Empty(document.Tags);
+        Assert.Equal(removedAt, document.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public void RemoveTag_WithMissingAssignment_ReturnsFalse()
+    {
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        var removed = document.RemoveTag(Guid.NewGuid(), DateTimeOffset.UtcNow);
+
+        Assert.False(removed);
+        Assert.Empty(document.Tags);
+    }
 }
