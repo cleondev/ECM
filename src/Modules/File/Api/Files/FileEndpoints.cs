@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using ECM.Modules.File.Application.Files;
 using ECM.Modules.File.Domain.Files;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
@@ -10,7 +12,7 @@ namespace ECM.Modules.File.Api.Files;
 
 public static class FileEndpoints
 {
-    public static IEndpointRouteBuilder MapFileEndpoints(this IEndpointRouteBuilder builder)
+    public static RouteGroupBuilder MapFileEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/ecm/files");
         group.WithTags("Files");

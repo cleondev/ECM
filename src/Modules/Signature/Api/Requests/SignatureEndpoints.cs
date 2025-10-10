@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using ECM.Modules.Signature.Application.Requests;
 using ECM.Modules.Signature.Domain.Requests;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
@@ -10,7 +12,7 @@ namespace ECM.Modules.Signature.Api.Requests;
 
 public static class SignatureEndpoints
 {
-    public static IEndpointRouteBuilder MapSignatureEndpoints(this IEndpointRouteBuilder builder)
+    public static RouteGroupBuilder MapSignatureEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/ecm/signatures");
         group.WithTags("Signature");
