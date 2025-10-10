@@ -9,7 +9,10 @@ public sealed class TagLabelConfiguration : IEntityTypeConfiguration<TagLabel>
 {
     public void Configure(EntityTypeBuilder<TagLabel> builder)
     {
-        builder.ToTable("tag_label");
+        builder.ToTable("tag_label", tableBuilder =>
+        {
+            tableBuilder.HasCheckConstraint("chk_tag_path_format", "path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$'");
+        });
 
         builder.HasKey(label => label.Id);
 
@@ -56,8 +59,6 @@ public sealed class TagLabelConfiguration : IEntityTypeConfiguration<TagLabel>
         builder.HasIndex(label => new { label.NamespaceSlug, label.Path })
             .HasDatabaseName("tag_label_ns_path_idx")
             .IsUnique();
-
-        builder.HasCheckConstraint("chk_tag_path_format", "path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$'");
 
         builder.Navigation(label => label.DocumentTags)
             .UsePropertyAccessMode(PropertyAccessMode.Field);

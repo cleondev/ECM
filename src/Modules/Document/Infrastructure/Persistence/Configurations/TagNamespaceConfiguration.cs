@@ -9,7 +9,10 @@ public sealed class TagNamespaceConfiguration : IEntityTypeConfiguration<TagName
 {
     public void Configure(EntityTypeBuilder<TagNamespace> builder)
     {
-        builder.ToTable("tag_namespace");
+        builder.ToTable("tag_namespace", tableBuilder =>
+        {
+            tableBuilder.HasCheckConstraint("chk_tag_namespace_kind", "kind IN ('system','user')");
+        });
 
         builder.HasKey(ns => ns.NamespaceSlug);
 
@@ -20,8 +23,6 @@ public sealed class TagNamespaceConfiguration : IEntityTypeConfiguration<TagName
         builder.Property(ns => ns.Kind)
             .HasColumnName("kind")
             .IsRequired();
-
-        builder.HasCheckConstraint("chk_tag_namespace_kind", "kind IN ('system','user')");
 
         builder.Property(ns => ns.OwnerUserId)
             .HasColumnName("owner_user_id");
