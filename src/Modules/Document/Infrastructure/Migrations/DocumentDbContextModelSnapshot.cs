@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
 
 #nullable disable
 
@@ -33,7 +34,7 @@ partial class DocumentDbContextModelSnapshot : ModelSnapshot
         var documentIdConverter = new ValueConverter<DocumentId, Guid>(value => value.Value, value => DocumentId.FromGuid(value));
         var documentTitleConverter = new ValueConverter<DocumentTitle, string>(value => value.Value, value => DocumentTitle.Create(value));
 
-        modelBuilder.Entity<Document>(b =>
+        modelBuilder.Entity<DocumentAggregate>(b =>
         {
             b.Property<DocumentId>("Id")
                 .HasColumnName("id")

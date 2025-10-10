@@ -1,4 +1,5 @@
 using ECM.Modules.Document.Domain.Documents;
+using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
 using ECM.Modules.Document.Domain.Signatures;
 
 namespace ECM.Modules.Document.Domain.Versions;
@@ -61,7 +62,7 @@ public sealed class DocumentVersion
 
     public DocumentId DocumentId { get; private set; }
 
-    public Document? Document { get; private set; }
+    public DocumentAggregate? Document { get; private set; }
 
     public int VersionNo { get; private set; }
 
