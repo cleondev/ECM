@@ -3,6 +3,8 @@ using Xunit;
 
 namespace Document.Tests.Domain.Documents;
 
+using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+
 public class DocumentTests
 {
     [Fact]
@@ -13,7 +15,7 @@ public class DocumentTests
         var createdBy = Guid.NewGuid();
         var title = DocumentTitle.Create(" Document Handbook ");
 
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             title,
             "  Policy  ",
             "  Draft  ",
@@ -38,7 +40,7 @@ public class DocumentTests
     public void Create_WithProvidedSensitivity_TrimsValue()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             DocumentTitle.Create("Procedure"),
             "Guide",
             "Published",
@@ -60,7 +62,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
 
-        Assert.Throws<ArgumentException>(() => Document.Create(
+        Assert.Throws<ArgumentException>(() => DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             docType!,
             "Draft",
@@ -77,7 +79,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
 
-        Assert.Throws<ArgumentException>(() => Document.Create(
+        Assert.Throws<ArgumentException>(() => DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             status!,
@@ -90,7 +92,7 @@ public class DocumentTests
     public void UpdateStatus_WithValidValue_UpdatesProperties()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -111,7 +113,7 @@ public class DocumentTests
     [InlineData("   ")]
     public void UpdateStatus_WithMissingValue_ThrowsArgumentException(string? status)
     {
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -125,7 +127,7 @@ public class DocumentTests
     [Fact]
     public void UpdateSensitivity_WithValidValue_UpdatesProperties()
     {
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -146,7 +148,7 @@ public class DocumentTests
     [InlineData("   ")]
     public void UpdateSensitivity_WithMissingValue_ThrowsArgumentException(string? sensitivity)
     {
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -160,7 +162,7 @@ public class DocumentTests
     [Fact]
     public void UpdateDepartment_WithWhitespace_SetsDepartmentToNull()
     {
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -179,7 +181,7 @@ public class DocumentTests
     [Fact]
     public void UpdateDepartment_WithValue_TrimsWhitespace()
     {
-        var document = Document.Create(
+        var document = DocumentAggregate.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
