@@ -1,6 +1,7 @@
 using ECM.Modules.Document.Domain.Documents;
 using ECM.Modules.Document.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
 
 namespace ECM.Modules.Document.Infrastructure.Documents;
 
@@ -13,7 +14,7 @@ public sealed class DocumentRepository : IDocumentRepository
         _context = context;
     }
 
-    public async Task<Document> AddAsync(Document document, CancellationToken cancellationToken = default)
+    public async Task<DocumentAggregate> AddAsync(DocumentAggregate document, CancellationToken cancellationToken = default)
     {
         await _context.Documents.AddAsync(document, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
