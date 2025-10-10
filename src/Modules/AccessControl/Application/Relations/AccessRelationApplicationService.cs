@@ -4,9 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
-using ECM.Modules.AccessControl.Domain.Relations;
+using ECM.AccessControl.Domain.Relations;
 
-namespace ECM.Modules.AccessControl.Application.Relations;
+namespace ECM.AccessControl.Application.Relations;
 
 public sealed class AccessRelationApplicationService(
     IAccessRelationRepository repository,

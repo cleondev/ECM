@@ -1,9 +1,9 @@
-using ECM.Modules.AccessControl.Domain.Relations;
-using ECM.Modules.AccessControl.Domain.Roles;
-using ECM.Modules.AccessControl.Domain.Users;
+using ECM.AccessControl.Domain.Relations;
+using ECM.AccessControl.Domain.Roles;
+using ECM.AccessControl.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 
-namespace ECM.Modules.AccessControl.Infrastructure.Persistence;
+namespace ECM.AccessControl.Infrastructure.Persistence;
 
 public sealed class AccessControlDbContext : DbContext
 {

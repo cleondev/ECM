@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Domain.Users;
+namespace ECM.AccessControl.Domain.Users;
 
 using System.Collections.Generic;
 using System.Threading;

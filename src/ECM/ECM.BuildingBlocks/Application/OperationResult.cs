@@ -17,7 +17,7 @@ public sealed class OperationResult<T>
 
     public IReadOnlyList<string> Errors { get; }
 
-    public static OperationResult<T> Success(T value) => new(true, value, Array.Empty<string>());
+    public static OperationResult<T> Success(T value) => new(true, value, []);
 
     public static OperationResult<T> Failure(params string[] errors) => new(false, default, errors);
 }

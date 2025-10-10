@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Application.Roles;
+namespace ECM.AccessControl.Application.Roles;
 
 using System;
 

@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Api.Relations;
+namespace ECM.AccessControl.Api.Relations;
 
 using System;
 

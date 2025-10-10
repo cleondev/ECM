@@ -1,8 +1,8 @@
-namespace ECM.Modules.AccessControl.Application.Users;
+namespace ECM.AccessControl.Application.Users;
 
 using System;
 using System.Collections.Generic;
-using ECM.Modules.AccessControl.Application.Roles;
+using ECM.AccessControl.Application.Roles;
 
 public sealed record UserSummary(
     Guid Id,

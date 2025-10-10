@@ -1,13 +1,13 @@
 using ECM.Abstractions;
-using ECM.Modules.AccessControl.Api.Relations;
-using ECM.Modules.AccessControl.Api.Roles;
-using ECM.Modules.AccessControl.Api.Users;
-using ECM.Modules.AccessControl.Application;
-using ECM.Modules.AccessControl.Infrastructure;
+using ECM.AccessControl.Api.Relations;
+using ECM.AccessControl.Api.Roles;
+using ECM.AccessControl.Api.Users;
+using ECM.AccessControl.Application;
+using ECM.AccessControl.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ECM.Modules.AccessControl.Api;
+namespace ECM.AccessControl.Api;
 
 public sealed class AccessControlModule : IModule
 {

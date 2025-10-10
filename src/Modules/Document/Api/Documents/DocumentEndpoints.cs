@@ -47,7 +47,7 @@ public static class DocumentEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["document"] = result.Errors.ToArray()
+                ["document"] = [.. result.Errors]
             });
         }
 

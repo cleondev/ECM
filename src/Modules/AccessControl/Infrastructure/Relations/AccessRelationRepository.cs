@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.AccessControl.Domain.Relations;
-using ECM.Modules.AccessControl.Infrastructure.Persistence;
+using ECM.AccessControl.Domain.Relations;
+using ECM.AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace ECM.Modules.AccessControl.Infrastructure.Relations;
+namespace ECM.AccessControl.Infrastructure.Relations;
 
 public sealed class AccessRelationRepository(AccessControlDbContext context) : IAccessRelationRepository
 {

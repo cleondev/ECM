@@ -1,5 +1,5 @@
 using ECM.Abstractions;
-using ECM.Modules.AccessControl.Api;
+using ECM.AccessControl.Api;
 using ECM.Document.Api;
 using ECM.File.Api;
 using ECM.SearchRead.Api;

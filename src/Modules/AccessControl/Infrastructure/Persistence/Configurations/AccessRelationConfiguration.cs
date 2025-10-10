@@ -1,8 +1,8 @@
-using ECM.Modules.AccessControl.Domain.Relations;
+using ECM.AccessControl.Domain.Relations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.Modules.AccessControl.Infrastructure.Persistence.Configurations;
+namespace ECM.AccessControl.Infrastructure.Persistence.Configurations;
 
 public sealed class AccessRelationConfiguration : IEntityTypeConfiguration<AccessRelation>
 {

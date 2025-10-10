@@ -47,7 +47,7 @@ public static class TagEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["tag"] = result.Errors.ToArray()
+                ["tag"] = [.. result.Errors]
             });
         }
 
@@ -73,7 +73,7 @@ public static class TagEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["tag"] = result.Errors.ToArray()
+                ["tag"] = [.. result.Errors]
             });
         }
 
@@ -93,7 +93,7 @@ public static class TagEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["tag"] = result.Errors.ToArray()
+                ["tag"] = [.. result.Errors]
             });
         }
 
@@ -113,7 +113,7 @@ public static class TagEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["tag"] = result.Errors.ToArray()
+                ["tag"] = [.. result.Errors]
             });
         }
 

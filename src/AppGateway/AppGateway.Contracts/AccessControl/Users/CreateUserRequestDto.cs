@@ -13,5 +13,5 @@ public sealed class CreateUserRequestDto
 
     public bool IsActive { get; init; } = true;
 
-    public IReadOnlyCollection<Guid> RoleIds { get; init; } = Array.Empty<Guid>();
+    public IReadOnlyCollection<Guid> RoleIds { get; init; } = [];
 }

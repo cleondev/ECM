@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Domain.Relations;
+namespace ECM.AccessControl.Domain.Relations;
 
 public sealed class AccessRelation
 {

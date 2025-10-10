@@ -24,7 +24,7 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
     {
         using var request = CreateRequest(HttpMethod.Get, "api/access-control/users");
         var response = await SendAsync<IReadOnlyCollection<UserSummaryDto>>(request, cancellationToken);
-        return response ?? Array.Empty<UserSummaryDto>();
+        return response ?? [];
     }
 
     public async Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -64,7 +64,7 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
     {
         using var request = CreateRequest(HttpMethod.Get, "api/access-control/roles");
         var response = await SendAsync<IReadOnlyCollection<RoleSummaryDto>>(request, cancellationToken);
-        return response ?? Array.Empty<RoleSummaryDto>();
+        return response ?? [];
     }
 
     public async Task<RoleSummaryDto?> CreateRoleAsync(CreateRoleRequestDto requestDto, CancellationToken cancellationToken = default)
@@ -91,14 +91,14 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
     {
         using var request = CreateRequest(HttpMethod.Get, $"api/access-control/relations/subjects/{subjectId}");
         var response = await SendAsync<IReadOnlyCollection<AccessRelationDto>>(request, cancellationToken);
-        return response ?? Array.Empty<AccessRelationDto>();
+        return response ?? [];
     }
 
     public async Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsByObjectAsync(string objectType, Guid objectId, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Get, $"api/access-control/relations/objects/{Uri.EscapeDataString(objectType)}/{objectId}");
         var response = await SendAsync<IReadOnlyCollection<AccessRelationDto>>(request, cancellationToken);
-        return response ?? Array.Empty<AccessRelationDto>();
+        return response ?? [];
     }
 
     public async Task<AccessRelationDto?> CreateRelationAsync(CreateAccessRelationRequestDto requestDto, CancellationToken cancellationToken = default)
@@ -119,7 +119,7 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
     {
         using var request = CreateRequest(HttpMethod.Get, "api/ecm/documents");
         var response = await SendAsync<IReadOnlyCollection<DocumentSummaryDto>>(request, cancellationToken);
-        return response ?? Array.Empty<DocumentSummaryDto>();
+        return response ?? [];
     }
 
     public async Task<DocumentSummaryDto?> CreateDocumentAsync(CreateDocumentRequestDto requestDto, CancellationToken cancellationToken = default)

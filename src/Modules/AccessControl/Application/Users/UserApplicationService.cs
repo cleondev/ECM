@@ -5,11 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
-using ECM.Modules.AccessControl.Application.Roles;
-using ECM.Modules.AccessControl.Domain.Roles;
-using ECM.Modules.AccessControl.Domain.Users;
+using ECM.AccessControl.Application.Roles;
+using ECM.AccessControl.Domain.Roles;
+using ECM.AccessControl.Domain.Users;
 
-namespace ECM.Modules.AccessControl.Application.Users;
+namespace ECM.AccessControl.Application.Users;
 
 public sealed class UserApplicationService(
     IUserRepository userRepository,

@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.AccessControl.Api.Roles;
-using ECM.Modules.AccessControl.Application.Users;
+using ECM.AccessControl.Api.Roles;
+using ECM.AccessControl.Application.Users;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace ECM.Modules.AccessControl.Api.Users;
+namespace ECM.AccessControl.Api.Users;
 
 public static class UserEndpoints
 {
@@ -88,7 +88,7 @@ public static class UserEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["user"] = result.Errors.ToArray()
+                ["user"] = [.. result.Errors]
             });
         }
 
@@ -119,7 +119,7 @@ public static class UserEndpoints
 
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["user"] = result.Errors.ToArray()
+                ["user"] = [.. result.Errors]
             });
         }
 
@@ -145,14 +145,14 @@ public static class UserEndpoints
 
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["user"] = result.Errors.ToArray()
+                ["user"] = [.. result.Errors]
             });
         }
 
         return TypedResults.Ok(MapToResponse(result.Value!));
     }
 
-    private static async Task<Results<Ok<UserResponse>, NotFound>> RemoveRoleAsync(
+    private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> RemoveRoleAsync(
         Guid id,
         Guid roleId,
         UserApplicationService service,
@@ -171,7 +171,7 @@ public static class UserEndpoints
 
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["user"] = result.Errors.ToArray()
+                ["user"] = [.. result.Errors]
             });
         }
 
@@ -186,5 +186,5 @@ public static class UserEndpoints
             summary.Department,
             summary.IsActive,
             summary.CreatedAtUtc,
-            summary.Roles.Select(role => new RoleResponse(role.Id, role.Name)).ToArray());
+            [.. summary.Roles.Select(role => new RoleResponse(role.Id, role.Name))]);
 }

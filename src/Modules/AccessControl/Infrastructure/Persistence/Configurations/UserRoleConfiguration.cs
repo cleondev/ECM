@@ -1,9 +1,9 @@
-using ECM.Modules.AccessControl.Domain.Roles;
-using ECM.Modules.AccessControl.Domain.Users;
+using ECM.AccessControl.Domain.Roles;
+using ECM.AccessControl.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.Modules.AccessControl.Infrastructure.Persistence.Configurations;
+namespace ECM.AccessControl.Infrastructure.Persistence.Configurations;
 
 public sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
 {

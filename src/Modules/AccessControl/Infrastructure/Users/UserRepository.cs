@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.AccessControl.Domain.Users;
-using ECM.Modules.AccessControl.Infrastructure.Persistence;
+using ECM.AccessControl.Domain.Users;
+using ECM.AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace ECM.Modules.AccessControl.Infrastructure.Users;
+namespace ECM.AccessControl.Infrastructure.Users;
 
 public sealed class UserRepository(AccessControlDbContext context) : IUserRepository
 {

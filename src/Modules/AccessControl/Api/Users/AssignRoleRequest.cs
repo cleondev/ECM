@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Api.Users;
+namespace ECM.AccessControl.Api.Users;
 
 using System;
 

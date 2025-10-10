@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.AccessControl.Application.Roles;
+using ECM.AccessControl.Application.Roles;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace ECM.Modules.AccessControl.Api.Roles;
+namespace ECM.AccessControl.Api.Roles;
 
 public static class RoleEndpoints
 {
@@ -75,7 +75,7 @@ public static class RoleEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["role"] = result.Errors.ToArray()
+                ["role"] = [.. result.Errors]
             });
         }
 
@@ -99,7 +99,7 @@ public static class RoleEndpoints
 
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["role"] = result.Errors.ToArray()
+                ["role"] = [.. result.Errors]
             });
         }
 

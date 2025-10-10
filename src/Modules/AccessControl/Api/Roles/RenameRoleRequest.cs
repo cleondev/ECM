@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Api.Roles;
+namespace ECM.AccessControl.Api.Roles;
 
 public sealed class RenameRoleRequest
 {

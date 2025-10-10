@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Api.Users;
+namespace ECM.AccessControl.Api.Users;
 
 using System;
 using System.Collections.Generic;
@@ -13,5 +13,5 @@ public sealed class CreateUserRequest
 
     public bool IsActive { get; init; } = true;
 
-    public IReadOnlyCollection<Guid> RoleIds { get; init; } = Array.Empty<Guid>();
+    public IReadOnlyCollection<Guid> RoleIds { get; init; } = [];
 }

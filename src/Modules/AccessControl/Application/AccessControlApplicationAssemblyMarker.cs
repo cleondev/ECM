@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Application;
+namespace ECM.AccessControl.Application;
 
 public static class AccessControlApplicationAssemblyMarker
 {

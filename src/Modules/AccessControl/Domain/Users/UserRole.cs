@@ -1,6 +1,6 @@
-namespace ECM.Modules.AccessControl.Domain.Users;
+namespace ECM.AccessControl.Domain.Users;
 
-using ECM.Modules.AccessControl.Domain.Roles;
+using ECM.AccessControl.Domain.Roles;
 
 public sealed class UserRole
 {

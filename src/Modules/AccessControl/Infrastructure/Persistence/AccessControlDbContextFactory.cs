@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 
-namespace ECM.Modules.AccessControl.Infrastructure.Persistence;
+namespace ECM.AccessControl.Infrastructure.Persistence;
 
 public sealed class AccessControlDbContextFactory : IDesignTimeDbContextFactory<AccessControlDbContext>
 {

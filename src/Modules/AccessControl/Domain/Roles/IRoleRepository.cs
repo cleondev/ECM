@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Domain.Roles;
+namespace ECM.AccessControl.Domain.Roles;
 
 using System.Collections.Generic;
 using System.Threading;

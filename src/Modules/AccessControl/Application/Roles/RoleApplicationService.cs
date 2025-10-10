@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
-using ECM.Modules.AccessControl.Domain.Roles;
+using ECM.AccessControl.Domain.Roles;
 
-namespace ECM.Modules.AccessControl.Application.Roles;
+namespace ECM.AccessControl.Application.Roles;
 
 public sealed class RoleApplicationService(IRoleRepository repository)
 {

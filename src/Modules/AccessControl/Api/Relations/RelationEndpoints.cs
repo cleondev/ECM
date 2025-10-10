@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.AccessControl.Application.Relations;
+using ECM.AccessControl.Application.Relations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace ECM.Modules.AccessControl.Api.Relations;
+namespace ECM.AccessControl.Api.Relations;
 
 public static class RelationEndpoints
 {
@@ -76,7 +76,7 @@ public static class RelationEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["relation"] = result.Errors.ToArray()
+                ["relation"] = [.. result.Errors]
             });
         }
 

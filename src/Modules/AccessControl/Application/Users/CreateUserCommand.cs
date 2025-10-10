@@ -1,4 +1,4 @@
-namespace ECM.Modules.AccessControl.Application.Users;
+namespace ECM.AccessControl.Application.Users;
 
 using System;
 using System.Collections.Generic;
