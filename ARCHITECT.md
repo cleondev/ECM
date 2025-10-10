@@ -79,13 +79,13 @@ src/
 │
 ├── ECM/
 │   ├── ECM.Host/                  # Host (IModule loader)
-│   ├── ECM.BuildingBlocks/        # Shared kernel, abstractions, outbox, events
-│   └── Modules/
-│       ├── Document/{Domain,Application,Infrastructure,Api}
-│       ├── File/{Domain,Application,Infrastructure,Api}
-│       ├── Workflow/{Domain,Application,Infrastructure,Api}
-│       ├── Signature/{Domain,Application,Infrastructure,Api}
-│       └── SearchRead/{Application,Infrastructure,Api}
+│   └── ECM.BuildingBlocks/        # Shared kernel, abstractions, outbox, events
+├──  Modules/
+│    ├── Document/{Domain,Application,Infrastructure,Api}
+│    ├── File/{Domain,Application,Infrastructure,Api}
+│    ├── Workflow/{Domain,Application,Infrastructure,Api}
+│    ├── Signature/{Domain,Application,Infrastructure,Api}
+│    └── SearchRead/{Application,Infrastructure,Api}
 │
 ├── Workers/
 │   ├── OutboxDispatcher.Worker/
