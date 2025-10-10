@@ -1,6 +1,7 @@
-using ECM.Modules.Signature.Application.Requests;
+using ECM.Signature.Application.Requests;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.Signature.Application;
 
 public static class SignatureApplicationModuleExtensions
 {

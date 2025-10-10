@@ -1,6 +1,7 @@
-using ECM.Modules.File.Application.Files;
+using ECM.File.Application.Files;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.File.Application;
 
 public static class FileApplicationModuleExtensions
 {

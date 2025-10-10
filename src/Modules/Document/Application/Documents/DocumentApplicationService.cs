@@ -1,20 +1,14 @@
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
-using ECM.Modules.Document.Domain.Documents;
-using DocumentEntity = ECM.Modules.Document.Domain.Documents.Document;
+using ECM.Document.Domain.Documents;
+using DocumentEntity = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Modules.Document.Application.Documents;
+namespace ECM.Document.Application.Documents;
 
-public sealed class DocumentApplicationService
+public sealed class DocumentApplicationService(IDocumentRepository repository, ISystemClock clock)
 {
-    private readonly IDocumentRepository _repository;
-    private readonly ISystemClock _clock;
-
-    public DocumentApplicationService(IDocumentRepository repository, ISystemClock clock)
-    {
-        _repository = repository;
-        _clock = clock;
-    }
+    private readonly IDocumentRepository _repository = repository;
+    private readonly ISystemClock _clock = clock;
 
     public async Task<OperationResult<DocumentSummary>> CreateAsync(CreateDocumentCommand command, CancellationToken cancellationToken = default)
     {

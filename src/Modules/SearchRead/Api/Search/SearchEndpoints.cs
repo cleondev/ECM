@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.Threading;
-using ECM.Modules.SearchRead.Application.Search;
+using ECM.SearchRead.Application.Search;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 
-namespace ECM.Modules.SearchRead.Api.Search;
+namespace ECM.SearchRead.Api.Search;
 
 public static class SearchEndpoints
 {

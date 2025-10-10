@@ -1,7 +1,8 @@
-using ECM.Modules.File.Domain.Files;
-using ECM.Modules.File.Infrastructure.Files;
+using ECM.File.Domain.Files;
+using ECM.File.Infrastructure.Files;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.File.Infrastructure;
 
 public static class FileInfrastructureModuleExtensions
 {

@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.SearchRead.Infrastructure.Search;
+using ECM.SearchRead.Infrastructure.Search;
 
-namespace ECM.Modules.SearchRead.Application.Search;
+namespace ECM.SearchRead.Application.Search;
 
 public sealed class SearchApplicationService(ISearchReadProvider provider)
 {

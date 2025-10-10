@@ -1,9 +1,9 @@
 using System.Text.Json;
-using ECM.Modules.Document.Domain.Documents;
-using ECM.Modules.Document.Domain.Versions;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.Versions;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Modules.Document.Domain.Signatures;
+namespace ECM.Document.Domain.Signatures;
 
 public sealed class SignatureRequest
 {

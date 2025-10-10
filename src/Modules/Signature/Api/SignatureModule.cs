@@ -1,11 +1,11 @@
-using ECM.Modules.Abstractions;
-using ECM.Modules.Signature.Api.Requests;
-using ECM.Modules.Signature.Application;
-using ECM.Modules.Signature.Infrastructure;
+using ECM.Abstractions;
+using ECM.Signature.Api.Requests;
+using ECM.Signature.Application;
+using ECM.Signature.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ECM.Modules.Signature.Api;
+namespace ECM.Signature.Api;
 
 public sealed class SignatureModule : IModule
 {

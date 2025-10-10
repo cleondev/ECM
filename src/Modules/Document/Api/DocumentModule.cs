@@ -1,10 +1,12 @@
-using ECM.Modules.Abstractions;
-using ECM.Modules.Document.Api.Documents;
+using ECM.Abstractions;
+using ECM.Document.Api.Documents;
+using ECM.Document.Application;
+using ECM.Document.Infrastructure;
 
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ECM.Modules.Document.Api;
+namespace ECM.Document.Api;
 
 public sealed class DocumentModule : IModule
 {

@@ -1,9 +1,9 @@
 using System;
 using System.Net.Mail;
 using ECM.BuildingBlocks.Application;
-using ECM.Modules.Signature.Domain.Requests;
+using ECM.Signature.Domain.Requests;
 
-namespace ECM.Modules.Signature.Application.Requests;
+namespace ECM.Signature.Application.Requests;
 
 public sealed record CreateSignatureRequestCommand(Guid DocumentId, string SignerEmail)
 {

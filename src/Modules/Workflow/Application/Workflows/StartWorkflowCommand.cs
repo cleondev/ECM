@@ -1,9 +1,9 @@
 using System;
 using ECM.BuildingBlocks.Application;
-using ECM.Modules.Workflow.Domain.Definitions;
-using ECM.Modules.Workflow.Domain.Instances;
+using ECM.Workflow.Domain.Definitions;
+using ECM.Workflow.Domain.Instances;
 
-namespace ECM.Modules.Workflow.Application.Workflows;
+namespace ECM.Workflow.Application.Workflows;
 
 public sealed record StartWorkflowCommand(Guid DocumentId, string Definition)
 {

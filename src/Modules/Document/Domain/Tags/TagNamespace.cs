@@ -1,6 +1,4 @@
-using System;
-
-namespace ECM.Modules.Document.Domain.Tags;
+namespace ECM.Document.Domain.Tags;
 
 public sealed class TagNamespace
 {

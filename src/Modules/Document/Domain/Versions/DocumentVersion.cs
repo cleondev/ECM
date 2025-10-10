@@ -1,8 +1,8 @@
-using ECM.Modules.Document.Domain.Documents;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
-using ECM.Modules.Document.Domain.Signatures;
+using ECM.Document.Domain.Documents;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
+using ECM.Document.Domain.Signatures;
 
-namespace ECM.Modules.Document.Domain.Versions;
+namespace ECM.Document.Domain.Versions;
 
 public sealed class DocumentVersion
 {

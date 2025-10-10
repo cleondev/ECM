@@ -1,4 +1,4 @@
-namespace ECM.Modules.Document.Domain.Files;
+namespace ECM.Document.Domain.Files;
 
 public sealed class FileObject
 {

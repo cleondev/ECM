@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ECM.Modules.File.Api.Files;
+namespace ECM.File.Api.Files;
 
 public sealed class RegisterFileRequest
 {

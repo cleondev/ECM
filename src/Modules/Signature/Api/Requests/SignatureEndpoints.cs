@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using ECM.Modules.Signature.Application.Requests;
-using ECM.Modules.Signature.Domain.Requests;
+using ECM.Signature.Application.Requests;
+using ECM.Signature.Domain.Requests;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace ECM.Modules.Signature.Api.Requests;
+namespace ECM.Signature.Api.Requests;
 
 public static class SignatureEndpoints
 {
@@ -39,12 +39,10 @@ public static class SignatureEndpoints
 
         if (result.IsFailure || result.Value is null)
         {
-            var errors = new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["signature"] = result.Errors.ToArray()
-            };
-
-            return TypedResults.ValidationProblem(errors);
+            });
         }
 
         return TypedResults.Created($"/api/ecm/signatures/{result.Value.Id}", result.Value);

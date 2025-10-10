@@ -1,7 +1,8 @@
-using ECM.Modules.Workflow.Domain.Instances;
-using ECM.Modules.Workflow.Infrastructure.Instances;
+using ECM.Workflow.Domain.Instances;
+using ECM.Workflow.Infrastructure.Instances;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.Workflow.Infrastructure;
 
 public static class WorkflowInfrastructureModuleExtensions
 {

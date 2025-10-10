@@ -1,14 +1,15 @@
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.BuildingBlocks.Infrastructure.Time;
-using ECM.Modules.Document.Domain.Documents;
-using ECM.Modules.Document.Infrastructure.Documents;
-using ECM.Modules.Document.Infrastructure.Persistence;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Infrastructure.Documents;
+using ECM.Document.Infrastructure.Persistence;
 using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.Document.Infrastructure;
 
 public static class DocumentInfrastructureModuleExtensions
 {

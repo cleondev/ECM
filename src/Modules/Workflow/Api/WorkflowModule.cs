@@ -1,11 +1,11 @@
-using ECM.Modules.Abstractions;
-using ECM.Modules.Workflow.Api.Workflows;
-using ECM.Modules.Workflow.Application;
-using ECM.Modules.Workflow.Infrastructure;
+using ECM.Abstractions;
+using ECM.Workflow.Api.Workflows;
+using ECM.Workflow.Application;
+using ECM.Workflow.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ECM.Modules.Workflow.Api;
+namespace ECM.Workflow.Api;
 
 public sealed class WorkflowModule : IModule
 {

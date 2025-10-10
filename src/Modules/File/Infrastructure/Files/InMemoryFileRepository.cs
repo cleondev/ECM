@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.File.Domain.Files;
+using ECM.File.Domain.Files;
 
-namespace ECM.Modules.File.Infrastructure.Files;
+namespace ECM.File.Infrastructure.Files;
 
 internal sealed class InMemoryFileRepository : IFileRepository
 {

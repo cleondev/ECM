@@ -1,6 +1,6 @@
 using System;
 
-namespace ECM.Modules.Signature.Domain.Requests;
+namespace ECM.Signature.Domain.Requests;
 
 public sealed class SignatureRequest
 {

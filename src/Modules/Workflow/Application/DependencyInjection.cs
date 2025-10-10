@@ -1,6 +1,7 @@
-using ECM.Modules.Workflow.Application.Workflows;
+using ECM.Workflow.Application.Workflows;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.Workflow.Application;
 
 public static class WorkflowApplicationModuleExtensions
 {

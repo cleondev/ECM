@@ -1,9 +1,9 @@
-using ECM.Modules.Document.Domain.Documents;
+using ECM.Document.Domain.Documents;
 using Xunit;
 
 namespace Document.Tests.Domain.Documents;
 
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 public class DocumentTests
 {

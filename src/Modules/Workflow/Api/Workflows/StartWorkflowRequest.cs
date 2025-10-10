@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace ECM.Modules.Workflow.Api.Workflows;
+namespace ECM.Workflow.Api.Workflows;
 
 public sealed class StartWorkflowRequest
 {

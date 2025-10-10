@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 
-namespace ECM.Modules.Signature.Api.Requests;
+namespace ECM.Signature.Api.Requests;
 
 public sealed class CreateSignatureRequest
 {

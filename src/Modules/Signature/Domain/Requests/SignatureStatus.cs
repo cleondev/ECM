@@ -1,4 +1,4 @@
-namespace ECM.Modules.Signature.Domain.Requests;
+namespace ECM.Signature.Domain.Requests;
 
 public enum SignatureStatus
 {

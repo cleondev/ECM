@@ -1,7 +1,7 @@
 using System;
-using ECM.Modules.Workflow.Domain.Definitions;
+using ECM.Workflow.Domain.Definitions;
 
-namespace ECM.Modules.Workflow.Domain.Instances;
+namespace ECM.Workflow.Domain.Instances;
 
 public sealed class WorkflowInstance
 {

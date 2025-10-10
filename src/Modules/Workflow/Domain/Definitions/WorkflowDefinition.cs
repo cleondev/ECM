@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ECM.Modules.Workflow.Domain.Definitions;
+namespace ECM.Workflow.Domain.Definitions;
 
 public sealed class WorkflowDefinition
 {

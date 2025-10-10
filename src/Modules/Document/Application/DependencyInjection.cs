@@ -1,6 +1,7 @@
-using ECM.Modules.Document.Application.Documents;
+using ECM.Document.Application.Documents;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.Document.Application;
 
 public static class DocumentApplicationModuleExtensions
 {

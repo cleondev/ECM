@@ -1,10 +1,10 @@
-using ECM.Modules.Document.Domain.Documents;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using ECM.Document.Domain.Documents;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.Modules.Document.Infrastructure.Persistence.Configurations;
+namespace ECM.Document.Infrastructure.Persistence.Configurations;
 
 public sealed class DocumentConfiguration : IEntityTypeConfiguration<DocumentAggregate>
 {

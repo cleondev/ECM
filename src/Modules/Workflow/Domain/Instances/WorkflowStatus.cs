@@ -1,4 +1,4 @@
-namespace ECM.Modules.Workflow.Domain.Instances;
+namespace ECM.Workflow.Domain.Instances;
 
 public enum WorkflowStatus
 {

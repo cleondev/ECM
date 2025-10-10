@@ -1,10 +1,10 @@
-using ECM.Modules.Document.Domain.Documents;
-using ECM.Modules.Document.Domain.Versions;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.Versions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.Modules.Document.Infrastructure.Persistence.Configurations;
+namespace ECM.Document.Infrastructure.Persistence.Configurations;
 
 public sealed class DocumentVersionConfiguration : IEntityTypeConfiguration<DocumentVersion>
 {

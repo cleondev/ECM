@@ -1,7 +1,7 @@
 using System.Text.Json;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Modules.Document.Domain.Documents;
+namespace ECM.Document.Domain.Documents;
 
 public sealed class DocumentMetadata
 {

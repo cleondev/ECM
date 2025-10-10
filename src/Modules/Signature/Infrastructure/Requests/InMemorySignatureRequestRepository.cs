@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.Signature.Domain.Requests;
+using ECM.Signature.Domain.Requests;
 
-namespace ECM.Modules.Signature.Infrastructure.Requests;
+namespace ECM.Signature.Infrastructure.Requests;
 
 internal sealed class InMemorySignatureRequestRepository : ISignatureRequestRepository
 {

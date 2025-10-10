@@ -1,11 +1,11 @@
-using ECM.Modules.Abstractions;
-using ECM.Modules.File.Api.Files;
-using ECM.Modules.File.Application;
-using ECM.Modules.File.Infrastructure;
+using ECM.Abstractions;
+using ECM.File.Api.Files;
+using ECM.File.Application;
+using ECM.File.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ECM.Modules.File.Api;
+namespace ECM.File.Api;
 
 public sealed class FileModule : IModule
 {
