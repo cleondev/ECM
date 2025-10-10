@@ -1,9 +1,9 @@
-using ECM.Modules.Document.Domain.DocumentTypes;
-using ECM.Modules.Document.Domain.Signatures;
-using ECM.Modules.Document.Domain.Tags;
-using ECM.Modules.Document.Domain.Versions;
+using ECM.Document.Domain.DocumentTypes;
+using ECM.Document.Domain.Signatures;
+using ECM.Document.Domain.Tags;
+using ECM.Document.Domain.Versions;
 
-namespace ECM.Modules.Document.Domain.Documents;
+namespace ECM.Document.Domain.Documents;
 
 public sealed class Document
 {

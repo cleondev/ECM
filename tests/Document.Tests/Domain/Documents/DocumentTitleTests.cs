@@ -1,4 +1,4 @@
-using ECM.Modules.Document.Domain.Documents;
+using ECM.Document.Domain.Documents;
 using Xunit;
 
 namespace Document.Tests.Domain.Documents;

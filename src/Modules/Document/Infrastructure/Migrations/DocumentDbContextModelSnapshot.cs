@@ -1,22 +1,22 @@
 using System;
 using System.Text.Json;
-using ECM.Modules.Document.Domain.Documents;
-using ECM.Modules.Document.Domain.DocumentTypes;
-using ECM.Modules.Document.Domain.Files;
-using ECM.Modules.Document.Domain.Signatures;
-using ECM.Modules.Document.Domain.Tags;
-using ECM.Modules.Document.Domain.Versions;
-using ECM.Modules.Document.Infrastructure.Persistence;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.DocumentTypes;
+using ECM.Document.Domain.Files;
+using ECM.Document.Domain.Signatures;
+using ECM.Document.Domain.Tags;
+using ECM.Document.Domain.Versions;
+using ECM.Document.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 #nullable disable
 
-namespace ECM.Modules.Document.Infrastructure.Migrations;
+namespace ECM.Document.Infrastructure.Migrations;
 
 [DbContext(typeof(DocumentDbContext))]
 partial class DocumentDbContextModelSnapshot : ModelSnapshot

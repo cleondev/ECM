@@ -1,4 +1,4 @@
-using ECM.Modules.Abstractions;
+using ECM.Abstractions;
 using ECM.Modules.AccessControl.Application;
 using ECM.Modules.AccessControl.Infrastructure;
 using Microsoft.AspNetCore.Routing;

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ECM.Modules.Workflow.Domain.Instances;
+namespace ECM.Workflow.Domain.Instances;
 
 public interface IWorkflowRepository
 {

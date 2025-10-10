@@ -1,4 +1,4 @@
-namespace ECM.Modules.Document.Domain.Documents;
+namespace ECM.Document.Domain.Documents;
 
 public sealed class DocumentTitle
 {

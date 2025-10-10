@@ -1,8 +1,8 @@
-using ECM.Modules.Document.Domain.Files;
+using ECM.Document.Domain.Files;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.Modules.Document.Infrastructure.Persistence.Configurations;
+namespace ECM.Document.Infrastructure.Persistence.Configurations;
 
 public sealed class FileObjectConfiguration : IEntityTypeConfiguration<FileObject>
 {

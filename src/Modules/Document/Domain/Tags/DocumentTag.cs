@@ -1,7 +1,7 @@
-using ECM.Modules.Document.Domain.Documents;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using ECM.Document.Domain.Documents;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Modules.Document.Domain.Tags;
+namespace ECM.Document.Domain.Tags;
 
 public sealed class DocumentTag
 {

@@ -1,10 +1,10 @@
-using ECM.Modules.Abstractions;
+using ECM.Abstractions;
 using ECM.Modules.AccessControl.Api;
-using ECM.Modules.Document.Api;
-using ECM.Modules.File.Api;
-using ECM.Modules.SearchRead.Api;
-using ECM.Modules.Signature.Api;
-using ECM.Modules.Workflow.Api;
+using ECM.Document.Api;
+using ECM.File.Api;
+using ECM.SearchRead.Api;
+using ECM.Signature.Api;
+using ECM.Workflow.Api;
 using ServiceDefaults;
 
 namespace ECM.Host;

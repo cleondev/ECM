@@ -1,18 +1,13 @@
-using ECM.Modules.Document.Domain.Documents;
-using ECM.Modules.Document.Infrastructure.Persistence;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Modules.Document.Infrastructure.Documents;
+namespace ECM.Document.Infrastructure.Documents;
 
-public sealed class DocumentRepository : IDocumentRepository
+public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRepository
 {
-    private readonly DocumentDbContext _context;
-
-    public DocumentRepository(DocumentDbContext context)
-    {
-        _context = context;
-    }
+    private readonly DocumentDbContext _context = context;
 
     public async Task<DocumentAggregate> AddAsync(DocumentAggregate document, CancellationToken cancellationToken = default)
     {

@@ -1,7 +1,8 @@
-using ECM.Modules.Signature.Domain.Requests;
-using ECM.Modules.Signature.Infrastructure.Requests;
+using ECM.Signature.Domain.Requests;
+using ECM.Signature.Infrastructure.Requests;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.Signature.Infrastructure;
 
 public static class SignatureInfrastructureModuleExtensions
 {

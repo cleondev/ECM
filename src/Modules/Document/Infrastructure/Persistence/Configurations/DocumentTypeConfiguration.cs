@@ -1,9 +1,9 @@
-using ECM.Modules.Document.Domain.DocumentTypes;
+using ECM.Document.Domain.DocumentTypes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.Modules.Document.Infrastructure.Persistence.Configurations;
+namespace ECM.Document.Infrastructure.Persistence.Configurations;
 
 public sealed class DocumentTypeConfiguration : IEntityTypeConfiguration<DocumentType>
 {

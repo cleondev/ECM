@@ -1,7 +1,7 @@
-using ECM.Modules.Document.Domain.Documents;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using ECM.Document.Domain.Documents;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Modules.Document.Domain.DocumentTypes;
+namespace ECM.Document.Domain.DocumentTypes;
 
 public sealed class DocumentType
 {

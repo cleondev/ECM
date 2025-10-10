@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using ECM.Modules.Workflow.Application.Workflows;
-using ECM.Modules.Workflow.Domain.Instances;
+using ECM.Workflow.Application.Workflows;
+using ECM.Workflow.Domain.Instances;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace ECM.Modules.Workflow.Api.Workflows;
+namespace ECM.Workflow.Api.Workflows;
 
 public static class WorkflowEndpoints
 {
@@ -39,12 +39,10 @@ public static class WorkflowEndpoints
 
         if (result.IsFailure || result.Value is null)
         {
-            var errors = new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["workflow"] = result.Errors.ToArray()
-            };
-
-            return TypedResults.ValidationProblem(errors);
+            });
         }
 
         return TypedResults.Accepted($"/api/ecm/workflows/instances/{result.Value.Id}", result.Value);

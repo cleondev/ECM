@@ -4,10 +4,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace ECM.Modules.Document.Infrastructure.Migrations;
+namespace ECM.Document.Infrastructure.Migrations;
 
 public partial class InitialDocumentModule : Migration
 {
+    private static readonly string[] TagLabelNamespacePathColumns = ["namespace_slug", "path"];
+    private static readonly string[] VersionDocumentIdVersionNoColumns = ["document_id", "version_no"];
+
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.EnsureSchema(
@@ -341,7 +344,7 @@ public partial class InitialDocumentModule : Migration
             name: "tag_label_ns_path_idx",
             schema: "doc",
             table: "tag_label",
-            columns: new[] { "namespace_slug", "path" },
+            columns: TagLabelNamespacePathColumns,
             unique: true);
 
         migrationBuilder.CreateIndex(
@@ -378,7 +381,7 @@ public partial class InitialDocumentModule : Migration
             name: "IX_version_document_id_version_no",
             schema: "doc",
             table: "version",
-            columns: new[] { "document_id", "version_no" },
+            columns: VersionDocumentIdVersionNoColumns,
             unique: true);
 
         migrationBuilder.CreateIndex(

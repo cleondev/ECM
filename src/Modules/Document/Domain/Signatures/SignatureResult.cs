@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace ECM.Modules.Document.Domain.Signatures;
+namespace ECM.Document.Domain.Signatures;
 
 public sealed class SignatureResult
 {

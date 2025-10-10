@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ECM.Modules.Signature.Domain.Requests;
+namespace ECM.Signature.Domain.Requests;
 
 public interface ISignatureRequestRepository
 {

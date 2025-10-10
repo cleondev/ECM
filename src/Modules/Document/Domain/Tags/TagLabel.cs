@@ -1,6 +1,6 @@
-using ECM.Modules.Document.Domain.Documents;
+using ECM.Document.Domain.Documents;
 
-namespace ECM.Modules.Document.Domain.Tags;
+namespace ECM.Document.Domain.Tags;
 
 public sealed class TagLabel
 {

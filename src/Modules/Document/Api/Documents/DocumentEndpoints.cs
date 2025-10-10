@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
-using ECM.Modules.Document.Application.Documents;
+using ECM.Document.Application.Documents;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace ECM.Modules.Document.Api.Documents;
+namespace ECM.Document.Api.Documents;
 
 public static class DocumentEndpoints
 {
@@ -45,12 +45,10 @@ public static class DocumentEndpoints
 
         if (result.IsFailure || result.Value is null)
         {
-            var errors = new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["document"] = result.Errors.ToArray()
-            };
-
-            return TypedResults.ValidationProblem(errors);
+            });
         }
 
         var response = new DocumentResponse(

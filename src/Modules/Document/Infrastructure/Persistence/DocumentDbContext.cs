@@ -1,13 +1,13 @@
-using ECM.Modules.Document.Domain.Documents;
-using ECM.Modules.Document.Domain.DocumentTypes;
-using ECM.Modules.Document.Domain.Files;
-using ECM.Modules.Document.Domain.Signatures;
-using ECM.Modules.Document.Domain.Tags;
-using ECM.Modules.Document.Domain.Versions;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.DocumentTypes;
+using ECM.Document.Domain.Files;
+using ECM.Document.Domain.Signatures;
+using ECM.Document.Domain.Tags;
+using ECM.Document.Domain.Versions;
 using Microsoft.EntityFrameworkCore;
-using DocumentAggregate = ECM.Modules.Document.Domain.Documents.Document;
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Modules.Document.Infrastructure.Persistence;
+namespace ECM.Document.Infrastructure.Persistence;
 
 public sealed class DocumentDbContext : DbContext
 {

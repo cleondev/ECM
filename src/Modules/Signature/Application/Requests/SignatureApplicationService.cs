@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
-using ECM.Modules.Signature.Domain.Requests;
+using ECM.Signature.Domain.Requests;
 
-namespace ECM.Modules.Signature.Application.Requests;
+namespace ECM.Signature.Application.Requests;
 
 public sealed class SignatureApplicationService(ISignatureRequestRepository repository)
 {

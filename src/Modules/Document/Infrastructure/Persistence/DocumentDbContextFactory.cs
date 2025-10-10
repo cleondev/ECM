@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 
-namespace ECM.Modules.Document.Infrastructure.Persistence;
+namespace ECM.Document.Infrastructure.Persistence;
 
 public sealed class DocumentDbContextFactory : IDesignTimeDbContextFactory<DocumentDbContext>
 {

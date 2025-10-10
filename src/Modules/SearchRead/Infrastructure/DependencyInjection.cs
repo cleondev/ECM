@@ -1,6 +1,7 @@
-using ECM.Modules.SearchRead.Infrastructure.Search;
+using ECM.SearchRead.Infrastructure.Search;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.SearchRead.Infrastructure;
 
 public static class SearchReadInfrastructureModuleExtensions
 {

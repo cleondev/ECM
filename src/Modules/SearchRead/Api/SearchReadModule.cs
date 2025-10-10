@@ -1,11 +1,11 @@
-using ECM.Modules.Abstractions;
-using ECM.Modules.SearchRead.Api.Search;
-using ECM.Modules.SearchRead.Application;
-using ECM.Modules.SearchRead.Infrastructure;
+using ECM.Abstractions;
+using ECM.SearchRead.Api.Search;
+using ECM.SearchRead.Application;
+using ECM.SearchRead.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ECM.Modules.SearchRead.Api;
+namespace ECM.SearchRead.Api;
 
 public sealed class SearchReadModule : IModule
 {

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ECM.Modules.File.Domain.Files;
+namespace ECM.File.Domain.Files;
 
 public interface IFileRepository
 {

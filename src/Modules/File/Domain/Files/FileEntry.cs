@@ -1,6 +1,6 @@
 using System;
 
-namespace ECM.Modules.File.Domain.Files;
+namespace ECM.File.Domain.Files;
 
 public sealed class FileEntry
 {

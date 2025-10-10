@@ -1,9 +1,9 @@
-using ECM.Modules.Document.Domain.Documents;
-using ECM.Modules.Document.Domain.Signatures;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.Signatures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.Modules.Document.Infrastructure.Persistence.Configurations;
+namespace ECM.Document.Infrastructure.Persistence.Configurations;
 
 public sealed class SignatureRequestConfiguration : IEntityTypeConfiguration<SignatureRequest>
 {

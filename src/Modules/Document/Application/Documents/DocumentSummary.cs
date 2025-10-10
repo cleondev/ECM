@@ -1,4 +1,4 @@
-namespace ECM.Modules.Document.Application.Documents;
+namespace ECM.Document.Application.Documents;
 
 public sealed record DocumentSummary(
     Guid Id,

@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
-using ECM.Modules.File.Domain.Files;
+using ECM.File.Domain.Files;
 
-namespace ECM.Modules.File.Application.Files;
+namespace ECM.File.Application.Files;
 
 public sealed class FileApplicationService(IFileRepository repository)
 {

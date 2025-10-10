@@ -1,8 +1,8 @@
 using System;
 using ECM.BuildingBlocks.Application;
-using ECM.Modules.File.Domain.Files;
+using ECM.File.Domain.Files;
 
-namespace ECM.Modules.File.Application.Files;
+namespace ECM.File.Application.Files;
 
 public sealed record RegisterFileCommand(string FileName, string ContentType, long Size, string StorageKey)
 {

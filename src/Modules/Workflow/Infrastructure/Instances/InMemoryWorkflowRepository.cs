@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Modules.Workflow.Domain.Instances;
+using ECM.Workflow.Domain.Instances;
 
-namespace ECM.Modules.Workflow.Infrastructure.Instances;
+namespace ECM.Workflow.Infrastructure.Instances;
 
 internal sealed class InMemoryWorkflowRepository : IWorkflowRepository
 {

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace ECM.Modules.SearchRead.Api.Search;
+namespace ECM.SearchRead.Api.Search;
 
 public sealed class SearchRequest
 {
