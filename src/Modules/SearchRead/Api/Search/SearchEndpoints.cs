@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using ECM.Modules.SearchRead.Application.Search;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
@@ -9,7 +11,7 @@ namespace ECM.Modules.SearchRead.Api.Search;
 
 public static class SearchEndpoints
 {
-    public static IEndpointRouteBuilder MapSearchEndpoints(this IEndpointRouteBuilder builder)
+    public static RouteGroupBuilder MapSearchEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/ecm/search");
         group.WithTags("Search");

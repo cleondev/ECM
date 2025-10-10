@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using ECM.Modules.Document.Application.Documents;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Routing;
 
 namespace ECM.Modules.Document.Api.Documents;
 

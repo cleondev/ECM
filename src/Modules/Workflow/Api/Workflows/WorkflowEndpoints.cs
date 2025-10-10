@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using ECM.Modules.Workflow.Application.Workflows;
 using ECM.Modules.Workflow.Domain.Instances;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
@@ -10,7 +12,7 @@ namespace ECM.Modules.Workflow.Api.Workflows;
 
 public static class WorkflowEndpoints
 {
-    public static IEndpointRouteBuilder MapWorkflowEndpoints(this IEndpointRouteBuilder builder)
+    public static RouteGroupBuilder MapWorkflowEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/ecm/workflows");
         group.WithTags("Workflow");
