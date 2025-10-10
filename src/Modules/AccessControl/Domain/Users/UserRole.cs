@@ -25,5 +25,14 @@ public sealed class UserRole
 
     public Role Role { get; private set; }
 
-    public static UserRole Create(Guid userId, Guid roleId) => new(userId, roleId);
+    public static UserRole Create(Guid userId, Guid roleId, Role? role = null)
+    {
+        var link = new UserRole(userId, roleId);
+        if (role is not null)
+        {
+            link.Role = role;
+        }
+
+        return link;
+    }
 }

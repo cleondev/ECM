@@ -1,4 +1,7 @@
 using ECM.Abstractions;
+using ECM.Modules.AccessControl.Api.Relations;
+using ECM.Modules.AccessControl.Api.Roles;
+using ECM.Modules.AccessControl.Api.Users;
 using ECM.Modules.AccessControl.Application;
 using ECM.Modules.AccessControl.Infrastructure;
 using Microsoft.AspNetCore.Routing;
@@ -16,5 +19,8 @@ public sealed class AccessControlModule : IModule
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapUserEndpoints();
+        endpoints.MapRoleEndpoints();
+        endpoints.MapRelationEndpoints();
     }
 }

@@ -3,7 +3,10 @@ using AppGateway.Api.Middlewares;
 using AppGateway.Api.ReverseProxy;
 using AppGateway.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Identity.Web;
 
 namespace AppGateway.Api;
 
@@ -13,13 +16,22 @@ public static class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddAuthentication(options =>
+        var authenticationBuilder = builder.Services.AddAuthentication(options =>
         {
-            options.DefaultAuthenticateScheme = ApiKeyAuthenticationHandler.Scheme;
-            options.DefaultChallengeScheme = ApiKeyAuthenticationHandler.Scheme;
-        }).AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.Scheme, _ => { });
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        });
 
-        builder.Services.AddAuthorization();
+        authenticationBuilder.AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+        authenticationBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.Scheme, _ => { });
+
+        builder.Services.AddAuthorization(options =>
+        {
+            options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, ApiKeyAuthenticationHandler.Scheme)
+                .RequireAuthenticatedUser()
+                .Build();
+        });
 
         builder.Services.AddProblemDetails();
         builder.Services.AddControllers();

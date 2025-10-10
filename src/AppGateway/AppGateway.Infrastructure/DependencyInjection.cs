@@ -17,10 +17,13 @@ public static class DependencyInjection
         services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri(baseAddress))
                 .AddStandardResilienceHandler();
 
+        services.AddHttpContextAccessor();
+
         services.AddScoped<IEcmApiClient>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            return new EcmApiClient(factory.CreateClient(HttpClientName));
+            var accessor = sp.GetRequiredService<IHttpContextAccessor>();
+            return new EcmApiClient(factory.CreateClient(HttpClientName), accessor);
         });
 
         return services;

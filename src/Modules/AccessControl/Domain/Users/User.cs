@@ -1,5 +1,6 @@
 namespace ECM.Modules.AccessControl.Domain.Users;
 
+using System.Linq;
 using ECM.Modules.AccessControl.Domain.Roles;
 
 public sealed class User
@@ -42,6 +43,34 @@ public sealed class User
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
+
+    public bool HasRole(Guid roleId) => _roles.Any(link => link.RoleId == roleId);
+
+    public void AssignRole(Role role)
+    {
+        if (role is null)
+        {
+            throw new ArgumentNullException(nameof(role));
+        }
+
+        if (HasRole(role.Id))
+        {
+            return;
+        }
+
+        _roles.Add(UserRole.Create(Id, role.Id, role));
+    }
+
+    public void RemoveRole(Guid roleId)
+    {
+        var link = _roles.FirstOrDefault(existing => existing.RoleId == roleId);
+        if (link is null)
+        {
+            return;
+        }
+
+        _roles.Remove(link);
+    }
 
     public static User Create(
         string email,
