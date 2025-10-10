@@ -1,3 +1,4 @@
+using System.IO;
 using AppGateway.Api.Auth;
 using AppGateway.Api.Middlewares;
 using AppGateway.Api.ReverseProxy;
@@ -15,6 +16,12 @@ public static class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        var uiRootPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "ui", "dist"));
+        if (Directory.Exists(uiRootPath))
+        {
+            builder.WebHost.UseWebRoot(uiRootPath);
+        }
 
         var authenticationBuilder = builder.Services.AddAuthentication(options =>
         {
@@ -52,19 +59,27 @@ public static class Program
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
-        app.UseDefaultFiles();
-        app.UseStaticFiles();
+        if (Directory.Exists(app.Environment.WebRootPath))
+        {
+            app.UseDefaultFiles();
+            app.UseStaticFiles();
+        }
 
         app.UseAuthentication();
         app.UseAuthorization();
 
         app.MapControllers();
 
+        if (Directory.Exists(app.Environment.WebRootPath))
+        {
+            app.MapFallbackToFile("index.html").AllowAnonymous();
+        }
+
         app.MapGet("/", () => Results.Json(new
         {
             service = "app-gateway",
             status = "ready",
-            routes = ReverseProxyConfiguration.CreateDefaultRoutes()
+            routes = ReverseProxyConfiguration.CreateDefaultRoutes(app.Configuration)
         })).AllowAnonymous();
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
