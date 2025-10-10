@@ -1,4 +1,5 @@
 using ECM.Modules.Abstractions;
+using ECM.Modules.AccessControl.Api;
 using ECM.Modules.Document.Api;
 using ECM.Modules.File.Api;
 using ECM.Modules.SearchRead.Api;
@@ -15,6 +16,7 @@ public static class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.AddServiceDefaults();
+        builder.AddModule<AccessControlModule>();
         builder.AddModule<DocumentModule>();
         builder.AddModule<FileModule>();
         builder.AddModule<WorkflowModule>();
