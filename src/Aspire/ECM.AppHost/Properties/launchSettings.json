@@ -4,7 +4,8 @@
     "AppHost": {
       "commandName": "Project",
       "dotnetRunMessages": true,
-      "launchBrowser": false,
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:18888;http://localhost:5090/",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development",
         "ASPNETCORE_URLS": "http://localhost:18888",
