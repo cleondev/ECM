@@ -52,6 +52,9 @@ public static class Program
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
         app.UseAuthentication();
         app.UseAuthorization();
 

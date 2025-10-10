@@ -52,13 +52,19 @@ public static class Program
         var kafka = builder.AddConnectionString("kafka");
         var minio = builder.AddConnectionString("minio");
 
+        var ecmUrl = builder.Configuration.GetValue<string>("Urls:Ecm") ?? "http://localhost:8080";
+        var gatewayUrl = builder.Configuration.GetValue<string>("Urls:Gateway") ?? "http://localhost:5090";
+
         var ecmHost = builder.AddProject<Projects.ECM_Host>("ecm")
             .WithReference(postgres)
             .WithReference(kafka)
-            .WithReference(minio);
+            .WithReference(minio)
+            .WithEnvironment("ASPNETCORE_URLS", ecmUrl);
 
         builder.AddProject<Projects.AppGateway_Api>("app-gateway")
-            .WithReference(ecmHost);
+            .WithReference(ecmHost)
+            .WithEnvironment("ASPNETCORE_URLS", gatewayUrl)
+            .WithEnvironment("Services__Ecm", ecmUrl);
 
         builder.AddProject<Projects.SearchIndexer>("search-indexer")
             .WithReference(postgres)

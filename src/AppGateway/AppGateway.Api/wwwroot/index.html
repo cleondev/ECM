@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ECM Gateway – Đăng nhập</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.08), transparent 45%),
+                radial-gradient(circle at 100% 0%, rgba(16, 185, 129, 0.08), transparent 45%),
+                #f9fafb;
+            min-height: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(1.5rem, 4vw, 3rem);
+            color: #0f172a;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            backdrop-filter: blur(60px);
+            z-index: -2;
+        }
+
+        .card {
+            width: min(960px, 100%);
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 24px;
+            box-shadow: 0 25px 45px rgba(15, 23, 42, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .hero {
+            background: linear-gradient(145deg, #1d4ed8, #1e293b);
+            color: white;
+            padding: clamp(2rem, 4vw, 3rem);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2), transparent 45%),
+                radial-gradient(circle at 80% 30%, rgba(148, 163, 184, 0.25), transparent 55%);
+            opacity: 0.9;
+            pointer-events: none;
+        }
+
+        .hero h1 {
+            margin: 0 0 1rem;
+            font-size: clamp(2rem, 5vw, 2.6rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            margin: 0;
+            line-height: 1.6;
+            font-size: 1rem;
+            color: rgba(226, 232, 240, 0.9);
+        }
+
+        .hero ul {
+            margin: 2rem 0 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .hero li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            color: rgba(226, 232, 240, 0.92);
+        }
+
+        .hero svg {
+            flex-shrink: 0;
+        }
+
+        .content {
+            padding: clamp(2rem, 4vw, 3rem);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            padding: clamp(1.5rem, 3vw, 2rem);
+            box-shadow: 0 12px 25px rgba(15, 23, 42, 0.08);
+        }
+
+        .panel h2 {
+            margin: 0 0 0.75rem;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        form {
+            display: grid;
+            gap: 1rem;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #1f2937;
+        }
+
+        input[type="text"] {
+            padding: 0.75rem 1rem;
+            border-radius: 0.85rem;
+            border: 1px solid rgba(100, 116, 139, 0.2);
+            background: rgba(248, 250, 252, 0.8);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            font-size: 1rem;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+        }
+
+        button {
+            border: none;
+            border-radius: 0.85rem;
+            padding: 0.8rem 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            box-shadow: 0 15px 35px rgba(37, 99, 235, 0.25);
+        }
+
+        button.secondary {
+            background: rgba(15, 23, 42, 0.04);
+            color: #1e293b;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            background: rgba(37, 99, 235, 0.08);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            color: #1d4ed8;
+            font-weight: 500;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.25);
+            color: #b91c1c;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.25);
+            color: #047857;
+        }
+
+        .document-list {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .document-item {
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.85rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .document-item strong {
+            font-weight: 600;
+        }
+
+        .document-item time {
+            font-size: 0.85rem;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        .document-empty {
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            background: rgba(15, 23, 42, 0.03);
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .actions button {
+            flex: 1;
+        }
+
+        .loader {
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 2px solid rgba(37, 99, 235, 0.25);
+            border-top-color: #2563eb;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 1.25rem;
+            }
+
+            .card {
+                border-radius: 20px;
+            }
+
+            .hero {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <section class="hero">
+            <h1>ECM Gateway</h1>
+            <p>
+                Trang đăng nhập tạm thời giúp nhóm nhanh chóng thử nghiệm luồng tích hợp qua API Gateway.
+                Sử dụng API key được cấp để khám phá các API tài liệu trong môi trường phát triển.
+            </p>
+            <ul>
+                <li>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+                    </svg>
+                    <span>Kết nối tới dịch vụ ECM thông qua API gateway duy nhất</span>
+                </li>
+                <li>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 8v4l3 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4" />
+                    </svg>
+                    <span>Theo dõi phản hồi API và trạng thái tài liệu theo thời gian thực</span>
+                </li>
+                <li>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 7h3a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M9 7V5a3 3 0 013-3v0a3 3 0 013 3v2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span>Bảo vệ dịch vụ bằng API key dành riêng cho môi trường phát triển</span>
+                </li>
+            </ul>
+        </section>
+        <section class="content">
+            <div class="panel" id="auth-panel"></div>
+            <div class="panel" id="documents-panel" hidden></div>
+        </section>
+    </div>
+
+    <script type="module">
+        const storageKey = "ecm.gateway.apiKey";
+        const state = {
+            apiKey: localStorage.getItem(storageKey) ?? "",
+            isLoading: false,
+            documents: [],
+            message: "",
+            error: "",
+            isAuthenticated: false,
+        };
+
+        const dom = {
+            auth: document.getElementById("auth-panel"),
+            documents: document.getElementById("documents-panel"),
+        };
+
+        function setState(partial) {
+            Object.assign(state, partial);
+            render();
+        }
+
+        function render() {
+            renderAuthPanel();
+            renderDocumentsPanel();
+        }
+
+        function renderAuthPanel() {
+            if (!state.isAuthenticated) {
+                dom.documents.hidden = true;
+                dom.auth.innerHTML = `
+                    <h2>Đăng nhập bằng API key</h2>
+                    <p class="status ${state.error ? "error" : ""}" ${state.error || state.message ? "" : "hidden"}>
+                        ${state.error || state.message}
+                    </p>
+                    <form id="login-form">
+                        <label for="apiKey">API key</label>
+                        <input id="apiKey" name="apiKey" type="text" placeholder="dev-secret" value="${escapeHtml(state.apiKey)}" required />
+                        <button class="primary" type="submit" ${state.isLoading ? "disabled" : ""}>
+                            ${state.isLoading ? loaderTemplate() + "\n                            <span>Đang kiểm tra...</span>" : "Truy cập hệ thống"}
+                        </button>
+                    </form>
+                `;
+
+                const loginForm = document.getElementById("login-form");
+                loginForm?.addEventListener("submit", async (event) => {
+                    event.preventDefault();
+                    const formData = new FormData(loginForm);
+                    const apiKey = (formData.get("apiKey") ?? "").toString().trim();
+                    if (!apiKey) {
+                        setState({ error: "Vui lòng nhập API key hợp lệ" });
+                        return;
+                    }
+
+                    setState({ isLoading: true, error: "", message: "" });
+                    await fetchDocuments(apiKey, { showSuccess: true });
+                });
+            } else {
+                dom.documents.hidden = false;
+                dom.auth.innerHTML = `
+                    <h2>Thông tin phiên làm việc</h2>
+                    <div class="status success">Đã xác thực thành công bằng API key.</div>
+                    <div class="actions">
+                        <button id="refresh-documents" class="secondary" ${state.isLoading ? "disabled" : ""}>Làm mới danh sách</button>
+                        <button id="logout-button" class="secondary">Đăng xuất</button>
+                    </div>
+                `;
+
+                document.getElementById("refresh-documents")?.addEventListener("click", async () => {
+                    await fetchDocuments(state.apiKey);
+                });
+
+                document.getElementById("logout-button")?.addEventListener("click", () => {
+                    localStorage.removeItem(storageKey);
+                    setState({
+                        isAuthenticated: false,
+                        apiKey: "",
+                        documents: [],
+                        message: "",
+                        error: "",
+                    });
+                });
+            }
+        }
+
+        function renderDocumentsPanel() {
+            if (!state.isAuthenticated) {
+                dom.documents.hidden = true;
+                dom.documents.innerHTML = "";
+                return;
+            }
+
+            dom.documents.hidden = false;
+            dom.documents.innerHTML = `
+                <h2>Tài liệu gần đây</h2>
+                <p class="status ${state.error ? "error" : "success"}" ${state.error || state.message ? "" : "hidden"}>
+                    ${state.error || state.message}
+                </p>
+                <form id="create-document-form">
+                    <label for="title">Tên tài liệu</label>
+                    <input id="title" name="title" type="text" placeholder="Ví dụ: Hợp đồng nguyên tắc" required />
+                    <button class="primary" type="submit" ${state.isLoading ? "disabled" : ""}>
+                        ${state.isLoading ? loaderTemplate() + "\n                        <span>Đang gửi...</span>" : "Tạo tài liệu"}
+                    </button>
+                </form>
+                ${renderDocumentList()}
+            `;
+
+            document.getElementById("create-document-form")?.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const form = event.currentTarget;
+                const formData = new FormData(form);
+                const title = (formData.get("title") ?? "").toString().trim();
+                if (!title) {
+                    setState({ error: "Tên tài liệu không được bỏ trống", message: "" });
+                    return;
+                }
+
+                setState({ isLoading: true, error: "", message: "" });
+                try {
+                    const response = await fetch("/api/gateway/documents", {
+                        method: "POST",
+                        headers: headersWithApiKey(state.apiKey, { "Content-Type": "application/json" }),
+                        body: JSON.stringify({ title }),
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText || `Máy chủ trả về trạng thái ${response.status}`);
+                    }
+
+                    const document = await response.json();
+                    setState({
+                        documents: [document, ...state.documents],
+                        message: "Tạo tài liệu thành công.",
+                        error: "",
+                    });
+                    form.reset();
+                } catch (error) {
+                    setState({
+                        error: `Không thể tạo tài liệu: ${error instanceof Error ? error.message : error}`,
+                        message: "",
+                    });
+                } finally {
+                    setState({ isLoading: false });
+                }
+            });
+        }
+
+        function renderDocumentList() {
+            if (!state.documents.length) {
+                return `<div class="document-empty">Chưa có tài liệu nào được ghi nhận.</div>`;
+            }
+
+            const items = state.documents.map((doc) => `
+                <div class="document-item">
+                    <div>
+                        <strong>${escapeHtml(doc.title)}</strong>
+                        <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">Mã: ${doc.id}</div>
+                    </div>
+                    <time datetime="${doc.createdAtUtc}">${formatDate(doc.createdAtUtc)}</time>
+                </div>
+            `);
+
+            return `<div class="document-list">${items.join("")}</div>`;
+        }
+
+        function headersWithApiKey(apiKey, baseHeaders = {}) {
+            return {
+                ...baseHeaders,
+                "X-Api-Key": apiKey,
+            };
+        }
+
+        function loaderTemplate() {
+            return `<span class="loader" aria-hidden="true"></span>`;
+        }
+
+        function escapeHtml(value) {
+            return value
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function formatDate(value) {
+            try {
+                const date = new Date(value);
+                return new Intl.DateTimeFormat("vi-VN", {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                }).format(date);
+            } catch {
+                return value;
+            }
+        }
+
+        async function fetchDocuments(apiKey, options = {}) {
+            const { showSuccess = false } = options;
+            try {
+                const response = await fetch("/api/gateway/documents", {
+                    headers: headersWithApiKey(apiKey),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || `Máy chủ trả về trạng thái ${response.status}`);
+                }
+
+                const documents = await response.json();
+                localStorage.setItem(storageKey, apiKey);
+                setState({
+                    apiKey,
+                    documents,
+                    isAuthenticated: true,
+                    message: showSuccess ? "Đăng nhập thành công." : "",
+                    error: "",
+                });
+            } catch (error) {
+                localStorage.removeItem(storageKey);
+                setState({
+                    isAuthenticated: false,
+                    documents: [],
+                    message: "",
+                    error: `Không thể xác thực: ${error instanceof Error ? error.message : error}`,
+                });
+            } finally {
+                setState({ isLoading: false });
+            }
+        }
+
+        render();
+
+        if (state.apiKey) {
+            setState({ isLoading: true });
+            fetchDocuments(state.apiKey);
+        }
+    </script>
+</body>
+</html>
