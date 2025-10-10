@@ -6,7 +6,7 @@ namespace ECM.File.Domain.Files;
 
 public interface IFileRepository
 {
-    Task AddAsync(FileEntry entry, CancellationToken cancellationToken = default);
+    Task<StoredFile> AddAsync(StoredFile file, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<FileEntry>> GetRecentAsync(int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<StoredFile>> GetRecentAsync(int limit, CancellationToken cancellationToken = default);
 }

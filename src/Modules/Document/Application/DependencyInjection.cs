@@ -9,6 +9,7 @@ public static class DocumentApplicationModuleExtensions
     public static IServiceCollection AddDocumentApplication(this IServiceCollection services)
     {
         services.AddScoped<DocumentApplicationService>();
+        services.AddScoped<DocumentUploadApplicationService>();
         services.AddScoped<TagApplicationService>();
         return services;
     }

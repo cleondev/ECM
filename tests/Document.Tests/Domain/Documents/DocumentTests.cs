@@ -275,4 +275,35 @@ public class DocumentTests
         Assert.False(removed);
         Assert.Empty(document.Tags);
     }
+
+    [Fact]
+    public void AddVersion_WithValidData_CreatesVersionAndUpdatesTimestamp()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var createdBy = Guid.NewGuid();
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            createdBy,
+            now);
+
+        var version = document.AddVersion(
+            "storage-key",
+            1024,
+            "application/pdf",
+            new string('a', 64),
+            createdBy,
+            now);
+
+        Assert.Equal(1, version.VersionNo);
+        Assert.Equal("storage-key", version.StorageKey);
+        Assert.Equal(1024, version.Bytes);
+        Assert.Equal("application/pdf", version.MimeType);
+        Assert.Equal(new string('a', 64), version.Sha256);
+        Assert.Equal(createdBy, version.CreatedBy);
+        Assert.Equal(now, document.UpdatedAtUtc);
+        Assert.Single(document.Versions);
+    }
 }
