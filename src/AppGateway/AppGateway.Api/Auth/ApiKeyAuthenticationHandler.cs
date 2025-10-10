@@ -12,7 +12,7 @@ internal sealed class ApiKeyAuthenticationHandler(
     ILoggerFactory logger,
     UrlEncoder encoder) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
-    public const string Scheme = "ApiKey";
+    public const string AuthenticationScheme = "ApiKey";
     private const string HeaderName = "X-Api-Key";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -34,9 +34,9 @@ internal sealed class ApiKeyAuthenticationHandler(
             new Claim(ClaimTypes.Name, "Gateway Client")
         };
 
-        var identity = new ClaimsIdentity(claims, Scheme);
+        var identity = new ClaimsIdentity(claims, AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);
-        var ticket = new AuthenticationTicket(principal, Scheme);
+        var ticket = new AuthenticationTicket(principal, AuthenticationScheme);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }

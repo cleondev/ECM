@@ -488,9 +488,10 @@ partial class DocumentDbContextModelSnapshot : ModelSnapshot
                 .HasDatabaseName("tag_label_ns_path_idx")
                 .IsUnique();
 
-            b.HasCheckConstraint("chk_tag_path_format", "path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$'");
-
-            b.ToTable("tag_label", "doc");
+            b.ToTable("tag_label", "doc", tableBuilder =>
+            {
+                tableBuilder.HasCheckConstraint("chk_tag_path_format", "path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$'");
+            });
 
             b.HasOne(l => l.Namespace)
                 .WithMany(n => n.Labels)
@@ -527,9 +528,10 @@ partial class DocumentDbContextModelSnapshot : ModelSnapshot
 
             b.HasKey("NamespaceSlug");
 
-            b.HasCheckConstraint("chk_tag_namespace_kind", "kind IN ('system','user')");
-
-            b.ToTable("tag_namespace", "doc");
+            b.ToTable("tag_namespace", "doc", tableBuilder =>
+            {
+                tableBuilder.HasCheckConstraint("chk_tag_namespace_kind", "kind IN ('system','user')");
+            });
 
             b.Navigation(n => n.Labels)
                 .UsePropertyAccessMode(PropertyAccessMode.Field);
