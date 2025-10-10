@@ -18,8 +18,8 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   ├── ECM
   │   ├── ECM.Host/           # Modular monolith host (nạp các module domain)
   │   ├── ECM.BuildingBlocks/ # Shared kernel, outbox, event abstractions
-  │   └── Modules/            # Các module độc lập: Document, File, Workflow, Signature, SearchRead
-  ├── Workers                # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
+  ├── Modules/                # Các module độc lập: Document, File, Workflow, Signature, SearchRead
+  ├── Workers                 # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
   ├── Ocr
   │   ├── ocr-engine          # Service Python cho OCR
   │   └── labeling-ui         # UI gán nhãn dữ liệu OCR
