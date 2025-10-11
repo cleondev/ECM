@@ -3,9 +3,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Tags.Repositories;
+using ECM.Document.Application.Tags.Results;
 using ECM.Document.Domain.Tags;
 
-namespace ECM.Document.Application.Tags;
+namespace ECM.Document.Application.Tags.Commands;
 
 public sealed class CreateTagLabelCommandHandler(
     ITagLabelRepository tagLabelRepository,

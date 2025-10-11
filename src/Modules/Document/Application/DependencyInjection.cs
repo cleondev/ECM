@@ -1,5 +1,5 @@
 using ECM.Document.Application.Documents.Commands;
-using ECM.Document.Application.Tags;
+using ECM.Document.Application.Tags.Commands;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ECM.Document.Application;

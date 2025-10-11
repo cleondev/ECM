@@ -1,6 +1,6 @@
 using System;
 
-namespace ECM.Document.Application.Tags;
+namespace ECM.Document.Application.Tags.Results;
 
 public sealed record TagLabelResult(
     Guid Id,

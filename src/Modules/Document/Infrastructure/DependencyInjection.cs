@@ -1,7 +1,7 @@
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.BuildingBlocks.Infrastructure.Time;
 using ECM.Document.Application.Documents.Repositories;
-using ECM.Document.Application.Tags;
+using ECM.Document.Application.Tags.Repositories;
 using ECM.Document.Infrastructure.Documents;
 using ECM.Document.Infrastructure.Tags;
 using ECM.Document.Infrastructure.Persistence;
