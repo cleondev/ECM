@@ -1,3 +1,4 @@
+using ECM.SearchRead.Application.Search.Abstractions;
 using ECM.SearchRead.Infrastructure.Search;
 using Microsoft.Extensions.DependencyInjection;
 

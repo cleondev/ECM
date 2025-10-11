@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using ECM.Workflow.Application.Workflows;
+using ECM.Workflow.Application.Workflows.Commands;
+using ECM.Workflow.Application.Workflows.Queries;
 using ECM.Workflow.Domain.Instances;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -26,16 +27,16 @@ public static class WorkflowEndpoints
         return group;
     }
 
-    private static async Task<Ok<IReadOnlyCollection<WorkflowInstance>>> GetActiveWorkflows(WorkflowApplicationService service, CancellationToken cancellationToken)
+    private static async Task<Ok<IReadOnlyCollection<WorkflowInstance>>> GetActiveWorkflows(GetActiveWorkflowsQueryHandler handler, CancellationToken cancellationToken)
     {
-        var instances = await service.GetActiveAsync(cancellationToken);
+        var instances = await handler.HandleAsync(new GetActiveWorkflowsQuery(), cancellationToken);
         return TypedResults.Ok(instances);
     }
 
-    private static async Task<Results<Accepted<WorkflowInstance>, ValidationProblem>> StartWorkflow(StartWorkflowRequest request, WorkflowApplicationService service, CancellationToken cancellationToken)
+    private static async Task<Results<Accepted<WorkflowInstance>, ValidationProblem>> StartWorkflow(StartWorkflowRequest request, StartWorkflowCommandHandler handler, CancellationToken cancellationToken)
     {
         var command = new StartWorkflowCommand(request.DocumentId, request.Definition);
-        var result = await service.StartAsync(command, cancellationToken);
+        var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
         {

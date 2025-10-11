@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.SearchRead.Application.Search;
+using ECM.SearchRead.Application.Search.Abstractions;
 
 namespace ECM.SearchRead.Infrastructure.Search;
 

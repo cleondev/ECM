@@ -12,8 +12,9 @@ public static class FileApplicationModuleExtensions
     {
         services.AddSingleton<ISystemClock, SystemClock>();
         services.AddSingleton<IStorageKeyGenerator, DefaultStorageKeyGenerator>();
-        services.AddScoped<FileApplicationService>();
-        services.AddScoped<IFileUploadService>(provider => provider.GetRequiredService<FileApplicationService>());
+        services.AddScoped<GetRecentFilesQueryHandler>();
+        services.AddScoped<UploadFileCommandHandler>();
+        services.AddScoped<IFileStorageGateway>(provider => provider.GetRequiredService<UploadFileCommandHandler>());
         return services;
     }
 }

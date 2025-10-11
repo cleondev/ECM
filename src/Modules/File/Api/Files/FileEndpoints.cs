@@ -30,13 +30,14 @@ public static class FileEndpoints
         return group;
     }
 
-    private static async Task<Ok<IReadOnlyCollection<StoredFile>>> GetRecentFiles(FileApplicationService service, CancellationToken cancellationToken)
+    private static async Task<Ok<IReadOnlyCollection<StoredFile>>> GetRecentFiles(GetRecentFilesQueryHandler handler, CancellationToken cancellationToken)
     {
-        var files = await service.GetRecentAsync(10, cancellationToken);
+        var query = new GetRecentFilesQuery(10);
+        var files = await handler.HandleAsync(query, cancellationToken);
         return TypedResults.Ok(files);
     }
 
-    private static async Task<Results<Created<FileUploadResult>, ValidationProblem>> UploadFileAsync(IFormFile file, FileApplicationService service, CancellationToken cancellationToken)
+    private static async Task<Results<Created<FileUploadResult>, ValidationProblem>> UploadFileAsync(IFormFile file, UploadFileCommandHandler handler, CancellationToken cancellationToken)
     {
         if (file is null || file.Length <= 0)
         {
@@ -52,7 +53,7 @@ public static class FileEndpoints
 
         await using var stream = file.OpenReadStream();
         var request = new FileUploadRequest(file.FileName, contentType, file.Length, stream);
-        var result = await service.UploadAsync(request, cancellationToken);
+        var result = await handler.UploadAsync(request, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
         {

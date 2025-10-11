@@ -22,10 +22,10 @@ public static class SearchEndpoints
         return group;
     }
 
-    private static async Task<Ok<IReadOnlyCollection<SearchResult>>> SearchAsync([AsParameters] SearchRequest request, SearchApplicationService service, CancellationToken cancellationToken)
+    private static async Task<Ok<IReadOnlyCollection<SearchResult>>> SearchAsync([AsParameters] SearchRequest request, SearchQueryHandler handler, CancellationToken cancellationToken)
     {
         var query = new SearchQuery(request.Term, request.Department, request.Limit);
-        var results = await service.SearchAsync(query, cancellationToken);
+        var results = await handler.HandleAsync(query, cancellationToken);
         return TypedResults.Ok(results);
     }
 }

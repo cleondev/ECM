@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.AccessControl.Application.Relations;
+using ECM.AccessControl.Application.Relations.Commands;
+using ECM.AccessControl.Application.Relations.Queries;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -40,10 +41,10 @@ public static class RelationEndpoints
 
     private static async Task<Ok<IReadOnlyCollection<AccessRelationResponse>>> GetBySubjectAsync(
         Guid subjectId,
-        AccessRelationApplicationService service,
+        GetAccessRelationsBySubjectQueryHandler handler,
         CancellationToken cancellationToken)
     {
-        var relations = await service.GetBySubjectAsync(subjectId, cancellationToken);
+        var relations = await handler.HandleAsync(new GetAccessRelationsBySubjectQuery(subjectId), cancellationToken);
         var response = relations.Select(MapToResponse).ToArray();
         return TypedResults.Ok<IReadOnlyCollection<AccessRelationResponse>>(response);
     }
@@ -51,20 +52,20 @@ public static class RelationEndpoints
     private static async Task<Ok<IReadOnlyCollection<AccessRelationResponse>>> GetByObjectAsync(
         string objectType,
         Guid objectId,
-        AccessRelationApplicationService service,
+        GetAccessRelationsByObjectQueryHandler handler,
         CancellationToken cancellationToken)
     {
-        var relations = await service.GetByObjectAsync(objectType, objectId, cancellationToken);
+        var relations = await handler.HandleAsync(new GetAccessRelationsByObjectQuery(objectType, objectId), cancellationToken);
         var response = relations.Select(MapToResponse).ToArray();
         return TypedResults.Ok<IReadOnlyCollection<AccessRelationResponse>>(response);
     }
 
     private static async Task<Results<Created<AccessRelationResponse>, ValidationProblem>> CreateRelationAsync(
         CreateAccessRelationRequest request,
-        AccessRelationApplicationService service,
+        CreateAccessRelationCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.CreateAsync(
+        var result = await handler.HandleAsync(
             new CreateAccessRelationCommand(
                 request.SubjectId,
                 request.ObjectType,
@@ -89,10 +90,10 @@ public static class RelationEndpoints
         string objectType,
         Guid objectId,
         string relation,
-        AccessRelationApplicationService service,
+        DeleteAccessRelationCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var deleted = await service.DeleteAsync(
+        var deleted = await handler.HandleAsync(
             new DeleteAccessRelationCommand(subjectId, objectType, objectId, relation),
             cancellationToken);
 
