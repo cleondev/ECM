@@ -7,7 +7,7 @@ public static class SearchReadApplicationModuleExtensions
 {
     public static IServiceCollection AddSearchReadApplication(this IServiceCollection services)
     {
-        services.AddScoped<SearchApplicationService>();
+        services.AddScoped<SearchQueryHandler>();
         return services;
     }
 }

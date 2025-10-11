@@ -4,7 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using ECM.Document.Application.Documents.Commands;
-using ECM.Document.Application.Documents.Services;
+using ECM.Document.Application.Documents.Commands;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -33,7 +33,7 @@ public static class DocumentEndpoints
 
     private static async Task<Results<Created<DocumentResponse>, ValidationProblem>> CreateDocumentAsync(
         [FromForm] CreateDocumentRequest request,
-        DocumentUploadApplicationService service,
+        UploadDocumentCommandHandler handler,
         CancellationToken cancellationToken)
     {
         if (request.File is null || request.File.Length <= 0)
@@ -66,7 +66,7 @@ public static class DocumentEndpoints
             sha256,
             uploadStream);
 
-        var result = await service.CreateAsync(command, cancellationToken);
+        var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
         {

@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using ECM.Signature.Application.Requests;
+using ECM.Signature.Application.Requests.Commands;
+using ECM.Signature.Application.Requests.Queries;
 using ECM.Signature.Domain.Requests;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -26,16 +27,16 @@ public static class SignatureEndpoints
         return group;
     }
 
-    private static async Task<Ok<IReadOnlyCollection<SignatureRequest>>> GetPending(SignatureApplicationService service, CancellationToken cancellationToken)
+    private static async Task<Ok<IReadOnlyCollection<SignatureRequest>>> GetPending(GetPendingSignatureRequestsQueryHandler handler, CancellationToken cancellationToken)
     {
-        var pending = await service.GetPendingAsync(cancellationToken);
+        var pending = await handler.HandleAsync(new GetPendingSignatureRequestsQuery(), cancellationToken);
         return TypedResults.Ok(pending);
     }
 
-    private static async Task<Results<Created<SignatureRequest>, ValidationProblem>> CreateSignature(CreateSignatureRequest request, SignatureApplicationService service, CancellationToken cancellationToken)
+    private static async Task<Results<Created<SignatureRequest>, ValidationProblem>> CreateSignature(CreateSignatureRequest request, CreateSignatureRequestCommandHandler handler, CancellationToken cancellationToken)
     {
         var command = new CreateSignatureRequestCommand(request.DocumentId, request.SignerEmail);
-        var result = await service.CreateAsync(command, cancellationToken);
+        var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
         {

@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.AccessControl.Application.Roles;
+using ECM.AccessControl.Application.Roles.Commands;
+using ECM.AccessControl.Application.Roles.Queries;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -43,20 +44,20 @@ public static class RoleEndpoints
     }
 
     private static async Task<Ok<IReadOnlyCollection<RoleResponse>>> GetRolesAsync(
-        RoleApplicationService service,
+        GetRolesQueryHandler handler,
         CancellationToken cancellationToken)
     {
-        var roles = await service.GetAsync(cancellationToken);
+        var roles = await handler.HandleAsync(new GetRolesQuery(), cancellationToken);
         var response = roles.Select(role => new RoleResponse(role.Id, role.Name)).ToArray();
         return TypedResults.Ok<IReadOnlyCollection<RoleResponse>>(response);
     }
 
     private static async Task<Results<Ok<RoleResponse>, NotFound>> GetRoleByIdAsync(
         Guid id,
-        RoleApplicationService service,
+        GetRoleByIdQueryHandler handler,
         CancellationToken cancellationToken)
     {
-        var role = await service.GetByIdAsync(id, cancellationToken);
+        var role = await handler.HandleAsync(new GetRoleByIdQuery(id), cancellationToken);
         if (role is null)
         {
             return TypedResults.NotFound();
@@ -67,10 +68,10 @@ public static class RoleEndpoints
 
     private static async Task<Results<Created<RoleResponse>, ValidationProblem>> CreateRoleAsync(
         CreateRoleRequest request,
-        RoleApplicationService service,
+        CreateRoleCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.CreateAsync(new CreateRoleCommand(request.Name), cancellationToken);
+        var result = await handler.HandleAsync(new CreateRoleCommand(request.Name), cancellationToken);
         if (result.IsFailure || result.Value is null)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
@@ -86,10 +87,10 @@ public static class RoleEndpoints
     private static async Task<Results<Ok<RoleResponse>, ValidationProblem, NotFound>> RenameRoleAsync(
         Guid id,
         RenameRoleRequest request,
-        RoleApplicationService service,
+        RenameRoleCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.RenameAsync(new RenameRoleCommand(id, request.Name), cancellationToken);
+        var result = await handler.HandleAsync(new RenameRoleCommand(id, request.Name), cancellationToken);
         if (result.IsFailure)
         {
             if (result.Errors.Any(error => error.Contains("not found", StringComparison.OrdinalIgnoreCase)))
@@ -108,10 +109,10 @@ public static class RoleEndpoints
 
     private static async Task<Results<NoContent, NotFound>> DeleteRoleAsync(
         Guid id,
-        RoleApplicationService service,
+        DeleteRoleCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var deleted = await service.DeleteAsync(id, cancellationToken);
+        var deleted = await handler.HandleAsync(new DeleteRoleCommand(id), cancellationToken);
         if (!deleted)
         {
             return TypedResults.NotFound();

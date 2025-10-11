@@ -1,4 +1,4 @@
-using ECM.Document.Application.Documents.Services;
+using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Tags;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,8 +8,8 @@ public static class DocumentApplicationModuleExtensions
 {
     public static IServiceCollection AddDocumentApplication(this IServiceCollection services)
     {
-        services.AddScoped<DocumentApplicationService>();
-        services.AddScoped<DocumentUploadApplicationService>();
+        services.AddScoped<CreateDocumentCommandHandler>();
+        services.AddScoped<UploadDocumentCommandHandler>();
         services.AddScoped<CreateTagLabelCommandHandler>();
         services.AddScoped<DeleteTagLabelCommandHandler>();
         services.AddScoped<AssignTagToDocumentCommandHandler>();

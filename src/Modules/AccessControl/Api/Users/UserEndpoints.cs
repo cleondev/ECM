@@ -4,7 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.AccessControl.Api.Roles;
-using ECM.AccessControl.Application.Users;
+using ECM.AccessControl.Application.Users.Commands;
+using ECM.AccessControl.Application.Users.Queries;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -48,20 +49,20 @@ public static class UserEndpoints
     }
 
     private static async Task<Ok<IReadOnlyCollection<UserResponse>>> GetUsersAsync(
-        UserApplicationService service,
+        GetUsersQueryHandler handler,
         CancellationToken cancellationToken)
     {
-        var users = await service.GetAsync(cancellationToken);
+        var users = await handler.HandleAsync(new GetUsersQuery(), cancellationToken);
         var response = users.Select(MapToResponse).ToArray();
         return TypedResults.Ok<IReadOnlyCollection<UserResponse>>(response);
     }
 
     private static async Task<Results<Ok<UserResponse>, NotFound>> GetUserByIdAsync(
         Guid id,
-        UserApplicationService service,
+        GetUserByIdQueryHandler handler,
         CancellationToken cancellationToken)
     {
-        var user = await service.GetByIdAsync(id, cancellationToken);
+        var user = await handler.HandleAsync(new GetUserByIdQuery(id), cancellationToken);
         if (user is null)
         {
             return TypedResults.NotFound();
@@ -72,10 +73,10 @@ public static class UserEndpoints
 
     private static async Task<Results<Created<UserResponse>, ValidationProblem>> CreateUserAsync(
         CreateUserRequest request,
-        UserApplicationService service,
+        CreateUserCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.CreateAsync(
+        var result = await handler.HandleAsync(
             new CreateUserCommand(
                 request.Email,
                 request.DisplayName,
@@ -99,10 +100,10 @@ public static class UserEndpoints
     private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> UpdateUserAsync(
         Guid id,
         UpdateUserRequest request,
-        UserApplicationService service,
+        UpdateUserCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.UpdateAsync(
+        var result = await handler.HandleAsync(
             new UpdateUserCommand(
                 id,
                 request.DisplayName,
@@ -129,10 +130,10 @@ public static class UserEndpoints
     private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> AssignRoleAsync(
         Guid id,
         AssignRoleRequest request,
-        UserApplicationService service,
+        AssignUserRoleCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.AssignRoleAsync(
+        var result = await handler.HandleAsync(
             new AssignUserRoleCommand(id, request.RoleId),
             cancellationToken);
 
@@ -155,10 +156,10 @@ public static class UserEndpoints
     private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> RemoveRoleAsync(
         Guid id,
         Guid roleId,
-        UserApplicationService service,
+        RemoveUserRoleCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.RemoveRoleAsync(
+        var result = await handler.HandleAsync(
             new RemoveUserRoleCommand(id, roleId),
             cancellationToken);
 
