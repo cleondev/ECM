@@ -2,7 +2,7 @@ using System;
 
 namespace ECM.Document.Infrastructure.Outbox;
 
-internal sealed class OutboxMessage
+public sealed class OutboxMessage
 {
     private OutboxMessage()
     {
