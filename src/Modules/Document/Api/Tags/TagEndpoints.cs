@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using ECM.Document.Application.Tags;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -37,11 +39,11 @@ public static class TagEndpoints
 
     private static async Task<Results<Created<TagLabelResponse>, ValidationProblem>> CreateTagAsync(
         CreateTagRequest request,
-        TagApplicationService service,
+        CreateTagLabelCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var command = new CreateTagLabelCommand(request.NamespaceSlug, request.Slug, request.Path, request.CreatedBy);
-        var result = await service.CreateTagAsync(command, cancellationToken);
+        var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
         {
@@ -65,10 +67,11 @@ public static class TagEndpoints
 
     private static async Task<Results<NoContent, ValidationProblem>> DeleteTagAsync(
         Guid tagId,
-        TagApplicationService service,
+        DeleteTagLabelCommandHandler handler,
         CancellationToken cancellationToken)
     {
-        var result = await service.DeleteTagAsync(tagId, cancellationToken);
+        var command = new DeleteTagLabelCommand(tagId);
+        var result = await handler.HandleAsync(command, cancellationToken);
         if (result.IsFailure)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
@@ -83,11 +86,11 @@ public static class TagEndpoints
     private static async Task<Results<NoContent, ValidationProblem>> AssignTagAsync(
         Guid documentId,
         AssignTagRequest request,
-        TagApplicationService service,
+        AssignTagToDocumentCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var command = new AssignTagToDocumentCommand(documentId, request.TagId, request.AppliedBy);
-        var result = await service.AssignTagAsync(command, cancellationToken);
+        var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure)
         {
@@ -103,11 +106,11 @@ public static class TagEndpoints
     private static async Task<Results<NoContent, ValidationProblem>> RemoveTagAsync(
         Guid documentId,
         Guid tagId,
-        TagApplicationService service,
+        RemoveTagFromDocumentCommandHandler handler,
         CancellationToken cancellationToken)
     {
         var command = new RemoveTagFromDocumentCommand(documentId, tagId);
-        var result = await service.RemoveTagAsync(command, cancellationToken);
+        var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure)
         {
