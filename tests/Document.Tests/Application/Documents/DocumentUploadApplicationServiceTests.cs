@@ -83,6 +83,107 @@ public class DocumentUploadApplicationServiceTests
         Assert.Empty(repository.Documents);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task CreateAsync_WithNonPositiveFileSize_ReturnsFailureWithoutUploading(long fileSize)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var repository = new FakeDocumentRepository();
+        var fileUploadService = new FakeFileUploadService();
+        var clock = new FixedClock(now);
+        var service = new DocumentUploadApplicationService(repository, fileUploadService, clock);
+
+        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        var command = new UploadDocumentCommand(
+            "Document",
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Operations",
+            "Internal",
+            Guid.NewGuid(),
+            "file.pdf",
+            "application/pdf",
+            fileSize,
+            new string('a', 64),
+            content);
+
+        var result = await service.CreateAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Empty(repository.Documents);
+        Assert.Empty(fileUploadService.Requests);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithInvalidTitle_ReturnsFailureWithoutUploading()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var repository = new FakeDocumentRepository();
+        var fileUploadService = new FakeFileUploadService();
+        var clock = new FixedClock(now);
+        var service = new DocumentUploadApplicationService(repository, fileUploadService, clock);
+
+        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        var command = new UploadDocumentCommand(
+            "   ",
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Operations",
+            "Internal",
+            Guid.NewGuid(),
+            "file.pdf",
+            "application/pdf",
+            content.Length,
+            new string('a', 64),
+            content);
+
+        var result = await service.CreateAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Empty(repository.Documents);
+        Assert.Empty(fileUploadService.Requests);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenVersionCreationFails_ReturnsFailure()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var repository = new FakeDocumentRepository();
+        var fileUploadService = new FakeFileUploadService
+        {
+            Result = OperationResult<FileUploadResult>.Success(new FileUploadResult("storage-key", "file.pdf", "application/pdf", 0, now))
+        };
+        var clock = new FixedClock(now);
+        var service = new DocumentUploadApplicationService(repository, fileUploadService, clock);
+
+        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        var command = new UploadDocumentCommand(
+            "Document",
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Operations",
+            "Internal",
+            Guid.NewGuid(),
+            "file.pdf",
+            "application/pdf",
+            content.Length,
+            new string('a', 64),
+            content);
+
+        var result = await service.CreateAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Empty(repository.Documents);
+        Assert.Single(fileUploadService.Requests);
+    }
+
     private sealed class FakeDocumentRepository : IDocumentRepository
     {
         public List<DocumentAggregate> Documents { get; } = [];
@@ -102,10 +203,13 @@ public class DocumentUploadApplicationServiceTests
 
     private sealed class FakeFileUploadService : IFileUploadService
     {
-        public OperationResult<FileUploadResult>? Result { get; init; }
+        public OperationResult<FileUploadResult>? Result { get; set; }
+
+        public List<FileUploadRequest> Requests { get; } = [];
 
         public Task<OperationResult<FileUploadResult>> UploadAsync(FileUploadRequest request, CancellationToken cancellationToken = default)
         {
+            Requests.Add(request);
             return Task.FromResult(Result ?? OperationResult<FileUploadResult>.Failure("No result configured."));
         }
     }
