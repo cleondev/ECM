@@ -5,13 +5,12 @@ using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
 using Microsoft.EntityFrameworkCore;
-using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Infrastructure.Persistence;
 
 public sealed class DocumentDbContext(DbContextOptions<DocumentDbContext> options) : DbContext(options)
 {
-    public DbSet<DocumentAggregate> Documents => Set<DocumentAggregate>();
+    public DbSet<Document> Documents => Set<Document>();
 
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
 

@@ -4,8 +4,6 @@ using Xunit;
 
 namespace Document.Tests.Domain.Documents;
 
-using DocumentAggregate = ECM.Document.Domain.Documents.Document;
-
 public class DocumentTests
 {
     [Fact]
@@ -16,7 +14,7 @@ public class DocumentTests
         var createdBy = Guid.NewGuid();
         var title = DocumentTitle.Create(" Document Handbook ");
 
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             title,
             "  Policy  ",
             "  Draft  ",
@@ -41,7 +39,7 @@ public class DocumentTests
     public void Create_WithProvidedSensitivity_TrimsValue()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Procedure"),
             "Guide",
             "Published",
@@ -63,7 +61,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
 
-        Assert.Throws<ArgumentException>(() => DocumentAggregate.Create(
+        Assert.Throws<ArgumentException>(() => Document.Create(
             DocumentTitle.Create("Doc"),
             docType!,
             "Draft",
@@ -80,7 +78,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
 
-        Assert.Throws<ArgumentException>(() => DocumentAggregate.Create(
+        Assert.Throws<ArgumentException>(() => Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             status!,
@@ -93,7 +91,7 @@ public class DocumentTests
     public void UpdateStatus_WithValidValue_UpdatesProperties()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -114,7 +112,7 @@ public class DocumentTests
     [InlineData("   ")]
     public void UpdateStatus_WithMissingValue_ThrowsArgumentException(string? status)
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -128,7 +126,7 @@ public class DocumentTests
     [Fact]
     public void UpdateSensitivity_WithValidValue_UpdatesProperties()
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -149,7 +147,7 @@ public class DocumentTests
     [InlineData("   ")]
     public void UpdateSensitivity_WithMissingValue_ThrowsArgumentException(string? sensitivity)
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -163,7 +161,7 @@ public class DocumentTests
     [Fact]
     public void UpdateDepartment_WithWhitespace_SetsDepartmentToNull()
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -182,7 +180,7 @@ public class DocumentTests
     [Fact]
     public void UpdateDepartment_WithValue_TrimsWhitespace()
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -201,7 +199,7 @@ public class DocumentTests
     public void AssignTag_WithNewTag_AddsTagAndUpdatesTimestamp()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -223,7 +221,7 @@ public class DocumentTests
     [Fact]
     public void AssignTag_WithExistingTag_ThrowsInvalidOperationException()
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -241,7 +239,7 @@ public class DocumentTests
     public void RemoveTag_WithAssignedTag_RemovesAndUpdatesTimestamp()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -263,7 +261,7 @@ public class DocumentTests
     [Fact]
     public void RemoveTag_WithMissingAssignment_ReturnsFalse()
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -282,7 +280,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
         var createdBy = Guid.NewGuid();
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -313,7 +311,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
         var createdBy = Guid.NewGuid();
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -336,7 +334,7 @@ public class DocumentTests
     [InlineData(-1)]
     public void AddVersion_WithNonPositiveBytes_ThrowsArgumentOutOfRangeException(long bytes)
     {
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -351,7 +349,7 @@ public class DocumentTests
     public void UpdateTitle_WithNewValue_UpdatesDocumentAndTimestamp()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",
@@ -372,7 +370,7 @@ public class DocumentTests
     public void AttachMetadata_SetsMetadataAndUpdatesTimestamp()
     {
         var now = DateTimeOffset.UtcNow;
-        var document = DocumentAggregate.Create(
+        var document = Document.Create(
             DocumentTitle.Create("Doc"),
             "Policy",
             "Draft",

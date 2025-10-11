@@ -1,14 +1,13 @@
 using ECM.Document.Domain.Documents;
-using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ECM.Document.Infrastructure.Persistence.Configurations;
 
-public sealed class DocumentConfiguration : IEntityTypeConfiguration<DocumentAggregate>
+public sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
 {
-    public void Configure(EntityTypeBuilder<DocumentAggregate> builder)
+    public void Configure(EntityTypeBuilder<Document> builder)
     {
         builder.ToTable("document");
 
