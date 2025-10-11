@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Application.Relations;
 using ECM.AccessControl.Application.Relations.Commands;
 using ECM.AccessControl.Application.Relations.Queries;
 using Microsoft.AspNetCore.Builder;
