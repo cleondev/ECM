@@ -1,5 +1,8 @@
+using System.Linq;
+using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Domain.Documents;
+using ECM.Document.Infrastructure.Outbox;
 using ECM.Document.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
@@ -13,6 +16,7 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
     public async Task<DomainDocument> AddAsync(DomainDocument document, CancellationToken cancellationToken = default)
     {
         await _context.Documents.AddAsync(document, cancellationToken);
+        await EnqueueOutboxMessagesAsync(document, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return document;
     }
@@ -26,4 +30,23 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         => _context.SaveChangesAsync(cancellationToken);
+
+    private async Task EnqueueOutboxMessagesAsync(IHasDomainEvents aggregateRoot, CancellationToken cancellationToken)
+    {
+        if (aggregateRoot.DomainEvents.Count == 0)
+        {
+            return;
+        }
+
+        var outboxMessages = DocumentOutboxMapper
+            .ToOutboxMessages(aggregateRoot.DomainEvents)
+            .ToArray();
+
+        if (outboxMessages.Length > 0)
+        {
+            await _context.OutboxMessages.AddRangeAsync(outboxMessages, cancellationToken);
+        }
+
+        aggregateRoot.ClearDomainEvents();
+    }
 }
