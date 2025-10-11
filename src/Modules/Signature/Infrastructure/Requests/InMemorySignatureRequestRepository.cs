@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.Signature.Application.Requests;
 using ECM.Signature.Domain.Requests;
 
 namespace ECM.Signature.Infrastructure.Requests;

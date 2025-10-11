@@ -1,8 +1,9 @@
-namespace ECM.AccessControl.Domain.Relations;
+namespace ECM.AccessControl.Application.Relations;
 
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Domain.Relations;
 
 public interface IAccessRelationRepository
 {

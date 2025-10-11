@@ -1,4 +1,6 @@
-namespace ECM.Document.Domain.Tags;
+namespace ECM.Document.Application.Tags;
+
+using ECM.Document.Domain.Tags;
 
 public interface ITagLabelRepository
 {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Application.Roles;
 using ECM.AccessControl.Domain.Roles;
 using ECM.AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

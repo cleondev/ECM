@@ -1,8 +1,9 @@
-namespace ECM.AccessControl.Domain.Roles;
+namespace ECM.AccessControl.Application.Roles;
 
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Domain.Roles;
 
 public interface IRoleRepository
 {

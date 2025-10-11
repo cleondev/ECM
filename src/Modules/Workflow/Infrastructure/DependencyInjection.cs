@@ -1,4 +1,4 @@
-using ECM.Workflow.Domain.Instances;
+using ECM.Workflow.Application.Workflows;
 using ECM.Workflow.Infrastructure.Instances;
 using Microsoft.Extensions.DependencyInjection;
 

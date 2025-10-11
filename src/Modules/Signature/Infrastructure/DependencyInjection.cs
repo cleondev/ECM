@@ -1,4 +1,4 @@
-using ECM.Signature.Domain.Requests;
+using ECM.Signature.Application.Requests;
 using ECM.Signature.Infrastructure.Requests;
 using Microsoft.Extensions.DependencyInjection;
 

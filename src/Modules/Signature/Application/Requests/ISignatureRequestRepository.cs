@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.Signature.Domain.Requests;
 
-namespace ECM.Signature.Domain.Requests;
+namespace ECM.Signature.Application.Requests;
 
 public interface ISignatureRequestRepository
 {

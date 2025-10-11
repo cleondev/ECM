@@ -1,8 +1,9 @@
-namespace ECM.AccessControl.Domain.Users;
+namespace ECM.AccessControl.Application.Users;
 
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Domain.Users;
 
 public interface IUserRepository
 {

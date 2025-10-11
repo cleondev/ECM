@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.Workflow.Application.Workflows;
 using ECM.Workflow.Domain.Instances;
 
 namespace ECM.Workflow.Infrastructure.Instances;
