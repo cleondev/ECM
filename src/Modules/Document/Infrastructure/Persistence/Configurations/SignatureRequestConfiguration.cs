@@ -46,8 +46,7 @@ public sealed class SignatureRequestConfiguration : IEntityTypeConfiguration<Sig
 
         builder.Property(request => request.Payload)
             .HasColumnName("payload")
-            .HasColumnType("jsonb")
-            .HasDefaultValueSql("'{}'::jsonb");
+            .ConfigureJsonDocument();
 
         builder.Property(request => request.CreatedAtUtc)
             .HasColumnName("created_at")

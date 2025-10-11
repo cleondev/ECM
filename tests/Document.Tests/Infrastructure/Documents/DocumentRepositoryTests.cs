@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Contracts.Documents;
 using Xunit;
 
+using DomainDocument = ECM.Document.Domain.Documents.Document;
+
 namespace Document.Tests.Infrastructure.Documents;
 
 public class DocumentRepositoryTests
@@ -20,7 +22,7 @@ public class DocumentRepositoryTests
         await using var context = new DocumentDbContext(options);
         var repository = new DocumentRepository(context);
         var now = DateTimeOffset.UtcNow;
-        var document = Document.Create(
+        var document = DomainDocument.Create(
             DocumentTitle.Create("Project Charter"),
             "proposal",
             "draft",

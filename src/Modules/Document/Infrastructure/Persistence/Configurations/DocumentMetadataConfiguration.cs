@@ -18,7 +18,6 @@ public sealed class DocumentMetadataConfiguration : IEntityTypeConfiguration<Doc
 
         builder.Property(metadata => metadata.Data)
             .HasColumnName("data")
-            .HasColumnType("jsonb")
-            .HasDefaultValueSql("'{}'::jsonb");
+            .ConfigureJsonDocument();
     }
 }

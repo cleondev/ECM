@@ -34,7 +34,7 @@ public class AccessRelationTests
             "reader",
             DateTimeOffset.UtcNow));
 
-        Assert.Equal("Object type is required.", exception.Message);
+        Assert.StartsWith("Object type is required.", exception.Message);
         Assert.Equal("objectType", exception.ParamName);
     }
 
@@ -51,7 +51,7 @@ public class AccessRelationTests
             relation!,
             DateTimeOffset.UtcNow));
 
-        Assert.Equal("Relation is required.", exception.Message);
+        Assert.StartsWith("Relation is required.", exception.Message);
         Assert.Equal("relation", exception.ParamName);
     }
 }
