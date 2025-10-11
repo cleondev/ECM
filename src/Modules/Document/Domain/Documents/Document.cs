@@ -1,17 +1,21 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Domain.DocumentTypes;
 using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
+using ECM.Document.Domain.Documents.Events;
 
 namespace ECM.Document.Domain.Documents;
 
-public sealed class Document
+public sealed class Document : IHasDomainEvents
 {
     private readonly List<DocumentVersion> _versions = [];
     private readonly List<DocumentTag> _tags = [];
     private readonly List<SignatureRequest> _signatureRequests = [];
+    private readonly List<IDomainEvent> _domainEvents = [];
 
     private Document()
     {
@@ -80,6 +84,8 @@ public sealed class Document
 
     public IReadOnlyCollection<SignatureRequest> SignatureRequests => _signatureRequests.AsReadOnly();
 
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
     public static Document Create(
         DocumentTitle title,
         string docType,
@@ -103,7 +109,7 @@ public sealed class Document
 
         var finalSensitivity = string.IsNullOrWhiteSpace(sensitivity) ? "Internal" : sensitivity.Trim();
 
-        return new Document(
+        var document = new Document(
             DocumentId.New(),
             title,
             docType.Trim(),
@@ -115,6 +121,15 @@ public sealed class Document
             now,
             string.IsNullOrWhiteSpace(department) ? null : department.Trim(),
             typeId);
+
+        document.Raise(new DocumentCreatedDomainEvent(
+            document.Id,
+            document.Title.Value,
+            document.OwnerId,
+            document.CreatedBy,
+            document.CreatedAtUtc));
+
+        return document;
     }
 
     public void UpdateTitle(DocumentTitle title, DateTimeOffset updatedAtUtc)
@@ -249,5 +264,16 @@ public sealed class Document
     internal void AddSignatureRequest(SignatureRequest request)
     {
         _signatureRequests.Add(request);
+    }
+
+    private void Raise(IDomainEvent domainEvent)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        _domainEvents.Add(domainEvent);
+    }
+
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
     }
 }

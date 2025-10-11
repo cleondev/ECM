@@ -4,6 +4,7 @@ using ECM.Document.Domain.Files;
 using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
+using ECM.Document.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 
@@ -30,6 +31,8 @@ public sealed class DocumentDbContext(DbContextOptions<DocumentDbContext> option
     public DbSet<SignatureRequest> SignatureRequests => Set<SignatureRequest>();
 
     public DbSet<SignatureResult> SignatureResults => Set<SignatureResult>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
