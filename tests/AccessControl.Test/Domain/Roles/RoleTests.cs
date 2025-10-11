@@ -21,7 +21,7 @@ public class RoleTests
     public void Create_WithMissingName_ThrowsArgumentException(string? name)
     {
         var exception = Assert.Throws<ArgumentException>(() => Role.Create(name!));
-        Assert.Equal("Role name is required.", exception.Message);
+        Assert.StartsWith("Role name is required.", exception.Message);
         Assert.Equal("name", exception.ParamName);
     }
 
@@ -44,7 +44,7 @@ public class RoleTests
         var role = Role.Create("Auditor");
 
         var exception = Assert.Throws<ArgumentException>(() => role.Rename(name!));
-        Assert.Equal("Role name is required.", exception.Message);
+        Assert.StartsWith("Role name is required.", exception.Message);
         Assert.Equal("name", exception.ParamName);
     }
 }

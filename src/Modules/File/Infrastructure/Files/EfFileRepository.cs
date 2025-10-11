@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECM.File.Infrastructure.Files;
 
-internal sealed class EfFileRepository(FileDbContext context) : IFileRepository
+public sealed class EfFileRepository(FileDbContext context) : IFileRepository
 {
     private readonly FileDbContext _context = context;
 

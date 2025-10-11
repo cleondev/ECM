@@ -32,8 +32,7 @@ public sealed class SignatureResultConfiguration : IEntityTypeConfiguration<Sign
 
         builder.Property(result => result.RawResponse)
             .HasColumnName("raw_response")
-            .HasColumnType("jsonb")
-            .HasDefaultValueSql("'{}'::jsonb");
+            .ConfigureJsonDocument();
 
         builder.HasOne(result => result.Request)
             .WithOne(request => request.Result)

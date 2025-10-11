@@ -41,7 +41,17 @@ public class UserTests
     {
         var createdAt = DateTimeOffset.UtcNow;
 
-        Assert.Throws<ArgumentException>(() => User.Create(email!, displayName!, createdAt));
+        var exception = Assert.Throws<ArgumentException>(() => User.Create(email!, displayName!, createdAt));
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            Assert.StartsWith("Email is required.", exception.Message);
+            Assert.Equal("email", exception.ParamName);
+        }
+        else
+        {
+            Assert.StartsWith("Display name is required.", exception.Message);
+            Assert.Equal("displayName", exception.ParamName);
+        }
     }
 
     [Fact]
@@ -63,7 +73,7 @@ public class UserTests
         var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow);
 
         var exception = Assert.Throws<ArgumentException>(() => user.UpdateDisplayName(name!));
-        Assert.Equal("Display name is required.", exception.Message);
+        Assert.StartsWith("Display name is required.", exception.Message);
         Assert.Equal("displayName", exception.ParamName);
     }
 
