@@ -1,12 +1,13 @@
 using System;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Versions;
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Application.Documents.Summaries;
 
 internal static class DocumentSummaryMapper
 {
-    public static DocumentSummary ToSummary(Document document)
+    public static DocumentSummary ToSummary(DomainDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -24,7 +25,7 @@ internal static class DocumentSummaryMapper
             document.TypeId);
     }
 
-    public static DocumentWithVersionSummary ToSummary(Document document, DocumentVersion latestVersion)
+    public static DocumentWithVersionSummary ToSummary(DomainDocument document, DocumentVersion latestVersion)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(latestVersion);

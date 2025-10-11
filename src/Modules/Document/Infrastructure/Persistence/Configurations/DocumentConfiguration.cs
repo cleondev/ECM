@@ -2,12 +2,13 @@ using ECM.Document.Domain.Documents;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Infrastructure.Persistence.Configurations;
 
-public sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
+public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocument>
 {
-    public void Configure(EntityTypeBuilder<Document> builder)
+    public void Configure(EntityTypeBuilder<DomainDocument> builder)
     {
         builder.ToTable("document");
 

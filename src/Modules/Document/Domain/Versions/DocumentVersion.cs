@@ -1,5 +1,6 @@
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Signatures;
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Domain.Versions;
 
@@ -61,7 +62,7 @@ public sealed class DocumentVersion
 
     public DocumentId DocumentId { get; private set; }
 
-    public Document? Document { get; private set; }
+    public DomainDocument? Document { get; private set; }
 
     public int VersionNo { get; private set; }
 
