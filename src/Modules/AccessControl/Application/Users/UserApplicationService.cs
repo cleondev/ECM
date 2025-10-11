@@ -64,7 +64,7 @@ public sealed class UserApplicationService(
                     return OperationResult<UserSummary>.Failure($"Role '{roleId}' was not found.");
                 }
 
-                user.AssignRole(role);
+                user.AssignRole(role, _clock.UtcNow);
             }
         }
 
@@ -122,7 +122,7 @@ public sealed class UserApplicationService(
             return OperationResult<UserSummary>.Failure($"Role '{command.RoleId}' was not found.");
         }
 
-        user.AssignRole(role);
+        user.AssignRole(role, _clock.UtcNow);
         await _userRepository.UpdateAsync(user, cancellationToken);
 
         return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
@@ -136,7 +136,7 @@ public sealed class UserApplicationService(
             return OperationResult<UserSummary>.Failure($"User '{command.UserId}' was not found.");
         }
 
-        user.RemoveRole(command.RoleId);
+        user.RemoveRole(command.RoleId, _clock.UtcNow);
         await _userRepository.UpdateAsync(user, cancellationToken);
 
         return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));

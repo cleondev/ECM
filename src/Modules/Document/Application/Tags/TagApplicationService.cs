@@ -61,7 +61,7 @@ public sealed class TagApplicationService(
         }
 
         var createdAt = _clock.UtcNow;
-        var tagLabel = new TagLabel(Guid.NewGuid(), namespaceSlug, slug, path, true, command.CreatedBy, createdAt);
+        var tagLabel = TagLabel.Create(namespaceSlug, slug, path, command.CreatedBy, createdAt);
         await _tagLabelRepository.AddAsync(tagLabel, cancellationToken).ConfigureAwait(false);
 
         var summary = new TagLabelSummary(
@@ -89,6 +89,7 @@ public sealed class TagApplicationService(
             return OperationResult<bool>.Failure("Tag label was not found.");
         }
 
+        tagLabel.MarkDeleted(_clock.UtcNow);
         await _tagLabelRepository.RemoveAsync(tagLabel, cancellationToken).ConfigureAwait(false);
         return OperationResult<bool>.Success(true);
     }

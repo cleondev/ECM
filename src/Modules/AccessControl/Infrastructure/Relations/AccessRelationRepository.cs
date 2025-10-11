@@ -5,7 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.AccessControl.Application.Relations;
 using ECM.AccessControl.Domain.Relations;
+using System.Linq;
+using ECM.AccessControl.Infrastructure.Outbox;
 using ECM.AccessControl.Infrastructure.Persistence;
+using ECM.BuildingBlocks.Domain.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECM.AccessControl.Infrastructure.Relations;
@@ -37,12 +40,42 @@ public sealed class AccessRelationRepository(AccessControlDbContext context) : I
     public async Task AddAsync(AccessRelation relation, CancellationToken cancellationToken = default)
     {
         await _context.Relations.AddAsync(relation, cancellationToken);
+        await EnqueueOutboxMessagesAsync(cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(AccessRelation relation, CancellationToken cancellationToken = default)
     {
         _context.Relations.Remove(relation);
+        await EnqueueOutboxMessagesAsync(cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnqueueOutboxMessagesAsync(CancellationToken cancellationToken)
+    {
+        var entitiesWithEvents = _context.ChangeTracker
+            .Entries<IHasDomainEvents>()
+            .Select(entry => entry.Entity)
+            .Where(entity => entity.DomainEvents.Count > 0)
+            .ToArray();
+
+        if (entitiesWithEvents.Length == 0)
+        {
+            return;
+        }
+
+        var outboxMessages = entitiesWithEvents
+            .SelectMany(entity => AccessControlOutboxMapper.ToOutboxMessages(entity.DomainEvents))
+            .ToArray();
+
+        if (outboxMessages.Length > 0)
+        {
+            await _context.OutboxMessages.AddRangeAsync(outboxMessages, cancellationToken);
+        }
+
+        foreach (var entity in entitiesWithEvents)
+        {
+            entity.ClearDomainEvents();
+        }
     }
 }

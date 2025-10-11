@@ -40,7 +40,7 @@ public sealed class FileApplicationService : IFileUploadService
 
         await _storage.UploadAsync(storageKey, request.Content, request.ContentType, cancellationToken);
 
-        var storedFile = await _repository.AddAsync(new StoredFile(storageKey, legalHold: false, createdAtUtc), cancellationToken);
+        var storedFile = await _repository.AddAsync(StoredFile.Create(storageKey, legalHold: false, createdAtUtc), cancellationToken);
 
         var result = new FileUploadResult(storedFile.StorageKey, request.FileName, request.ContentType, request.Length, storedFile.CreatedAtUtc);
         return OperationResult<FileUploadResult>.Success(result);

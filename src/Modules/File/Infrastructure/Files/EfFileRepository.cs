@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.File.Application.Files;
 using ECM.File.Domain.Files;
+using ECM.File.Domain.Files.Events;
+using ECM.File.Infrastructure.Outbox;
 using ECM.File.Infrastructure.Persistence;
 using ECM.File.Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +26,19 @@ internal sealed class EfFileRepository(FileDbContext context) : IFileRepository
         };
 
         _context.StoredFiles.Add(entity);
+
+        var outboxMessages = FileOutboxMapper
+            .ToOutboxMessages(file.DomainEvents)
+            .ToArray();
+
+        if (outboxMessages.Length > 0)
+        {
+            await _context.OutboxMessages.AddRangeAsync(outboxMessages, cancellationToken);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
+
+        file.ClearDomainEvents();
 
         return new StoredFile(entity.StorageKey, entity.LegalHold, entity.CreatedAtUtc);
     }

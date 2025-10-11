@@ -1,7 +1,12 @@
 namespace ECM.AccessControl.Domain.Relations;
 
-public sealed class AccessRelation
+using ECM.AccessControl.Domain.Relations.Events;
+using ECM.BuildingBlocks.Domain.Events;
+
+public sealed class AccessRelation : IHasDomainEvents
 {
+    private readonly List<IDomainEvent> _domainEvents = [];
+
     private AccessRelation()
     {
         ObjectType = null!;
@@ -33,6 +38,8 @@ public sealed class AccessRelation
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
     public static AccessRelation Create(
         Guid subjectId,
         string objectType,
@@ -50,11 +57,33 @@ public sealed class AccessRelation
             throw new ArgumentException("Relation is required.", nameof(relation));
         }
 
-        return new AccessRelation(
+        var accessRelation = new AccessRelation(
             subjectId,
             objectType.Trim(),
             objectId,
             relation.Trim(),
             createdAtUtc);
+
+        accessRelation.Raise(new AccessRelationCreatedDomainEvent(
+            accessRelation.SubjectId,
+            accessRelation.ObjectType,
+            accessRelation.ObjectId,
+            accessRelation.Relation,
+            createdAtUtc));
+
+        return accessRelation;
+    }
+
+    public void MarkDeleted(DateTimeOffset deletedAtUtc)
+    {
+        Raise(new AccessRelationDeletedDomainEvent(SubjectId, ObjectType, ObjectId, Relation, deletedAtUtc));
+    }
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    private void Raise(IDomainEvent domainEvent)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        _domainEvents.Add(domainEvent);
     }
 }

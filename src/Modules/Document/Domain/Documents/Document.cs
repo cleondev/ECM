@@ -240,6 +240,7 @@ public sealed class Document : IHasDomainEvents
         var documentTag = new DocumentTag(Id, tagId, appliedBy, appliedAtUtc);
         _tags.Add(documentTag);
         UpdatedAtUtc = appliedAtUtc;
+        Raise(new DocumentTagAssignedDomainEvent(Id, tagId, appliedBy, appliedAtUtc));
         return documentTag;
     }
 
@@ -258,6 +259,7 @@ public sealed class Document : IHasDomainEvents
 
         _tags.Remove(existingTag);
         UpdatedAtUtc = removedAtUtc;
+        Raise(new DocumentTagRemovedDomainEvent(Id, tagId, removedAtUtc));
         return true;
     }
 

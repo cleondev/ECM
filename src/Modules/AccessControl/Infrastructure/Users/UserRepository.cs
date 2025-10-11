@@ -5,7 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.AccessControl.Application.Users;
 using ECM.AccessControl.Domain.Users;
+using System.Linq;
+using ECM.AccessControl.Infrastructure.Outbox;
 using ECM.AccessControl.Infrastructure.Persistence;
+using ECM.BuildingBlocks.Domain.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECM.AccessControl.Infrastructure.Users;
@@ -36,12 +39,42 @@ public sealed class UserRepository(AccessControlDbContext context) : IUserReposi
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         await _context.Users.AddAsync(user, cancellationToken);
+        await EnqueueOutboxMessagesAsync(cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
         _context.Users.Update(user);
+        await EnqueueOutboxMessagesAsync(cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnqueueOutboxMessagesAsync(CancellationToken cancellationToken)
+    {
+        var entitiesWithEvents = _context.ChangeTracker
+            .Entries<IHasDomainEvents>()
+            .Select(entry => entry.Entity)
+            .Where(entity => entity.DomainEvents.Count > 0)
+            .ToArray();
+
+        if (entitiesWithEvents.Length == 0)
+        {
+            return;
+        }
+
+        var outboxMessages = entitiesWithEvents
+            .SelectMany(entity => AccessControlOutboxMapper.ToOutboxMessages(entity.DomainEvents))
+            .ToArray();
+
+        if (outboxMessages.Length > 0)
+        {
+            await _context.OutboxMessages.AddRangeAsync(outboxMessages, cancellationToken);
+        }
+
+        foreach (var entity in entitiesWithEvents)
+        {
+            entity.ClearDomainEvents();
+        }
     }
 }

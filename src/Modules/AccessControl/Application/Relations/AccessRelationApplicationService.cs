@@ -62,6 +62,7 @@ public sealed class AccessRelationApplicationService(
             return false;
         }
 
+        relation.MarkDeleted(_clock.UtcNow);
         await _repository.DeleteAsync(relation, cancellationToken);
         return true;
     }

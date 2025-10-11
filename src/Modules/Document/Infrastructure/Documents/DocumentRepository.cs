@@ -16,7 +16,7 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
     public async Task<DomainDocument> AddAsync(DomainDocument document, CancellationToken cancellationToken = default)
     {
         await _context.Documents.AddAsync(document, cancellationToken);
-        await EnqueueOutboxMessagesAsync(document, cancellationToken);
+        await EnqueueOutboxMessagesAsync(cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
         return document;
     }
@@ -28,18 +28,27 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
             .FirstOrDefaultAsync(document => document.Id == documentId, cancellationToken);
     }
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
-        => _context.SaveChangesAsync(cancellationToken);
-
-    private async Task EnqueueOutboxMessagesAsync(IHasDomainEvents aggregateRoot, CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        if (aggregateRoot.DomainEvents.Count == 0)
+        await EnqueueOutboxMessagesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnqueueOutboxMessagesAsync(CancellationToken cancellationToken)
+    {
+        var entitiesWithEvents = _context.ChangeTracker
+            .Entries<IHasDomainEvents>()
+            .Select(entry => entry.Entity)
+            .Where(entity => entity.DomainEvents.Count > 0)
+            .ToArray();
+
+        if (entitiesWithEvents.Length == 0)
         {
             return;
         }
 
-        var outboxMessages = DocumentOutboxMapper
-            .ToOutboxMessages(aggregateRoot.DomainEvents)
+        var outboxMessages = entitiesWithEvents
+            .SelectMany(entity => DocumentOutboxMapper.ToOutboxMessages(entity.DomainEvents))
             .ToArray();
 
         if (outboxMessages.Length > 0)
@@ -47,6 +56,9 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
             await _context.OutboxMessages.AddRangeAsync(outboxMessages, cancellationToken);
         }
 
-        aggregateRoot.ClearDomainEvents();
+        foreach (var entity in entitiesWithEvents)
+        {
+            entity.ClearDomainEvents();
+        }
     }
 }

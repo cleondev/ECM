@@ -97,7 +97,7 @@ public class UserTests
         var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow);
         var role = Role.Create("Reviewer");
 
-        user.AssignRole(role);
+        user.AssignRole(role, DateTimeOffset.UtcNow);
 
         var link = Assert.Single(user.Roles);
         Assert.Equal(user.Id, link.UserId);
@@ -111,8 +111,8 @@ public class UserTests
         var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow);
         var role = Role.Create("Reviewer");
 
-        user.AssignRole(role);
-        user.AssignRole(role);
+        user.AssignRole(role, DateTimeOffset.UtcNow);
+        user.AssignRole(role, DateTimeOffset.UtcNow);
 
         Assert.Single(user.Roles);
     }
@@ -122,7 +122,7 @@ public class UserTests
     {
         var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow);
 
-        Assert.Throws<ArgumentNullException>(() => user.AssignRole(null!));
+        Assert.Throws<ArgumentNullException>(() => user.AssignRole(null!, DateTimeOffset.UtcNow));
     }
 
     [Fact]
@@ -130,9 +130,9 @@ public class UserTests
     {
         var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow);
         var role = Role.Create("Reviewer");
-        user.AssignRole(role);
+        user.AssignRole(role, DateTimeOffset.UtcNow);
 
-        user.RemoveRole(role.Id);
+        user.RemoveRole(role.Id, DateTimeOffset.UtcNow);
 
         Assert.Empty(user.Roles);
     }
@@ -142,9 +142,9 @@ public class UserTests
     {
         var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow);
         var role = Role.Create("Reviewer");
-        user.AssignRole(role);
+        user.AssignRole(role, DateTimeOffset.UtcNow);
 
-        user.RemoveRole(Guid.NewGuid());
+        user.RemoveRole(Guid.NewGuid(), DateTimeOffset.UtcNow);
 
         Assert.Single(user.Roles);
     }

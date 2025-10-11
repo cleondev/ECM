@@ -1,0 +1,121 @@
+using System.Linq;
+using System.Text.Json;
+using ECM.BuildingBlocks.Domain.Events;
+using ECM.Document.Domain.Documents.Events;
+using ECM.Document.Domain.Tags.Events;
+using Shared.Contracts.Documents;
+
+namespace ECM.Document.Infrastructure.Outbox;
+
+internal static class DocumentOutboxMapper
+{
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+
+    public static IEnumerable<OutboxMessage> ToOutboxMessages(IEnumerable<IDomainEvent> domainEvents)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvents);
+        return domainEvents.Select(ToOutboxMessage).OfType<OutboxMessage>();
+    }
+
+    private static OutboxMessage? ToOutboxMessage(IDomainEvent domainEvent)
+    {
+        return domainEvent switch
+        {
+            DocumentCreatedDomainEvent created => Map(created),
+            DocumentTagAssignedDomainEvent tagAssigned => Map(tagAssigned),
+            DocumentTagRemovedDomainEvent tagRemoved => Map(tagRemoved),
+            TagLabelCreatedDomainEvent tagCreated => Map(tagCreated),
+            TagLabelDeletedDomainEvent tagDeleted => Map(tagDeleted),
+            _ => null
+        };
+    }
+
+    private static OutboxMessage Map(DocumentCreatedDomainEvent domainEvent)
+    {
+        var contract = new DocumentCreatedContract(
+            domainEvent.DocumentId.Value,
+            domainEvent.Title,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "document",
+            aggregateId: domainEvent.DocumentId.Value,
+            type: nameof(DocumentCreatedContract),
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+
+    private static OutboxMessage Map(DocumentTagAssignedDomainEvent domainEvent)
+    {
+        var contract = new DocumentTagAssignedContract(
+            domainEvent.DocumentId.Value,
+            domainEvent.TagId,
+            domainEvent.AppliedBy,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "document",
+            aggregateId: domainEvent.DocumentId.Value,
+            type: nameof(DocumentTagAssignedContract),
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+
+    private static OutboxMessage Map(DocumentTagRemovedDomainEvent domainEvent)
+    {
+        var contract = new DocumentTagRemovedContract(
+            domainEvent.DocumentId.Value,
+            domainEvent.TagId,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "document",
+            aggregateId: domainEvent.DocumentId.Value,
+            type: nameof(DocumentTagRemovedContract),
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+
+    private static OutboxMessage Map(TagLabelCreatedDomainEvent domainEvent)
+    {
+        var contract = new TagLabelCreatedContract(
+            domainEvent.TagId,
+            domainEvent.NamespaceSlug,
+            domainEvent.Path,
+            domainEvent.CreatedBy,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "tag",
+            aggregateId: domainEvent.TagId,
+            type: nameof(TagLabelCreatedContract),
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+
+    private static OutboxMessage Map(TagLabelDeletedDomainEvent domainEvent)
+    {
+        var contract = new TagLabelDeletedContract(
+            domainEvent.TagId,
+            domainEvent.NamespaceSlug,
+            domainEvent.Path,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "tag",
+            aggregateId: domainEvent.TagId,
+            type: nameof(TagLabelDeletedContract),
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+}
