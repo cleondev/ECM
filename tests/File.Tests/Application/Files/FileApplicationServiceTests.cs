@@ -2,6 +2,7 @@ using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.File.Application.Files;
 using ECM.File.Domain.Files;
+using Xunit;
 
 namespace File.Tests.Application.Files;
 
