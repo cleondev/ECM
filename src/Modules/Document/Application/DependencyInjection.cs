@@ -10,7 +10,10 @@ public static class DocumentApplicationModuleExtensions
     {
         services.AddScoped<DocumentApplicationService>();
         services.AddScoped<DocumentUploadApplicationService>();
-        services.AddScoped<TagApplicationService>();
+        services.AddScoped<CreateTagLabelCommandHandler>();
+        services.AddScoped<DeleteTagLabelCommandHandler>();
+        services.AddScoped<AssignTagToDocumentCommandHandler>();
+        services.AddScoped<RemoveTagFromDocumentCommandHandler>();
         return services;
     }
 }

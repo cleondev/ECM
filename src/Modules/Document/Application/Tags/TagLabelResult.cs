@@ -1,6 +1,8 @@
+using System;
+
 namespace ECM.Document.Application.Tags;
 
-public sealed record TagLabelSummary(
+public sealed record TagLabelResult(
     Guid Id,
     string NamespaceSlug,
     string Slug,
