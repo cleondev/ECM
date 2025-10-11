@@ -2,10 +2,13 @@ namespace ECM.AccessControl.Domain.Users;
 
 using System.Linq;
 using ECM.AccessControl.Domain.Roles;
+using ECM.AccessControl.Domain.Users.Events;
+using ECM.BuildingBlocks.Domain.Events;
 
-public sealed class User
+public sealed class User : IHasDomainEvents
 {
     private readonly List<UserRole> _roles = [];
+    private readonly List<IDomainEvent> _domainEvents = [];
 
     private User()
     {
@@ -44,33 +47,9 @@ public sealed class User
 
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
     public bool HasRole(Guid roleId) => _roles.Any(link => link.RoleId == roleId);
-
-    public void AssignRole(Role role)
-    {
-        if (role is null)
-        {
-            throw new ArgumentNullException(nameof(role));
-        }
-
-        if (HasRole(role.Id))
-        {
-            return;
-        }
-
-        _roles.Add(UserRole.Create(Id, role.Id, role));
-    }
-
-    public void RemoveRole(Guid roleId)
-    {
-        var link = _roles.FirstOrDefault(existing => existing.RoleId == roleId);
-        if (link is null)
-        {
-            return;
-        }
-
-        _roles.Remove(link);
-    }
 
     public static User Create(
         string email,
@@ -89,13 +68,51 @@ public sealed class User
             throw new ArgumentException("Display name is required.", nameof(displayName));
         }
 
-        return new User(
+        var user = new User(
             Guid.NewGuid(),
             email.Trim(),
             displayName.Trim(),
             string.IsNullOrWhiteSpace(department) ? null : department.Trim(),
             isActive,
             createdAtUtc);
+
+        user.Raise(new UserCreatedDomainEvent(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.Department,
+            user.IsActive,
+            createdAtUtc));
+
+        return user;
+    }
+
+    public void AssignRole(Role role, DateTimeOffset assignedAtUtc)
+    {
+        if (role is null)
+        {
+            throw new ArgumentNullException(nameof(role));
+        }
+
+        if (HasRole(role.Id))
+        {
+            return;
+        }
+
+        _roles.Add(UserRole.Create(Id, role.Id, role));
+        Raise(new UserRoleAssignedDomainEvent(Id, role.Id, role.Name, assignedAtUtc));
+    }
+
+    public void RemoveRole(Guid roleId, DateTimeOffset removedAtUtc)
+    {
+        var link = _roles.FirstOrDefault(existing => existing.RoleId == roleId);
+        if (link is null)
+        {
+            return;
+        }
+
+        _roles.Remove(link);
+        Raise(new UserRoleRemovedDomainEvent(Id, roleId, removedAtUtc));
     }
 
     public void UpdateDisplayName(string displayName)
@@ -116,4 +133,12 @@ public sealed class User
     public void Activate() => IsActive = true;
 
     public void Deactivate() => IsActive = false;
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    private void Raise(IDomainEvent domainEvent)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        _domainEvents.Add(domainEvent);
+    }
 }

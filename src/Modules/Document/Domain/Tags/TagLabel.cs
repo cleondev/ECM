@@ -1,10 +1,13 @@
+using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.Tags.Events;
 
 namespace ECM.Document.Domain.Tags;
 
-public sealed class TagLabel
+public sealed class TagLabel : IHasDomainEvents
 {
     private readonly List<DocumentTag> _documentTags = [];
+    private readonly List<IDomainEvent> _domainEvents = [];
 
     private TagLabel()
     {
@@ -13,7 +16,7 @@ public sealed class TagLabel
         Path = null!;
     }
 
-    public TagLabel(
+    private TagLabel(
         Guid id,
         string namespaceSlug,
         string slug,
@@ -47,6 +50,25 @@ public sealed class TagLabel
         CreatedAtUtc = createdAtUtc;
     }
 
+    public static TagLabel Create(
+        string namespaceSlug,
+        string slug,
+        string path,
+        Guid? createdBy,
+        DateTimeOffset createdAtUtc)
+    {
+        var tagLabel = new TagLabel(Guid.NewGuid(), namespaceSlug, slug, path, isActive: true, createdBy, createdAtUtc);
+
+        tagLabel.Raise(new TagLabelCreatedDomainEvent(
+            tagLabel.Id,
+            tagLabel.NamespaceSlug,
+            tagLabel.Path,
+            tagLabel.CreatedBy,
+            tagLabel.CreatedAtUtc));
+
+        return tagLabel;
+    }
+
     public Guid Id { get; private set; }
 
     public string NamespaceSlug { get; private set; }
@@ -64,4 +86,19 @@ public sealed class TagLabel
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public IReadOnlyCollection<DocumentTag> DocumentTags => _documentTags.AsReadOnly();
+
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    public void MarkDeleted(DateTimeOffset deletedAtUtc)
+    {
+        Raise(new TagLabelDeletedDomainEvent(Id, NamespaceSlug, Path, deletedAtUtc));
+    }
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    private void Raise(IDomainEvent domainEvent)
+    {
+        ArgumentNullException.ThrowIfNull(domainEvent);
+        _domainEvents.Add(domainEvent);
+    }
 }
