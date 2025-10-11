@@ -1,6 +1,8 @@
-using DocumentAggregate = ECM.Document.Domain.Documents.Document;
+using ECM.Document.Domain.Documents;
 
-namespace ECM.Document.Application.Documents;
+namespace ECM.Document.Application.Documents.Repositories;
+
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 public interface IDocumentRepository
 {

@@ -1,9 +1,13 @@
+using System;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Documents.Commands;
+using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.Documents.Summaries;
 using ECM.Document.Domain.Documents;
 using DocumentEntity = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Document.Application.Documents;
+namespace ECM.Document.Application.Documents.Services;
 
 public sealed class DocumentApplicationService(IDocumentRepository repository, ISystemClock clock)
 {

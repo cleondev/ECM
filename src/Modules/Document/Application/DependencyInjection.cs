@@ -1,4 +1,4 @@
-using ECM.Document.Application.Documents;
+using ECM.Document.Application.Documents.Services;
 using ECM.Document.Application.Tags;
 using Microsoft.Extensions.DependencyInjection;
 

@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace ECM.Document.Application.Documents;
+namespace ECM.Document.Application.Documents.Commands;
 
 public sealed record UploadDocumentCommand(
     string Title,

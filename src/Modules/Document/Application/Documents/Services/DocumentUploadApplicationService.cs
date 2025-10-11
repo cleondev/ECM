@@ -1,15 +1,16 @@
 using System;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Documents.Commands;
+using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.Documents.Summaries;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Versions;
 using DocumentEntity = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Document.Application.Documents;
+namespace ECM.Document.Application.Documents.Services;
 
 public sealed class DocumentUploadApplicationService(
     IDocumentRepository repository,

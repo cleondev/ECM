@@ -1,9 +1,10 @@
 using System;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Versions;
-using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
-namespace ECM.Document.Application.Documents;
+namespace ECM.Document.Application.Documents.Summaries;
+
+using DocumentAggregate = Document;
 
 internal static class DocumentSummaryMapper
 {
