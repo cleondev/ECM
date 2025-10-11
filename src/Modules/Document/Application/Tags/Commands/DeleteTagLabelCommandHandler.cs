@@ -3,8 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Tags.Repositories;
 
-namespace ECM.Document.Application.Tags;
+namespace ECM.Document.Application.Tags.Commands;
 
 public sealed class DeleteTagLabelCommandHandler(
     ITagLabelRepository tagLabelRepository,

@@ -4,11 +4,12 @@ using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.Tags.Repositories;
 using ECM.Document.Domain.Documents;
 
-namespace ECM.Document.Application.Tags;
+namespace ECM.Document.Application.Tags.Commands;
 
-public sealed class RemoveTagFromDocumentCommandHandler(
+public sealed class AssignTagToDocumentCommandHandler(
     ITagLabelRepository tagLabelRepository,
     IDocumentRepository documentRepository,
     ISystemClock clock)
@@ -17,7 +18,7 @@ public sealed class RemoveTagFromDocumentCommandHandler(
     private readonly IDocumentRepository _documentRepository = documentRepository;
     private readonly ISystemClock _clock = clock;
 
-    public async Task<OperationResult<bool>> HandleAsync(RemoveTagFromDocumentCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<bool>> HandleAsync(AssignTagToDocumentCommand command, CancellationToken cancellationToken = default)
     {
         if (command.DocumentId == Guid.Empty)
         {
@@ -36,19 +37,24 @@ public sealed class RemoveTagFromDocumentCommandHandler(
             return OperationResult<bool>.Failure("Document was not found.");
         }
 
-        var removed = false;
-        try
+        var tagLabel = await _tagLabelRepository.GetByIdAsync(command.TagId, cancellationToken).ConfigureAwait(false);
+        if (tagLabel is null)
         {
-            removed = document.RemoveTag(command.TagId, _clock.UtcNow);
-        }
-        catch (ArgumentException exception)
-        {
-            return OperationResult<bool>.Failure(exception.Message);
+            return OperationResult<bool>.Failure("Tag label was not found.");
         }
 
-        if (!removed)
+        if (!tagLabel.IsActive)
         {
-            return OperationResult<bool>.Failure("Tag label is not assigned to the document.");
+            return OperationResult<bool>.Failure("Tag label is not active and cannot be assigned.");
+        }
+
+        try
+        {
+            document.AssignTag(command.TagId, command.AppliedBy, _clock.UtcNow);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+        {
+            return OperationResult<bool>.Failure(exception.Message);
         }
 
         await _documentRepository.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
