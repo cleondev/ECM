@@ -3,6 +3,9 @@ using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents;
 using ECM.Document.Domain.Documents;
+using Xunit;
+
+using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 namespace Document.Tests.Application.Documents;
 
@@ -82,16 +85,16 @@ public class DocumentUploadApplicationServiceTests
 
     private sealed class FakeDocumentRepository : IDocumentRepository
     {
-        public List<Document> Documents { get; } = [];
+        public List<DocumentAggregate> Documents { get; } = [];
 
-        public Task<Document> AddAsync(Document document, CancellationToken cancellationToken = default)
+        public Task<DocumentAggregate> AddAsync(DocumentAggregate document, CancellationToken cancellationToken = default)
         {
             Documents.Add(document);
             return Task.FromResult(document);
         }
 
-        public Task<Document?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default)
-            => Task.FromResult<Document?>(null);
+        public Task<DocumentAggregate?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default)
+            => Task.FromResult<DocumentAggregate?>(null);
 
         public Task SaveChangesAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
