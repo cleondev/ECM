@@ -23,13 +23,13 @@ public sealed class UserApplicationService(
     public async Task<IReadOnlyCollection<UserSummary>> GetAsync(CancellationToken cancellationToken = default)
     {
         var users = await _userRepository.GetAllAsync(cancellationToken);
-        return users.Select(MapToSummary).ToArray();
+        return users.Select(UserSummaryMapper.ToSummary).ToArray();
     }
 
     public async Task<UserSummary?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(id, cancellationToken);
-        return user is null ? null : MapToSummary(user);
+        return user is null ? null : UserSummaryMapper.ToSummary(user);
     }
 
     public async Task<OperationResult<UserSummary>> CreateAsync(CreateUserCommand command, CancellationToken cancellationToken = default)
@@ -70,7 +70,7 @@ public sealed class UserApplicationService(
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        return OperationResult<UserSummary>.Success(MapToSummary(user));
+        return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
     }
 
     public async Task<OperationResult<UserSummary>> UpdateAsync(UpdateUserCommand command, CancellationToken cancellationToken = default)
@@ -105,7 +105,7 @@ public sealed class UserApplicationService(
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 
-        return OperationResult<UserSummary>.Success(MapToSummary(user));
+        return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
     }
 
     public async Task<OperationResult<UserSummary>> AssignRoleAsync(AssignUserRoleCommand command, CancellationToken cancellationToken = default)
@@ -125,7 +125,7 @@ public sealed class UserApplicationService(
         user.AssignRole(role);
         await _userRepository.UpdateAsync(user, cancellationToken);
 
-        return OperationResult<UserSummary>.Success(MapToSummary(user));
+        return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
     }
 
     public async Task<OperationResult<UserSummary>> RemoveRoleAsync(RemoveUserRoleCommand command, CancellationToken cancellationToken = default)
@@ -139,18 +139,6 @@ public sealed class UserApplicationService(
         user.RemoveRole(command.RoleId);
         await _userRepository.UpdateAsync(user, cancellationToken);
 
-        return OperationResult<UserSummary>.Success(MapToSummary(user));
-    }
-
-    private static UserSummary MapToSummary(User user)
-    {
-        return new UserSummary(
-            user.Id,
-            user.Email,
-            user.DisplayName,
-            user.Department,
-            user.IsActive,
-            user.CreatedAtUtc,
-            user.Roles.Select(link => new RoleSummary(link.RoleId, link.Role?.Name ?? string.Empty)).ToArray());
+        return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
     }
 }

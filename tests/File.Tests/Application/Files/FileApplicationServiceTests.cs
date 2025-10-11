@@ -14,7 +14,8 @@ public class FileApplicationServiceTests
         var clock = new FixedClock(DateTimeOffset.UtcNow);
         var repository = new FakeFileRepository();
         var storage = new FakeFileStorage();
-        var service = new FileApplicationService(repository, storage, clock);
+        var storageKeyGenerator = new FakeStorageKeyGenerator();
+        var service = new FileApplicationService(repository, storage, clock, storageKeyGenerator);
 
         await using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
         var request = new FileUploadRequest("document.pdf", "application/pdf", stream.Length, stream);
@@ -25,7 +26,7 @@ public class FileApplicationServiceTests
         Assert.NotNull(result.Value);
         Assert.Single(repository.Files);
         Assert.Single(storage.Uploads);
-        Assert.EndsWith(".pdf", result.Value!.StorageKey, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(storageKeyGenerator.Key, result.Value!.StorageKey);
         Assert.Equal("application/pdf", storage.Uploads[0].ContentType);
     }
 
@@ -52,6 +53,19 @@ public class FileApplicationServiceTests
             Uploads.Add((storageKey, contentType));
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeStorageKeyGenerator : IStorageKeyGenerator
+    {
+        public string Key { get; set; } = "custom-key.pdf";
+
+        public string Generate(string fileName)
+        {
+            GeneratedFileName = fileName;
+            return Key;
+        }
+
+        public string? GeneratedFileName { get; private set; }
     }
 
     private sealed class FixedClock(DateTimeOffset now) : ISystemClock

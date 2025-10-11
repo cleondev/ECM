@@ -381,11 +381,11 @@ public class DocumentTests
             now);
 
         var metadata = new DocumentMetadata(document.Id, JsonDocument.Parse("{\"key\":\"value\"}"));
-        var previousUpdatedAt = document.UpdatedAtUtc;
+        var updatedAt = now.AddMinutes(5);
 
-        document.AttachMetadata(metadata);
+        document.AttachMetadata(metadata, updatedAt);
 
         Assert.Same(metadata, document.Metadata);
-        Assert.True(document.UpdatedAtUtc >= previousUpdatedAt);
+        Assert.Equal(updatedAt, document.UpdatedAtUtc);
     }
 }

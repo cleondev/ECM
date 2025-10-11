@@ -11,6 +11,7 @@ public static class FileApplicationModuleExtensions
     public static IServiceCollection AddFileApplication(this IServiceCollection services)
     {
         services.AddSingleton<ISystemClock, SystemClock>();
+        services.AddSingleton<IStorageKeyGenerator, DefaultStorageKeyGenerator>();
         services.AddScoped<FileApplicationService>();
         services.AddScoped<IFileUploadService>(provider => provider.GetRequiredService<FileApplicationService>());
         return services;

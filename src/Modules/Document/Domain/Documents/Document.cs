@@ -151,10 +151,10 @@ public sealed class Document
         UpdatedAtUtc = updatedAtUtc;
     }
 
-    public void AttachMetadata(DocumentMetadata metadata)
+    public void AttachMetadata(DocumentMetadata metadata, DateTimeOffset updatedAtUtc)
     {
-        Metadata = metadata;
-        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        Metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
+        UpdatedAtUtc = updatedAtUtc;
     }
 
     public DocumentVersion AddVersion(
