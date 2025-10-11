@@ -1,5 +1,4 @@
 using ECM.Document.Domain.Documents;
-using DocumentAggregate = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Domain.Tags;
 
@@ -29,7 +28,7 @@ public sealed class DocumentTag
 
     public DocumentId DocumentId { get; private set; }
 
-    public DocumentAggregate? Document { get; private set; }
+    public Document? Document { get; private set; }
 
     public Guid TagId { get; private set; }
 

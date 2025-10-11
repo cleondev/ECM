@@ -4,11 +4,9 @@ using ECM.Document.Domain.Versions;
 
 namespace ECM.Document.Application.Documents.Summaries;
 
-using DocumentAggregate = Document;
-
 internal static class DocumentSummaryMapper
 {
-    public static DocumentSummary ToSummary(DocumentAggregate document)
+    public static DocumentSummary ToSummary(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -26,7 +24,7 @@ internal static class DocumentSummaryMapper
             document.TypeId);
     }
 
-    public static DocumentWithVersionSummary ToSummary(DocumentAggregate document, DocumentVersion latestVersion)
+    public static DocumentWithVersionSummary ToSummary(Document document, DocumentVersion latestVersion)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(latestVersion);

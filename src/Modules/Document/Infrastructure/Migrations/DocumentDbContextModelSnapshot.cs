@@ -12,8 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-using DocumentAggregate = ECM.Document.Domain.Documents.Document;
-
 #nullable disable
 
 namespace ECM.Document.Infrastructure.Migrations;
@@ -33,7 +31,7 @@ partial class DocumentDbContextModelSnapshot : ModelSnapshot
         var documentIdConverter = new ValueConverter<DocumentId, Guid>(value => value.Value, value => DocumentId.FromGuid(value));
         var documentTitleConverter = new ValueConverter<DocumentTitle, string>(value => value.Value, value => DocumentTitle.Create(value));
 
-        modelBuilder.Entity<DocumentAggregate>(b =>
+        modelBuilder.Entity<Document>(b =>
         {
             b.Property<DocumentId>("Id")
                 .HasColumnName("id")
