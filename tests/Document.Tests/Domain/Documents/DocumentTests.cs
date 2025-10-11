@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ECM.Document.Domain.Documents;
 using Xunit;
 
@@ -305,5 +306,86 @@ public class DocumentTests
         Assert.Equal(createdBy, version.CreatedBy);
         Assert.Equal(now, document.UpdatedAtUtc);
         Assert.Single(document.Versions);
+    }
+
+    [Fact]
+    public void AddVersion_WithExistingVersions_IncrementsVersionNumber()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var createdBy = Guid.NewGuid();
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            createdBy,
+            now);
+
+        document.AddVersion("v1", 100, "application/pdf", new string('a', 64), createdBy, now);
+
+        var later = now.AddMinutes(1);
+        var second = document.AddVersion("v2", 200, "application/pdf", new string('b', 64), createdBy, later);
+
+        Assert.Equal(2, second.VersionNo);
+        Assert.Equal(later, document.UpdatedAtUtc);
+        Assert.Equal(2, document.Versions.Count);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void AddVersion_WithNonPositiveBytes_ThrowsArgumentOutOfRangeException(long bytes)
+    {
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddVersion("storage", bytes, "application/pdf", new string('a', 64), Guid.NewGuid(), DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void UpdateTitle_WithNewValue_UpdatesDocumentAndTimestamp()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            now);
+
+        var newTitle = DocumentTitle.Create("Updated");
+        var updatedAt = now.AddMinutes(3);
+
+        document.UpdateTitle(newTitle, updatedAt);
+
+        Assert.Equal(newTitle, document.Title);
+        Assert.Equal(updatedAt, document.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public void AttachMetadata_SetsMetadataAndUpdatesTimestamp()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var document = DocumentAggregate.Create(
+            DocumentTitle.Create("Doc"),
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            now);
+
+        var metadata = new DocumentMetadata(document.Id, JsonDocument.Parse("{\"key\":\"value\"}"));
+        var previousUpdatedAt = document.UpdatedAtUtc;
+
+        document.AttachMetadata(metadata);
+
+        Assert.Same(metadata, document.Metadata);
+        Assert.True(document.UpdatedAtUtc >= previousUpdatedAt);
     }
 }
