@@ -10,7 +10,9 @@ using ECM.Document.Infrastructure.Persistence;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 #nullable disable
 
@@ -31,7 +33,7 @@ partial class DocumentDbContextModelSnapshot : ModelSnapshot
         var documentIdConverter = new ValueConverter<DocumentId, Guid>(value => value.Value, value => DocumentId.FromGuid(value));
         var documentTitleConverter = new ValueConverter<DocumentTitle, string>(value => value.Value, value => DocumentTitle.Create(value));
 
-        modelBuilder.Entity<Document>(b =>
+        modelBuilder.Entity<DomainDocument>(b =>
         {
             b.Property<DocumentId>("Id")
                 .HasColumnName("id")

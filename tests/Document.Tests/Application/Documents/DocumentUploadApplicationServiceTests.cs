@@ -5,6 +5,7 @@ using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Services;
 using ECM.Document.Domain.Documents;
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 using Xunit;
 
 namespace Document.Tests.Application.Documents;
@@ -186,16 +187,16 @@ public class DocumentUploadApplicationServiceTests
 
     private sealed class FakeDocumentRepository : IDocumentRepository
     {
-        public List<Document> Documents { get; } = [];
+        public List<DomainDocument> Documents { get; } = [];
 
-        public Task<Document> AddAsync(Document document, CancellationToken cancellationToken = default)
+        public Task<DomainDocument> AddAsync(DomainDocument document, CancellationToken cancellationToken = default)
         {
             Documents.Add(document);
             return Task.FromResult(document);
         }
 
-        public Task<Document?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default)
-            => Task.FromResult<Document?>(null);
+        public Task<DomainDocument?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default)
+            => Task.FromResult<DomainDocument?>(null);
 
         public Task SaveChangesAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;

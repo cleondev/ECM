@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Tags;
 

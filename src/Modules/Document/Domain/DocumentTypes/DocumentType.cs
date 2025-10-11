@@ -1,10 +1,11 @@
 using ECM.Document.Domain.Documents;
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Domain.DocumentTypes;
 
 public sealed class DocumentType
 {
-    private readonly List<Document> _documents = [];
+    private readonly List<DomainDocument> _documents = [];
 
     private DocumentType()
     {
@@ -42,5 +43,5 @@ public sealed class DocumentType
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
-    public IReadOnlyCollection<Document> Documents => _documents.AsReadOnly();
+    public IReadOnlyCollection<DomainDocument> Documents => _documents.AsReadOnly();
 }
