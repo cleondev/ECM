@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Util;
 using ECM.File.Application.Files;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -52,7 +53,7 @@ internal sealed class S3FileStorage : IFileStorage
     {
         try
         {
-            var response = await _client.DoesS3BucketExistV2Async(_options.BucketName);
+            var response = await AmazonS3Util.DoesS3BucketExistV2Async(_client, _options.BucketName);
             if (!response)
             {
                 await _client.PutBucketAsync(new PutBucketRequest
