@@ -1,4 +1,4 @@
-namespace ECM.Document.Application.Documents;
+namespace ECM.Document.Application.Documents.Commands;
 
 public sealed record CreateDocumentCommand(
     string Title,

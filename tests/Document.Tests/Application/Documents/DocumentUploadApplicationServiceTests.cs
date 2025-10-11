@@ -1,7 +1,9 @@
 using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
-using ECM.Document.Application.Documents;
+using ECM.Document.Application.Documents.Commands;
+using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.Documents.Services;
 using ECM.Document.Domain.Documents;
 using Xunit;
 
