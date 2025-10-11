@@ -1,8 +1,8 @@
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.BuildingBlocks.Infrastructure.Time;
-using ECM.AccessControl.Domain.Relations;
-using ECM.AccessControl.Domain.Roles;
-using ECM.AccessControl.Domain.Users;
+using ECM.AccessControl.Application.Relations;
+using ECM.AccessControl.Application.Roles;
+using ECM.AccessControl.Application.Users;
 using ECM.AccessControl.Infrastructure.Persistence;
 using ECM.AccessControl.Infrastructure.Relations;
 using ECM.AccessControl.Infrastructure.Roles;

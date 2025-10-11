@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Application.Users;
 using ECM.AccessControl.Domain.Users;
 using ECM.AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

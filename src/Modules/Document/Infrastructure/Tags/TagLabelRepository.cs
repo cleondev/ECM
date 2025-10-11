@@ -1,3 +1,4 @@
+using ECM.Document.Application.Tags;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
