@@ -18,13 +18,13 @@ public sealed class AccessRelationApplicationService(
     public async Task<IReadOnlyCollection<AccessRelationSummary>> GetBySubjectAsync(Guid subjectId, CancellationToken cancellationToken = default)
     {
         var relations = await _repository.GetBySubjectAsync(subjectId, cancellationToken);
-        return relations.Select(MapToSummary).ToArray();
+        return relations.Select(AccessRelationSummaryMapper.ToSummary).ToArray();
     }
 
     public async Task<IReadOnlyCollection<AccessRelationSummary>> GetByObjectAsync(string objectType, Guid objectId, CancellationToken cancellationToken = default)
     {
         var relations = await _repository.GetByObjectAsync(objectType, objectId, cancellationToken);
-        return relations.Select(MapToSummary).ToArray();
+        return relations.Select(AccessRelationSummaryMapper.ToSummary).ToArray();
     }
 
     public async Task<OperationResult<AccessRelationSummary>> CreateAsync(CreateAccessRelationCommand command, CancellationToken cancellationToken = default)
@@ -51,7 +51,7 @@ public sealed class AccessRelationApplicationService(
 
         await _repository.AddAsync(relation, cancellationToken);
 
-        return OperationResult<AccessRelationSummary>.Success(MapToSummary(relation));
+        return OperationResult<AccessRelationSummary>.Success(AccessRelationSummaryMapper.ToSummary(relation));
     }
 
     public async Task<bool> DeleteAsync(DeleteAccessRelationCommand command, CancellationToken cancellationToken = default)
@@ -65,12 +65,4 @@ public sealed class AccessRelationApplicationService(
         await _repository.DeleteAsync(relation, cancellationToken);
         return true;
     }
-
-    private static AccessRelationSummary MapToSummary(AccessRelation relation)
-        => new(
-            relation.SubjectId,
-            relation.ObjectType,
-            relation.ObjectId,
-            relation.Relation,
-            relation.CreatedAtUtc);
 }

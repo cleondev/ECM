@@ -93,28 +93,7 @@ public sealed class DocumentUploadApplicationService(
 
         await _repository.AddAsync(document, cancellationToken);
 
-        var summary = new DocumentWithVersionSummary(
-            document.Id.Value,
-            document.Title.Value,
-            document.DocType,
-            document.Status,
-            document.Sensitivity,
-            document.OwnerId,
-            document.CreatedBy,
-            document.Department,
-            document.CreatedAtUtc,
-            document.UpdatedAtUtc,
-            document.TypeId,
-            new DocumentVersionSummary(
-                version.Id,
-                version.VersionNo,
-                version.StorageKey,
-                version.Bytes,
-                version.MimeType,
-                version.Sha256,
-                version.CreatedBy,
-                version.CreatedAtUtc));
-
-        return OperationResult<DocumentWithVersionSummary>.Success(summary);
+        return OperationResult<DocumentWithVersionSummary>.Success(
+            DocumentSummaryMapper.ToSummary(document, version));
     }
 }

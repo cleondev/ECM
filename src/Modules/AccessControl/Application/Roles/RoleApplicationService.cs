@@ -15,13 +15,13 @@ public sealed class RoleApplicationService(IRoleRepository repository)
     public async Task<IReadOnlyCollection<RoleSummary>> GetAsync(CancellationToken cancellationToken = default)
     {
         var roles = await _repository.GetAllAsync(cancellationToken);
-        return roles.Select(role => new RoleSummary(role.Id, role.Name)).ToArray();
+        return roles.Select(RoleSummaryMapper.FromRole).ToArray();
     }
 
     public async Task<RoleSummary?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var role = await _repository.GetByIdAsync(id, cancellationToken);
-        return role is null ? null : new RoleSummary(role.Id, role.Name);
+        return role is null ? null : RoleSummaryMapper.FromRole(role);
     }
 
     public async Task<OperationResult<RoleSummary>> CreateAsync(CreateRoleCommand command, CancellationToken cancellationToken = default)
@@ -43,7 +43,7 @@ public sealed class RoleApplicationService(IRoleRepository repository)
 
         await _repository.AddAsync(role, cancellationToken);
 
-        return OperationResult<RoleSummary>.Success(new RoleSummary(role.Id, role.Name));
+        return OperationResult<RoleSummary>.Success(RoleSummaryMapper.FromRole(role));
     }
 
     public async Task<OperationResult<RoleSummary>> RenameAsync(RenameRoleCommand command, CancellationToken cancellationToken = default)
@@ -71,7 +71,7 @@ public sealed class RoleApplicationService(IRoleRepository repository)
 
         await _repository.UpdateAsync(role, cancellationToken);
 
-        return OperationResult<RoleSummary>.Success(new RoleSummary(role.Id, role.Name));
+        return OperationResult<RoleSummary>.Success(RoleSummaryMapper.FromRole(role));
     }
 
     public async Task<bool> DeleteAsync(Guid roleId, CancellationToken cancellationToken = default)

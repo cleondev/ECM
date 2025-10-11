@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.Abstractions.Files;
@@ -16,12 +14,18 @@ public sealed class FileApplicationService : IFileUploadService
     private readonly IFileRepository _repository;
     private readonly IFileStorage _storage;
     private readonly ISystemClock _clock;
+    private readonly IStorageKeyGenerator _storageKeyGenerator;
 
-    public FileApplicationService(IFileRepository repository, IFileStorage storage, ISystemClock clock)
+    public FileApplicationService(
+        IFileRepository repository,
+        IFileStorage storage,
+        ISystemClock clock,
+        IStorageKeyGenerator storageKeyGenerator)
     {
         _repository = repository;
         _storage = storage;
         _clock = clock;
+        _storageKeyGenerator = storageKeyGenerator;
     }
 
     public async Task<OperationResult<FileUploadResult>> UploadAsync(FileUploadRequest request, CancellationToken cancellationToken = default)
@@ -31,7 +35,7 @@ public sealed class FileApplicationService : IFileUploadService
             throw new ArgumentNullException(nameof(request));
         }
 
-        var storageKey = GenerateStorageKey(request.FileName);
+        var storageKey = _storageKeyGenerator.Generate(request.FileName);
         var createdAtUtc = _clock.UtcNow;
 
         await _storage.UploadAsync(storageKey, request.Content, request.ContentType, cancellationToken);
@@ -45,13 +49,4 @@ public sealed class FileApplicationService : IFileUploadService
     public Task<IReadOnlyCollection<StoredFile>> GetRecentAsync(int limit, CancellationToken cancellationToken)
         => _repository.GetRecentAsync(limit, cancellationToken);
 
-    private static string GenerateStorageKey(string fileName)
-    {
-        var extension = Path.GetExtension(fileName);
-        var normalizedExtension = string.IsNullOrWhiteSpace(extension)
-            ? string.Empty
-            : extension.ToLower(CultureInfo.InvariantCulture);
-
-        return $"{Guid.NewGuid():N}{normalizedExtension}";
-    }
 }

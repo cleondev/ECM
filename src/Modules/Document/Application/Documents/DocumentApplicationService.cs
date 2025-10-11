@@ -43,19 +43,6 @@ public sealed class DocumentApplicationService(IDocumentRepository repository, I
 
         document = await _repository.AddAsync(document, cancellationToken);
 
-        var summary = new DocumentSummary(
-            document.Id.Value,
-            document.Title.Value,
-            document.DocType,
-            document.Status,
-            document.Sensitivity,
-            document.OwnerId,
-            document.CreatedBy,
-            document.Department,
-            document.CreatedAtUtc,
-            document.UpdatedAtUtc,
-            document.TypeId);
-
-        return OperationResult<DocumentSummary>.Success(summary);
+        return OperationResult<DocumentSummary>.Success(DocumentSummaryMapper.ToSummary(document));
     }
 }
