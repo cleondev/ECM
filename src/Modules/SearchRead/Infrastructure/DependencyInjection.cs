@@ -8,7 +8,7 @@ public static class SearchReadInfrastructureModuleExtensions
 {
     public static IServiceCollection AddSearchReadInfrastructure(this IServiceCollection services)
     {
-        services.AddSingleton<ISearchReadProvider, InMemorySearchReadProvider>();
+        services.AddSingleton<ISearchReadProvider, IndexStoreSearchReadProvider>();
         return services;
     }
 }

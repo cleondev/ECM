@@ -7,9 +7,12 @@
   <ItemGroup>
     <ProjectReference Include="../Abstractions/ECM.Abstractions.csproj" />
     <ProjectReference Include="../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
-    <ProjectReference Include="../SearchIndexer/ECM.SearchIndexer.csproj" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Hangfire" />
+    <PackageReference Include="Hangfire.MemoryStorage" />
   </ItemGroup>
 </Project>
