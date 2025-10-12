@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Json;
 using System.Threading;
@@ -18,13 +17,13 @@ namespace OutboxDispatcher;
 internal sealed class OutboxMessageProcessor
 {
     // The SKIP LOCKED hint allows multiple dispatcher instances to cooperate without stepping on each other.
-    private const string FetchBatchSql = """
+    private const string FetchNextSql = """
         SELECT id, type, payload, occurred_at
         FROM ops.outbox
         WHERE processed_at IS NULL
         ORDER BY occurred_at
-        LIMIT @batch_size
-        FOR UPDATE SKIP LOCKED;
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1;
         """;
 
     private readonly ILogger<OutboxMessageProcessor> _logger;
@@ -58,57 +57,55 @@ internal sealed class OutboxMessageProcessor
     public async Task<int> ProcessBatchAsync(CancellationToken cancellationToken)
     {
         await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-
-        var messages = await FetchBatchAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
-
-        if (messages.Count == 0)
-        {
-            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return 0;
-        }
-
         var processedCount = 0;
 
-        foreach (var message in messages)
+        for (var i = 0; i < _options.BatchSize && !cancellationToken.IsCancellationRequested; i++)
         {
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            var message = await TryFetchNextMessageAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+
+            if (message is null)
+            {
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                break;
+            }
+
+            // Each message is handled in its own transaction so that long-running dispatch work does not hold locks
+            // over the entire batch. Multiple worker instances can therefore scale out without blocking one another.
             var processed = await HandleMessageAsync(connection, transaction, message, cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+
             if (processed)
             {
                 processedCount++;
             }
         }
 
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
         return processedCount;
     }
 
-    private async Task<IReadOnlyList<OutboxMessage>> FetchBatchAsync(
+    private async Task<OutboxMessage?> TryFetchNextMessageAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
         CancellationToken cancellationToken)
     {
         var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = FetchBatchSql;
-
-        var batchSizeParameter = command.Parameters.Add("batch_size", NpgsqlDbType.Integer);
-        batchSizeParameter.Value = _options.BatchSize;
+        command.CommandText = FetchNextSql;
 
         await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-        var result = new List<OutboxMessage>();
 
-        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+        if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
-            var id = reader.GetInt64(0);
-            var type = reader.GetString(1);
-            var payload = reader.GetString(2);
-            var occurredAt = reader.GetFieldValue<DateTimeOffset>(3);
-
-            result.Add(new OutboxMessage(id, type, payload, occurredAt));
+            return null;
         }
 
-        return result;
+        var id = reader.GetInt64(0);
+        var type = reader.GetString(1);
+        var payload = reader.GetString(2);
+        var occurredAt = reader.GetFieldValue<DateTimeOffset>(3);
+
+        return new OutboxMessage(id, type, payload, occurredAt);
     }
 
     private async Task<bool> HandleMessageAsync(
