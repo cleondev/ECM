@@ -11,6 +11,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 using Serilog;
+using Serilog.Extensions.Logging;
 
 namespace ServiceDefaults;
 
@@ -54,16 +55,15 @@ public static class ServiceDefaultsExtensions
     {
         builder.Logging.ClearProviders();
 
-        builder.Host.UseSerilog((context, services, configuration) =>
-        {
-            configuration
-                .ReadFrom.Configuration(context.Configuration)
-                .ReadFrom.Services(services)
-                .Enrich.FromLogContext()
-                .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
-                .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
-                .WriteTo.Console();
-        });
+        Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(builder.Configuration)
+            .Enrich.FromLogContext()
+            .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
+            .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
+            .WriteTo.Console()
+            .CreateLogger();
+
+        builder.Logging.AddSerilog(Log.Logger, dispose: true);
 
         return builder;
     }

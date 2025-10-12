@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ECM.SearchIndexer.Application.Indexing;
 using ECM.SearchIndexer.Application.Indexing.Abstractions;
 using ECM.SearchIndexer.Domain.Indexing.Exceptions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
