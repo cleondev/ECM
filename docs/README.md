@@ -5,3 +5,4 @@ Nơi lưu trữ tài liệu kiến trúc, API và ghi chú vận hành cho dự 
 ## Tài liệu hiện có
 
 - [Luồng kết nối Gateway ↔ ECM](gateway-ecm-flow.md)
+- [Azure Pipelines – Triển khai ECM lên Linux](azure-pipelines.md)

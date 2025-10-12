@@ -1,0 +1,204 @@
+# Azure DevOps pipeline for building and deploying ECM to Linux servers
+# The pipeline is multi-stage: Build (restore, test, publish) and Deploy (per-target deployment).
+
+parameters:
+- name: linuxServers
+  type: object
+  displayName: Linux deployment targets
+  default:
+    - name: staging-app
+      displayName: 'Staging App Host'
+      environment: 'staging'
+      pool: 'linux-staging'
+      deployPath: '/opt/ecm'
+      services: 'ecm-host,ecm-gateway'
+      preDeployScript: ''
+      postDeployScript: ''
+      useSudo: 'auto'
+    - name: production-app
+      displayName: 'Production App Host'
+      environment: 'production'
+      pool: 'linux-production'
+      deployPath: '/opt/ecm'
+      services: 'ecm-host,ecm-gateway'
+      preDeployScript: ''
+      postDeployScript: ''
+      useSudo: 'auto'
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+      - bugfix/*
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '9.0.x'
+  nodeVersion: '20.x'
+  artifactName: 'drop'
+  publishRoot: '$(Build.ArtifactStagingDirectory)/publish'
+  publishProjects: |
+    src/ECM/ECM.Host/ECM.Host.csproj
+    src/AppGateway/AppGateway.Api/AppGateway.Api.csproj
+    src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.Worker.csproj
+    src/Workers/SearchIndexer.Worker/SearchIndexer.Worker.csproj
+    src/Workers/Notify.Worker/Notify.Worker.csproj
+
+stages:
+- stage: Build
+  displayName: Build & Test
+  jobs:
+  - job: Build
+    displayName: Build & Publish Artifacts
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - checkout: self
+      clean: true
+
+    - task: UseDotNet@2
+      displayName: 'Install .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '$(dotnetVersion)'
+        performMultiLevelLookup: true
+
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: '$(nodeVersion)'
+
+    - script: |
+        set -euo pipefail
+        dotnet restore ECM.sln
+      displayName: 'Restore .NET dependencies'
+
+    - script: |
+        set -euo pipefail
+        dotnet build ECM.sln --configuration $(buildConfiguration) --no-restore
+      displayName: 'Build solution'
+
+    - script: |
+        set -euo pipefail
+        results_dir="$(Agent.TempDirectory)/test-results"
+        mkdir -p "$results_dir"
+        dotnet test ECM.sln --configuration $(buildConfiguration) --no-build \
+          --results-directory "$results_dir" \
+          --logger "trx;LogFileName=test-results.trx"
+        echo "##vso[task.setvariable variable=TestResultsDir]$results_dir"
+      displayName: 'Run tests'
+
+    - script: |
+        set -euo pipefail
+        pushd src/AppGateway/ui
+        npm install
+        npm run build
+        popd
+      displayName: 'Build App Gateway UI'
+
+    - script: |
+        set -euo pipefail
+        publish_root="$(publishRoot)"
+        rm -rf "$publish_root"
+        mkdir -p "$publish_root"
+        while IFS= read -r project; do
+          [[ -z "$project" ]] && continue
+          project_path="$(echo "$project" | xargs)"
+          [[ -z "$project_path" ]] && continue
+          project_name="$(basename "$project_path" .csproj)"
+          output_dir="$publish_root/$project_name"
+          echo "Publishing $project_path -> $output_dir"
+          dotnet publish "$project_path" --configuration $(buildConfiguration) --no-build --output "$output_dir"
+        done <<< "$(publishProjects)"
+
+        # Copy built SPA into AppGateway publish output when available
+        if [[ -d "src/AppGateway/ui/dist" ]]; then
+          gateway_publish="$publish_root/AppGateway.Api/wwwroot"
+          mkdir -p "$gateway_publish"
+          cp -a src/AppGateway/ui/dist/. "$gateway_publish"/
+        fi
+      displayName: 'Publish .NET services'
+
+    - script: |
+        set -euo pipefail
+        publish_root="$(publishRoot)"
+        manifest_path="$publish_root/manifest.json"
+        cat <<JSON > "$manifest_path"
+        {
+          "buildNumber": "$(Build.BuildNumber)",
+          "sourceVersion": "$(Build.SourceVersion)",
+          "configuration": "$(buildConfiguration)",
+          "createdUtc": "$(Build.BuildCreatedDate)",
+          "artifactName": "$(artifactName)"
+        }
+        JSON
+        mkdir -p "$publish_root/tools"
+        cp deploy/scripts/linux-deploy.sh "$publish_root/tools/"
+        chmod +x "$publish_root/tools/linux-deploy.sh"
+      displayName: 'Add deployment manifest & tools'
+
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/test-results.trx'
+        searchFolder: '$(TestResultsDir)'
+      condition: succeededOrFailed()
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish deployment artifact'
+      inputs:
+        targetPath: '$(publishRoot)'
+        artifact: '$(artifactName)'
+        publishLocation: 'pipeline'
+
+- stage: Deploy
+  displayName: Deploy to Linux servers
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - ${{ each server in parameters.linuxServers }}:
+    - deployment: Deploy_${{ replace(server.name, '-', '_') }}
+      displayName: Deploy to ${{ server.displayName }}
+      environment: ${{ server.environment }}
+      pool:
+        name: ${{ server.pool }}
+        demands:
+          - agent.os -equals Linux
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - task: DownloadPipelineArtifact@2
+              displayName: 'Download build artifact'
+              inputs:
+                buildType: 'current'
+                artifactName: '$(artifactName)'
+                targetPath: '$(Pipeline.Workspace)/$(artifactName)'
+
+            - task: Bash@3
+              displayName: 'Deploy artifact to ${{ server.displayName }}'
+              inputs:
+                targetType: 'inline'
+                script: |
+                  set -euo pipefail
+                  artifact_dir="$(Pipeline.Workspace)/$(artifactName)"
+                  tool_path="$artifact_dir/tools/linux-deploy.sh"
+                  if [[ ! -x "$tool_path" ]]; then
+                    echo "Deployment tool not found at $tool_path" >&2
+                    exit 1
+                  fi
+                  "$tool_path" "$artifact_dir"
+              env:
+                ECM_DEPLOY_ROOT: ${{ server.deployPath }}
+                ECM_DEPLOY_SERVICES: ${{ server.services }}
+                ECM_DEPLOY_PRE_SCRIPT: ${{ server.preDeployScript }}
+                ECM_DEPLOY_POST_SCRIPT: ${{ server.postDeployScript }}
+                ECM_DEPLOY_USE_SUDO: ${{ server.useSudo }}
