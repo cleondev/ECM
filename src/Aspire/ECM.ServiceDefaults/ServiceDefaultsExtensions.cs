@@ -4,10 +4,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+
+using Serilog;
 
 namespace ServiceDefaults;
 
@@ -16,6 +19,7 @@ public static class ServiceDefaultsExtensions
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
         builder.AddDefaultConfiguration();
+        builder.AddSerilogLogging();
         builder.AddDefaultHealthChecks();
 
         builder.Services.AddHttpClient();
@@ -43,6 +47,24 @@ public static class ServiceDefaultsExtensions
     public static IHostApplicationBuilder AddDefaultConfiguration(this IHostApplicationBuilder builder)
     {
         builder.Configuration.AddEnvironmentVariables(prefix: "ECM_");
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddSerilogLogging(this IHostApplicationBuilder builder)
+    {
+        builder.Logging.ClearProviders();
+
+        builder.Host.UseSerilog((context, services, configuration) =>
+        {
+            configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
+                .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
+                .WriteTo.Console();
+        });
+
         return builder;
     }
 

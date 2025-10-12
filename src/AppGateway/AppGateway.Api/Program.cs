@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Identity.Web;
+using ServiceDefaults;
+using Serilog;
 
 namespace AppGateway.Api;
 
@@ -16,6 +18,8 @@ public static class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.AddServiceDefaults();
 
         var uiRootPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "ui", "dist"));
         if (Directory.Exists(uiRootPath))
@@ -47,6 +51,8 @@ public static class Program
         builder.Services.AddGatewayInfrastructure(builder.Configuration);
 
         var app = builder.Build();
+
+        app.UseSerilogRequestLogging();
 
         app.UseMiddleware<RequestLoggingMiddleware>();
 
