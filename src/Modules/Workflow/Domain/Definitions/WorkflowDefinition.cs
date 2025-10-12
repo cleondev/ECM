@@ -1,20 +1,20 @@
-using System;
-using System.Collections.Generic;
-
 namespace ECM.Workflow.Domain.Definitions;
 
 public sealed class WorkflowDefinition
 {
-    public WorkflowDefinition(Guid id, string name, IReadOnlyList<string> steps)
+    public WorkflowDefinition(string id, string key, string name, int version)
     {
         Id = id;
+        Key = key;
         Name = name;
-        Steps = steps;
+        Version = version;
     }
 
-    public Guid Id { get; }
+    public string Id { get; }
+
+    public string Key { get; }
 
     public string Name { get; }
 
-    public IReadOnlyList<string> Steps { get; }
+    public int Version { get; }
 }
