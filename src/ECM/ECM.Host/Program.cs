@@ -8,6 +8,7 @@ using ECM.Workflow.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
 using ServiceDefaults;
+using Serilog;
 
 namespace ECM.Host;
 
@@ -37,6 +38,8 @@ public static class Program
         builder.Services.AddSwaggerGen();
 
         var app = builder.Build();
+
+        app.UseSerilogRequestLogging();
 
         if (app.Environment.IsDevelopment())
         {

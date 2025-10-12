@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../AppGateway.Contracts/AppGateway.Contracts.csproj" />
     <ProjectReference Include="../AppGateway.Infrastructure/AppGateway.Infrastructure.csproj" />
   </ItemGroup>
