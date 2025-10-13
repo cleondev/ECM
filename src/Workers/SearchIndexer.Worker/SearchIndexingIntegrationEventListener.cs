@@ -8,13 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SearchIndexer.Messaging;
+using Shared.Contracts.Messaging;
 
 namespace SearchIndexer;
 
 internal sealed class SearchIndexingIntegrationEventListener : BackgroundService
 {
-    private const string DocumentUploadedTopic = "ecm.document.uploaded";
-    private const string OcrCompletedTopic = "ecm.ocr.completed";
+    private const string DocumentUploadedTopic = EventTopics.Document.Uploaded;
+    private const string OcrCompletedTopic = EventTopics.Ocr.Completed;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
