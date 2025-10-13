@@ -3,10 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Claims;
-using System.Text;
 using AppGateway.Api.Auth;
 using AppGateway.Api.Middlewares;
 using AppGateway.Api.ReverseProxy;
+using AppGateway.Api.Templates;
 using AppGateway.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -209,7 +209,7 @@ public static class Program
             return Results.Redirect(redirectUri);
         }).RequireAuthorization();
 
-        var homeTemplate = LoadTemplate(app.Environment.WebRootFileProvider, "home.html");
+        var homeTemplate = HomeTemplateProvider.Load(app.Environment.WebRootFileProvider, "home.html");
 
         app.MapGet("/home", (HttpContext context) =>
         {
@@ -251,23 +251,5 @@ public static class Program
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
 
         app.Run();
-    }
-
-    private static string LoadTemplate(IFileProvider fileProvider, string fileName)
-    {
-        if (fileProvider is null)
-        {
-            throw new InvalidOperationException("Web root file provider is not available.");
-        }
-
-        var fileInfo = fileProvider.GetFileInfo(fileName);
-        if (!fileInfo.Exists)
-        {
-            throw new FileNotFoundException($"Could not locate the '{fileName}' template in the web root folder.");
-        }
-
-        using var stream = fileInfo.CreateReadStream();
-        using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: false);
-        return reader.ReadToEnd();
     }
 }

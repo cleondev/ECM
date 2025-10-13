@@ -14,4 +14,7 @@
     <PackageReference Include="Microsoft.Identity.Web" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Templates/DefaultHomeTemplate.html" />
+  </ItemGroup>
 </Project>
