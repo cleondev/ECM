@@ -1,3 +1,4 @@
+using ECM.BuildingBlocks.Infrastructure.Caching;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ public static class ServiceDefaultsExtensions
         builder.AddDefaultConfiguration();
         builder.AddSerilogLogging();
         builder.AddDefaultHealthChecks();
+        builder.AddCaching();
 
         builder.Services.AddHttpClient();
         builder.Services.AddHttpClient("resilient-test")
@@ -71,6 +73,18 @@ public static class ServiceDefaultsExtensions
     public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)
     {
         builder.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy());
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddCaching(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddOptions<CacheOptions>()
+            .BindConfiguration(CacheOptions.SectionName);
+
+        var cacheOptions = builder.Configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>() ?? new CacheOptions();
+
+        builder.Services.AddConfiguredCache(cacheOptions);
+
         return builder;
     }
 }
