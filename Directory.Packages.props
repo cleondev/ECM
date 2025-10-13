@@ -8,6 +8,7 @@
     <PackageVersion Include="Aspire.Hosting" Version="9.5.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.5.1" />
     <PackageVersion Include="AWSSDK.S3" Version="3.7.305.14" />
+    <PackageVersion Include="Confluent.Kafka" Version="2.5.0" />
     <PackageVersion Include="EnyimMemcachedCore" Version="3.4.5" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.9" />

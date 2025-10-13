@@ -26,7 +26,8 @@ public static class Program
 
             builder.Services.AddSearchIndexerApplication();
             builder.Services.AddSearchIndexerInfrastructure();
-            builder.Services.AddSingleton<IKafkaConsumer, NoOpKafkaConsumer>();
+            builder.Services.Configure<KafkaConsumerOptions>(builder.Configuration.GetSection(KafkaConsumerOptions.SectionName));
+            builder.Services.AddSingleton<IKafkaConsumer, KafkaConsumer>();
             builder.Services.AddHostedService<SearchIndexingIntegrationEventListener>();
 
             var host = builder.Build();
