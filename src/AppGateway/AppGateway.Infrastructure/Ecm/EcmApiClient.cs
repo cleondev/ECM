@@ -12,6 +12,7 @@ using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Workflows;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace AppGateway.Infrastructure.Ecm;
 
@@ -30,6 +31,18 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
     public async Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Get, $"api/access-control/users/{userId}");
+        return await SendAsync<UserSummaryDto>(request, cancellationToken);
+    }
+
+    public async Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return null;
+        }
+
+        var uri = QueryHelpers.AddQueryString("api/access-control/users/by-email", "email", email);
+        using var request = CreateRequest(HttpMethod.Get, uri);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 

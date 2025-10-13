@@ -30,6 +30,10 @@ public static class UserEndpoints
             .WithName("GetUserById")
             .WithSummary("Get user details");
 
+        group.MapGet("/by-email", GetUserByEmailAsync)
+            .WithName("GetUserByEmail")
+            .WithSummary("Get user details by email address");
+
         group.MapPost("/", CreateUserAsync)
             .WithName("CreateUser")
             .WithSummary("Create a new user");
@@ -64,6 +68,28 @@ public static class UserEndpoints
         CancellationToken cancellationToken)
     {
         var user = await handler.HandleAsync(new GetUserByIdQuery(id), cancellationToken);
+        if (user is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.Ok(MapToResponse(user));
+    }
+
+    private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> GetUserByEmailAsync(
+        string email,
+        GetUserByEmailQueryHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["email"] = ["Email address is required."]
+            });
+        }
+
+        var user = await handler.HandleAsync(new GetUserByEmailQuery(email), cancellationToken);
         if (user is null)
         {
             return TypedResults.NotFound();

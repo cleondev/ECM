@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Identity.Web;
 using ServiceDefaults;
@@ -82,6 +83,28 @@ public static class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddGatewayInfrastructure(builder.Configuration);
+        builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
+
+        builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
+        {
+            options.Events ??= new OpenIdConnectEvents();
+            var previousHandler = options.Events.OnTokenValidated;
+
+            options.Events.OnTokenValidated = async context =>
+            {
+                if (previousHandler is not null)
+                {
+                    await previousHandler(context);
+                }
+
+                var provisioningService = context.HttpContext.RequestServices
+                    .GetRequiredService<IUserProvisioningService>();
+
+                await provisioningService.EnsureUserExistsAsync(
+                    context.Principal,
+                    context.HttpContext.RequestAborted);
+            };
+        });
 
         var app = builder.Build();
 
