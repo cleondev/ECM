@@ -3,12 +3,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.SearchIndexer.Application.Indexing.Abstractions;
 using ECM.SearchIndexer.Domain.Indexing;
+using Microsoft.Extensions.Logging;
 
 namespace ECM.SearchIndexer.Application.Indexing;
 
-public sealed class EnqueueDocumentIndexingHandler(IIndexingJobScheduler scheduler)
+public sealed class EnqueueDocumentIndexingHandler(
+    IIndexingJobScheduler scheduler,
+    ILogger<EnqueueDocumentIndexingHandler> logger)
 {
     private readonly IIndexingJobScheduler _scheduler = scheduler;
+    private readonly ILogger<EnqueueDocumentIndexingHandler> _logger = logger;
 
     public async Task<EnqueueDocumentIndexingResult> HandleAsync(
         EnqueueDocumentIndexingCommand command,
@@ -28,6 +32,12 @@ public sealed class EnqueueDocumentIndexingHandler(IIndexingJobScheduler schedul
 
         var record = document.ToRecord();
         var jobId = await _scheduler.EnqueueAsync(record, cancellationToken).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "Scheduled search indexing job {JobId} for document {DocumentId} ({Title}).",
+            jobId,
+            record.DocumentId,
+            record.Title);
 
         return new EnqueueDocumentIndexingResult(jobId, record.DocumentId);
     }
