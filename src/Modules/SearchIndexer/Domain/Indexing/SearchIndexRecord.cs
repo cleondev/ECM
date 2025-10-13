@@ -15,16 +15,25 @@ public sealed record class SearchIndexRecord
 
     public IList<string> Tags { get; init; } = new List<string>();
 
+    public SearchIndexingType IndexingType { get; init; } = SearchIndexingType.Basic;
+
     public SearchIndexRecord()
     {
     }
 
-    public SearchIndexRecord(Guid documentId, string title, string content, IDictionary<string, string> metadata, IList<string> tags)
+    public SearchIndexRecord(
+        Guid documentId,
+        string title,
+        string content,
+        IDictionary<string, string> metadata,
+        IList<string> tags,
+        SearchIndexingType indexingType)
     {
         DocumentId = documentId;
         Title = title;
         Content = content;
         Metadata = metadata;
         Tags = tags;
+        IndexingType = indexingType;
     }
 }
