@@ -1,8 +1,8 @@
-using System.Threading;
-using System.Threading.Tasks;
 using ECM.SearchIndexer.Application.Indexing.Abstractions;
 using ECM.SearchIndexer.Domain.Indexing;
+
 using Hangfire;
+
 using Microsoft.Extensions.Logging;
 
 namespace ECM.SearchIndexer.Infrastructure.Indexing;

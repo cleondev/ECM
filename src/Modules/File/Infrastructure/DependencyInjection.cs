@@ -1,11 +1,11 @@
-using System;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
+
 using ECM.File.Application.Files;
 using ECM.File.Infrastructure.Files;
 using ECM.File.Infrastructure.Persistence;
-using EFCore.NamingConventions;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

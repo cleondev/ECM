@@ -1,10 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using ECM.Abstractions.Files;
-using ECM.BuildingBlocks.Application;
 using ECM.File.Application.Files;
 using ECM.File.Domain.Files;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;

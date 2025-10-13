@@ -1,11 +1,9 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Util;
+
 using ECM.File.Application.Files;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
