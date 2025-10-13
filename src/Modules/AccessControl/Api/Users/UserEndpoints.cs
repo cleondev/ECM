@@ -58,7 +58,7 @@ public static class UserEndpoints
         CancellationToken cancellationToken)
     {
         var users = await handler.HandleAsync(new GetUsersQuery(), cancellationToken);
-        var response = users.Select(MapToResponse).ToArray();
+        var response = users.Select(UserResponseMapper.Map).ToArray();
         return TypedResults.Ok<IReadOnlyCollection<UserResponse>>(response);
     }
 
@@ -73,7 +73,7 @@ public static class UserEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(MapToResponse(user));
+        return TypedResults.Ok(UserResponseMapper.Map(user));
     }
 
     private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> GetUserByEmailAsync(
@@ -95,7 +95,7 @@ public static class UserEndpoints
             return TypedResults.NotFound();
         }
 
-        return TypedResults.Ok(MapToResponse(user));
+        return TypedResults.Ok(UserResponseMapper.Map(user));
     }
 
     private static async Task<Results<Created<UserResponse>, ValidationProblem>> CreateUserAsync(
@@ -120,7 +120,7 @@ public static class UserEndpoints
             });
         }
 
-        var response = MapToResponse(result.Value);
+        var response = UserResponseMapper.Map(result.Value);
         return TypedResults.Created($"/api/access-control/users/{response.Id}", response);
     }
 
@@ -151,7 +151,7 @@ public static class UserEndpoints
             });
         }
 
-        return TypedResults.Ok(MapToResponse(result.Value!));
+        return TypedResults.Ok(UserResponseMapper.Map(result.Value!));
     }
 
     private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> AssignRoleAsync(
@@ -177,7 +177,7 @@ public static class UserEndpoints
             });
         }
 
-        return TypedResults.Ok(MapToResponse(result.Value!));
+        return TypedResults.Ok(UserResponseMapper.Map(result.Value!));
     }
 
     private static async Task<Results<Ok<UserResponse>, ValidationProblem, NotFound>> RemoveRoleAsync(
@@ -203,16 +203,6 @@ public static class UserEndpoints
             });
         }
 
-        return TypedResults.Ok(MapToResponse(result.Value!));
+        return TypedResults.Ok(UserResponseMapper.Map(result.Value!));
     }
-
-    private static UserResponse MapToResponse(UserSummary summary)
-        => new(
-            summary.Id,
-            summary.Email,
-            summary.DisplayName,
-            summary.Department,
-            summary.IsActive,
-            summary.CreatedAtUtc,
-            [.. summary.Roles.Select(role => new RoleResponse(role.Id, role.Name))]);
 }

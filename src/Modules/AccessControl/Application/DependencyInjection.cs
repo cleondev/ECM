@@ -13,8 +13,10 @@ public static class AccessControlApplicationModuleExtensions
     {
         services.AddScoped<GetUsersQueryHandler>();
         services.AddScoped<GetUserByIdQueryHandler>();
+        services.AddScoped<GetUserByEmailQueryHandler>();
         services.AddScoped<CreateUserCommandHandler>();
         services.AddScoped<UpdateUserCommandHandler>();
+        services.AddScoped<UpdateUserProfileCommandHandler>();
         services.AddScoped<AssignUserRoleCommandHandler>();
         services.AddScoped<RemoveUserRoleCommandHandler>();
 
