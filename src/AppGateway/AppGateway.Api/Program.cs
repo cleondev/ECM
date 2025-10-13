@@ -22,14 +22,11 @@ public static class Program
         var options = new WebApplicationOptions
         {
             Args = args,
-            ContentRootPath = Directory.GetCurrentDirectory()
+            ContentRootPath = Directory.GetCurrentDirectory(),
+            WebRootPath = Directory.Exists(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "ui", "dist")))
+                ? Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "ui", "dist"))
+                : null  
         };
-
-        var uiRootPath = Path.GetFullPath(Path.Combine(options.ContentRootPath, "..", "ui", "dist"));
-        if (Directory.Exists(uiRootPath))
-        {
-            options.WebRootPath = uiRootPath;
-        }
 
         var builder = WebApplication.CreateBuilder(options);
 
