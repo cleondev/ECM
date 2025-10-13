@@ -17,15 +17,21 @@ public static class Program
 {
     public static void Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var options = new WebApplicationOptions
+        {
+            Args = args,
+            ContentRootPath = Directory.GetCurrentDirectory()
+        };
 
-        builder.AddServiceDefaults();
-
-        var uiRootPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "ui", "dist"));
+        var uiRootPath = Path.GetFullPath(Path.Combine(options.ContentRootPath, "..", "ui", "dist"));
         if (Directory.Exists(uiRootPath))
         {
-            builder.WebHost.UseWebRoot(uiRootPath);
+            options.WebRootPath = uiRootPath;
         }
+
+        var builder = WebApplication.CreateBuilder(options);
+
+        builder.AddServiceDefaults();
 
         var authenticationBuilder = builder.Services.AddAuthentication(options =>
         {
