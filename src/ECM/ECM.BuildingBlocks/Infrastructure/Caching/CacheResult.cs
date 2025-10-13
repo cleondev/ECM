@@ -2,18 +2,12 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ECM.BuildingBlocks.Infrastructure.Caching;
 
-public readonly struct CacheResult<T>
+public readonly struct CacheResult<T>(bool found, [MaybeNull] T value)
 {
-    public CacheResult(bool found, [MaybeNull] T value)
-    {
-        Found = found;
-        Value = value;
-    }
-
-    public bool Found { get; }
+    public bool Found { get; } = found;
 
     [MaybeNull]
-    public T Value { get; }
+    public T Value { get; } = value;
 
     public static CacheResult<T> NotFound() => new(false, default!);
 }

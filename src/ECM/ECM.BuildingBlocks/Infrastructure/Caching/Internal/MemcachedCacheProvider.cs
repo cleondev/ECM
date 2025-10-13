@@ -7,15 +7,9 @@ using Microsoft.Extensions.Options;
 
 namespace ECM.BuildingBlocks.Infrastructure.Caching.Internal;
 
-internal sealed class MemcachedCacheProvider : CacheProviderBase
+internal sealed class MemcachedCacheProvider(IMemcachedClient client, IOptions<CacheOptions> options) : CacheProviderBase(options)
 {
-    private readonly IMemcachedClient _client;
-
-    public MemcachedCacheProvider(IMemcachedClient client, IOptions<CacheOptions> options)
-        : base(options)
-    {
-        _client = client;
-    }
+    private readonly IMemcachedClient _client = client;
 
     public override async Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {

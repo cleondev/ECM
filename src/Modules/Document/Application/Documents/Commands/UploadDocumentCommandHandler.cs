@@ -72,7 +72,7 @@ public sealed class UploadDocumentCommandHandler(
         var uploadResult = await _fileStorage.UploadAsync(uploadRequest, cancellationToken);
         if (uploadResult.IsFailure || uploadResult.Value is null)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure(uploadResult.Errors.ToArray());
+            return OperationResult<DocumentWithVersionSummary>.Failure([.. uploadResult.Errors]);
         }
 
         DocumentVersion version;

@@ -37,7 +37,7 @@ public class SearchQueryHandlerTests
 
         public CancellationToken ReceivedCancellationToken { get; private set; }
 
-        public IReadOnlyCollection<SearchResult> Results { get; set; } = Array.Empty<SearchResult>();
+        public IReadOnlyCollection<SearchResult> Results { get; set; } = [];
 
         public Task<IReadOnlyCollection<SearchResult>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
         {

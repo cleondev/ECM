@@ -28,9 +28,9 @@ public class SearchIndexingEventProcessorTests
             "Summary",
             "Initial content",
             new Dictionary<string, string> { { "category", "finance" } },
-            new[] { "q1", "internal" });
+            ["q1", "internal"]);
 
-        var result = await processor.HandleDocumentUploadedAsync(@event).ConfigureAwait(false);
+        var result = await processor.HandleDocumentUploadedAsync(@event);
 
         Assert.NotNull(result);
         Assert.NotNull(scheduler.LastRecord);
@@ -54,9 +54,9 @@ public class SearchIndexingEventProcessorTests
             "Signed contract",
             "Full OCR extracted text",
             null,
-            new[] { "legal" });
+            ["legal"]);
 
-        await processor.HandleOcrCompletedAsync(@event).ConfigureAwait(false);
+        await processor.HandleOcrCompletedAsync(@event);
 
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(SearchIndexingType.Advanced, scheduler.LastRecord!.IndexingType);

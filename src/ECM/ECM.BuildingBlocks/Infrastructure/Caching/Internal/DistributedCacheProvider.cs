@@ -7,16 +7,10 @@ using Microsoft.Extensions.Options;
 
 namespace ECM.BuildingBlocks.Infrastructure.Caching.Internal;
 
-internal sealed class DistributedCacheProvider : CacheProviderBase
+internal sealed class DistributedCacheProvider(IDistributedCache distributedCache, IOptions<CacheOptions> options) : CacheProviderBase(options)
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
-    private readonly IDistributedCache _distributedCache;
-
-    public DistributedCacheProvider(IDistributedCache distributedCache, IOptions<CacheOptions> options)
-        : base(options)
-    {
-        _distributedCache = distributedCache;
-    }
+    private readonly IDistributedCache _distributedCache = distributedCache;
 
     public override async Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {

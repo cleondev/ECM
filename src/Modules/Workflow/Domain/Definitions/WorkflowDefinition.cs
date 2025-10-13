@@ -1,20 +1,12 @@
 namespace ECM.Workflow.Domain.Definitions;
 
-public sealed class WorkflowDefinition
+public sealed class WorkflowDefinition(string id, string key, string name, int version)
 {
-    public WorkflowDefinition(string id, string key, string name, int version)
-    {
-        Id = id;
-        Key = key;
-        Name = name;
-        Version = version;
-    }
+    public string Id { get; } = id;
 
-    public string Id { get; }
+    public string Key { get; } = key;
 
-    public string Key { get; }
+    public string Name { get; } = name;
 
-    public string Name { get; }
-
-    public int Version { get; }
+    public int Version { get; } = version;
 }

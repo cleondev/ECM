@@ -2,10 +2,6 @@ using System;
 
 namespace ECM.SearchIndexer.Domain.Indexing.Exceptions;
 
-public sealed class InvalidSearchDocumentException : Exception
+public sealed class InvalidSearchDocumentException(string message) : Exception(message)
 {
-    public InvalidSearchDocumentException(string message)
-        : base(message)
-    {
-    }
 }

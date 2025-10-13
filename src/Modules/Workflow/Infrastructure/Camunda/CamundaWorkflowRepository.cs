@@ -81,7 +81,7 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError("Failed to query Camunda process instances. Status {StatusCode}. Response {Body}", response.StatusCode, body);
-            return Array.Empty<WorkflowInstance>();
+            return [];
         }
 
         var instances = await response.Content.ReadFromJsonAsync<List<ProcessInstanceDto>>(cancellationToken: cancellationToken)
@@ -89,7 +89,7 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
 
         if (instances.Count == 0)
         {
-            return Array.Empty<WorkflowInstance>();
+            return [];
         }
 
         var definitionCache = new Dictionary<string, WorkflowDefinition>(StringComparer.OrdinalIgnoreCase);

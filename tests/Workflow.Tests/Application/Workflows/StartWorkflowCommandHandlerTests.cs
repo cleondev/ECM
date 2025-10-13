@@ -45,7 +45,7 @@ public class StartWorkflowCommandHandlerTests
 
         public CancellationToken GetActiveCancellationToken { get; private set; }
 
-        public IReadOnlyCollection<WorkflowInstance> ActiveWorkflows { get; set; } = Array.Empty<WorkflowInstance>();
+        public IReadOnlyCollection<WorkflowInstance> ActiveWorkflows { get; set; } = [];
 
         public Task<IReadOnlyCollection<WorkflowInstance>> GetActiveAsync(CancellationToken cancellationToken = default)
         {

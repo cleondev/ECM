@@ -18,14 +18,9 @@ public static class Program
     }
 }
 
-internal class NotificationWorker : BackgroundService
+internal class NotificationWorker(ILogger<NotificationWorker> logger) : BackgroundService
 {
-    private readonly ILogger<NotificationWorker> _logger;
-
-    public NotificationWorker(ILogger<NotificationWorker> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<NotificationWorker> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

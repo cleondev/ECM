@@ -13,6 +13,6 @@ public sealed class GetUsersQueryHandler(IUserRepository userRepository)
     public async Task<IReadOnlyCollection<UserSummary>> HandleAsync(GetUsersQuery query, CancellationToken cancellationToken = default)
     {
         var users = await _userRepository.GetAllAsync(cancellationToken);
-        return users.Select(UserSummaryMapper.ToSummary).ToArray();
+        return [.. users.Select(UserSummaryMapper.ToSummary)];
     }
 }

@@ -6,15 +6,10 @@ using Microsoft.Extensions.Options;
 
 namespace ECM.BuildingBlocks.Infrastructure.Caching.Internal;
 
-internal abstract class CacheProviderBase : ICacheProvider
+internal abstract class CacheProviderBase(IOptions<CacheOptions> options) : ICacheProvider
 {
-    private readonly CacheEntryOptions _defaultEntryOptions;
+    private readonly CacheEntryOptions _defaultEntryOptions = options.Value.DefaultEntryOptions?.Clone() ?? new CacheEntryOptions();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
-
-    protected CacheProviderBase(IOptions<CacheOptions> options)
-    {
-        _defaultEntryOptions = options.Value.DefaultEntryOptions?.Clone() ?? new CacheEntryOptions();
-    }
 
     protected CacheEntryOptions GetEffectiveOptions(CacheEntryOptions? options)
     {

@@ -12,26 +12,19 @@ using Shared.Contracts.Messaging;
 
 namespace SearchIndexer;
 
-internal sealed class SearchIndexingIntegrationEventListener : BackgroundService
+internal sealed class SearchIndexingIntegrationEventListener(
+    IKafkaConsumer consumer,
+    IServiceScopeFactory scopeFactory,
+    ILogger<SearchIndexingIntegrationEventListener> logger) : BackgroundService
 {
     private const string DocumentUploadedTopic = EventTopics.Document.Uploaded;
     private const string OcrCompletedTopic = EventTopics.Ocr.Completed;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
-    private readonly IKafkaConsumer _consumer;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ILogger<SearchIndexingIntegrationEventListener> _logger;
-
-    public SearchIndexingIntegrationEventListener(
-        IKafkaConsumer consumer,
-        IServiceScopeFactory scopeFactory,
-        ILogger<SearchIndexingIntegrationEventListener> logger)
-    {
-        _consumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
-        _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly IKafkaConsumer _consumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
+    private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
+    private readonly ILogger<SearchIndexingIntegrationEventListener> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -45,11 +38,7 @@ internal sealed class SearchIndexingIntegrationEventListener : BackgroundService
     {
         return HandleMessageAsync(message, static (envelope, processor, token) =>
         {
-            var data = envelope.Data;
-            if (data is null)
-            {
-                throw new InvalidOperationException("Document uploaded event payload is missing data.");
-            }
+            var data = envelope.Data ?? throw new InvalidOperationException("Document uploaded event payload is missing data.");
 
             var integrationEvent = new DocumentUploadedIntegrationEvent(
                 envelope.EventId,
@@ -69,11 +58,7 @@ internal sealed class SearchIndexingIntegrationEventListener : BackgroundService
     {
         return HandleMessageAsync(message, static (envelope, processor, token) =>
         {
-            var data = envelope.Data;
-            if (data is null)
-            {
-                throw new InvalidOperationException("OCR completed event payload is missing data.");
-            }
+            var data = envelope.Data ?? throw new InvalidOperationException("OCR completed event payload is missing data.");
 
             var integrationEvent = new OcrCompletedIntegrationEvent(
                 envelope.EventId,

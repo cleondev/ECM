@@ -44,7 +44,7 @@ public class ServiceDefaultsExtensionsTests
         var builder = Host.CreateApplicationBuilder();
         builder.AddServiceDefaults();
 
-        await using var host = builder.Build();
+        using var host = builder.Build();
 
         var cache = host.Services.GetRequiredService<ICacheProvider>();
 
@@ -76,7 +76,7 @@ public class ServiceDefaultsExtensionsTests
         builder.Configuration["Cache:Mode"] = CacheMode.Memory.ToString();
         builder.AddServiceDefaults();
 
-        await using var host = builder.Build();
+        using var host = builder.Build();
 
         var cache = host.Services.GetRequiredService<ICacheProvider>();
 

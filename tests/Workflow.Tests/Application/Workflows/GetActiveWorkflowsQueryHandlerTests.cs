@@ -20,7 +20,7 @@ public class GetActiveWorkflowsQueryHandlerTests
         var workflow = new WorkflowInstance(Guid.NewGuid(), Guid.NewGuid(), definition, WorkflowStatus.Running, DateTimeOffset.UtcNow, "ext-1");
         var repository = new FakeWorkflowRepository
         {
-            ActiveWorkflows = new[] { workflow }
+            ActiveWorkflows = [workflow]
         };
         var handler = new GetActiveWorkflowsQueryHandler(repository);
         var query = new GetActiveWorkflowsQuery();
@@ -44,7 +44,7 @@ public class GetActiveWorkflowsQueryHandlerTests
 
         public CancellationToken GetActiveCancellationToken { get; private set; }
 
-        public IReadOnlyCollection<WorkflowInstance> ActiveWorkflows { get; set; } = Array.Empty<WorkflowInstance>();
+        public IReadOnlyCollection<WorkflowInstance> ActiveWorkflows { get; set; } = [];
 
         public Task<IReadOnlyCollection<WorkflowInstance>> GetActiveAsync(CancellationToken cancellationToken = default)
         {

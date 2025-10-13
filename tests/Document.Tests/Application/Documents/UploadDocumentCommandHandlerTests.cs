@@ -28,7 +28,7 @@ public class UploadDocumentCommandHandlerTests
         var clock = new FixedClock(now);
         var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock);
 
-        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
             "Document",
             "Policy",
@@ -66,7 +66,7 @@ public class UploadDocumentCommandHandlerTests
         var clock = new FixedClock(now);
         var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock);
 
-        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
             "Document",
             "Policy",
@@ -99,7 +99,7 @@ public class UploadDocumentCommandHandlerTests
         var clock = new FixedClock(now);
         var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock);
 
-        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
             "Document",
             "Policy",
@@ -131,7 +131,7 @@ public class UploadDocumentCommandHandlerTests
         var clock = new FixedClock(now);
         var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock);
 
-        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
             "   ",
             "Policy",
@@ -166,7 +166,7 @@ public class UploadDocumentCommandHandlerTests
         var clock = new FixedClock(now);
         var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock);
 
-        await using var content = new MemoryStream(new byte[] { 1, 2, 3 });
+        await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
             "Document",
             "Policy",

@@ -5,15 +5,9 @@ using Microsoft.Extensions.Options;
 
 namespace ECM.BuildingBlocks.Infrastructure.Caching.Internal;
 
-internal sealed class MemoryCacheProvider : CacheProviderBase
+internal sealed class MemoryCacheProvider(IMemoryCache memoryCache, IOptions<CacheOptions> options) : CacheProviderBase(options)
 {
-    private readonly IMemoryCache _memoryCache;
-
-    public MemoryCacheProvider(IMemoryCache memoryCache, IOptions<CacheOptions> options)
-        : base(options)
-    {
-        _memoryCache = memoryCache;
-    }
+    private readonly IMemoryCache _memoryCache = memoryCache;
 
     public override Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {

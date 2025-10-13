@@ -1,6 +1,7 @@
 using System;
 using ECM.BuildingBlocks.Infrastructure.Caching.Internal;
 using Enyim.Caching.Configuration;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ECM.BuildingBlocks.Infrastructure.Caching;

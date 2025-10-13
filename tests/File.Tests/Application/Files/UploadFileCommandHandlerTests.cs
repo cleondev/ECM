@@ -22,7 +22,7 @@ public class UploadFileCommandHandlerTests
         var storageKeyGenerator = new FakeStorageKeyGenerator();
         var handler = new UploadFileCommandHandler(repository, storage, clock, storageKeyGenerator);
 
-        await using var stream = new MemoryStream(new byte[] { 1, 2, 3 });
+        await using var stream = new MemoryStream([1, 2, 3]);
         var request = new FileUploadRequest("document.pdf", "application/pdf", stream.Length, stream);
 
         var result = await handler.UploadAsync(request, CancellationToken.None);

@@ -13,6 +13,6 @@ public sealed class GetAccessRelationsByObjectQueryHandler(IAccessRelationReposi
     public async Task<IReadOnlyCollection<AccessRelationSummary>> HandleAsync(GetAccessRelationsByObjectQuery query, CancellationToken cancellationToken = default)
     {
         var relations = await _repository.GetByObjectAsync(query.ObjectType, query.ObjectId, cancellationToken);
-        return relations.Select(AccessRelationSummaryMapper.ToSummary).ToArray();
+        return [.. relations.Select(AccessRelationSummaryMapper.ToSummary)];
     }
 }

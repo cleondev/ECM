@@ -6,13 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ECM.AccessControl.Infrastructure.Persistence;
 
-public sealed class AccessControlDbContext : DbContext
+public sealed class AccessControlDbContext(DbContextOptions<AccessControlDbContext> options) : DbContext(options)
 {
-    public AccessControlDbContext(DbContextOptions<AccessControlDbContext> options)
-        : base(options)
-    {
-    }
-
     public DbSet<User> Users => Set<User>();
 
     public DbSet<Role> Roles => Set<Role>();

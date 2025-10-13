@@ -8,24 +8,16 @@ using ECM.File.Domain.Files;
 
 namespace ECM.File.Application.Files;
 
-public sealed class UploadFileCommandHandler : IFileStorageGateway
+public sealed class UploadFileCommandHandler(
+    IFileRepository repository,
+    IFileStorage storage,
+    ISystemClock clock,
+    IStorageKeyGenerator storageKeyGenerator) : IFileStorageGateway
 {
-    private readonly IFileRepository _repository;
-    private readonly IFileStorage _storage;
-    private readonly ISystemClock _clock;
-    private readonly IStorageKeyGenerator _storageKeyGenerator;
-
-    public UploadFileCommandHandler(
-        IFileRepository repository,
-        IFileStorage storage,
-        ISystemClock clock,
-        IStorageKeyGenerator storageKeyGenerator)
-    {
-        _repository = repository;
-        _storage = storage;
-        _clock = clock;
-        _storageKeyGenerator = storageKeyGenerator;
-    }
+    private readonly IFileRepository _repository = repository;
+    private readonly IFileStorage _storage = storage;
+    private readonly ISystemClock _clock = clock;
+    private readonly IStorageKeyGenerator _storageKeyGenerator = storageKeyGenerator;
 
     public async Task<OperationResult<FileUploadResult>> UploadAsync(FileUploadRequest request, CancellationToken cancellationToken = default)
     {

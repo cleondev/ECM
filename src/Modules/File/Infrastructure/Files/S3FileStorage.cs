@@ -11,25 +11,15 @@ using Microsoft.Extensions.Options;
 
 namespace ECM.File.Infrastructure.Files;
 
-internal sealed class S3FileStorage : IFileStorage
+internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOptions> options, ILogger<S3FileStorage> logger) : IFileStorage
 {
-    private readonly IAmazonS3 _client;
-    private readonly FileStorageOptions _options;
-    private readonly ILogger<S3FileStorage> _logger;
-
-    public S3FileStorage(IAmazonS3 client, IOptions<FileStorageOptions> options, ILogger<S3FileStorage> logger)
-    {
-        _client = client;
-        _options = options.Value;
-        _logger = logger;
-    }
+    private readonly IAmazonS3 _client = client;
+    private readonly FileStorageOptions _options = options.Value;
+    private readonly ILogger<S3FileStorage> _logger = logger;
 
     public async Task UploadAsync(string storageKey, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
-        if (content is null)
-        {
-            throw new ArgumentNullException(nameof(content));
-        }
+        ArgumentNullException.ThrowIfNull(content);
 
         await EnsureBucketExistsAsync(cancellationToken);
 

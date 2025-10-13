@@ -84,7 +84,7 @@ internal sealed class OutboxMessageProcessor
         return processedCount;
     }
 
-    private async Task<OutboxMessage?> TryFetchNextMessageAsync(
+    private static async Task<OutboxMessage?> TryFetchNextMessageAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
         CancellationToken cancellationToken)
@@ -176,7 +176,7 @@ internal sealed class OutboxMessageProcessor
         await Task.CompletedTask;
     }
 
-    private async Task MarkAsProcessedAsync(
+    private static async Task MarkAsProcessedAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
         long messageId,

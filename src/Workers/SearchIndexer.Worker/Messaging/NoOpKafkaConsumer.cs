@@ -9,14 +9,9 @@ namespace SearchIndexer.Messaging;
 ///     Placeholder Kafka consumer used in the development environment where a real broker is not available. The
 ///     consumer simply keeps the subscription alive until cancellation is requested.
 /// </summary>
-public sealed class NoOpKafkaConsumer : IKafkaConsumer
+public sealed class NoOpKafkaConsumer(ILogger<NoOpKafkaConsumer> logger) : IKafkaConsumer
 {
-    private readonly ILogger<NoOpKafkaConsumer> _logger;
-
-    public NoOpKafkaConsumer(ILogger<NoOpKafkaConsumer> logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<NoOpKafkaConsumer> _logger = logger;
 
     public async Task ConsumeAsync(
         string topic,

@@ -13,6 +13,6 @@ public sealed class GetRolesQueryHandler(IRoleRepository repository)
     public async Task<IReadOnlyCollection<RoleSummary>> HandleAsync(GetRolesQuery query, CancellationToken cancellationToken = default)
     {
         var roles = await _repository.GetAllAsync(cancellationToken);
-        return roles.Select(RoleSummaryMapper.FromRole).ToArray();
+        return [.. roles.Select(RoleSummaryMapper.FromRole)];
     }
 }

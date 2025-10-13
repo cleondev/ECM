@@ -3,31 +3,21 @@ using ECM.Workflow.Domain.Definitions;
 
 namespace ECM.Workflow.Domain.Instances;
 
-public sealed class WorkflowInstance
+public sealed class WorkflowInstance(Guid id, Guid documentId, WorkflowDefinition definition, WorkflowStatus status, DateTimeOffset startedAtUtc, string externalId)
 {
-    public WorkflowInstance(Guid id, Guid documentId, WorkflowDefinition definition, WorkflowStatus status, DateTimeOffset startedAtUtc, string externalId)
-    {
-        Id = id;
-        DocumentId = documentId;
-        Definition = definition;
-        Status = status;
-        StartedAtUtc = startedAtUtc;
-        ExternalId = externalId;
-    }
+    public Guid Id { get; } = id;
 
-    public Guid Id { get; }
+    public Guid DocumentId { get; } = documentId;
 
-    public Guid DocumentId { get; }
+    public WorkflowDefinition Definition { get; } = definition;
 
-    public WorkflowDefinition Definition { get; }
+    public WorkflowStatus Status { get; private set; } = status;
 
-    public WorkflowStatus Status { get; private set; }
-
-    public DateTimeOffset StartedAtUtc { get; }
+    public DateTimeOffset StartedAtUtc { get; } = startedAtUtc;
 
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
-    public string ExternalId { get; }
+    public string ExternalId { get; } = externalId;
 
     public void MarkCompleted(DateTimeOffset completedAtUtc)
     {

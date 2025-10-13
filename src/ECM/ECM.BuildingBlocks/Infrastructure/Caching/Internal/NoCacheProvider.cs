@@ -4,13 +4,8 @@ using Microsoft.Extensions.Options;
 
 namespace ECM.BuildingBlocks.Infrastructure.Caching.Internal;
 
-internal sealed class NoCacheProvider : CacheProviderBase
+internal sealed class NoCacheProvider(IOptions<CacheOptions> options) : CacheProviderBase(options)
 {
-    public NoCacheProvider(IOptions<CacheOptions> options)
-        : base(options)
-    {
-    }
-
     public override Task<CacheResult<T>> GetAsync<T>(string key, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(CacheResult<T>.NotFound());

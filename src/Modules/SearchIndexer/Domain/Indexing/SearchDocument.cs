@@ -73,7 +73,7 @@ public sealed class SearchDocument
             .Where(tag => !string.IsNullOrWhiteSpace(tag))
             .Select(Normalize)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray() ?? Array.Empty<string>();
+            .ToArray() ?? [];
 
         var builder = new StringBuilder();
         builder.AppendLine(normalizedTitle);

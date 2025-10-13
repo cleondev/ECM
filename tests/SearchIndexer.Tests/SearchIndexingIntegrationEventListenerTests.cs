@@ -18,6 +18,8 @@ namespace SearchIndexer.Tests;
 
 public class SearchIndexingIntegrationEventListenerTests
 {
+    private static readonly JsonSerializerOptions CachedWebOptions = new(JsonSerializerDefaults.Web);
+
     [Fact]
     public async Task HandleDocumentUploadedAsync_DeserializesAndDispatchesEvent()
     {
@@ -30,6 +32,7 @@ public class SearchIndexingIntegrationEventListenerTests
             NullLogger<SearchIndexingIntegrationEventListener>.Instance);
 
         var documentId = Guid.NewGuid();
+        string[] tags = ["hr", "employee"];
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -41,9 +44,9 @@ public class SearchIndexingIntegrationEventListenerTests
                 summary = "Steps for new hires",
                 content = "Detailed onboarding plan",
                 metadata = new Dictionary<string, string> { { "department", "hr" } },
-                tags = new[] { "hr", "employee" }
+                tags
             }
-        }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        }, CachedWebOptions);
 
         var message = new KafkaMessage(
             EventTopics.Document.Uploaded,
@@ -51,7 +54,7 @@ public class SearchIndexingIntegrationEventListenerTests
             Value: payload,
             Timestamp: DateTimeOffset.UtcNow);
 
-        await listener.HandleDocumentUploadedAsync(message, CancellationToken.None).ConfigureAwait(false);
+        await listener.HandleDocumentUploadedAsync(message, CancellationToken.None);
 
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
@@ -70,6 +73,7 @@ public class SearchIndexingIntegrationEventListenerTests
             NullLogger<SearchIndexingIntegrationEventListener>.Instance);
 
         var documentId = Guid.NewGuid();
+        string[] tags = ["legal"];
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -81,9 +85,9 @@ public class SearchIndexingIntegrationEventListenerTests
                 summary = "Customer contract",
                 content = "OCR extracted body",
                 metadata = new Dictionary<string, string> { { "source", "ocr" } },
-                tags = new[] { "legal" }
+                tags
             }
-        }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        }, CachedWebOptions);
 
         var message = new KafkaMessage(
             EventTopics.Ocr.Completed,
@@ -91,7 +95,7 @@ public class SearchIndexingIntegrationEventListenerTests
             Value: payload,
             Timestamp: DateTimeOffset.UtcNow);
 
-        await listener.HandleOcrCompletedAsync(message, CancellationToken.None).ConfigureAwait(false);
+        await listener.HandleOcrCompletedAsync(message, CancellationToken.None);
 
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);

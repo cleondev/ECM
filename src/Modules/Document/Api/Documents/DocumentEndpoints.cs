@@ -1,15 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Security.Cryptography;
-using System.Threading.Tasks;
+
 using ECM.Document.Application.Documents.Commands;
-using ECM.Document.Application.Documents.Commands;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 
 namespace ECM.Document.Api.Documents;
 

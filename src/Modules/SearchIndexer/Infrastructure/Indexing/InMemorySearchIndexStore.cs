@@ -27,7 +27,7 @@ internal sealed class InMemorySearchIndexStore : ISearchIndexWriter, ISearchInde
 
     public Task<IReadOnlyCollection<SearchIndexRecord>> ListAsync(CancellationToken cancellationToken = default)
     {
-        IReadOnlyCollection<SearchIndexRecord> snapshot = _records.Values.ToArray();
+        IReadOnlyCollection<SearchIndexRecord> snapshot = [.. _records.Values];
         return Task.FromResult(snapshot);
     }
 }
