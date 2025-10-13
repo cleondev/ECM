@@ -46,9 +46,9 @@ public class SearchIndexingIntegrationEventListenerTests
 
         var message = new KafkaMessage(
             "ecm.document.uploaded",
-            key: documentId.ToString(),
-            value: payload,
-            timestamp: DateTimeOffset.UtcNow);
+            Key: documentId.ToString(),
+            Value: payload,
+            Timestamp: DateTimeOffset.UtcNow);
 
         await listener.HandleDocumentUploadedAsync(message, CancellationToken.None).ConfigureAwait(false);
 
@@ -86,9 +86,9 @@ public class SearchIndexingIntegrationEventListenerTests
 
         var message = new KafkaMessage(
             "ecm.ocr.completed",
-            key: documentId.ToString(),
-            value: payload,
-            timestamp: DateTimeOffset.UtcNow);
+            Key: documentId.ToString(),
+            Value: payload,
+            Timestamp: DateTimeOffset.UtcNow);
 
         await listener.HandleOcrCompletedAsync(message, CancellationToken.None).ConfigureAwait(false);
 

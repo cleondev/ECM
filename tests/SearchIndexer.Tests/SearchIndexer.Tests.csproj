@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\SearchIndexer\ECM.SearchIndexer.csproj" />
+    <ProjectReference Include="..\..\src\Workers\SearchIndexer.Worker\SearchIndexer.csproj" />
   </ItemGroup>
 </Project>
