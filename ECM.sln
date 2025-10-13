@@ -43,6 +43,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Workflow.Tests", "tests\Wor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchRead.Tests", "tests\SearchRead.Tests\SearchRead.Tests.csproj", "{0175A6BA-00D9-4C00-8FF5-2412A70DA99A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchIndexer.Tests", "tests\SearchIndexer.Tests\SearchIndexer.Tests.csproj", "{1A9E17A1-B4A5-438B-A004-C7BF7E90EB26}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "src\Aspire\ECM.ServiceDefaults\ServiceDefaults.csproj", "{505CAA70-78FC-4746-8C40-B6EB1AB8F5F7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Api", "src\AppGateway\AppGateway.Api\AppGateway.Api.csproj", "{2978D62D-CC1C-4189-B11A-193D5583D73B}"

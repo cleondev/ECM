@@ -112,7 +112,7 @@ public sealed class SearchDocument
             new ReadOnlyCollection<string>(normalizedTags));
     }
 
-    public SearchIndexRecord ToRecord()
+    public SearchIndexRecord ToRecord(SearchIndexingType indexingType)
     {
         var metadata = Metadata.ToDictionary(
             pair => pair.Key,
@@ -124,7 +124,8 @@ public sealed class SearchDocument
             Title,
             AggregatedContent,
             metadata,
-            new List<string>(Tags));
+            new List<string>(Tags),
+            indexingType);
     }
 
     private static string Normalize(string value)
