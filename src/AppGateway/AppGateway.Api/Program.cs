@@ -77,11 +77,13 @@ public static class Program
 
         if (Directory.Exists(app.Environment.WebRootPath))
         {
+            app.UseDefaultFiles();
             app.UseDefaultFiles(new DefaultFilesOptions
             {
                 RequestPath = uiRequestPath
             });
 
+            app.UseStaticFiles();
             app.UseStaticFiles(new StaticFileOptions
             {
                 RequestPath = uiRequestPath
@@ -95,10 +97,11 @@ public static class Program
 
         if (Directory.Exists(app.Environment.WebRootPath))
         {
+            app.MapFallbackToFile("index.html").AllowAnonymous();
             app.MapFallbackToFile($"{uiRequestPath}/{{*path}}", "index.html").AllowAnonymous();
         }
 
-        app.MapGet("/", () => Results.Json(new
+        app.MapGet("/service-status", () => Results.Json(new
         {
             service = "app-gateway",
             status = "ready",
