@@ -7,6 +7,9 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 - [Cấu trúc thư mục chính](#cấu-trúc-thư-mục-chính)
 - [Yêu cầu hệ thống](#yêu-cầu-hệ-thống)
 - [Thiết lập hạ tầng phát triển](#thiết-lập-hạ-tầng-phát-triển)
+  - [Cách 1: Dịch vụ đã cài trên server](#cách-1-dịch-vụ-đã-cài-trên-server)
+  - [Cách 2: Docker Compose cho môi trường local](#cách-2-docker-compose-cho-môi-trường-local)
+- [Khởi tạo cơ sở dữ liệu (EF Core migrations)](#khởi-tạo-cơ-sở-dữ-liệu-ef-core-migrations)
 - [Làm việc với solution .NET](#làm-việc-với-solution-net)
 - [SPA của App Gateway](#spa-của-app-gateway)
 - [Kiểm thử](#kiểm-thử)
@@ -54,25 +57,110 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 
 ## Thiết lập hạ tầng phát triển
 
-1. Đảm bảo Docker đang hoạt động.
+Tùy bối cảnh mà lựa chọn chạy hạ tầng nền tảng trực tiếp trên server (DEV/Staging) hoặc bật nhanh bằng Docker Compose trên máy cá nhân.
+
+### Cách 1: Dịch vụ đã cài trên server
+
+1. **Cài đặt các dịch vụ bắt buộc**
+
+   | Thành phần | Phiên bản khuyến nghị | Ghi chú cấu hình |
+   |------------|-----------------------|------------------|
+   | PostgreSQL | 16.x                  | Tạo database `ecm`, user `postgres` (hoặc user khác) với quyền owner. Kích hoạt `pg_trgm`, `uuid-ossp` và `citext` nếu chưa có. |
+   | MinIO      | RELEASE.2024-03-30 trở lên | Tạo bucket `ecm-files`, tạo access key/secret dành riêng cho môi trường. |
+   | Redpanda   | v23.3.x               | Khởi tạo topic phục vụ outbox/kafka theo script trong `deploy/init/topics-init.sh`. |
+
+2. **Cấp thông tin kết nối cho ứng dụng**
+
+   - Có thể cấu hình tại `src/ECM/ECM.Host/appsettings.json` hoặc thông qua biến môi trường.
+   - Các biến cấu hình quan trọng:
+
+     ```bash
+     export ConnectionStrings__Document="Host=<host>;Port=5432;Database=ecm;Username=<db-user>;Password=<db-pass>"
+     export ConnectionStrings__postgres="Host=<host>;Port=5432;Database=ecm;Username=<db-user>;Password=<db-pass>"
+     export FileStorage__ServiceUrl="http://<minio-host>:9000"
+     export FileStorage__AccessKeyId=<minio-access-key>
+     export FileStorage__SecretAccessKey=<minio-secret>
+     export Kafka__BootstrapServers=<redpanda-host>:9092
+     ```
+
+   - Với nhiều môi trường, nên sử dụng `dotnet user-secrets` hoặc trình quản lý secrets tương ứng thay vì commit trực tiếp.
+
+3. **Mở firewall & test kết nối** từ máy chạy ứng dụng (`dotnet run` hoặc worker) tới các dịch vụ trên server.
+
+### Cách 2: Docker Compose cho môi trường local
+
+1. Đảm bảo Docker Desktop/Engine và Docker Compose v2 hoạt động.
 2. Khởi động các dịch vụ nền tảng (PostgreSQL, MinIO, Redpanda):
 
    ```bash
    docker compose -f deploy/compose.yml up -d
    ```
 
-   - PostgreSQL: `localhost:5432`, user/password/database mặc định `ecm`.
-   - MinIO: S3-compatible tại `http://localhost:9000`, console `http://localhost:9001` (user `minio`, password `miniominio`).
-   - Redpanda: `localhost:9092`, console `http://localhost:9644`.
+   - PostgreSQL: `localhost:5432`, user/password/database mặc định `ecm` (có thể đổi thông qua biến môi trường trong file compose).
+   - MinIO: API `http://localhost:9000`, console `http://localhost:9001` (user `minio`, password `miniominio`).
+   - Redpanda: broker `localhost:9092`, console `http://localhost:9644`.
 
-3. Theo dõi log khi cần: `docker compose -f deploy/compose.yml logs -f`.
+3. Theo dõi log khi cần:
+
+   ```bash
+   docker compose -f deploy/compose.yml logs -f
+   ```
+
 4. Dừng toàn bộ hạ tầng khi không sử dụng:
 
    ```bash
    docker compose -f deploy/compose.yml down
    ```
 
-Các script khởi tạo (schema DB, bucket/object, topic) nằm trong `deploy/init`.
+Các script khởi tạo (schema DB mẫu, bucket/object, topic) nằm trong `deploy/init` và được docker compose tự động chạy.
+
+> **Lưu ý:** Nếu muốn tái tạo dữ liệu sạch, hãy xóa các volume `pgdata`, `minio-data` trước khi `up` trở lại.
+
+## Khởi tạo cơ sở dữ liệu (EF Core migrations)
+
+Các module sử dụng Entity Framework Core để quản lý schema. Bộ khởi tạo hiện bao gồm module Document với migrations có sẵn tại `src/Modules/Document/Infrastructure/Migrations`.
+
+1. **Cài công cụ `dotnet-ef`** (cùng major version 8.x với EF Core trong solution):
+
+   ```bash
+   dotnet tool install --global dotnet-ef --version 8.0.8
+   # Nếu đã cài, có thể cập nhật: dotnet tool update --global dotnet-ef --version 8.0.8
+   ```
+
+2. **Đảm bảo kết nối cơ sở dữ liệu** hoạt động (theo một trong hai cách ở trên) và cấu hình biến môi trường `ConnectionStrings__Document`. Ví dụ với môi trường local chạy docker compose:
+
+   ```bash
+   export ConnectionStrings__Document="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   export ConnectionStrings__postgres="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   ```
+
+   Trên PowerShell (Windows):
+
+   ```powershell
+   $Env:ConnectionStrings__Document = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   $Env:ConnectionStrings__postgres = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   ```
+
+   > **Mẹo:** với môi trường server, thay `localhost` bằng địa chỉ thực tế và thông tin user/password tương ứng.
+   > **Lưu ý:** file `appsettings.json` mẫu trong `ECM.Host` dùng user `postgres`. Nếu chạy Docker Compose với user `ecm`, hãy override bằng biến môi trường như trên hoặc chỉnh sửa file cấu hình cho trùng khớp.
+
+3. **Chạy migrate để khởi tạo schema** (từ thư mục gốc repo):
+
+   ```bash
+   dotnet ef database update \
+     --project src/Modules/Document/ECM.Document.csproj \
+     --startup-project src/ECM/ECM.Host/ECM.Host.csproj \
+     --context ECM.Document.Infrastructure.Persistence.DocumentDbContext
+   ```
+
+   Lệnh trên sử dụng `ECM.Host` làm startup project để nạp cấu hình và dependency injection. Có thể truyền thêm `-- --environment Development` nếu cần ép môi trường cụ thể.
+
+4. **Xác nhận kết quả**
+
+   - Kiểm tra bảng đã được tạo trong database `ecm` (`\dt doc.*` trong psql).
+   - Nếu thay đổi migrations hoặc thêm module mới, lặp lại bước 3 với context tương ứng.
+
+Trong trường hợp cần seed dữ liệu mẫu hoặc tạo topic/bucket, tham khảo thêm các script trong `deploy/init`.
 
 ## Làm việc với solution .NET
 
