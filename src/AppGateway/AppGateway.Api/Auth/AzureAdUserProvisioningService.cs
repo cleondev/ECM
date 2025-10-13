@@ -40,38 +40,45 @@ public sealed class AzureAdUserProvisioningService(
             return;
         }
 
-        var existing = await _client.GetUserByEmailAsync(email, cancellationToken);
-        if (existing is not null)
+        try
         {
-            return;
+            var existing = await _client.GetUserByEmailAsync(email, cancellationToken);
+            if (existing is not null)
+            {
+                return;
+            }
+
+            var displayName = GetDisplayName(principal, email);
+            var department = GetDepartment(principal);
+            var roleIds = await ResolveDefaultRoleIdsAsync(cancellationToken);
+
+            var request = new CreateUserRequestDto
+            {
+                Email = email,
+                DisplayName = displayName,
+                Department = department,
+                IsActive = true,
+                RoleIds = roleIds
+            };
+
+            var created = await _client.CreateUserAsync(request, cancellationToken);
+            if (created is null)
+            {
+                _logger.LogWarning("Automatic provisioning failed for user {Email}.", email);
+                return;
+            }
+
+            _logger.LogInformation(
+                "Automatically provisioned user {Email} with roles: {Roles}.",
+                email,
+                created.Roles.Count > 0
+                    ? string.Join(", ", created.Roles.Select(role => role.Name))
+                    : "<none>");
         }
-
-        var displayName = GetDisplayName(principal, email);
-        var department = GetDepartment(principal);
-        var roleIds = await ResolveDefaultRoleIdsAsync(cancellationToken);
-
-        var request = new CreateUserRequestDto
+        catch (Exception ex)
         {
-            Email = email,
-            DisplayName = displayName,
-            Department = department,
-            IsActive = true,
-            RoleIds = roleIds
-        };
-
-        var created = await _client.CreateUserAsync(request, cancellationToken);
-        if (created is null)
-        {
-            _logger.LogWarning("Automatic provisioning failed for user {Email}.", email);
-            return;
+            _logger.LogError(ex, "An error occurred while provisioning user {Email}.", email);
         }
-
-        _logger.LogInformation(
-            "Automatically provisioned user {Email} with roles: {Roles}.",
-            email,
-            created.Roles.Count > 0
-                ? string.Join(", ", created.Roles.Select(role => role.Name))
-                : "<none>");
     }
 
     private async Task<IReadOnlyCollection<Guid>> ResolveDefaultRoleIdsAsync(CancellationToken cancellationToken)
