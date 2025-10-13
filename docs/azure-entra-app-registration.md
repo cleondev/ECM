@@ -28,7 +28,7 @@ App Gateway đóng vai trò BFF và reverse proxy. Cần một ứng dụng Azur
 | **Account type** | Accounts in this organizational directory only | – | Giống ECM Host. |
 | **Identifier (App ID URI)** | `api://ecm-gateway` | `appsettings.json` (`AzureAd:Audience`) | Đồng bộ với cấu hình ứng dụng. |
 | **Client ID (Application ID)** | Tự sinh sau khi đăng ký | – | Gán vào `AzureAd:ClientId` của App Gateway. |
-| **Client secret** | Tạo tại **Certificates & secrets** | `AzureAd:ClientSecret` | Bắt buộc để thực hiện đăng nhập OpenID Connect server-side. |
+| **Client secret** | Tạo tại **Certificates & secrets** | `AzureAd:ClientSecret` | Bắt buộc để thực hiện đăng nhập OpenID Connect server-side. Nên cấu hình qua biến môi trường hoặc Secret Manager. |
 | **Redirect URI (Web)** | `https://localhost:5090/signin-oidc` _(điều chỉnh theo môi trường)_ | `AzureAd:CallbackPath` | Cần trùng với cấu hình trong ứng dụng để Azure chuyển hướng sau khi xác thực. |
 | **Logout redirect URI** | `https://localhost:5090/signout-callback-oidc` | `AzureAd:SignedOutCallbackPath` | Đảm bảo người dùng được chuyển hướng đúng sau khi đăng xuất. |
 | **Tenant ID** | `<tenant-guid>` | `AzureAd:TenantId` | Trùng với tenant. |
@@ -36,6 +36,18 @@ App Gateway đóng vai trò BFF và reverse proxy. Cần một ứng dụng Azur
 | **API permissions** | Tối thiểu `ECM Host API/.default` (application permission) nếu Gateway gọi xuống ECM bằng chứng thực ứng dụng. | – | Cấp quyền thông qua mục **API permissions**. |
 
 > Cập nhật các giá trị vào `src/AppGateway/AppGateway.Api/appsettings.json` hoặc secret tương ứng sau khi đăng ký.【F:src/AppGateway/AppGateway.Api/appsettings.json†L27-L36】
+
+### Cung cấp `AzureAd:ClientSecret` qua biến môi trường hoặc Secret Manager
+
+- **Biến môi trường**: sử dụng key dạng `AzureAd__ClientSecret` để .NET tự ánh xạ vào cấu hình.
+  - Windows (PowerShell): `setx AzureAd__ClientSecret "<secret-value>"`
+  - Linux/macOS (bash): `export AzureAd__ClientSecret="<secret-value>"`
+- **Secret Manager** (dành cho môi trường phát triển):
+  ```bash
+  dotnet user-secrets set "AzureAd:ClientSecret" "<secret-value>" --project src/AppGateway/AppGateway.Api/AppGateway.Api.csproj
+  ```
+
+Ứng dụng sẽ tự động ưu tiên giá trị từ Secret Manager (khi chạy Development) hoặc biến môi trường nên bạn không cần lưu `ClientSecret` trong `appsettings.json`.
 
 ## 3. Trao quyền giữa các ứng dụng
 
