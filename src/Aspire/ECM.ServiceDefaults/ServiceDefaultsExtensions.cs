@@ -12,6 +12,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 using Serilog;
+using Serilog.Extensions.Hosting;
 using Serilog.Extensions.Logging;
 
 namespace ServiceDefaults;
@@ -66,6 +67,7 @@ public static class ServiceDefaultsExtensions
             .CreateLogger();
 
         builder.Logging.AddSerilog(Log.Logger, dispose: true);
+        builder.Services.AddSingleton(sp => new DiagnosticContext(Log.Logger));
 
         return builder;
     }
