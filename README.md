@@ -114,6 +114,8 @@ Tùy bối cảnh mà lựa chọn chạy hạ tầng nền tảng trực tiếp
 
 Các script khởi tạo (schema DB mẫu, bucket/object, topic) nằm trong `deploy/init` và được docker compose tự động chạy.
 
+- `deploy/init/topics-init.sh`: Tạo các topic chuẩn cho hệ thống (`iam.events`, `document.events`, `version.events`, `workflow.events`, `signature.events`, `ocr.events`, `search.events`, `audit.events`, `retention.events`). Có thể override broker/partition thông qua các biến môi trường `KAFKA_BROKER`, `KAFKA_TOPIC_PARTITIONS`, `KAFKA_TOPIC_REPLICAS` khi cần.
+
 > **Lưu ý:** Nếu muốn tái tạo dữ liệu sạch, hãy xóa các volume `pgdata`, `minio-data` trước khi `up` trở lại.
 
 ## Khởi tạo cơ sở dữ liệu (EF Core migrations)
