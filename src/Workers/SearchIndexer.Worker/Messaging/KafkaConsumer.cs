@@ -115,9 +115,7 @@ public sealed class KafkaConsumer : IKafkaConsumer
                     continue;
                 }
 
-                var timestamp = result.Message.Timestamp.UnixTimestampMs.HasValue
-                    ? DateTimeOffset.FromUnixTimeMilliseconds(result.Message.Timestamp.UnixTimestampMs.Value)
-                    : DateTimeOffset.UtcNow;
+                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(result.Message.Timestamp.UnixTimestampMs);
 
                 var kafkaMessage = new KafkaMessage(
                     result.Topic,
