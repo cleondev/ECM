@@ -44,7 +44,7 @@ public static class Program
 
         if (builder.Environment.IsDevelopment())
         {
-            builder.Configuration.AddUserSecrets<Program>(optional: true);
+            builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true);
         }
 
         builder.Configuration.AddEnvironmentVariables();
