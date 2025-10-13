@@ -2,7 +2,6 @@ using ECM.Abstractions;
 using ECM.AccessControl.Api;
 using ECM.Document.Api;
 using ECM.File.Api;
-using ECM.SearchIndexer.Api;
 using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
@@ -23,7 +22,6 @@ public static class Program
         builder.AddModule<AccessControlModule>();
         builder.AddModule<DocumentModule>();
         builder.AddModule<FileModule>();
-        builder.AddModule<SearchIndexerModule>();
         builder.AddModule<WorkflowModule>();
         builder.AddModule<SignatureModule>();
         builder.AddModule<SearchReadModule>();
