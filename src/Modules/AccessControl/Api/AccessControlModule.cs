@@ -20,6 +20,7 @@ public sealed class AccessControlModule : IModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapUserEndpoints();
+        endpoints.MapUserProfileEndpoints();
         endpoints.MapRoleEndpoints();
         endpoints.MapRelationEndpoints();
     }

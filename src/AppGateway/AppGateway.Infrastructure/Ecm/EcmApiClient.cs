@@ -46,6 +46,12 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
+    public async Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, "api/access-control/profile");
+        return await SendAsync<UserSummaryDto>(request, cancellationToken);
+    }
+
     public async Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Post, "api/access-control/users");
@@ -56,6 +62,13 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
     public async Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto requestDto, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Put, $"api/access-control/users/{userId}");
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<UserSummaryDto>(request, cancellationToken);
+    }
+
+    public async Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto requestDto, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Put, "api/access-control/profile");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
