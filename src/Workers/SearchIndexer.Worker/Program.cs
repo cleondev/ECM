@@ -4,6 +4,7 @@ using ECM.SearchIndexer.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using ServiceDefaults;
+using SearchIndexer.Messaging;
 
 namespace SearchIndexer;
 
@@ -25,6 +26,8 @@ public static class Program
 
             builder.Services.AddSearchIndexerApplication();
             builder.Services.AddSearchIndexerInfrastructure();
+            builder.Services.AddSingleton<IKafkaConsumer, NoOpKafkaConsumer>();
+            builder.Services.AddHostedService<SearchIndexingIntegrationEventListener>();
 
             var host = builder.Build();
 
