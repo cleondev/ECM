@@ -123,7 +123,8 @@
                 status.textContent = 'Đang chuẩn bị đăng nhập…';
                 button.disabled = true;
 
-                const response = await fetch('/signin-azure/url', { cache: 'no-store' });
+                const redirectUri = encodeURIComponent('/home');
+                const response = await fetch(`/signin-azure/url?redirectUri=${redirectUri}`, { cache: 'no-store' });
                 if (!response.ok) {
                     throw new Error('Không lấy được đường dẫn.');
                 }
@@ -138,7 +139,7 @@
             } catch (error) {
                 console.error(error);
                 status.textContent = 'Đi thẳng tới trang đăng nhập mặc định.';
-                window.location.href = '/signin-azure';
+                window.location.href = '/signin-azure?redirectUri=%2Fhome';
             } finally {
                 button.disabled = false;
             }
