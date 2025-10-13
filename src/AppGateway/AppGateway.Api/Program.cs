@@ -47,12 +47,6 @@ public static class Program
             options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
         });
 
-        authenticationBuilder.AddCookie(options =>
-        {
-            options.SlidingExpiration = true;
-            options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        });
-
         authenticationBuilder.AddMicrosoftIdentityWebApp(
             builder.Configuration.GetSection("AzureAd"),
             cookieScheme: CookieAuthenticationDefaults.AuthenticationScheme,
@@ -63,6 +57,14 @@ public static class Program
             jwtBearerScheme: JwtBearerDefaults.AuthenticationScheme);
 
         authenticationBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.AuthenticationScheme, _ => { });
+
+        builder.Services.Configure<CookieAuthenticationOptions>(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            options =>
+            {
+                options.SlidingExpiration = true;
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            });
 
         builder.Services.AddAuthorization(options =>
         {
