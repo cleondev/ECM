@@ -206,7 +206,51 @@ Các project sẽ được khởi chạy kèm cấu hình connection string từ
   dotnet run --project src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.Worker.csproj
   ```
 
-Lặp lại tương tự cho các worker khác trong thư mục `src/Workers`.
+  Lặp lại tương tự cho các worker khác trong thư mục `src/Workers`.
+
+### Cấu hình worker OutboxDispatcher & SearchIndexer
+
+Các background worker không đọc cấu hình từ `appsettings` chung của monolith mà mong đợi biến môi trường tương ứng khi chạy độc
+lập (hoặc thông qua Aspire AppHost). Một số thiết lập quan trọng:
+
+- **OutboxDispatcher** cần kết nối PostgreSQL để đọc bảng `ops.outbox`. Worker lần lượt tìm các connection string theo thứ tự
+  `ConnectionStrings__Outbox` → `ConnectionStrings__Ops` → `ConnectionStrings__postgres`. Vì vậy, hãy đảm bảo **ít nhất một** biến
+  sau được gán:
+
+  ```bash
+  export ConnectionStrings__Outbox="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  # hoặc dùng key Ops/postgres tuỳ môi trường
+  export ConnectionStrings__Ops="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  export ConnectionStrings__postgres="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:ConnectionStrings__Outbox = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  > ```
+
+- **SearchIndexer** nghe các sự kiện từ Kafka/Redpanda. Cấu hình được bind vào section `Kafka` của worker, tương ứng với các biến
+  môi trường `Kafka__*`. Tối thiểu cần thiết lập `BootstrapServers`; các tham số khác (group id, client id, offset...) có thể để
+  mặc định hoặc override khi cần:
+
+  ```bash
+  export Kafka__BootstrapServers=localhost:9092
+  # tuỳ chọn:
+  export Kafka__GroupId=search-indexer
+  export Kafka__EnableAutoCommit=true
+  export Kafka__AutoOffsetReset=Earliest
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:Kafka__BootstrapServers = "localhost:9092"
+  > ```
+
+Aspire AppHost (`dotnet run --project src/Aspire/ECM.AppHost`) đã điền sẵn các giá trị từ file `src/Aspire/ECM.AppHost/appsettings.json`
+và `appsettings.Development.json`. Khi chạy thủ công ngoài Aspire, cần tự cấp biến môi trường như ví dụ trên để worker hoạt động
+đúng.
 
 ## SPA của App Gateway
 
