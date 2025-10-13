@@ -88,7 +88,7 @@ internal sealed class SearchIndexingIntegrationEventListener : BackgroundService
         }, cancellationToken);
     }
 
-    internal async Task HandleMessageAsync(
+    private async Task HandleMessageAsync(
         KafkaMessage message,
         Func<SearchIndexingIntegrationEventEnvelope, SearchIndexingEventProcessor, CancellationToken, Task> handler,
         CancellationToken cancellationToken)
