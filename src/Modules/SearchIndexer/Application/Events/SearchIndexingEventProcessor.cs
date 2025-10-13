@@ -11,7 +11,7 @@ public sealed class SearchIndexingEventProcessor(EnqueueDocumentIndexingHandler 
     private readonly EnqueueDocumentIndexingHandler _handler = handler ?? throw new ArgumentNullException(nameof(handler));
 
     public Task<EnqueueDocumentIndexingResult> HandleDocumentUploadedAsync(
-        DocumentUploadedIntegrationEvent @event,
+        DocumentUploadedEvent @event,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(@event);
@@ -29,7 +29,7 @@ public sealed class SearchIndexingEventProcessor(EnqueueDocumentIndexingHandler 
     }
 
     public Task<EnqueueDocumentIndexingResult> HandleOcrCompletedAsync(
-        OcrCompletedIntegrationEvent @event,
+        OcrCompletedEvent @event,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(@event);

@@ -20,9 +20,7 @@ public class SearchIndexingEventProcessorTests
         var handler = new EnqueueDocumentIndexingHandler(scheduler, NullLogger<EnqueueDocumentIndexingHandler>.Instance);
         var processor = new SearchIndexingEventProcessor(handler);
 
-        var @event = new DocumentUploadedIntegrationEvent(
-            Guid.NewGuid(),
-            DateTimeOffset.UtcNow,
+        var @event = new DocumentUploadedEvent(
             Guid.NewGuid(),
             "Quarterly Report",
             "Summary",
@@ -46,9 +44,7 @@ public class SearchIndexingEventProcessorTests
         var handler = new EnqueueDocumentIndexingHandler(scheduler, NullLogger<EnqueueDocumentIndexingHandler>.Instance);
         var processor = new SearchIndexingEventProcessor(handler);
 
-        var @event = new OcrCompletedIntegrationEvent(
-            Guid.NewGuid(),
-            DateTimeOffset.UtcNow,
+        var @event = new OcrCompletedEvent(
             Guid.NewGuid(),
             "Scanned Contract",
             "Signed contract",
