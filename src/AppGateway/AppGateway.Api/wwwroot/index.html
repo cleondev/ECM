@@ -519,6 +519,25 @@
             }
         }
 
+        function createHttpError(status, message) {
+            const error = new Error(message);
+            error.status = status;
+            return error;
+        }
+
+        function extractStatus(error) {
+            if (error && typeof error === "object" && "status" in error) {
+                return error.status;
+            }
+
+            return undefined;
+        }
+
+        function formatFetchErrorMessage(baseMessage, error) {
+            const details = error instanceof Error ? error.message : error;
+            return `${baseMessage}: ${details}`;
+        }
+
         async function fetchDocuments(apiKey, options = {}) {
             const { showSuccess = false } = options;
             try {
@@ -528,7 +547,7 @@
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    throw new Error(errorText || `Máy chủ trả về trạng thái ${response.status}`);
+                    throw createHttpError(response.status, errorText || `Máy chủ trả về trạng thái ${response.status}`);
                 }
 
                 const documents = await response.json();
@@ -541,12 +560,24 @@
                     error: "",
                 });
             } catch (error) {
-                localStorage.removeItem(storageKey);
+                const status = extractStatus(error);
+                const errorMessage = error instanceof Error ? error.message : error;
+                if (status === 401 || status === 403) {
+                    localStorage.removeItem(storageKey);
+                    setState({
+                        isAuthenticated: false,
+                        documents: [],
+                        message: "",
+                        error: `Không thể xác thực: ${errorMessage}`,
+                    });
+                    return;
+                }
+
                 setState({
-                    isAuthenticated: false,
-                    documents: [],
                     message: "",
-                    error: `Không thể xác thực: ${error instanceof Error ? error.message : error}`,
+                    error: state.isAuthenticated
+                        ? formatFetchErrorMessage("Không thể tải tài liệu", error)
+                        : formatFetchErrorMessage("Không thể xác thực", error),
                 });
             } finally {
                 setState({ isLoading: false });
