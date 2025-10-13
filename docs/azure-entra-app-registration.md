@@ -28,6 +28,9 @@ App Gateway đóng vai trò BFF và reverse proxy. Cần một ứng dụng Azur
 | **Account type** | Accounts in this organizational directory only | – | Giống ECM Host. |
 | **Identifier (App ID URI)** | `api://ecm-gateway` | `appsettings.json` (`AzureAd:Audience`) | Đồng bộ với cấu hình ứng dụng. |
 | **Client ID (Application ID)** | Tự sinh sau khi đăng ký | – | Gán vào `AzureAd:ClientId` của App Gateway. |
+| **Client secret** | Tạo tại **Certificates & secrets** | `AzureAd:ClientSecret` | Bắt buộc để thực hiện đăng nhập OpenID Connect server-side. |
+| **Redirect URI (Web)** | `https://localhost:5090/signin-oidc` _(điều chỉnh theo môi trường)_ | `AzureAd:CallbackPath` | Cần trùng với cấu hình trong ứng dụng để Azure chuyển hướng sau khi xác thực. |
+| **Logout redirect URI** | `https://localhost:5090/signout-callback-oidc` | `AzureAd:SignedOutCallbackPath` | Đảm bảo người dùng được chuyển hướng đúng sau khi đăng xuất. |
 | **Tenant ID** | `<tenant-guid>` | `AzureAd:TenantId` | Trùng với tenant. |
 | **Domain** | `<tenant-domain>.onmicrosoft.com` | `AzureAd:Domain` | |
 | **API permissions** | Tối thiểu `ECM Host API/.default` (application permission) nếu Gateway gọi xuống ECM bằng chứng thực ứng dụng. | – | Cấp quyền thông qua mục **API permissions**. |
@@ -40,11 +43,22 @@ App Gateway đóng vai trò BFF và reverse proxy. Cần một ứng dụng Azur
 2. Tại ứng dụng `ECM Gateway API`, thêm quyền truy cập vào scope vừa tạo trong mục **API permissions** → **Add a permission** → **My APIs**.
 3. Nếu Gateway sử dụng client credentials flow (application permission) để gọi ECM Host, tạo client secret tại `Certificates & secrets` của Gateway và cấu hình dưới dạng biến môi trường (ví dụ `AzureAd:ClientSecret`).
 
-## 4. Thông tin cho front-end (SPA)
+## 4. Đăng nhập tương tác tại App Gateway
+
+App Gateway hiện dùng **OpenID Connect** với cookie authentication để đăng nhập người dùng. Một số điểm cần lưu ý:
+
+- Endpoint đăng nhập `/signin-azure` sẽ tự động chuyển hướng người dùng tới Azure Entra ID và quay về `/home` sau khi xác thực thành công.
+- Endpoint `/signin-azure/url` trả về đường dẫn đăng nhập được dùng cho trang landing tĩnh (`/index.html`).
+- Trang `/home` yêu cầu người dùng đã đăng nhập và hiển thị thông tin cơ bản từ token (tên, email).
+- Đăng xuất được thực hiện bằng cách gửi `POST` tới `/signout` (nút “Đăng xuất” trên trang home).
+
+Đảm bảo giá trị `ClientSecret`, `CallbackPath` và `SignedOutCallbackPath` được cấu hình chính xác (hoặc cung cấp thông qua secret/biến môi trường) để luồng đăng nhập hoạt động ổn định.【F:src/AppGateway/AppGateway.Api/appsettings.json†L27-L35】
+
+## 5. Thông tin cho front-end (SPA)
 
 Hiện thư mục `src/AppGateway/ui` chưa cấu hình MSAL. Khi bổ sung, cần sử dụng cùng Tenant ID, Client ID (ứng dụng đại diện SPA hoặc dùng chung App Gateway) và redirect URI tương ứng với domain public của Gateway.
 
-## 5. Lưu ý cấu hình runtime
+## 6. Lưu ý cấu hình runtime
 
 - Không commit trực tiếp `ClientSecret`. Sử dụng Secret Manager của .NET (`dotnet user-secrets`), Azure Key Vault hoặc biến môi trường trong môi trường triển khai.
 - Các giá trị trong `appsettings.json` chỉ mang tính minh hoạ (domain `contoso.onmicrosoft.com`, GUID `00000000-0000-0000-0000-000000000000`). Luôn thay bằng giá trị thực tế trước khi chạy production.
