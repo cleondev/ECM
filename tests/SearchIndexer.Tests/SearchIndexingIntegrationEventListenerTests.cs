@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using SearchIndexer;
 using SearchIndexer.Messaging;
+using Shared.Contracts.Messaging;
 using Xunit;
 
 namespace SearchIndexer.Tests;
@@ -45,7 +46,7 @@ public class SearchIndexingIntegrationEventListenerTests
         }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
         var message = new KafkaMessage(
-            "ecm.document.uploaded",
+            EventTopics.Document.Uploaded,
             Key: documentId.ToString(),
             Value: payload,
             Timestamp: DateTimeOffset.UtcNow);
@@ -85,7 +86,7 @@ public class SearchIndexingIntegrationEventListenerTests
         }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
         var message = new KafkaMessage(
-            "ecm.ocr.completed",
+            EventTopics.Ocr.Completed,
             Key: documentId.ToString(),
             Value: payload,
             Timestamp: DateTimeOffset.UtcNow);
