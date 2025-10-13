@@ -41,6 +41,6 @@ public class DocumentRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("document", message.Aggregate);
-        Assert.Equal(nameof(DocumentTagAssignedContract), message.Type);
+        Assert.Equal(DocumentEventNames.DocumentTagAssigned, message.Type);
     }
 }
