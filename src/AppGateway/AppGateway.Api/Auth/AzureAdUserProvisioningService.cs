@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using AppGateway.Contracts.AccessControl.Roles;
 using AppGateway.Contracts.AccessControl.Users;
 using AppGateway.Infrastructure.AccessControl;
 using AppGateway.Infrastructure.Ecm;
@@ -68,12 +69,15 @@ public sealed class AzureAdUserProvisioningService(
                 return;
             }
 
+            var createdRoles = created.Roles ?? Array.Empty<RoleSummaryDto>();
+            var roleDescription = createdRoles.Count > 0
+                ? string.Join(", ", createdRoles.Select(role => role.Name))
+                : "<none>";
+
             _logger.LogInformation(
                 "Automatically provisioned user {Email} with roles: {Roles}.",
                 email,
-                created.Roles.Count > 0
-                    ? string.Join(", ", created.Roles.Select(role => role.Name))
-                    : "<none>");
+                roleDescription);
         }
         catch (Exception ex)
         {
