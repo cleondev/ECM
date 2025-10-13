@@ -19,6 +19,5 @@
     <ProjectReference Include="../../Modules/Workflow/ECM.Workflow.csproj" />
     <ProjectReference Include="../../Modules/Signature/ECM.Signature.csproj" />
     <ProjectReference Include="../../Modules/SearchRead/ECM.SearchRead.csproj" />
-    <ProjectReference Include="../../Modules/SearchIndexer/ECM.SearchIndexer.csproj" />
   </ItemGroup>
 </Project>
