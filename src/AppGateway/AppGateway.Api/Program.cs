@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using ServiceDefaults;
 using Serilog;
 
@@ -87,6 +88,9 @@ public static class Program
 
         builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
         {
+            options.ResponseType = OpenIdConnectResponseType.Code;
+            options.UsePkce = true;
+            options.ResponseMode = OpenIdConnectResponseMode.FormPost;
             options.Events ??= new OpenIdConnectEvents();
             var previousHandler = options.Events.OnTokenValidated;
 
