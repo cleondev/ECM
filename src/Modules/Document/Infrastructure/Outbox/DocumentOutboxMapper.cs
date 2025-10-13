@@ -42,7 +42,7 @@ internal static class DocumentOutboxMapper
         return new OutboxMessage(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
-            type: nameof(DocumentCreatedContract),
+            type: DocumentEventNames.DocumentCreated,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -60,7 +60,7 @@ internal static class DocumentOutboxMapper
         return new OutboxMessage(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
-            type: nameof(DocumentTagAssignedContract),
+            type: DocumentEventNames.DocumentTagAssigned,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -77,7 +77,7 @@ internal static class DocumentOutboxMapper
         return new OutboxMessage(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
-            type: nameof(DocumentTagRemovedContract),
+            type: DocumentEventNames.DocumentTagRemoved,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -96,7 +96,7 @@ internal static class DocumentOutboxMapper
         return new OutboxMessage(
             aggregate: "tag",
             aggregateId: domainEvent.TagId,
-            type: nameof(TagLabelCreatedContract),
+            type: DocumentEventNames.TagLabelCreated,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -114,7 +114,7 @@ internal static class DocumentOutboxMapper
         return new OutboxMessage(
             aggregate: "tag",
             aggregateId: domainEvent.TagId,
-            type: nameof(TagLabelDeletedContract),
+            type: DocumentEventNames.TagLabelDeleted,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }

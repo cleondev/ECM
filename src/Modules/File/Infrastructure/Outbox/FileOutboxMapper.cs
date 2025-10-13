@@ -39,7 +39,7 @@ internal static class FileOutboxMapper
         return new OutboxMessage(
             aggregate: "file",
             aggregateId: CreateDeterministicGuid(domainEvent.StorageKey),
-            type: nameof(StoredFileUploadedContract),
+            type: FileEventNames.StoredFileUploaded,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }

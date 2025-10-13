@@ -45,7 +45,7 @@ internal static class AccessControlOutboxMapper
         return new OutboxMessage(
             aggregate: "user",
             aggregateId: domainEvent.UserId,
-            type: nameof(UserCreatedContract),
+            type: AccessControlEventNames.UserCreated,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -63,7 +63,7 @@ internal static class AccessControlOutboxMapper
         return new OutboxMessage(
             aggregate: "user",
             aggregateId: domainEvent.UserId,
-            type: nameof(UserRoleAssignedContract),
+            type: AccessControlEventNames.UserRoleAssigned,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -80,7 +80,7 @@ internal static class AccessControlOutboxMapper
         return new OutboxMessage(
             aggregate: "user",
             aggregateId: domainEvent.UserId,
-            type: nameof(UserRoleRemovedContract),
+            type: AccessControlEventNames.UserRoleRemoved,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -99,7 +99,7 @@ internal static class AccessControlOutboxMapper
         return new OutboxMessage(
             aggregate: "access-relation",
             aggregateId: CreateDeterministicGuid(domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
-            type: nameof(AccessRelationCreatedContract),
+            type: AccessControlEventNames.AccessRelationCreated,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
@@ -118,7 +118,7 @@ internal static class AccessControlOutboxMapper
         return new OutboxMessage(
             aggregate: "access-relation",
             aggregateId: CreateDeterministicGuid(domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
-            type: nameof(AccessRelationDeletedContract),
+            type: AccessControlEventNames.AccessRelationDeleted,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
