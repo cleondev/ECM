@@ -1,5 +1,6 @@
-using ECM.Abstractions;
-using ECM.SearchIndexer.Api;
+using ECM.SearchIndexer.Application;
+using ECM.SearchIndexer.Infrastructure;
+using Microsoft.Extensions.Hosting;
 using ServiceDefaults;
 
 namespace SearchIndexer;
@@ -8,25 +9,13 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        var builder = Host.CreateApplicationBuilder(args);
 
         builder.AddServiceDefaults();
-        builder.AddModule<SearchIndexerModule>();
 
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
+        builder.Services.AddSearchIndexerApplication();
+        builder.Services.AddSearchIndexerInfrastructure();
 
-        var app = builder.Build();
-
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
-
-        app.MapDefaultEndpoints();
-        app.MapModules();
-
-        await app.RunAsync();
+        await builder.Build().RunAsync();
     }
 }
