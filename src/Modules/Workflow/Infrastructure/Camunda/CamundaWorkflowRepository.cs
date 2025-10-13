@@ -21,17 +21,24 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
 {
     private readonly HttpClient _client;
     private readonly ILogger<CamundaWorkflowRepository> _logger;
+    private readonly string? _tenantId;
 
     public CamundaWorkflowRepository(HttpClient client, IOptions<CamundaOptions> options, ILogger<CamundaWorkflowRepository> logger)
     {
         _client = client;
         _logger = logger;
 
-        var baseUrl = options.Value.BaseUrl?.TrimEnd('/') ?? string.Empty;
+        var camundaOptions = options.Value;
+
+        var baseUrl = camundaOptions.BaseUrl?.TrimEnd('/') ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(baseUrl) && _client.BaseAddress is null)
         {
             _client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
         }
+
+        _tenantId = string.IsNullOrWhiteSpace(camundaOptions.TenantId)
+            ? null
+            : camundaOptions.TenantId.Trim();
     }
 
     public async Task<OperationResult<WorkflowInstance>> StartAsync(Guid documentId, string definitionKey, CancellationToken cancellationToken = default)
@@ -56,7 +63,8 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
             }
         };
 
-        using var response = await _client.PostAsJsonAsync($"process-definition/key/{Uri.EscapeDataString(definition.Key)}/start", payload, cancellationToken);
+        var startEndpoint = BuildDefinitionEndpoint(definition.Key, suffix: "start");
+        using var response = await _client.PostAsJsonAsync(startEndpoint, payload, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -76,7 +84,11 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
 
     public async Task<IReadOnlyCollection<WorkflowInstance>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
-        using var response = await _client.GetAsync("process-instance?active=true", cancellationToken);
+        var activeEndpoint = string.IsNullOrEmpty(_tenantId)
+            ? "process-instance?active=true"
+            : $"process-instance?active=true&tenantIdIn={Uri.EscapeDataString(_tenantId)}";
+
+        using var response = await _client.GetAsync(activeEndpoint, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -122,7 +134,8 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
 
     private async Task<WorkflowDefinition?> GetDefinitionByKeyAsync(string key, CancellationToken cancellationToken)
     {
-        using var response = await _client.GetAsync($"process-definition/key/{Uri.EscapeDataString(key)}", cancellationToken);
+        var endpoint = BuildDefinitionEndpoint(key);
+        using var response = await _client.GetAsync(endpoint, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -198,6 +211,20 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
         using var provider = MD5.Create();
         var hash = provider.ComputeHash(Encoding.UTF8.GetBytes(value));
         return new Guid(hash);
+    }
+
+    private string BuildDefinitionEndpoint(string definitionKey, string? suffix = null)
+    {
+        var baseEndpoint = string.IsNullOrEmpty(_tenantId)
+            ? $"process-definition/key/{Uri.EscapeDataString(definitionKey)}"
+            : $"process-definition/key/{Uri.EscapeDataString(definitionKey)}/tenant-id/{Uri.EscapeDataString(_tenantId)}";
+
+        if (string.IsNullOrEmpty(suffix))
+        {
+            return baseEndpoint;
+        }
+
+        return $"{baseEndpoint}/{suffix}";
     }
 
     private readonly Dictionary<string, WorkflowDefinition> _definitionIdCache = new(StringComparer.OrdinalIgnoreCase);

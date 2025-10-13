@@ -9,4 +9,6 @@ public sealed class CamundaOptions
     [Required]
     [Url]
     public string BaseUrl { get; set; } = "http://localhost:8080/engine-rest";
+
+    public string? TenantId { get; set; }
 }
