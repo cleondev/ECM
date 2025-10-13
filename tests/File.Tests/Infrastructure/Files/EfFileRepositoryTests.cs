@@ -26,6 +26,6 @@ public class EfFileRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("file", message.Aggregate);
-        Assert.Equal(nameof(StoredFileUploadedContract), message.Type);
+        Assert.Equal(FileEventNames.StoredFileUploaded, message.Type);
     }
 }

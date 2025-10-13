@@ -24,7 +24,7 @@ public class AccessRelationRepositoryTests
         await repository.AddAsync(relation, CancellationToken.None);
 
         var message = Assert.Single(context.OutboxMessages);
-        Assert.Equal(nameof(AccessRelationCreatedContract), message.Type);
+        Assert.Equal(AccessControlEventNames.AccessRelationCreated, message.Type);
     }
 
     [Fact]
@@ -48,6 +48,6 @@ public class AccessRelationRepositoryTests
         await repository.DeleteAsync(relation, CancellationToken.None);
 
         var message = Assert.Single(context.OutboxMessages);
-        Assert.Equal(nameof(AccessRelationDeletedContract), message.Type);
+        Assert.Equal(AccessControlEventNames.AccessRelationDeleted, message.Type);
     }
 }

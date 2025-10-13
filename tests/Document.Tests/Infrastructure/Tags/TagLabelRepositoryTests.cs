@@ -27,7 +27,7 @@ public class TagLabelRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("tag", message.Aggregate);
-        Assert.Equal(nameof(TagLabelCreatedContract), message.Type);
+        Assert.Equal(DocumentEventNames.TagLabelCreated, message.Type);
     }
 
     [Fact]
@@ -53,6 +53,6 @@ public class TagLabelRepositoryTests
         await repository.RemoveAsync(tagLabel, CancellationToken.None);
 
         var message = Assert.Single(context.OutboxMessages);
-        Assert.Equal(nameof(TagLabelDeletedContract), message.Type);
+        Assert.Equal(DocumentEventNames.TagLabelDeleted, message.Type);
     }
 }

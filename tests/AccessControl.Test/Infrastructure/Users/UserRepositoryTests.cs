@@ -26,7 +26,7 @@ public class UserRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("user", message.Aggregate);
-        Assert.Equal(nameof(UserCreatedContract), message.Type);
+        Assert.Equal(AccessControlEventNames.UserCreated, message.Type);
     }
 
     [Fact]
@@ -53,6 +53,6 @@ public class UserRepositoryTests
         await repository.UpdateAsync(user, CancellationToken.None);
 
         var message = Assert.Single(context.OutboxMessages);
-        Assert.Equal(nameof(UserRoleAssignedContract), message.Type);
+        Assert.Equal(AccessControlEventNames.UserRoleAssigned, message.Type);
     }
 }
