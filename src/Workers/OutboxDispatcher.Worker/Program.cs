@@ -1,4 +1,5 @@
 using System;
+using ECM.BuildingBlocks.Infrastructure.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -64,10 +65,7 @@ public static class Program
         builder.Services.AddSingleton(sp =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
-            var connectionString = configuration.GetConnectionString("Outbox")
-                ?? configuration.GetConnectionString("Ops")
-                ?? configuration.GetConnectionString("postgres")
-                ?? throw new InvalidOperationException("Outbox database connection string is not configured.");
+            var connectionString = configuration.GetRequiredConnectionStringForModule("Operations");
 
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
             return dataSourceBuilder.Build();
