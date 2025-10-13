@@ -122,7 +122,7 @@ public static class Program
         {
             var redirectUri = context.Request.Query["redirectUri"].FirstOrDefault();
 
-            if (string.IsNullOrWhiteSpace(redirectUri) || !redirectUri.StartsWith('/', StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(redirectUri) || !redirectUri.StartsWith("/", StringComparison.Ordinal))
             {
                 redirectUri = "/home";
             }
@@ -156,7 +156,7 @@ public static class Program
         {
             var redirectUri = context.Request.Query["redirectUri"].FirstOrDefault();
 
-            if (string.IsNullOrWhiteSpace(redirectUri) || !redirectUri.StartsWith('/', StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(redirectUri) || !redirectUri.StartsWith("/", StringComparison.Ordinal))
             {
                 redirectUri = "/";
             }
