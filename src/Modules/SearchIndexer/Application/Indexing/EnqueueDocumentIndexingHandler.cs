@@ -30,7 +30,7 @@ public sealed class EnqueueDocumentIndexingHandler(
             command.Tags,
             metadata);
 
-        var record = document.ToRecord();
+        var record = document.ToRecord(command.IndexingType);
         var jobId = await _scheduler.EnqueueAsync(record, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation(
