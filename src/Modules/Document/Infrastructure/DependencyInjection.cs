@@ -1,4 +1,5 @@
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.BuildingBlocks.Infrastructure.Configuration;
 using ECM.BuildingBlocks.Infrastructure.Time;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Tags.Repositories;
@@ -22,9 +23,7 @@ public static class DocumentInfrastructureModuleExtensions
         services.AddDbContext<DocumentDbContext>((serviceProvider, options) =>
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-            var connectionString = configuration.GetConnectionString("Document")
-                ?? configuration.GetConnectionString("postgres")
-                ?? throw new InvalidOperationException("Document database connection string is not configured.");
+            var connectionString = configuration.GetRequiredConnectionStringForModule("Document");
 
             options.UseNpgsql(
                     connectionString,

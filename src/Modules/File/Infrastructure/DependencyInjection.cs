@@ -1,7 +1,7 @@
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
-
+using ECM.BuildingBlocks.Infrastructure.Configuration;
 using ECM.File.Application.Files;
 using ECM.File.Infrastructure.Files;
 using ECM.File.Infrastructure.Persistence;
@@ -24,9 +24,7 @@ public static class FileInfrastructureModuleExtensions
         services.AddDbContext<FileDbContext>((serviceProvider, options) =>
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-            var connectionString = configuration.GetConnectionString("Document")
-                ?? configuration.GetConnectionString("postgres")
-                ?? throw new InvalidOperationException("Document database connection string is not configured.");
+            var connectionString = configuration.GetRequiredConnectionStringForModule("File");
 
             options.UseNpgsql(connectionString, builder => builder.MigrationsAssembly(typeof(FileDbContext).Assembly.FullName))
                 .UseSnakeCaseNamingConvention();
