@@ -6,7 +6,9 @@ using AppGateway.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Identity.Web;
 using ServiceDefaults;
 using Serilog;
@@ -68,10 +70,19 @@ public static class Program
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
+        const string uiRequestPath = "/ecm";
+
         if (Directory.Exists(app.Environment.WebRootPath))
         {
-            app.UseDefaultFiles();
-            app.UseStaticFiles();
+            app.UseDefaultFiles(new DefaultFilesOptions
+            {
+                RequestPath = uiRequestPath
+            });
+
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                RequestPath = uiRequestPath
+            });
         }
 
         app.UseAuthentication();
@@ -81,7 +92,7 @@ public static class Program
 
         if (Directory.Exists(app.Environment.WebRootPath))
         {
-            app.MapFallbackToFile("index.html").AllowAnonymous();
+            app.MapFallbackToFile($"{uiRequestPath}/{{*path}}", "index.html").AllowAnonymous();
         }
 
         app.MapGet("/", () => Results.Json(new
