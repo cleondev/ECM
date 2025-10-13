@@ -1,4 +1,5 @@
 using System;
+using AppGateway.Infrastructure.AccessControl;
 using AppGateway.Infrastructure.Ecm;
 
 using Microsoft.AspNetCore.Http;
@@ -18,6 +19,8 @@ public static class DependencyInjection
 
         services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri(baseAddress))
                 .AddStandardResilienceHandler();
+
+        services.Configure<AccessControlOptions>(configuration.GetSection("AccessControl"));
 
         services.AddHttpContextAccessor();
 

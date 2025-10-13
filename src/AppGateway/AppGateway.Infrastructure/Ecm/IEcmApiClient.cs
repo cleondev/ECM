@@ -17,6 +17,8 @@ public interface IEcmApiClient
 
     Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
+    Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default);
+
     Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto request, CancellationToken cancellationToken = default);
 
     Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto request, CancellationToken cancellationToken = default);
