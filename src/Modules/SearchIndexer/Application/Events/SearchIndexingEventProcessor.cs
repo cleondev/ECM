@@ -11,36 +11,36 @@ public sealed class SearchIndexingEventProcessor(EnqueueDocumentIndexingHandler 
     private readonly EnqueueDocumentIndexingHandler _handler = handler ?? throw new ArgumentNullException(nameof(handler));
 
     public Task<EnqueueDocumentIndexingResult> HandleDocumentUploadedAsync(
-        DocumentUploadedEvent @event,
+        DocumentUploadedIntegrationEvent integrationEvent,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentNullException.ThrowIfNull(integrationEvent);
 
         var command = new EnqueueDocumentIndexingCommand(
-            @event.DocumentId,
-            @event.Title,
-            @event.Summary,
-            @event.Content,
-            @event.Metadata,
-            @event.Tags,
+            integrationEvent.DocumentId,
+            integrationEvent.Title,
+            integrationEvent.Summary,
+            integrationEvent.Content,
+            integrationEvent.Metadata,
+            integrationEvent.Tags,
             SearchIndexingType.Basic);
 
         return _handler.HandleAsync(command, cancellationToken);
     }
 
     public Task<EnqueueDocumentIndexingResult> HandleOcrCompletedAsync(
-        OcrCompletedEvent @event,
+        OcrCompletedIntegrationEvent integrationEvent,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(@event);
+        ArgumentNullException.ThrowIfNull(integrationEvent);
 
         var command = new EnqueueDocumentIndexingCommand(
-            @event.DocumentId,
-            @event.Title,
-            @event.Summary,
-            @event.Content,
-            @event.Metadata,
-            @event.Tags,
+            integrationEvent.DocumentId,
+            integrationEvent.Title,
+            integrationEvent.Summary,
+            integrationEvent.Content,
+            integrationEvent.Metadata,
+            integrationEvent.Tags,
             SearchIndexingType.Advanced);
 
         return _handler.HandleAsync(command, cancellationToken);
