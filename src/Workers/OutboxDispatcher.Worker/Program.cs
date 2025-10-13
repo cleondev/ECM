@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Serilog;
 using ServiceDefaults;
 
 namespace OutboxDispatcher;
@@ -14,15 +15,37 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder(args);
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
 
-        builder.AddServiceDefaults();
+        try
+        {
+            Log.Information("Starting OutboxDispatcher worker");
 
-        ConfigureOutboxDispatcher(builder);
+            var builder = Host.CreateApplicationBuilder(args);
 
-        builder.Services.AddHostedService<OutboxDispatcherWorker>();
+            builder.AddServiceDefaults();
 
-        await builder.Build().RunAsync();
+            ConfigureOutboxDispatcher(builder);
+
+            builder.Services.AddHostedService<OutboxDispatcherWorker>();
+
+            var host = builder.Build();
+
+            await host.RunAsync().ConfigureAwait(false);
+
+            Log.Information("OutboxDispatcher worker stopped");
+        }
+        catch (Exception exception)
+        {
+            Log.Fatal(exception, "OutboxDispatcher worker terminated unexpectedly");
+            throw;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
     }
 
     /// <summary>
@@ -96,6 +119,12 @@ internal class OutboxDispatcherWorker : BackgroundService
                 if (processed == 0)
                 {
                     await Task.Delay(_options.PollInterval, stoppingToken);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Processed {ProcessedCount} outbox message(s) in the last batch.",
+                        processed);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

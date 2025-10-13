@@ -1,6 +1,8 @@
+using System;
 using ECM.SearchIndexer.Application;
 using ECM.SearchIndexer.Infrastructure;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 using ServiceDefaults;
 
 namespace SearchIndexer;
@@ -9,13 +11,35 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        var builder = Host.CreateApplicationBuilder(args);
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
 
-        builder.AddServiceDefaults();
+        try
+        {
+            Log.Information("Starting SearchIndexer worker");
 
-        builder.Services.AddSearchIndexerApplication();
-        builder.Services.AddSearchIndexerInfrastructure();
+            var builder = Host.CreateApplicationBuilder(args);
 
-        await builder.Build().RunAsync();
+            builder.AddServiceDefaults();
+
+            builder.Services.AddSearchIndexerApplication();
+            builder.Services.AddSearchIndexerInfrastructure();
+
+            var host = builder.Build();
+
+            await host.RunAsync().ConfigureAwait(false);
+
+            Log.Information("SearchIndexer worker stopped");
+        }
+        catch (Exception exception)
+        {
+            Log.Fatal(exception, "SearchIndexer worker terminated unexpectedly");
+            throw;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
     }
 }
