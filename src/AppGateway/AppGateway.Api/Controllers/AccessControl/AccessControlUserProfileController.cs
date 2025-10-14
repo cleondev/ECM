@@ -16,6 +16,7 @@ public sealed class AccessControlUserProfileController(IEcmApiClient client) : C
     private readonly IEcmApiClient _client = client;
 
     [HttpGet]
+    [HttpGet("/api/profile")]
     [ProducesResponseType(typeof(UserSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
