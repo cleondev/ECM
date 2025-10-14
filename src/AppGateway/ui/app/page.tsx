@@ -1,25 +1,41 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { FileManager } from '@/components/file-manager'
+
 const LANDING_PAGE_ROUTE = '/landing'
-const MAIN_APP_ROUTE = '/profile'
 
 export default function Home() {
   const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
 
   useEffect(() => {
-    // Gọi API backend để kiểm tra đăng nhập
+    let isMounted = true
+
     fetch('/api/profile', { credentials: 'include', cache: 'no-store' })
       .then(res => {
+        if (!isMounted) return
+
         if (res.ok) {
-          router.replace(MAIN_APP_ROUTE) // Đã đăng nhập
+          setIsAuthenticated(true)
         } else {
-          router.replace(LANDING_PAGE_ROUTE) // Chưa đăng nhập
+          router.replace(LANDING_PAGE_ROUTE)
         }
       })
-      .catch(() => router.replace(LANDING_PAGE_ROUTE))
+      .catch(() => {
+        if (!isMounted) return
+        router.replace(LANDING_PAGE_ROUTE)
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [router])
+
+  if (isAuthenticated) {
+    return <FileManager />
+  }
 
   return null
 }
