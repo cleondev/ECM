@@ -103,7 +103,7 @@ public static class GatewayEndpointConfiguration
             return defaultPath;
         }
 
-        if (!candidate.StartsWith('/', StringComparison.Ordinal))
+        if (!candidate.StartsWith("/", StringComparison.Ordinal))
         {
             return defaultPath;
         }
