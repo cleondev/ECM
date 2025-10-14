@@ -9,6 +9,7 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 - [Thiết lập hạ tầng phát triển](#thiết-lập-hạ-tầng-phát-triển)
   - [Cách 1: Dịch vụ đã cài trên server](#cách-1-dịch-vụ-đã-cài-trên-server)
   - [Cách 2: Docker Compose cho môi trường local](#cách-2-docker-compose-cho-môi-trường-local)
+  - [Init nhanh biến môi trường](#init-nhanh-biến-môi-trường)
 - [Khởi tạo cơ sở dữ liệu (EF Core migrations)](#khởi-tạo-cơ-sở-dữ-liệu-ef-core-migrations)
 - [Làm việc với solution .NET](#làm-việc-với-solution-net)
 - [SPA của App Gateway](#spa-của-app-gateway)
@@ -117,6 +118,24 @@ Các script khởi tạo (schema DB mẫu, bucket/object, topic) nằm trong `de
 - `deploy/init/topics-init.sh`: Tạo các topic chuẩn cho hệ thống (`iam.events`, `document.events`, `version.events`, `workflow.events`, `signature.events`, `ocr.events`, `search.events`, `audit.events`, `retention.events`). Có thể override broker/partition thông qua các biến môi trường `KAFKA_BROKER`, `KAFKA_TOPIC_PARTITIONS`, `KAFKA_TOPIC_REPLICAS` khi cần.
 
 > **Lưu ý:** Nếu muốn tái tạo dữ liệu sạch, hãy xóa các volume `pgdata`, `minio-data` trước khi `up` trở lại.
+
+### Init nhanh biến môi trường
+
+Để không phải gõ lại từng biến cấu hình, repo cung cấp sẵn script `deploy/scripts/init-all.sh` (Bash) và `deploy/scripts/init-all.ps1` (PowerShell). Các script này dựa trên thông số mặc định của `deploy/compose.yml` (PostgreSQL user/password `ecm`, MinIO `minio/miniominio`, Redpanda `localhost:9092`).
+
+- **macOS/Linux (Bash/zsh):**
+
+  ```bash
+  source deploy/scripts/init-all.sh
+  ```
+
+- **Windows (PowerShell):**
+
+  ```powershell
+  .\deploy\scripts\init-all.ps1
+  ```
+
+Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__Document`, `ConnectionStrings__postgres`, `ConnectionStrings__Outbox`, `ConnectionStrings__Ops`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
 
 ## Khởi tạo cơ sở dữ liệu (EF Core migrations)
 
