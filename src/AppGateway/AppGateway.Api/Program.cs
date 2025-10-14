@@ -19,7 +19,6 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using ServiceDefaults;
@@ -29,15 +28,29 @@ namespace AppGateway.Api;
 
 public static class Program
 {
+    private const string UiRequestPath = "/ecm";
+
     public static void Main(string[] args)
+    {
+        var builder = CreateBuilder(args);
+
+        ConfigureServices(builder);
+
+        var app = builder.Build();
+
+        ConfigureMiddleware(app);
+        ConfigureEndpoints(app);
+
+        app.Run();
+    }
+
+    private static WebApplicationBuilder CreateBuilder(string[] args)
     {
         var options = new WebApplicationOptions
         {
             Args = args,
             ContentRootPath = Directory.GetCurrentDirectory(),
-            WebRootPath = Directory.Exists(Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "ui", "dist")))
-                ? Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "ui", "dist"))
-                : null  
+            WebRootPath = ResolveWebRootPath()
         };
 
         var builder = WebApplication.CreateBuilder(options);
@@ -48,9 +61,55 @@ public static class Program
         }
 
         builder.Configuration.AddEnvironmentVariables();
-
         builder.AddServiceDefaults();
 
+        return builder;
+    }
+
+    private static string? ResolveWebRootPath()
+    {
+        var path = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "ui", "dist"));
+        return Directory.Exists(path) ? path : null;
+    }
+
+    private static void ConfigureServices(WebApplicationBuilder builder)
+    {
+        ConfigureAuthentication(builder);
+
+        builder.Services.AddProblemDetails();
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.AddGatewayInfrastructure(builder.Configuration);
+        builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
+
+        builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
+        {
+            options.ResponseType = OpenIdConnectResponseType.Code;
+            options.UsePkce = true;
+            options.ResponseMode = OpenIdConnectResponseMode.FormPost;
+            options.Events ??= new OpenIdConnectEvents();
+            var previousHandler = options.Events.OnTokenValidated;
+
+            options.Events.OnTokenValidated = async context =>
+            {
+                if (previousHandler is not null)
+                {
+                    await previousHandler(context);
+                }
+
+                var provisioningService = context.HttpContext.RequestServices
+                    .GetRequiredService<IUserProvisioningService>();
+
+                await provisioningService.EnsureUserExistsAsync(
+                    context.Principal,
+                    context.HttpContext.RequestAborted);
+            };
+        });
+    }
+
+    private static void ConfigureAuthentication(WebApplicationBuilder builder)
+    {
         var authenticationBuilder = builder.Services.AddAuthentication(options =>
         {
             options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -86,42 +145,11 @@ public static class Program
                 .RequireAuthenticatedUser()
                 .Build();
         });
+    }
 
-        builder.Services.AddProblemDetails();
-        builder.Services.AddControllers();
-        builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
-        builder.Services.AddGatewayInfrastructure(builder.Configuration);
-        builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
-
-        builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
-        {
-            options.ResponseType = OpenIdConnectResponseType.Code;
-            options.UsePkce = true;
-            options.ResponseMode = OpenIdConnectResponseMode.FormPost;
-            options.Events ??= new OpenIdConnectEvents();
-            var previousHandler = options.Events.OnTokenValidated;
-
-            options.Events.OnTokenValidated = async context =>
-            {
-                if (previousHandler is not null)
-                {
-                    await previousHandler(context);
-                }
-
-                var provisioningService = context.HttpContext.RequestServices
-                    .GetRequiredService<IUserProvisioningService>();
-
-                await provisioningService.EnsureUserExistsAsync(
-                    context.Principal,
-                    context.HttpContext.RequestAborted);
-            };
-        });
-
-        var app = builder.Build();
-
+    private static void ConfigureMiddleware(WebApplication app)
+    {
         app.UseSerilogRequestLogging();
-
         app.UseMiddleware<RequestLoggingMiddleware>();
 
         if (app.Environment.IsDevelopment())
@@ -133,28 +161,43 @@ public static class Program
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
-        const string uiRequestPath = "/ecm";
-
-        if (Directory.Exists(app.Environment.WebRootPath))
-        {
-            app.UseDefaultFiles();
-            app.UseDefaultFiles(new DefaultFilesOptions
-            {
-                RequestPath = uiRequestPath
-            });
-
-            app.UseStaticFiles();
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                RequestPath = uiRequestPath
-            });
-        }
+        ConfigureStaticFileServing(app);
 
         app.UseAuthentication();
         app.UseAuthorization();
+    }
 
+    private static void ConfigureStaticFileServing(WebApplication app)
+    {
+        if (!Directory.Exists(app.Environment.WebRootPath))
+        {
+            return;
+        }
+
+        app.UseDefaultFiles();
+        app.UseDefaultFiles(new DefaultFilesOptions
+        {
+            RequestPath = UiRequestPath
+        });
+
+        app.UseStaticFiles();
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            RequestPath = UiRequestPath
+        });
+    }
+
+    private static void ConfigureEndpoints(WebApplication app)
+    {
         app.MapControllers();
+        ConfigureAuthenticationEndpoints(app);
+        ConfigureHomeEndpoint(app);
+        ConfigureFallbackEndpoints(app);
+        ConfigureStatusEndpoints(app);
+    }
 
+    private static void ConfigureAuthenticationEndpoints(WebApplication app)
+    {
         app.MapGet("/signin-azure/url", (HttpContext context) =>
         {
             var redirectUri = context.Request.Query["redirectUri"].FirstOrDefault();
@@ -208,7 +251,10 @@ public static class Program
 
             return Results.Redirect(redirectUri);
         }).RequireAuthorization();
+    }
 
+    private static void ConfigureHomeEndpoint(WebApplication app)
+    {
         var homeTemplate = HomeTemplateProvider.Load(app.Environment.WebRootFileProvider, "home.html");
 
         app.MapGet("/home", (HttpContext context) =>
@@ -234,13 +280,21 @@ public static class Program
 
             return Results.Content(html, "text/html; charset=utf-8");
         }).RequireAuthorization();
+    }
 
-        if (Directory.Exists(app.Environment.WebRootPath))
+    private static void ConfigureFallbackEndpoints(WebApplication app)
+    {
+        if (!Directory.Exists(app.Environment.WebRootPath))
         {
-            app.MapFallbackToFile("index.html").AllowAnonymous();
-            app.MapFallbackToFile($"{uiRequestPath}/{{*path}}", "index.html").AllowAnonymous();
+            return;
         }
 
+        app.MapFallbackToFile("index.html").AllowAnonymous();
+        app.MapFallbackToFile($"{UiRequestPath}/{{*path}}", "index.html").AllowAnonymous();
+    }
+
+    private static void ConfigureStatusEndpoints(WebApplication app)
+    {
         app.MapGet("/service-status", () => Results.Json(new
         {
             service = "app-gateway",
@@ -249,7 +303,5 @@ public static class Program
         })).AllowAnonymous();
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
-
-        app.Run();
     }
 }
