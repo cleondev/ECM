@@ -15,6 +15,14 @@ const SIMULATED_DELAY = 800 // milliseconds
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+type GatewayUserResponse = {
+  id: string
+  email: string
+  displayName: string
+  department?: string | null
+  roles?: { id: string; name: string }[]
+}
+
 export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedResponse<FileItem>> {
   await delay(SIMULATED_DELAY)
 
@@ -129,9 +137,35 @@ export async function updateSystemTag(fileId: string, tagName: string, value: st
   console.log("[v0] Update system tag:", fileId, tagName, value)
 }
 
-export async function fetchUser(): Promise<User> {
-  await delay(SIMULATED_DELAY)
-  return mockUser
+export async function fetchUser(): Promise<User | null> {
+  await delay(150) // giữ cảm giác phản hồi nhanh cho UI
+  try {
+    const response = await fetch('/api/profile', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+
+    if (response.status === 401 || response.status === 404) {
+      return null
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch profile (${response.status})`)
+    }
+
+    const data = (await response.json()) as GatewayUserResponse
+
+    return {
+      id: data.id,
+      displayName: data.displayName,
+      email: data.email,
+      department: data.department ?? null,
+      roles: data.roles?.map((role) => role.name) ?? [],
+    }
+  } catch (error) {
+    console.error('[ui] Không lấy được thông tin người dùng:', error)
+    throw error
+  }
 }
 
 export async function uploadFile(data: UploadFileData): Promise<FileItem> {
@@ -147,7 +181,7 @@ export async function uploadFile(data: UploadFileData): Promise<FileItem> {
     modified: "Just now",
     tags: data.tags,
     folder: "All Files",
-    owner: mockUser.name,
+    owner: mockUser.displayName,
     description: data.metadata.description || "",
   }
 

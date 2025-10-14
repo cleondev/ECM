@@ -1,10 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Security.Claims;
 using AppGateway.Api.ReverseProxy;
-using AppGateway.Api.Templates;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -21,7 +18,6 @@ public static class GatewayEndpointConfiguration
     {
         app.MapControllers();
         ConfigureAuthenticationEndpoints(app);
-        ConfigureHomeEndpoint(app);
         ConfigureFallbackEndpoints(app);
         ConfigureStatusEndpoints(app);
 
@@ -32,12 +28,9 @@ public static class GatewayEndpointConfiguration
     {
         app.MapGet("/signin-azure/url", (HttpContext context) =>
         {
-            var redirectUri = context.Request.Query["redirectUri"].FirstOrDefault();
-
-            if (string.IsNullOrWhiteSpace(redirectUri) || !redirectUri.StartsWith("/", StringComparison.Ordinal))
-            {
-                redirectUri = "/home";
-            }
+            var redirectUri = ResolveRedirectPath(
+                context.Request.Query["redirectUri"].FirstOrDefault(),
+                Program.MainAppPath);
 
             var loginPath = QueryHelpers.AddQueryString("/signin-azure", "redirectUri", redirectUri);
 
@@ -49,12 +42,9 @@ public static class GatewayEndpointConfiguration
 
         app.MapGet("/signin-azure", (HttpContext context) =>
         {
-            var redirectUri = context.Request.Query["redirectUri"].FirstOrDefault();
-
-            if (string.IsNullOrWhiteSpace(redirectUri))
-            {
-                redirectUri = "/home";
-            }
+            var redirectUri = ResolveRedirectPath(
+                context.Request.Query["redirectUri"].FirstOrDefault(),
+                Program.MainAppPath);
 
             var properties = new AuthenticationProperties
             {
@@ -66,12 +56,10 @@ public static class GatewayEndpointConfiguration
 
         app.MapPost("/signout", async (HttpContext context) =>
         {
-            var redirectUri = context.Request.Query["redirectUri"].FirstOrDefault();
-
-            if (string.IsNullOrWhiteSpace(redirectUri) || !redirectUri.StartsWith("/", StringComparison.Ordinal))
-            {
-                redirectUri = "/";
-            }
+            var redirectUri = ResolveRedirectPath(
+                context.Request.Query["redirectUri"].FirstOrDefault(),
+                Program.LandingPagePath,
+                allowRoot: true);
 
             var properties = new AuthenticationProperties
             {
@@ -82,35 +70,6 @@ public static class GatewayEndpointConfiguration
             await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme, properties);
 
             return Results.Redirect(redirectUri);
-        }).RequireAuthorization();
-    }
-
-    private static void ConfigureHomeEndpoint(WebApplication app)
-    {
-        var homeTemplate = HomeTemplateProvider.Load(app.Environment.WebRootFileProvider, "home.html");
-
-        app.MapGet("/home", (HttpContext context) =>
-        {
-            var user = context.User;
-            var name = user?.FindFirst("name")?.Value
-                       ?? user?.Identity?.Name
-                       ?? "bạn";
-            var email = user?.FindFirst(ClaimTypes.Email)?.Value
-                        ?? user?.FindFirst("preferred_username")?.Value
-                        ?? string.Empty;
-
-            name = WebUtility.HtmlEncode(name);
-            email = WebUtility.HtmlEncode(email);
-
-            var subtitle = string.IsNullOrEmpty(email)
-                ? string.Empty
-                : $"<p class=\"subtitle\">{email}</p>";
-
-            var html = homeTemplate
-                .Replace("{{NAME}}", name, StringComparison.Ordinal)
-                .Replace("{{SUBTITLE}}", subtitle, StringComparison.Ordinal);
-
-            return Results.Content(html, "text/html; charset=utf-8");
         }).RequireAuthorization();
     }
 
@@ -135,5 +94,30 @@ public static class GatewayEndpointConfiguration
         })).AllowAnonymous();
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
+    }
+
+    private static string ResolveRedirectPath(string? candidate, string defaultPath, bool allowRoot = false)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return defaultPath;
+        }
+
+        if (!candidate.StartsWith('/', StringComparison.Ordinal))
+        {
+            return defaultPath;
+        }
+
+        if (candidate.StartsWith("//", StringComparison.Ordinal))
+        {
+            return defaultPath;
+        }
+
+        if (!allowRoot && string.Equals(candidate, "/", StringComparison.Ordinal))
+        {
+            return defaultPath;
+        }
+
+        return candidate;
     }
 }

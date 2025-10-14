@@ -45,7 +45,9 @@ export function AppHeader({
   const [advancedSearchTags, setAdvancedSearchTags] = useState<string[]>([])
 
   useEffect(() => {
-    fetchUser().then(setUser)
+    fetchUser()
+      .then(setUser)
+      .catch(() => setUser(null))
     fetchTags().then(setTags)
   }, [])
 
@@ -224,11 +226,11 @@ export function AppHeader({
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name} />
-                  <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+                  <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.displayName} />
+                  <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
                 </Avatar>
                 <div className="hidden md:flex flex-col items-start">
-                  <span className="text-sm font-medium">{user?.name || "Loading..."}</span>
+                  <span className="text-sm font-medium">{user?.displayName || "Loading..."}</span>
                   <span className="text-xs text-muted-foreground">{user?.department || ""}</span>
                 </div>
               </Button>
@@ -236,10 +238,10 @@ export function AppHeader({
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col gap-1">
-                  <span className="font-medium">{user?.name}</span>
+                  <span className="font-medium">{user?.displayName}</span>
                   <span className="text-xs text-muted-foreground font-normal">{user?.email}</span>
                   <span className="text-xs text-muted-foreground font-normal">{user?.department}</span>
-                  <span className="text-xs text-muted-foreground font-normal">{user?.role}</span>
+                  <span className="text-xs text-muted-foreground font-normal">{user?.roles?.[0] ?? ''}</span>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

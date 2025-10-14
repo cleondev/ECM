@@ -54,11 +54,11 @@ export type SystemTag = {
 
 export type User = {
   id: string
-  name: string
+  displayName: string
   email: string
   avatar?: string
-  department: string
-  role: string
+  department?: string | null
+  roles: string[]
 }
 
 export type UploadFileData = {
