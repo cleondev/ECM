@@ -11,7 +11,7 @@ public static class Program
 {
     internal const string UiRequestPath = "/ecm";
     internal const string LandingPagePath = "/landing";
-    internal const string MainAppPath = "/profile";
+    internal const string MainAppPath = "/";
 
     public static void Main(string[] args)
     {
