@@ -1,21 +1,21 @@
+# syntax=docker/dockerfile:1
+
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-COPY . .
-RUN dotnet restore src/ECM/ECM.Host/ECM.Host.csproj \
- && dotnet publish  src/ECM/ECM.Host/ECM.Host.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-COPY . .
-RUN dotnet restore src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj \
- && dotnet publish  src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj -c Release -o /app/publish /p:UseAppHost=false
+COPY Directory.Packages.props ./
+COPY ECM.sln ./
+COPY src/Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj src/Aspire/ECM.ServiceDefaults/
+COPY src/ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj src/ECM/ECM.BuildingBlocks/
+COPY src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj src/Workers/OutboxDispatcher.Worker/
+RUN dotnet restore src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0
+COPY src/ src/
+RUN dotnet publish src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/runtime:9.0 AS runtime
 WORKDIR /app
+
 COPY --from=build /app/publish ./
+
 ENTRYPOINT ["dotnet", "OutboxDispatcher.dll"]
-WORKDIR /app
-COPY --from=build /app/publish ./
-ENV ASPNETCORE_URLS=http://+:8080
-EXPOSE 8080
-ENTRYPOINT ["dotnet", "ECM.Host.dll"]
