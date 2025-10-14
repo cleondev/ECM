@@ -18,12 +18,14 @@ export default function SignInPage() {
   const [status, setStatus] = useState("")
   const router = useRouter()
 
+  const targetAfterLogin = '/profile'
+
   // Thay đổi logic đăng nhập Azure
   const handleAzureSignIn = async () => {
     setIsLoading(true)
     setStatus("Đang chuẩn bị đăng nhập…")
     try {
-      const redirectUri = encodeURIComponent('/home')
+      const redirectUri = encodeURIComponent(targetAfterLogin)
       const res = await fetch(`/signin-azure/url?redirectUri=${redirectUri}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Không lấy được đường dẫn.')
       const data = await res.json()
@@ -34,7 +36,7 @@ export default function SignInPage() {
       throw new Error('Thiếu đường dẫn đăng nhập.')
     } catch (error) {
       setStatus("Đi thẳng tới trang đăng nhập mặc định.")
-      window.location.href = '/signin-azure?redirectUri=%2Fhome'
+      window.location.href = `/signin-azure?redirectUri=${encodeURIComponent(targetAfterLogin)}`
     } finally {
       setIsLoading(false)
     }
@@ -47,7 +49,7 @@ export default function SignInPage() {
       // Giữ nguyên logic cũ cho email
       // Nếu bạn có logic riêng, hãy thay thế ở đây
       // await signInWithEmail(email, password)
-      router.push("/")
+      router.push(targetAfterLogin)
     } catch (error) {
       console.error("[v0] Email sign in error:", error)
     } finally {

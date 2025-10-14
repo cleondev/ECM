@@ -14,6 +14,8 @@ import { Separator } from "@/components/ui/separator"
 import { fetchUser, updateUserAvatar } from "@/lib/api"
 import type { User } from "@/lib/types"
 
+const LANDING_PAGE_ROUTE = '/landing'
+
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -21,7 +23,27 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchUser().then(setUser)
+    let mounted = true
+
+    fetchUser()
+      .then((profile) => {
+        if (!mounted) return
+
+        if (!profile) {
+          window.location.href = LANDING_PAGE_ROUTE
+          return
+        }
+
+        setUser(profile)
+      })
+      .catch(() => {
+        if (!mounted) return
+        window.location.href = LANDING_PAGE_ROUTE
+      })
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,8 +97,8 @@ export default function ProfilePage() {
             <div className="flex items-center gap-6">
               <div className="relative">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={avatarPreview || user.avatar || "/placeholder.svg"} alt={user.name} />
-                  <AvatarFallback className="text-2xl">{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={avatarPreview || user.avatar || "/placeholder.svg"} alt={user.displayName} />
+                  <AvatarFallback className="text-2xl">{user.displayName?.charAt(0) ?? '?'}</AvatarFallback>
                 </Avatar>
                 <input
                   ref={fileInputRef}
@@ -96,8 +118,8 @@ export default function ProfilePage() {
                 </Button>
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-bold">{user.name}</h2>
-                <p className="text-muted-foreground">{user.role}</p>
+                <h2 className="text-2xl font-bold">{user.displayName}</h2>
+                <p className="text-muted-foreground">{user.roles[0] ?? "Member"}</p>
               </div>
               <Button variant={isEditing ? "outline" : "default"} onClick={() => setIsEditing(!isEditing)}>
                 {isEditing ? "Cancel" : "Edit Profile"}
@@ -109,7 +131,7 @@ export default function ProfilePage() {
             <div className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" defaultValue={user.name} disabled={!isEditing} />
+                <Input id="name" defaultValue={user.displayName} disabled={!isEditing} />
               </div>
 
               <div className="grid gap-2">
@@ -132,7 +154,7 @@ export default function ProfilePage() {
                 <Label htmlFor="department">Department</Label>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  <Input id="department" defaultValue={user.department} disabled={!isEditing} />
+                  <Input id="department" defaultValue={user.department ?? ""} disabled={!isEditing} />
                 </div>
               </div>
 

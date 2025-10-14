@@ -656,11 +656,11 @@ export const mockSystemTags: SystemTag[] = [
 
 export const mockUser: User = {
   id: "user-1",
-  name: "John Doe",
+  displayName: "John Doe",
   email: "john.doe@company.com",
   avatar: "/diverse-user-avatars.png",
   department: "Product Design",
-  role: "Senior Designer",
+  roles: ["Senior Designer"],
 }
 
 export const mockFlows = mockFlowsByFile.default
