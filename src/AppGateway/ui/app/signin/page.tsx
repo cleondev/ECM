@@ -18,7 +18,7 @@ export default function SignInPage() {
   const [status, setStatus] = useState("")
   const router = useRouter()
 
-  const targetAfterLogin = '/profile'
+  const targetAfterLogin = '/'
 
   // Thay đổi logic đăng nhập Azure
   const handleAzureSignIn = async () => {
