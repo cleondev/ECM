@@ -17,43 +17,44 @@ stages:
     pool:
       name: 'ECM_CI'
     steps:
-    - task: PowerShell@2
+    - script: |
+        set -euo pipefail
+
+        webhook_url="${WEBHOOK_URL:-}"
+
+        if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$(*) ]]; then
+          echo "Webhook URL is not configured. Skipping build start notification."
+          exit 0
+        fi
+
+        build_time="$(date '+%Y-%m-%d %H:%M:%S')"
+        requested_by="$(Build.RequestedFor)"
+        branch_name="$(Build.SourceBranchName)"
+        pipeline_name="$(Build.DefinitionName)"
+        stage_name="$(System.StageDisplayName)"
+
+        payload=$(cat <<'JSON'
+{
+  "text": "**Deployment Notice**\n\nPipeline **PIPELINE_NAME** is starting stage **STAGE_NAME**.\n\n**Time**: BUILD_TIME\n**Triggered by**: REQUESTED_BY\n**Branch**: BRANCH_NAME\n\nPlease prepare for the upcoming deployment."
+}
+JSON
+)
+
+        payload="${payload/PIPELINE_NAME/$pipeline_name}"
+        payload="${payload/STAGE_NAME/$stage_name}"
+        payload="${payload/BUILD_TIME/$build_time}"
+        payload="${payload/REQUESTED_BY/$requested_by}"
+        payload="${payload/BRANCH_NAME/$branch_name}"
+
+        if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
+          echo "✅ Sent build start notification."
+        else
+          echo "⚠️ Failed to send build start notification." >&2
+        fi
       displayName: '📢 Notify: Build stage is starting'
       condition: always()
-      inputs:
-        targetType: inline
-        script: |
-          $webhookUrl = "$(Team_WebHook_Url)"
-
-          if (-not $webhookUrl) {
-            Write-Warning "Webhook URL is not configured. Skipping build start notification."
-            exit 0
-          }
-
-          try {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-            $buildTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $requestedBy = "$(Build.RequestedFor)"
-            $branchName = "$(Build.SourceBranchName)"
-            $pipelineName = "$(Build.DefinitionName)"
-            $stageName = "$(System.StageDisplayName)"
-
-            $body = @{
-              text = "**Deployment Notice**`n`n" +
-                     "Pipeline **$pipelineName** is starting stage **$stageName**.`n`n" +
-                     "**Time**: $buildTime`n" +
-                     "**Triggered by**: $requestedBy`n" +
-                     "**Branch**: $branchName`n`n" +
-                     "Please prepare for the upcoming deployment."
-            }
-
-            Invoke-WebRequest -Uri $webhookUrl -Method Post -Body ($body | ConvertTo-Json -Depth 10) -ContentType "application/json" -UseBasicParsing
-            Write-Host "✅ Sent build start notification."
-          }
-          catch {
-            Write-Warning "⚠️ Failed to send build start notification: $_"
-          }
+      env:
+        WEBHOOK_URL: $(Team_WebHook_Url)
 
     - checkout: self
       fetchDepth: 0
@@ -103,42 +104,44 @@ stages:
     pool:
       name: 'ECM_CI'
     steps:
-    - task: PowerShell@2
+    - script: |
+        set -euo pipefail
+
+        webhook_url="${WEBHOOK_URL:-}"
+
+        if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$(*) ]]; then
+          echo "Webhook URL is not configured. Skipping start notification."
+          exit 0
+        fi
+
+        deploy_time="$(date '+%Y-%m-%d %H:%M:%S')"
+        requested_by="$(Build.RequestedFor)"
+        branch_name="$(Build.SourceBranchName)"
+        pipeline_name="$(Build.DefinitionName)"
+        stage_name="$(System.StageDisplayName)"
+
+        payload=$(cat <<'JSON'
+{
+  "text": "**Deployment Notice**\n\nPipeline **PIPELINE_NAME** is starting stage **STAGE_NAME**.\n\n**Time**: DEPLOY_TIME\n**Triggered by**: REQUESTED_BY\n**Branch**: BRANCH_NAME"
+}
+JSON
+)
+
+        payload="${payload/PIPELINE_NAME/$pipeline_name}"
+        payload="${payload/STAGE_NAME/$stage_name}"
+        payload="${payload/DEPLOY_TIME/$deploy_time}"
+        payload="${payload/REQUESTED_BY/$requested_by}"
+        payload="${payload/BRANCH_NAME/$branch_name}"
+
+        if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
+          echo "✅ Sent deployment start notification."
+        else
+          echo "⚠️ Failed to send start notification." >&2
+        fi
       displayName: '📢 Notify: Deployment is about to start'
       condition: always()
-      inputs:
-        targetType: inline
-        script: |
-          $webhookUrl = "$(Team_WebHook_Url)"
-
-          if (-not $webhookUrl) {
-            Write-Warning "Webhook URL is not configured. Skipping start notification."
-            exit 0
-          }
-
-          try {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-            $deployTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $requestedBy = "$(Build.RequestedFor)"
-            $branchName = "$(Build.SourceBranchName)"
-            $pipelineName = "$(Build.DefinitionName)"
-            $stageName = "$(System.StageDisplayName)"
-
-            $body = @{
-              text = "**Deployment Notice**`n`n" +
-                     "Pipeline **$pipelineName** is starting stage **$stageName**.`n`n" +
-                     "**Time**: $deployTime`n" +
-                     "**Triggered by**: $requestedBy`n" +
-                     "**Branch**: $branchName"
-            }
-
-            Invoke-WebRequest -Uri $webhookUrl -Method Post -Body ($body | ConvertTo-Json -Depth 10) -ContentType "application/json" -UseBasicParsing
-            Write-Host "✅ Sent deployment start notification."
-          }
-          catch {
-            Write-Warning "⚠️ Failed to send start notification: $_"
-          }
+      env:
+        WEBHOOK_URL: $(Team_WebHook_Url)
 
     - task: SSH@0
       displayName: "Deploy to 172.20.1.24"
@@ -209,41 +212,43 @@ stages:
 
           echo "' Done."
 
-    - task: PowerShell@2
+    - script: |
+        set -euo pipefail
+
+        webhook_url="${WEBHOOK_URL:-}"
+
+        if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$(*) ]]; then
+          echo "Webhook URL is not configured. Skipping completion notification."
+          exit 0
+        fi
+
+        deploy_time="$(date '+%Y-%m-%d %H:%M:%S')"
+        branch_name="$(Build.SourceBranchName)"
+        changeset="$(Build.SourceVersion)"
+        requested_by="$(Build.RequestedFor)"
+        pipeline_name="$(Build.DefinitionName)"
+        stage_name="$(System.StageDisplayName)"
+
+        payload=$(cat <<'JSON'
+{
+  "text": "**PIPELINE_NAME deployment completed**\n\n**Stage**: STAGE_NAME\n**Branch**: BRANCH_NAME\n**Changeset**: CHANGESET\n**Requested by**: REQUESTED_BY\n**Finished at**: DEPLOY_TIME"
+}
+JSON
+)
+
+        payload="${payload/PIPELINE_NAME/$pipeline_name}"
+        payload="${payload/STAGE_NAME/$stage_name}"
+        payload="${payload/BRANCH_NAME/$branch_name}"
+        payload="${payload/CHANGESET/$changeset}"
+        payload="${payload/REQUESTED_BY/$requested_by}"
+        payload="${payload/DEPLOY_TIME/$deploy_time}"
+
+        if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
+          echo "✅ Sent deployment completion notification."
+        else
+          echo "⚠️ Failed to send completion notification." >&2
+        fi
       displayName: '✅ Notify: Deployment completed'
       condition: succeeded()
-      inputs:
-        targetType: inline
-        script: |
-          $webhookUrl = "$(Team_WebHook_Url)"
-
-          if (-not $webhookUrl) {
-            Write-Warning "Webhook URL is not configured. Skipping completion notification."
-            exit 0
-          }
-
-          try {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-            $deployTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-            $branchName = "$(Build.SourceBranchName)"
-            $changeset = "$(Build.SourceVersion)"
-            $requestedBy = "$(Build.RequestedFor)"
-            $pipelineName = "$(Build.DefinitionName)"
-            $stageName = "$(System.StageDisplayName)"
-
-            $body = @{
-              text = "**$pipelineName deployment completed**`n`n" +
-                     "**Stage**: $stageName`n" +
-                     "**Branch**: $branchName`n" +
-                     "**Changeset**: $changeset`n" +
-                     "**Requested by**: $requestedBy`n" +
-                     "**Finished at**: $deployTime"
-            }
-
-            Invoke-WebRequest -Uri $webhookUrl -Method Post -Body ($body | ConvertTo-Json -Depth 10) -ContentType "application/json" -UseBasicParsing
-            Write-Host "✅ Sent deployment completion notification."
-          }
-          catch {
-            Write-Warning "⚠️ Failed to send completion notification: $_"
-          }
+      env:
+        WEBHOOK_URL: $(Team_WebHook_Url)
