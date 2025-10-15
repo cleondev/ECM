@@ -6,7 +6,7 @@ trigger:
       - feature/*
 
 variables:
-- group: ECM-SECRETS
+  - group: ECM-SECRETS
 
 stages:
 # ==================== Build & Push ====================
