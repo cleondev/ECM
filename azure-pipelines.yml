@@ -148,52 +148,148 @@ stages:
 
           choose_secret() {
             local var_name="$1"
-            local fallback="${2:-}"
+            shift
+
             local current="${!var_name:-}"
-
-            if [[ -z "$current" || "$current" == \$\(*\) ]]; then
-              current="$fallback"
+            if [[ -n "$current" && "$current" != \$\(*\) ]]; then
+              printf -v "$var_name" '%s' "$current"
+              return
             fi
 
-            if [[ "$current" == \$\(*\) ]]; then
-              current=""
-            fi
+            local candidate
+            for candidate in "$@"; do
+              if [[ -z "$candidate" || "$candidate" == \$\(*\) ]]; then
+                continue
+              fi
 
-            printf -v "$var_name" '%s' "$current"
+              printf -v "$var_name" '%s' "$candidate"
+              return
+            done
+
+            printf -v "$var_name" ''
           }
 
           IMAGE_TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
 
-          DB_CONNSTRING_VALUE="${DB_CONNSTRING:-}"
-          MINIO_ENDPOINT_VALUE="${MINIO_ENDPOINT:-}"
-          MINIO_ACCESS_KEY_VALUE="${MINIO_ACCESS_KEY:-}"
-          MINIO_SECRET_KEY_VALUE="${MINIO_SECRET_KEY:-}"
-          REDPANDA_BROKERS_VALUE="${REDPANDA_BROKERS:-}"
-
-          choose_secret DB_CONNSTRING_VALUE '$(ECM_ConnectionStrings__postgres)'
-          choose_secret MINIO_ENDPOINT_VALUE '$(ECM_FileStorage__ServiceUrl)'
-          choose_secret MINIO_ACCESS_KEY_VALUE '$(ECM_FileStorage__AccessKeyId)'
-          choose_secret MINIO_SECRET_KEY_VALUE '$(ECM_FileStorage__SecretAccessKey)'
-          choose_secret REDPANDA_BROKERS_VALUE '$(ECM_Kafka__BootstrapServers)'
-
           missing=()
-          [[ -z "$DB_CONNSTRING_VALUE" ]] && missing+=("DB_CONNSTRING / ECM_ConnectionStrings__postgres")
-          [[ -z "$MINIO_ENDPOINT_VALUE" ]] && missing+=("MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl")
-          [[ -z "$MINIO_ACCESS_KEY_VALUE" ]] && missing+=("MINIO_ACCESS_KEY / ECM_FileStorage__AccessKeyId")
-          [[ -z "$MINIO_SECRET_KEY_VALUE" ]] && missing+=("MINIO_SECRET_KEY / ECM_FileStorage__SecretAccessKey")
-          [[ -z "$REDPANDA_BROKERS_VALUE" ]] && missing+=("REDPANDA_BROKERS / ECM_Kafka__BootstrapServers")
+          optional_missing=()
+
+          require_env() {
+            local var_name="$1"
+            local description="$2"
+            shift 2
+
+            choose_secret "$var_name" "$@"
+
+            local resolved="${!var_name:-}"
+            if [[ -n "$resolved" ]]; then
+              export "$var_name"="$resolved"
+            else
+              missing+=("$description")
+            fi
+          }
+
+          optional_env() {
+            local var_name="$1"
+            local description="$2"
+            shift 2
+
+            choose_secret "$var_name" "$@"
+
+            local resolved="${!var_name:-}"
+            if [[ -n "$resolved" ]]; then
+              export "$var_name"="$resolved"
+            else
+              optional_missing+=("$description")
+            fi
+          }
+
+          require_env DB_CONNSTRING \
+            "DB_CONNSTRING / ECM_ConnectionStrings__postgres | ECM_Database__Connections__ops | ECM_Database__Connections__doc | ECM_Database__Connections__iam" \
+            '$(ECM_ConnectionStrings__postgres)' \
+            '$(ECM_Database__Connections__ops)' \
+            '$(ECM_Database__Connections__doc)' \
+            '$(ECM_Database__Connections__iam)'
+
+          require_env MINIO_ENDPOINT \
+            "MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl" \
+            '$(ECM_FileStorage__ServiceUrl)'
+          require_env MINIO_ACCESS_KEY \
+            "MINIO_ACCESS_KEY / ECM_FileStorage__AccessKeyId" \
+            '$(ECM_FileStorage__AccessKeyId)'
+          require_env MINIO_SECRET_KEY \
+            "MINIO_SECRET_KEY / ECM_FileStorage__SecretAccessKey" \
+            '$(ECM_FileStorage__SecretAccessKey)'
+
+          require_env REDPANDA_BROKERS \
+            "REDPANDA_BROKERS / ECM_Kafka__BootstrapServers" \
+            '$(ECM_Kafka__BootstrapServers)'
+          require_env Kafka__BootstrapServers \
+            "Kafka__BootstrapServers / ECM_Kafka__BootstrapServers | REDPANDA_BROKERS" \
+            "${REDPANDA_BROKERS:-}" \
+            '$(ECM_Kafka__BootstrapServers)'
+
+          require_env Services__Ecm \
+            "Services__Ecm" \
+            '$(Services__Ecm)'
+
+          require_env AzureAd__ClientSecret \
+            "AzureAd__ClientSecret / ECM_AzureAd__ClientSecret" \
+            '$(AzureAd__ClientSecret)' \
+            '$(ECM_AzureAd__ClientSecret)'
+          optional_env ECM_AzureAd__ClientSecret \
+            "ECM_AzureAd__ClientSecret / AzureAd__ClientSecret" \
+            '$(ECM_AzureAd__ClientSecret)' \
+            "${AzureAd__ClientSecret:-}"
+
+          for schema in iam doc wf search ocr ops; do
+            var="ECM_Database__Connections__${schema}"
+            secret_ref="\$(ECM_Database__Connections__${schema})"
+            require_env "$var" "$var" "$secret_ref"
+          done
+
+          require_env ECM_FileStorage__BucketName "ECM_FileStorage__BucketName" '$(ECM_FileStorage__BucketName)'
+          require_env ECM_FileStorage__ServiceUrl "ECM_FileStorage__ServiceUrl" '$(ECM_FileStorage__ServiceUrl)'
+          require_env ECM_FileStorage__AccessKeyId "ECM_FileStorage__AccessKeyId" '$(ECM_FileStorage__AccessKeyId)'
+          require_env ECM_FileStorage__SecretAccessKey "ECM_FileStorage__SecretAccessKey" '$(ECM_FileStorage__SecretAccessKey)'
+
+          if [[ -n "${ECM_FileStorage__BucketName:-}" ]]; then
+            export FileStorage__BucketName="${ECM_FileStorage__BucketName}"
+          fi
+          if [[ -n "${ECM_FileStorage__ServiceUrl:-}" ]]; then
+            export FileStorage__ServiceUrl="${ECM_FileStorage__ServiceUrl}"
+          fi
+          if [[ -n "${ECM_FileStorage__AccessKeyId:-}" ]]; then
+            export FileStorage__AccessKeyId="${ECM_FileStorage__AccessKeyId}"
+          fi
+          if [[ -n "${ECM_FileStorage__SecretAccessKey:-}" ]]; then
+            export FileStorage__SecretAccessKey="${ECM_FileStorage__SecretAccessKey}"
+          fi
+
+          require_env ECM_Workflow__Camunda__BaseUrl "ECM_Workflow__Camunda__BaseUrl" '$(ECM_Workflow__Camunda__BaseUrl)'
+          optional_env ECM_Workflow__Camunda__TenantId "ECM_Workflow__Camunda__TenantId" '$(ECM_Workflow__Camunda__TenantId)'
+
+          if [[ -n "${ECM_Workflow__Camunda__BaseUrl:-}" ]]; then
+            export Workflow__Camunda__BaseUrl="${ECM_Workflow__Camunda__BaseUrl}"
+          fi
+          if [[ -n "${ECM_Workflow__Camunda__TenantId:-}" ]]; then
+            export Workflow__Camunda__TenantId="${ECM_Workflow__Camunda__TenantId}"
+          fi
+
+          if [[ -n "${AzureAd__ClientSecret:-}" ]]; then
+            export ECM_AzureAd__ClientSecret="${ECM_AzureAd__ClientSecret:-${AzureAd__ClientSecret}}"
+          fi
 
           if [[ ${#missing[@]} -gt 0 ]]; then
             echo "[deploy] Thiếu biến môi trường bắt buộc: ${missing[*]}" >&2
             exit 1
           fi
 
+          if [[ ${#optional_missing[@]} -gt 0 ]]; then
+            echo "[deploy] Thiếu biến môi trường tùy chọn: ${optional_missing[*]}" >&2
+          fi
+
           export IMAGE_TAG
-          export DB_CONNSTRING="$DB_CONNSTRING_VALUE"
-          export MINIO_ENDPOINT="$MINIO_ENDPOINT_VALUE"
-          export MINIO_ACCESS_KEY="$MINIO_ACCESS_KEY_VALUE"
-          export MINIO_SECRET_KEY="$MINIO_SECRET_KEY_VALUE"
-          export REDPANDA_BROKERS="$REDPANDA_BROKERS_VALUE"
 
           echo "= Login Harbor"
           echo "$(HARBOR_PASS)" | docker login harbor.local:8443 -u "$(HARBOR_USER)" --password-stdin
