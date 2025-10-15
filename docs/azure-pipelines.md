@@ -19,22 +19,40 @@ Pipeline bao gồm hai stage chạy nối tiếp trên self-hosted agent pool `E
 
 ## Biến và secret
 
-Pipeline sử dụng variable group `ECM-SECRETS` để tập trung các thông tin nhạy cảm. Script triển khai có hàm `choose_secret` nhằm tự động ánh xạ các khóa secret mới (theo dạng cấu hình phân cấp của ECM) sang các biến môi trường "phẳng" mà stack Docker hiện tại đang dùng.
+Pipeline sử dụng variable group `ECM-SECRETS` để tập trung các thông tin nhạy cảm. Trong bước SSH deploy, script khai báo ba helper `choose_secret`, `require_env` và `optional_env` để:
 
-| Biến môi trường dùng trong compose | Secret ưu tiên | Secret fallback (theo chuẩn ECM) |
-|-----------------------------------|----------------|-----------------------------------|
-| `DB_CONNSTRING`                   | `DB_CONNSTRING`| `ECM_ConnectionStrings__postgres` |
-| `MINIO_ENDPOINT`                  | `MINIO_ENDPOINT` | `ECM_FileStorage__ServiceUrl`     |
-| `MINIO_ACCESS_KEY`                | `MINIO_ACCESS_KEY` | `ECM_FileStorage__AccessKeyId`  |
-| `MINIO_SECRET_KEY`                | `MINIO_SECRET_KEY` | `ECM_FileStorage__SecretAccessKey` |
-| `REDPANDA_BROKERS`                | `REDPANDA_BROKERS` | `ECM_Kafka__BootstrapServers`  |
+1. Đọc giá trị đã có sẵn trên máy chủ (nếu có) và giữ nguyên.
+2. Bổ sung giá trị từ Azure Variable Group/Key Vault theo chuẩn `ECM_*__*`.
+3. Báo lỗi ngay khi thiếu biến bắt buộc và chỉ cảnh báo với biến tùy chọn.
 
-Bạn có thể tiếp tục giữ các biến phẳng cũ trong variable group. Nếu chuyển toàn bộ sang chuẩn mới (`ECM_*__*`), pipeline vẫn hoạt động vì script sẽ lấy giá trị fallback tương ứng. Nếu cả hai tên cùng để trống, job Deploy sẽ dừng và báo thiếu biến.
+Các biến môi trường được export thành hai nhóm:
 
-Ngoài các biến trên, hãy đảm bảo variable group còn chứa:
+**1. Nhóm tương thích với stack Docker Compose cũ**
 
-- `HARBOR_USER`, `HARBOR_PASS` – tài khoản push/pull image.
-- Các thông tin khác mà `docker compose` yêu cầu (ví dụ `MINIO_BUCKET`, `ECM_SERVICE_URL`, ... nếu bạn sử dụng trong file compose). Những biến này có thể tiếp tục export ngay trong script hoặc thêm trực tiếp vào variable group.
+| Biến môi trường | Secret/nguồn ưu tiên | Ghi chú |
+|-----------------|----------------------|--------|
+| `DB_CONNSTRING` | `ECM_ConnectionStrings__postgres` → `ECM_Database__Connections__ops` → `ECM_Database__Connections__doc` → `ECM_Database__Connections__iam` | Chuỗi kết nối chung cho các service legacy (nếu compose vẫn dùng biến phẳng này). |
+| `MINIO_ENDPOINT` | `ECM_FileStorage__ServiceUrl` | Endpoint MinIO/S3 dạng URL. |
+| `MINIO_ACCESS_KEY` | `ECM_FileStorage__AccessKeyId` | Access key MinIO/S3. |
+| `MINIO_SECRET_KEY` | `ECM_FileStorage__SecretAccessKey` | Secret key MinIO/S3. |
+| `REDPANDA_BROKERS` | `ECM_Kafka__BootstrapServers` | Danh sách broker cho các dịch vụ nền tảng. |
+| `Kafka__BootstrapServers` | `ECM_Kafka__BootstrapServers` hoặc giá trị của `REDPANDA_BROKERS` | Worker .NET sử dụng chuẩn `Kafka__*`. |
+| `Services__Ecm` | `Services__Ecm` | URL reverse proxy tới `ECM.Host`. |
+| `AzureAd__ClientSecret` | `AzureAd__ClientSecret` → `ECM_AzureAd__ClientSecret` | Bắt buộc cho App Gateway thực hiện OpenID Connect. |
+
+**2. Nhóm cấu hình chuẩn ECM (được .NET đọc trực tiếp)**
+
+| Biến môi trường | Bắt buộc | Ghi chú |
+|-----------------|----------|--------|
+| `ECM_Database__Connections__iam`, `doc`, `wf`, `search`, `ocr`, `ops` | ✔️ | Chuỗi kết nối riêng cho từng schema/module. |
+| `ECM_FileStorage__BucketName`, `ECM_FileStorage__ServiceUrl`, `ECM_FileStorage__AccessKeyId`, `ECM_FileStorage__SecretAccessKey` | ✔️ | Thông tin lưu trữ file cho module File. Các giá trị tương ứng cũng được export dưới dạng `FileStorage__*` để giữ tương thích. |
+| `ECM_Workflow__Camunda__BaseUrl` | ✔️ | Endpoint Camunda REST cho module Workflow. |
+| `ECM_Workflow__Camunda__TenantId` | ⚠️ (tùy chọn) | Nếu bỏ trống, repository sẽ làm việc ở chế độ multi-tenant mặc định của Camunda. Pipeline sẽ log cảnh báo nhưng không dừng job. |
+| `ECM_AzureAd__ClientSecret` | ⚠️ (tùy chọn) | Chỉ cần khi ECM Host phải gọi API bảo vệ bằng client credential. Nếu không cung cấp, script sẽ copy giá trị từ `AzureAd__ClientSecret` (nếu có). |
+
+Nếu một biến bắt buộc không được resolve, job Deploy sẽ dừng với thông báo `[deploy] Thiếu biến môi trường bắt buộc`. Các biến tùy chọn thiếu sẽ được liệt kê dưới dạng cảnh báo để bạn theo dõi.
+
+Ngoài các biến trên, hãy đảm bảo variable group còn chứa `HARBOR_USER` và `HARBOR_PASS` (phục vụ bước build/push image). Những thông tin khác mà `docker compose` sử dụng riêng có thể tiếp tục export trong script hoặc quản lý trực tiếp trong Azure Variable Group.
 
 ## Tùy biến pipeline
 
