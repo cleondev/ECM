@@ -21,12 +21,12 @@ Tài liệu này tổng hợp các biến môi trường/secrets đã sử dụn
 
 | Secret/Azure Key Vault | Khóa cấu hình | Ghi chú |
 |------------------------|---------------|--------|
-| `ECM_Database__Connections__iam` | `ConnectionStrings:iam` | Chuỗi kết nối schema IAM. Secret vẫn giữ tên cũ và được pipeline ánh xạ sang `ConnectionStrings:*`. |
-| `ECM_Database__Connections__doc` | `ConnectionStrings:doc` | Chuỗi kết nối schema Document. |
-| `ECM_Database__Connections__wf` | `ConnectionStrings:wf` | Chuỗi kết nối schema Workflow. |
-| `ECM_Database__Connections__search` | `ConnectionStrings:search` | Chuỗi kết nối schema Search. |
-| `ECM_Database__Connections__ocr` | `ConnectionStrings:ocr` | Chuỗi kết nối schema OCR. |
-| `ECM_Database__Connections__ops` | `ConnectionStrings:ops` | Chuỗi kết nối schema Operations (dùng chung cho outbox). |
+| `ECM_Database__Connections__iam` | `ConnectionStrings:AccessControl` | Chuỗi kết nối module AccessControl. Secret vẫn giữ tên cũ (schema IAM) và được pipeline copy sang tên module chuẩn. |
+| `ECM_Database__Connections__doc` | `ConnectionStrings:Document`, `ConnectionStrings:File` | Chuỗi kết nối chung cho module Document và File. |
+| `ECM_Database__Connections__wf` | `ConnectionStrings:Workflow` | Chuỗi kết nối module Workflow. |
+| `ECM_Database__Connections__search` | `ConnectionStrings:Search` | Chuỗi kết nối module Search. |
+| `ECM_Database__Connections__ocr` | `ConnectionStrings:Ocr` | Chuỗi kết nối module OCR. |
+| `ECM_Database__Connections__ops` | `ConnectionStrings:Operations` | Chuỗi kết nối module Operations (dùng chung cho outbox). |
 | `ECM_FileStorage__BucketName` | `FileStorage:BucketName` | Tên bucket MinIO/S3. |
 | `ECM_FileStorage__ServiceUrl` | `FileStorage:ServiceUrl` | Endpoint MinIO/S3 (ví dụ `http://localhost:9000`). |
 | `ECM_FileStorage__AccessKeyId` | `FileStorage:AccessKeyId` | Access key MinIO/S3. |
@@ -37,7 +37,7 @@ Tài liệu này tổng hợp các biến môi trường/secrets đã sử dụn
 
 ### Workers & service phụ trợ
 
-Các worker trong `src/Workers/*` dùng chung cấu hình với `ECM.Host`. Chỉ cần set các biến `ConnectionStrings__ops` (hoặc secret tương ứng `ECM_Database__Connections__ops`), `Kafka__*` (nếu có), và `ECM_FileStorage__*` tùy vào chức năng worker. Các biến có tiền tố `ECM_` đều được tự động nạp nhờ `ServiceDefaults`.
+Các worker trong `src/Workers/*` dùng chung cấu hình với `ECM.Host`. Chỉ cần set các biến `ConnectionStrings__Operations` (hoặc secret tương ứng `ECM_Database__Connections__ops`), `Kafka__*` (nếu có), và `ECM_FileStorage__*` tùy vào chức năng worker. Các biến có tiền tố `ECM_` đều được tự động nạp nhờ `ServiceDefaults`.
 
 ### CI/CD & container registry
 
@@ -66,12 +66,13 @@ Các worker trong `src/Workers/*` dùng chung cấu hình với `ECM.Host`. Ch�
    ```bash
    cat <<'ENV' > .env.development
    # Kết nối database (khớp với deploy/compose.yml)
-   ConnectionStrings__iam=Host=localhost;Port=5432;Database=ecm_iam;Username=ecm;Password=ecm
-   ConnectionStrings__doc=Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm
-   ConnectionStrings__wf=Host=localhost;Port=5432;Database=ecm_wf;Username=ecm;Password=ecm
-   ConnectionStrings__search=Host=localhost;Port=5432;Database=ecm_search;Username=ecm;Password=ecm
-   ConnectionStrings__ocr=Host=localhost;Port=5432;Database=ecm_ocr;Username=ecm;Password=ecm
-   ConnectionStrings__ops=Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm
+   ConnectionStrings__AccessControl=Host=localhost;Port=5432;Database=ecm_iam;Username=ecm;Password=ecm
+   ConnectionStrings__Document=Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm
+   ConnectionStrings__File=Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm
+   ConnectionStrings__Workflow=Host=localhost;Port=5432;Database=ecm_wf;Username=ecm;Password=ecm
+   ConnectionStrings__Search=Host=localhost;Port=5432;Database=ecm_search;Username=ecm;Password=ecm
+   ConnectionStrings__Ocr=Host=localhost;Port=5432;Database=ecm_ocr;Username=ecm;Password=ecm
+   ConnectionStrings__Operations=Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm
 
    # MinIO/S3
    ECM_FileStorage__BucketName=ecm-files

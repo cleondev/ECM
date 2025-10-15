@@ -263,15 +263,28 @@ stages:
             '$(ECM_AzureAd__ClientSecret)' \
             "${AzureAd__ClientSecret:-}"
 
-          for schema in iam doc wf search ocr ops; do
+          module_mappings=(
+            AccessControl:iam
+            Document:doc
+            File:doc
+            Workflow:wf
+            Search:search
+            Ocr:ocr
+            Operations:ops
+          )
+
+          for mapping in "${module_mappings[@]}"; do
+            module="${mapping%%:*}"
+            schema="${mapping##*:}"
+
             var="ECM_Database__Connections__${schema}"
             secret_ref="\$(ECM_Database__Connections__${schema})"
             require_env "$var" "$var" "$secret_ref"
 
             resolved="${!var:-}"
             if [[ -n "$resolved" ]]; then
-              printf -v "ConnectionStrings__${schema}" '%s' "$resolved"
-              export "ConnectionStrings__${schema}"
+              printf -v "ConnectionStrings__${module}" '%s' "$resolved"
+              export "ConnectionStrings__${module}"
             fi
           done
 
@@ -311,9 +324,12 @@ stages:
           echo "---- Diagnostics: resolved configuration (masked) ----"
           # Core connections
           
-          for schema in iam doc wf search ocr ops; do
+          for mapping in "${module_mappings[@]}"; do
+            module="${mapping%%:*}"
+            schema="${mapping##*:}"
+
             log_var "ECM_Database__Connections__${schema}"
-            log_var "ConnectionStrings__${schema}"
+            log_var "ConnectionStrings__${module}"
           done
 
           # Storage
