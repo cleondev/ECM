@@ -5,6 +5,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{6F7B4D52-3B15-4A79-9BB3-E8B54915A43C}"
 	ProjectSection(SolutionItems) = preProject
 		ARCHITECT.md = ARCHITECT.md
+		azure-pipelines.yml = azure-pipelines.yml
 		NAMING.md = NAMING.md
 		README.md = README.md
 		RULE.md = RULE.md
