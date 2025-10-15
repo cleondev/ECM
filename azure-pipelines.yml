@@ -6,8 +6,7 @@ trigger:
       - feature/*
 
 variables:
-- group: ECM-SECRETS  # Chứa các secret triển khai (DB, MinIO, Redpanda, Harbor...)
-- group: ECM_SECRETS  # Bổ sung webhook Teams và các secret bổ sung
+- group: ECM-SECRETS
 
 stages:
 # ==================== Build & Push ====================
