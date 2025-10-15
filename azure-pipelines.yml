@@ -1,0 +1,250 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - feature/*
+
+variables:
+- group: ECM-SECRETS  # Chứa các secret triển khai (DB, MinIO, Redpanda, Harbor...)
+- group: ECM_SECRETS  # Bổ sung webhook Teams và các secret bổ sung
+
+stages:
+# ==================== Build & Push ====================
+- stage: Build
+  displayName: Build & Push Docker Images
+  jobs:
+  - job: build_and_push
+    pool:
+      name: 'ECM_CI'
+    steps:
+    - task: PowerShell@2
+      displayName: '📢 Notify: Build stage is starting'
+      condition: always()
+      inputs:
+        targetType: inline
+        script: |
+          $webhookUrl = "$(Team_WebHook_Url)"
+
+          if (-not $webhookUrl) {
+            Write-Warning "Webhook URL is not configured. Skipping build start notification."
+            exit 0
+          }
+
+          try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+            $buildTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $requestedBy = "$(Build.RequestedFor)"
+            $branchName = "$(Build.SourceBranchName)"
+            $pipelineName = "$(Build.DefinitionName)"
+            $stageName = "$(System.StageDisplayName)"
+
+            $body = @{
+              text = "**Deployment Notice**`n`n" +
+                     "Pipeline **$pipelineName** is starting stage **$stageName**.`n`n" +
+                     "**Time**: $buildTime`n" +
+                     "**Triggered by**: $requestedBy`n" +
+                     "**Branch**: $branchName`n`n" +
+                     "Please prepare for the upcoming deployment."
+            }
+
+            Invoke-WebRequest -Uri $webhookUrl -Method Post -Body ($body | ConvertTo-Json -Depth 10) -ContentType "application/json" -UseBasicParsing
+            Write-Host "✅ Sent build start notification."
+          }
+          catch {
+            Write-Warning "⚠️ Failed to send build start notification: $_"
+          }
+
+    - checkout: self
+      fetchDepth: 0
+
+    - task: UseDotNet@2
+      inputs:
+        version: '9.x'
+
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '20.x'
+
+    - script: |
+        set -euo pipefail
+
+        echo "= Login Harbor..."
+        echo "$(HARBOR_PASS)" | docker login harbor.local:8443 -u "$(HARBOR_USER)" --password-stdin
+
+        TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
+        REGISTRY="harbor.local:8443/ecm"
+
+        echo "= Build AppGateway.Api + UI"
+        docker build -f src/AppGateway/AppGateway.Api/Dockerfile -t "$REGISTRY/appgateway-api:$TAG" .
+
+        echo "= Build ECM.Host"
+        docker build -f src/ECM/ECM.Host/Dockerfile -t "$REGISTRY/ecm-host:$TAG" .
+
+        echo "= Build Workers"
+        docker build -f src/Workers/Notify.Worker/Dockerfile -t "$REGISTRY/notify-worker:$TAG" .
+        docker build -f src/Workers/OutboxDispatcher.Worker/Dockerfile -t "$REGISTRY/outbox-worker:$TAG" .
+        docker build -f src/Workers/SearchIndexer.Worker/Dockerfile -t "$REGISTRY/searchindexer-worker:$TAG" .
+
+        echo "= Push all images"
+        docker push "$REGISTRY/appgateway-api:$TAG"
+        docker push "$REGISTRY/ecm-host:$TAG"
+        docker push "$REGISTRY/notify-worker:$TAG"
+        docker push "$REGISTRY/outbox-worker:$TAG"
+        docker push "$REGISTRY/searchindexer-worker:$TAG"
+      displayName: 'Build & Push Docker Images'
+
+# ==================== Deploy ====================
+- stage: Deploy
+  displayName: Deploy to App Server
+  dependsOn: Build
+  jobs:
+  - job: deploy
+    pool:
+      name: 'ECM_CI'
+    steps:
+    - task: PowerShell@2
+      displayName: '📢 Notify: Deployment is about to start'
+      condition: always()
+      inputs:
+        targetType: inline
+        script: |
+          $webhookUrl = "$(Team_WebHook_Url)"
+
+          if (-not $webhookUrl) {
+            Write-Warning "Webhook URL is not configured. Skipping start notification."
+            exit 0
+          }
+
+          try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+            $deployTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $requestedBy = "$(Build.RequestedFor)"
+            $branchName = "$(Build.SourceBranchName)"
+            $pipelineName = "$(Build.DefinitionName)"
+            $stageName = "$(System.StageDisplayName)"
+
+            $body = @{
+              text = "**Deployment Notice**`n`n" +
+                     "Pipeline **$pipelineName** is starting stage **$stageName**.`n`n" +
+                     "**Time**: $deployTime`n" +
+                     "**Triggered by**: $requestedBy`n" +
+                     "**Branch**: $branchName"
+            }
+
+            Invoke-WebRequest -Uri $webhookUrl -Method Post -Body ($body | ConvertTo-Json -Depth 10) -ContentType "application/json" -UseBasicParsing
+            Write-Host "✅ Sent deployment start notification."
+          }
+          catch {
+            Write-Warning "⚠️ Failed to send start notification: $_"
+          }
+
+    - task: SSH@0
+      displayName: "Deploy to 172.20.1.24"
+      inputs:
+        sshEndpoint: "ecm-appserver-ssh"
+        runOptions: "inline"
+        inline: |
+          set -euo pipefail
+          cd /data/ecm
+
+          choose_secret() {
+            local var_name="$1"
+            local fallback="${2:-}"
+            local current="${!var_name:-}"
+
+            if [[ -z "$current" || "$current" == \$(* ]]; then
+              current="$fallback"
+            fi
+
+            if [[ "$current" == \$(* ]]; then
+              current=""
+            fi
+
+            printf -v "$var_name" '%s' "$current"
+          }
+
+          IMAGE_TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
+
+          DB_CONNSTRING_VALUE="${DB_CONNSTRING:-}"
+          MINIO_ENDPOINT_VALUE="${MINIO_ENDPOINT:-}"
+          MINIO_ACCESS_KEY_VALUE="${MINIO_ACCESS_KEY:-}"
+          MINIO_SECRET_KEY_VALUE="${MINIO_SECRET_KEY:-}"
+          REDPANDA_BROKERS_VALUE="${REDPANDA_BROKERS:-}"
+
+          choose_secret DB_CONNSTRING_VALUE "$(ECM_ConnectionStrings__postgres)"
+          choose_secret MINIO_ENDPOINT_VALUE "$(ECM_FileStorage__ServiceUrl)"
+          choose_secret MINIO_ACCESS_KEY_VALUE "$(ECM_FileStorage__AccessKeyId)"
+          choose_secret MINIO_SECRET_KEY_VALUE "$(ECM_FileStorage__SecretAccessKey)"
+          choose_secret REDPANDA_BROKERS_VALUE "$(ECM_Kafka__BootstrapServers)"
+
+          missing=()
+          [[ -z "$DB_CONNSTRING_VALUE" ]] && missing+=("DB_CONNSTRING / ECM_ConnectionStrings__postgres")
+          [[ -z "$MINIO_ENDPOINT_VALUE" ]] && missing+=("MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl")
+          [[ -z "$MINIO_ACCESS_KEY_VALUE" ]] && missing+=("MINIO_ACCESS_KEY / ECM_FileStorage__AccessKeyId")
+          [[ -z "$MINIO_SECRET_KEY_VALUE" ]] && missing+=("MINIO_SECRET_KEY / ECM_FileStorage__SecretAccessKey")
+          [[ -z "$REDPANDA_BROKERS_VALUE" ]] && missing+=("REDPANDA_BROKERS / ECM_Kafka__BootstrapServers")
+
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "[deploy] Thiếu biến môi trường bắt buộc: ${missing[*]}" >&2
+            exit 1
+          fi
+
+          export IMAGE_TAG
+          export DB_CONNSTRING="$DB_CONNSTRING_VALUE"
+          export MINIO_ENDPOINT="$MINIO_ENDPOINT_VALUE"
+          export MINIO_ACCESS_KEY="$MINIO_ACCESS_KEY_VALUE"
+          export MINIO_SECRET_KEY="$MINIO_SECRET_KEY_VALUE"
+          export REDPANDA_BROKERS="$REDPANDA_BROKERS_VALUE"
+
+          echo "= Login Harbor"
+          echo "$(HARBOR_PASS)" | docker login harbor.local:8443 -u "$(HARBOR_USER)" --password-stdin
+
+          echo "+ Pulling images..."
+          docker compose pull
+
+          echo "= Updating services..."
+          docker compose up -d --remove-orphans
+
+          echo "' Done."
+
+    - task: PowerShell@2
+      displayName: '✅ Notify: Deployment completed'
+      condition: succeeded()
+      inputs:
+        targetType: inline
+        script: |
+          $webhookUrl = "$(Team_WebHook_Url)"
+
+          if (-not $webhookUrl) {
+            Write-Warning "Webhook URL is not configured. Skipping completion notification."
+            exit 0
+          }
+
+          try {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+            $deployTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            $branchName = "$(Build.SourceBranchName)"
+            $changeset = "$(Build.SourceVersion)"
+            $requestedBy = "$(Build.RequestedFor)"
+            $pipelineName = "$(Build.DefinitionName)"
+            $stageName = "$(System.StageDisplayName)"
+
+            $body = @{
+              text = "**$pipelineName deployment completed**`n`n" +
+                     "**Stage**: $stageName`n" +
+                     "**Branch**: $branchName`n" +
+                     "**Changeset**: $changeset`n" +
+                     "**Requested by**: $requestedBy`n" +
+                     "**Finished at**: $deployTime"
+            }
+
+            Invoke-WebRequest -Uri $webhookUrl -Method Post -Body ($body | ConvertTo-Json -Depth 10) -ContentType "application/json" -UseBasicParsing
+            Write-Host "✅ Sent deployment completion notification."
+          }
+          catch {
+            Write-Warning "⚠️ Failed to send completion notification: $_"
+          }
