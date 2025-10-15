@@ -170,11 +170,11 @@ stages:
           MINIO_SECRET_KEY_VALUE="${MINIO_SECRET_KEY:-}"
           REDPANDA_BROKERS_VALUE="${REDPANDA_BROKERS:-}"
 
-          choose_secret DB_CONNSTRING_VALUE "$(ECM_ConnectionStrings__postgres)"
-          choose_secret MINIO_ENDPOINT_VALUE "$(ECM_FileStorage__ServiceUrl)"
-          choose_secret MINIO_ACCESS_KEY_VALUE "$(ECM_FileStorage__AccessKeyId)"
-          choose_secret MINIO_SECRET_KEY_VALUE "$(ECM_FileStorage__SecretAccessKey)"
-          choose_secret REDPANDA_BROKERS_VALUE "$(ECM_Kafka__BootstrapServers)"
+          choose_secret DB_CONNSTRING_VALUE '$(ECM_ConnectionStrings__postgres)'
+          choose_secret MINIO_ENDPOINT_VALUE '$(ECM_FileStorage__ServiceUrl)'
+          choose_secret MINIO_ACCESS_KEY_VALUE '$(ECM_FileStorage__AccessKeyId)'
+          choose_secret MINIO_SECRET_KEY_VALUE '$(ECM_FileStorage__SecretAccessKey)'
+          choose_secret REDPANDA_BROKERS_VALUE '$(ECM_Kafka__BootstrapServers)'
 
           missing=()
           [[ -z "$DB_CONNSTRING_VALUE" ]] && missing+=("DB_CONNSTRING / ECM_ConnectionStrings__postgres")
