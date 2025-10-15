@@ -50,6 +50,7 @@ public static class ServiceDefaultsExtensions
 
     public static IHostApplicationBuilder AddDefaultConfiguration(this IHostApplicationBuilder builder)
     {
+        builder.Configuration.AddEnvironmentVariables();
         builder.Configuration.AddEnvironmentVariables(prefix: "ECM_");
         return builder;
     }

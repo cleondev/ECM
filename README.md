@@ -312,3 +312,4 @@ dotnet test ECM.sln --filter FullyQualifiedName~Document
 
 - [ARCHITECT.md](ARCHITECT.md) – mô tả kiến trúc tổng thể và các nguyên tắc thiết kế.
 - [docs/README.md](docs/README.md) – điểm bắt đầu để khám phá tài liệu chi tiết hơn.
+- [docs/environment-configuration.md](docs/environment-configuration.md) – hướng dẫn ánh xạ biến môi trường, Azure secrets và thiết lập DEV local.
