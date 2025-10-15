@@ -75,14 +75,19 @@ Tùy bối cảnh mà lựa chọn chạy hạ tầng nền tảng trực tiếp
    - Có thể cấu hình tại `src/ECM/ECM.Host/appsettings.json` hoặc thông qua biến môi trường.
    - Các biến cấu hình quan trọng:
 
-     ```bash
-     export ConnectionStrings__Document="Host=<host>;Port=5432;Database=ecm;Username=<db-user>;Password=<db-pass>"
-     export ConnectionStrings__postgres="Host=<host>;Port=5432;Database=ecm;Username=<db-user>;Password=<db-pass>"
-     export FileStorage__ServiceUrl="http://<minio-host>:9000"
-     export FileStorage__AccessKeyId=<minio-access-key>
-     export FileStorage__SecretAccessKey=<minio-secret>
-     export Kafka__BootstrapServers=<redpanda-host>:9092
-     ```
+    ```bash
+    export ConnectionStrings__AccessControl="Host=<host>;Port=5432;Database=ecm_iam;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Document="Host=<host>;Port=5432;Database=ecm_doc;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__File="Host=<host>;Port=5432;Database=ecm_doc;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Workflow="Host=<host>;Port=5432;Database=ecm_wf;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Search="Host=<host>;Port=5432;Database=ecm_search;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Ocr="Host=<host>;Port=5432;Database=ecm_ocr;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Operations="Host=<host>;Port=5432;Database=ecm_ops;Username=<db-user>;Password=<db-pass>"
+    export FileStorage__ServiceUrl="http://<minio-host>:9000"
+    export FileStorage__AccessKeyId=<minio-access-key>
+    export FileStorage__SecretAccessKey=<minio-secret>
+    export Kafka__BootstrapServers=<redpanda-host>:9092
+    ```
 
    - Với nhiều môi trường, nên sử dụng `dotnet user-secrets` hoặc trình quản lý secrets tương ứng thay vì commit trực tiếp.
 
@@ -135,7 +140,7 @@ Các script khởi tạo (schema DB mẫu, bucket/object, topic) nằm trong `de
   .\deploy\scripts\init-all.ps1
   ```
 
-Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__Document`, `ConnectionStrings__postgres`, `ConnectionStrings__Outbox`, `ConnectionStrings__Ops`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
+Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__AccessControl`, `ConnectionStrings__Document`, `ConnectionStrings__File`, `ConnectionStrings__Workflow`, `ConnectionStrings__Search`, `ConnectionStrings__Ocr`, `ConnectionStrings__Operations`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_NAME_PREFIX`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
 
 ## Khởi tạo cơ sở dữ liệu (EF Core migrations)
 
@@ -151,15 +156,13 @@ Các module sử dụng Entity Framework Core để quản lý schema. Bộ kh�
 2. **Đảm bảo kết nối cơ sở dữ liệu** hoạt động (theo một trong hai cách ở trên) và cấu hình biến môi trường `ConnectionStrings__Document`. Ví dụ với môi trường local chạy docker compose:
 
    ```bash
-   export ConnectionStrings__Document="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-   export ConnectionStrings__postgres="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   export ConnectionStrings__Document="Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm"
    ```
 
    Trên PowerShell (Windows):
 
    ```powershell
-   $Env:ConnectionStrings__Document = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-   $Env:ConnectionStrings__postgres = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   $Env:ConnectionStrings__Document = "Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm"
    ```
 
    > **Mẹo:** với môi trường server, thay `localhost` bằng địa chỉ thực tế và thông tin user/password tương ứng.
@@ -232,21 +235,17 @@ Các project sẽ được khởi chạy kèm cấu hình connection string từ
 Các background worker không đọc cấu hình từ `appsettings` chung của monolith mà mong đợi biến môi trường tương ứng khi chạy độc
 lập (hoặc thông qua Aspire AppHost). Một số thiết lập quan trọng:
 
-- **OutboxDispatcher** cần kết nối PostgreSQL để đọc bảng `ops.outbox`. Worker lần lượt tìm các connection string theo thứ tự
-  `ConnectionStrings__Outbox` → `ConnectionStrings__Ops` → `ConnectionStrings__postgres`. Vì vậy, hãy đảm bảo **ít nhất một** biến
-  sau được gán:
+- **OutboxDispatcher** cần kết nối PostgreSQL để đọc bảng `ops.outbox`. Worker sử dụng `ConnectionStrings__Operations`, hãy đảm
+  bảo biến này trỏ tới đúng database/schema:
 
   ```bash
-  export ConnectionStrings__Outbox="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-  # hoặc dùng key Ops/postgres tuỳ môi trường
-  export ConnectionStrings__Ops="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-  export ConnectionStrings__postgres="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  export ConnectionStrings__Operations="Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
   ```
 
   > PowerShell:
   >
   > ```powershell
-  > $Env:ConnectionStrings__Outbox = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  > $Env:ConnectionStrings__Operations = "Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
   > ```
 
 - **SearchIndexer** nghe các sự kiện từ Kafka/Redpanda. Cấu hình được bind vào section `Kafka` của worker, tương ứng với các biến

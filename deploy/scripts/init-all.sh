@@ -10,47 +10,50 @@ set -euo pipefail
 
 DB_HOST=${DB_HOST:-localhost}
 DB_PORT=${DB_PORT:-5432}
-DB_NAME=${DB_NAME:-ecm}
 DB_USER=${DB_USER:-ecm}
 DB_PASSWORD=${DB_PASSWORD:-ecm}
+DB_NAME_PREFIX=${DB_NAME_PREFIX:-ecm}
 
-base_connection_string() {
+database_name_for() {
   local schema=${1:-}
+  local override_var="DB_NAME_${schema^^}"
+  local override=${!override_var:-}
 
-  if [[ -n "${schema}" ]]; then
-    printf 'Host=%s;Port=%s;Database=%s;Username=%s;Password=%s;Search Path=%s' "${DB_HOST}" "${DB_PORT}" "${DB_NAME}" "${DB_USER}" "${DB_PASSWORD}" "${schema}"
+  if [[ -n "${override}" ]]; then
+    printf '%s' "${override}"
   else
-    printf 'Host=%s;Port=%s;Database=%s;Username=%s;Password=%s' "${DB_HOST}" "${DB_PORT}" "${DB_NAME}" "${DB_USER}" "${DB_PASSWORD}"
+    printf '%s_%s' "${DB_NAME_PREFIX}" "${schema}"
   fi
 }
 
-#
-# Các module sử dụng DatabaseConfigurationExtensions để dò tìm connection string theo thứ tự:
-#   1. Tên module (AccessControl, Document, ...)
-#   2. Tên schema tương ứng (iam, doc, ...)
-#   3. Giá trị mặc định "postgres"
-# Vì vậy chúng ta export đầy đủ cả ConnectionStrings và Database:Connections để khớp với appsettings.json.
-#
-declare -A MODULE_SCHEMAS=(
-  [AccessControl]=iam
-  [Document]=doc
-  [File]=doc
-  [Workflow]=wf
-  [Search]=search
-  [Ocr]=ocr
-  [Operations]=ops
+connection_string_for() {
+  local schema=${1:-}
+  local database
+  database=$(database_name_for "${schema}")
+
+  printf 'Host=%s;Port=%s;Database=%s;Username=%s;Password=%s' \
+    "${DB_HOST}" \
+    "${DB_PORT}" \
+    "${database}" \
+    "${DB_USER}" \
+    "${DB_PASSWORD}"
+}
+
+module_mappings=(
+  AccessControl:iam
+  Document:doc
+  File:doc
+  Workflow:wf
+  Search:search
+  Ocr:ocr
+  Operations:ops
 )
 
-for module in "${!MODULE_SCHEMAS[@]}"; do
-  schema=${MODULE_SCHEMAS["${module}"]}
-  export "ConnectionStrings__${module}"="$(base_connection_string "${schema}")"
-  export "Database__Schemas__${module}"="${schema}"
-  export "Database__Connections__${schema}"="$(base_connection_string "${schema}")"
+for mapping in "${module_mappings[@]}"; do
+  module="${mapping%%:*}"
+  schema="${mapping##*:}"
+  export "ConnectionStrings__${module}"="$(connection_string_for "${schema}")"
 done
-
-export ConnectionStrings__postgres="$(base_connection_string)"
-export ConnectionStrings__Outbox="$(base_connection_string)"
-export ConnectionStrings__Ops="$(base_connection_string "ops")"
 
 export FileStorage__BucketName=${FileStorage__BucketName:-ecm-files}
 export FileStorage__ServiceUrl=${FileStorage__ServiceUrl:-http://localhost:9000}
@@ -68,12 +71,11 @@ export Workflow__Camunda__TenantId=${Workflow__Camunda__TenantId:-default}
 
 cat <<SETTINGS
 Đã export các biến môi trường chính cho ECM:
-  - ConnectionStrings__<Module> / Database__Connections__<schema> -> ${DB_HOST}:${DB_PORT}/${DB_NAME}
-  - ConnectionStrings__postgres / Outbox / Ops                    -> ${DB_HOST}:${DB_PORT}/${DB_NAME}
-  - FileStorage__ServiceUrl                                       -> ${FileStorage__ServiceUrl:-http://localhost:9000}
-  - Kafka__BootstrapServers                                       -> ${Kafka__BootstrapServers:-localhost:9092}
-  - Services__Ecm                                                 -> ${Services__Ecm:-http://localhost:8080}
-  - Workflow__Camunda__BaseUrl                                    -> ${Workflow__Camunda__BaseUrl:-http://localhost:8080/engine-rest}
+  - ConnectionStrings__<Module> -> ${DB_HOST}:${DB_PORT}/${DB_NAME_PREFIX}_<schema>
+  - FileStorage__ServiceUrl      -> ${FileStorage__ServiceUrl:-http://localhost:9000}
+  - Kafka__BootstrapServers      -> ${Kafka__BootstrapServers:-localhost:9092}
+  - Services__Ecm                -> ${Services__Ecm:-http://localhost:8080}
+  - Workflow__Camunda__BaseUrl   -> ${Workflow__Camunda__BaseUrl:-http://localhost:8080/engine-rest}
 
-Tuỳ chỉnh bằng cách đặt sẵn các biến DB_HOST, DB_USER... trước khi source script.
+Tuỳ chỉnh bằng cách đặt sẵn các biến DB_HOST, DB_NAME_PREFIX, DB_NAME_<SCHEMA>, DB_USER... trước khi source script.
 SETTINGS

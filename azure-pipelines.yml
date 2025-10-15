@@ -232,13 +232,6 @@ stages:
           missing=()
           optional_missing=()
 
-          require_env DB_CONNSTRING \
-            "DB_CONNSTRING / ECM_ConnectionStrings__postgres | ECM_Database__Connections__ops | ECM_Database__Connections__doc | ECM_Database__Connections__iam" \
-            '$(ECM_ConnectionStrings__postgres)' \
-            '$(ECM_Database__Connections__ops)' \
-            '$(ECM_Database__Connections__doc)' \
-            '$(ECM_Database__Connections__iam)'
-
           require_env MINIO_ENDPOINT \
             "MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl" \
             '$(ECM_FileStorage__ServiceUrl)'
@@ -270,10 +263,29 @@ stages:
             '$(ECM_AzureAd__ClientSecret)' \
             "${AzureAd__ClientSecret:-}"
 
-          for schema in iam doc wf search ocr ops; do
+          module_mappings=(
+            AccessControl:iam
+            Document:doc
+            File:doc
+            Workflow:wf
+            Search:search
+            Ocr:ocr
+            Operations:ops
+          )
+
+          for mapping in "${module_mappings[@]}"; do
+            module="${mapping%%:*}"
+            schema="${mapping##*:}"
+
             var="ECM_Database__Connections__${schema}"
             secret_ref="\$(ECM_Database__Connections__${schema})"
             require_env "$var" "$var" "$secret_ref"
+
+            resolved="${!var:-}"
+            if [[ -n "$resolved" ]]; then
+              printf -v "ConnectionStrings__${module}" '%s' "$resolved"
+              export "ConnectionStrings__${module}"
+            fi
           done
 
           require_env ECM_FileStorage__BucketName "ECM_FileStorage__BucketName" '$(ECM_FileStorage__BucketName)'
@@ -312,14 +324,13 @@ stages:
           echo "---- Diagnostics: resolved configuration (masked) ----"
           # Core connections
           
-          log_var DB_CONNSTRING
+          for mapping in "${module_mappings[@]}"; do
+            module="${mapping%%:*}"
+            schema="${mapping##*:}"
 
-          log_var ECM_FileStorage__BucketName__iam
-          log_var ECM_FileStorage__BucketName__doc
-          log_var ECM_FileStorage__BucketName__wf
-          log_var ECM_FileStorage__BucketName__search
-          log_var ECM_FileStorage__BucketName__ocr
-          log_var ECM_FileStorage__BucketName__ops
+            log_var "ECM_Database__Connections__${schema}"
+            log_var "ConnectionStrings__${module}"
+          done
 
           # Storage
           log_var ECM_FileStorage__BucketName

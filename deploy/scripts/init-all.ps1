@@ -5,15 +5,42 @@
 
 if (-not $env:DB_HOST) { $env:DB_HOST = "localhost" }
 if (-not $env:DB_PORT) { $env:DB_PORT = "5432" }
-if (-not $env:DB_NAME) { $env:DB_NAME = "ecm" }
 if (-not $env:DB_USER) { $env:DB_USER = "ecm" }
 if (-not $env:DB_PASSWORD) { $env:DB_PASSWORD = "ecm" }
+if (-not $env:DB_NAME_PREFIX) { $env:DB_NAME_PREFIX = "ecm" }
 
-$connectionString = "Host=$($env:DB_HOST);Port=$($env:DB_PORT);Database=$($env:DB_NAME);Username=$($env:DB_USER);Password=$($env:DB_PASSWORD)"
-$env:ConnectionStrings__Document = $connectionString
-$env:ConnectionStrings__postgres = $connectionString
-$env:ConnectionStrings__Outbox = $connectionString
-$env:ConnectionStrings__Ops = $connectionString
+$moduleMappings = @{ 
+  AccessControl = "iam"
+  Document      = "doc"
+  File          = "doc"
+  Workflow      = "wf"
+  Search        = "search"
+  Ocr           = "ocr"
+  Operations    = "ops"
+}
+
+function Get-DatabaseName([string]$schema) {
+  $overrideVar = "DB_NAME_{0}" -f $schema.ToUpper()
+  $overrideItem = Get-Item -Path Env:$overrideVar -ErrorAction SilentlyContinue
+
+  if ($null -ne $overrideItem -and $overrideItem.Value) {
+    return $overrideItem.Value
+  }
+
+  return "{0}_{1}" -f $env:DB_NAME_PREFIX, $schema
+}
+
+function Get-ConnectionString([string]$schema) {
+  $databaseName = Get-DatabaseName $schema
+  return "Host=$($env:DB_HOST);Port=$($env:DB_PORT);Database=$databaseName;Username=$($env:DB_USER);Password=$($env:DB_PASSWORD)"
+}
+
+foreach ($entry in $moduleMappings.GetEnumerator()) {
+  $module = $entry.Key
+  $schema = $entry.Value
+  $envName = "ConnectionStrings__{0}" -f $module
+  Set-Item -Path Env:$envName -Value (Get-ConnectionString $schema)
+}
 
 if (-not $env:FileStorage__BucketName) { $env:FileStorage__BucketName = "ecm-files" }
 if (-not $env:FileStorage__ServiceUrl) { $env:FileStorage__ServiceUrl = "http://localhost:9000" }
@@ -28,7 +55,7 @@ if (-not $env:Workflow__Camunda__BaseUrl) { $env:Workflow__Camunda__BaseUrl = "h
 if (-not $env:Workflow__Camunda__TenantId) { $env:Workflow__Camunda__TenantId = "default" }
 
 Write-Host "Đã export các biến môi trường chính cho ECM:" -ForegroundColor Green
-Write-Host "  - ConnectionStrings__Document / postgres / Outbox / Ops -> $connectionString"
+Write-Host ("  - ConnectionStrings__<Module>  -> Host={0};Port={1};Database={2}_<schema>" -f $env:DB_HOST, $env:DB_PORT, $env:DB_NAME_PREFIX)
 Write-Host "  - FileStorage__ServiceUrl    -> $($env:FileStorage__ServiceUrl)"
 Write-Host "  - Kafka__BootstrapServers    -> $($env:Kafka__BootstrapServers)"
 Write-Host "  - Services__Ecm              -> $($env:Services__Ecm)"
