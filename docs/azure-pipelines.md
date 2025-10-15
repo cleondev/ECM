@@ -31,7 +31,6 @@ Các biến môi trường được export thành hai nhóm:
 
 | Biến môi trường | Secret/nguồn ưu tiên | Ghi chú |
 |-----------------|----------------------|--------|
-| `DB_CONNSTRING` | `ECM_ConnectionStrings__postgres` → `ECM_Database__Connections__ops` → `ECM_Database__Connections__doc` → `ECM_Database__Connections__iam` | Chuỗi kết nối chung cho các service legacy (nếu compose vẫn dùng biến phẳng này). |
 | `MINIO_ENDPOINT` | `ECM_FileStorage__ServiceUrl` | Endpoint MinIO/S3 dạng URL. |
 | `MINIO_ACCESS_KEY` | `ECM_FileStorage__AccessKeyId` | Access key MinIO/S3. |
 | `MINIO_SECRET_KEY` | `ECM_FileStorage__SecretAccessKey` | Secret key MinIO/S3. |
@@ -44,7 +43,7 @@ Các biến môi trường được export thành hai nhóm:
 
 | Biến môi trường | Bắt buộc | Ghi chú |
 |-----------------|----------|--------|
-| `ECM_Database__Connections__iam`, `doc`, `wf`, `search`, `ocr`, `ops` | ✔️ | Chuỗi kết nối riêng cho từng schema/module. |
+| `ECM_Database__Connections__iam`, `doc`, `wf`, `search`, `ocr`, `ops` → `ConnectionStrings__iam`, `doc`, `wf`, `search`, `ocr`, `ops` | ✔️ | Chuỗi kết nối riêng cho từng schema/module. Pipeline sẽ copy từ secret tiền tố `ECM_` sang `ConnectionStrings__*` để .NET đọc đúng section chuẩn. |
 | `ECM_FileStorage__BucketName`, `ECM_FileStorage__ServiceUrl`, `ECM_FileStorage__AccessKeyId`, `ECM_FileStorage__SecretAccessKey` | ✔️ | Thông tin lưu trữ file cho module File. Các giá trị tương ứng cũng được export dưới dạng `FileStorage__*` để giữ tương thích. |
 | `ECM_Workflow__Camunda__BaseUrl` | ✔️ | Endpoint Camunda REST cho module Workflow. |
 | `ECM_Workflow__Camunda__TenantId` | ⚠️ (tùy chọn) | Nếu bỏ trống, repository sẽ làm việc ở chế độ multi-tenant mặc định của Camunda. Pipeline sẽ log cảnh báo nhưng không dừng job. |

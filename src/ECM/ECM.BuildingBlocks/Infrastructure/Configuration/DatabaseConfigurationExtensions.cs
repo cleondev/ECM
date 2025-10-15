@@ -7,7 +7,6 @@ namespace ECM.BuildingBlocks.Infrastructure.Configuration;
 public static class DatabaseConfigurationExtensions
 {
     private const string DatabaseSectionName = "Database";
-    private const string ConnectionsSectionName = "Connections";
     private const string SchemasSectionName = "Schemas";
     private const string DefaultConnectionName = "postgres";
 
@@ -60,13 +59,6 @@ public static class DatabaseConfigurationExtensions
             return connectionString;
         }
 
-        var databaseConnections = configuration.GetSection($"{DatabaseSectionName}:{ConnectionsSectionName}");
-        if (!databaseConnections.Exists())
-        {
-            return null;
-        }
-
-        var connectionFromCustomSection = databaseConnections[key];
-        return string.IsNullOrWhiteSpace(connectionFromCustomSection) ? null : connectionFromCustomSection;
+        return null;
     }
 }

@@ -29,7 +29,7 @@ base_connection_string() {
 #   1. Tên module (AccessControl, Document, ...)
 #   2. Tên schema tương ứng (iam, doc, ...)
 #   3. Giá trị mặc định "postgres"
-# Vì vậy chúng ta export đầy đủ cả ConnectionStrings và Database:Connections để khớp với appsettings.json.
+# Vì vậy chúng ta export ConnectionStrings cho cả module lẫn schema để khớp với appsettings.json.
 #
 declare -A MODULE_SCHEMAS=(
   [AccessControl]=iam
@@ -44,8 +44,8 @@ declare -A MODULE_SCHEMAS=(
 for module in "${!MODULE_SCHEMAS[@]}"; do
   schema=${MODULE_SCHEMAS["${module}"]}
   export "ConnectionStrings__${module}"="$(base_connection_string "${schema}")"
+  export "ConnectionStrings__${schema}"="$(base_connection_string "${schema}")"
   export "Database__Schemas__${module}"="${schema}"
-  export "Database__Connections__${schema}"="$(base_connection_string "${schema}")"
 done
 
 export ConnectionStrings__postgres="$(base_connection_string)"
@@ -68,12 +68,12 @@ export Workflow__Camunda__TenantId=${Workflow__Camunda__TenantId:-default}
 
 cat <<SETTINGS
 Đã export các biến môi trường chính cho ECM:
-  - ConnectionStrings__<Module> / Database__Connections__<schema> -> ${DB_HOST}:${DB_PORT}/${DB_NAME}
-  - ConnectionStrings__postgres / Outbox / Ops                    -> ${DB_HOST}:${DB_PORT}/${DB_NAME}
-  - FileStorage__ServiceUrl                                       -> ${FileStorage__ServiceUrl:-http://localhost:9000}
-  - Kafka__BootstrapServers                                       -> ${Kafka__BootstrapServers:-localhost:9092}
-  - Services__Ecm                                                 -> ${Services__Ecm:-http://localhost:8080}
-  - Workflow__Camunda__BaseUrl                                    -> ${Workflow__Camunda__BaseUrl:-http://localhost:8080/engine-rest}
+  - ConnectionStrings__<Module> / ConnectionStrings__<schema> -> ${DB_HOST}:${DB_PORT}/${DB_NAME}
+  - ConnectionStrings__postgres / Outbox / Ops                -> ${DB_HOST}:${DB_PORT}/${DB_NAME}
+  - FileStorage__ServiceUrl                                   -> ${FileStorage__ServiceUrl:-http://localhost:9000}
+  - Kafka__BootstrapServers                                   -> ${Kafka__BootstrapServers:-localhost:9092}
+  - Services__Ecm                                             -> ${Services__Ecm:-http://localhost:8080}
+  - Workflow__Camunda__BaseUrl                                -> ${Workflow__Camunda__BaseUrl:-http://localhost:8080/engine-rest}
 
 Tuỳ chỉnh bằng cách đặt sẵn các biến DB_HOST, DB_USER... trước khi source script.
 SETTINGS
