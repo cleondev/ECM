@@ -1,204 +1,135 @@
-# Azure DevOps pipeline for building and deploying ECM to Linux servers
-# The pipeline is multi-stage: Build (restore, test, publish) and Deploy (per-target deployment).
-
-parameters:
-- name: linuxServers
-  type: object
-  displayName: Linux deployment targets
-  default:
-    - name: staging-app
-      displayName: 'Staging App Host'
-      environment: 'staging'
-      pool: 'linux-staging'
-      deployPath: '/opt/ecm'
-      services: 'ecm-host,ecm-gateway'
-      preDeployScript: ''
-      postDeployScript: ''
-      useSudo: 'auto'
-    - name: production-app
-      displayName: 'Production App Host'
-      environment: 'production'
-      pool: 'linux-production'
-      deployPath: '/opt/ecm'
-      services: 'ecm-host,ecm-gateway'
-      preDeployScript: ''
-      postDeployScript: ''
-      useSudo: 'auto'
-
 trigger:
-  branches:
-    include:
-      - main
-
-pr:
   branches:
     include:
       - main
       - develop
       - feature/*
-      - bugfix/*
 
 variables:
-  buildConfiguration: 'Release'
-  dotnetVersion: '9.0.x'
-  nodeVersion: '20.x'
-  artifactName: 'drop'
-  publishRoot: '$(Build.ArtifactStagingDirectory)/publish'
-  publishProjects: |
-    src/ECM/ECM.Host/ECM.Host.csproj
-    src/AppGateway/AppGateway.Api/AppGateway.Api.csproj
-    src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.Worker.csproj
-    src/Workers/SearchIndexer.Worker/SearchIndexer.Worker.csproj
-    src/Workers/Notify.Worker/Notify.Worker.csproj
+- group: ECM-SECRETS  # Chứa các secret triển khai (DB, MinIO, Redpanda, Harbor...)
 
 stages:
+# ==================== Build & Push ====================
 - stage: Build
-  displayName: Build & Test
+  displayName: Build & Push Docker Images
   jobs:
-  - job: Build
-    displayName: Build & Publish Artifacts
+  - job: build_and_push
     pool:
-      vmImage: 'ubuntu-latest'
+      name: 'ECM_CI'
     steps:
     - checkout: self
-      clean: true
+      fetchDepth: 0
 
     - task: UseDotNet@2
-      displayName: 'Install .NET SDK'
       inputs:
-        packageType: 'sdk'
-        version: '$(dotnetVersion)'
-        performMultiLevelLookup: true
+        version: '9.x'
 
     - task: NodeTool@0
-      displayName: 'Install Node.js'
       inputs:
-        versionSpec: '$(nodeVersion)'
+        versionSpec: '20.x'
 
     - script: |
         set -euo pipefail
-        dotnet restore ECM.sln
-      displayName: 'Restore .NET dependencies'
 
-    - script: |
-        set -euo pipefail
-        dotnet build ECM.sln --configuration $(buildConfiguration) --no-restore
-      displayName: 'Build solution'
+        echo "= Login Harbor..."
+        echo "$(HARBOR_PASS)" | docker login harbor.local:8443 -u "$(HARBOR_USER)" --password-stdin
 
-    - script: |
-        set -euo pipefail
-        results_dir="$(Agent.TempDirectory)/test-results"
-        mkdir -p "$results_dir"
-        dotnet test ECM.sln --configuration $(buildConfiguration) --no-build \
-          --results-directory "$results_dir" \
-          --logger "trx;LogFileName=test-results.trx"
-        echo "##vso[task.setvariable variable=TestResultsDir]$results_dir"
-      displayName: 'Run tests'
+        TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
+        REGISTRY="harbor.local:8443/ecm"
 
-    - script: |
-        set -euo pipefail
-        pushd src/AppGateway/ui
-        npm install
-        npm run build
-        popd
-      displayName: 'Build App Gateway UI'
+        echo "= Build AppGateway.Api + UI"
+        docker build -f src/AppGateway/AppGateway.Api/Dockerfile -t "$REGISTRY/appgateway-api:$TAG" .
 
-    - script: |
-        set -euo pipefail
-        publish_root="$(publishRoot)"
-        rm -rf "$publish_root"
-        mkdir -p "$publish_root"
-        while IFS= read -r project; do
-          [[ -z "$project" ]] && continue
-          project_path="$(echo "$project" | xargs)"
-          [[ -z "$project_path" ]] && continue
-          project_name="$(basename "$project_path" .csproj)"
-          output_dir="$publish_root/$project_name"
-          echo "Publishing $project_path -> $output_dir"
-          dotnet publish "$project_path" --configuration $(buildConfiguration) --no-build --output "$output_dir"
-        done <<< "$(publishProjects)"
+        echo "= Build ECM.Host"
+        docker build -f src/ECM/ECM.Host/Dockerfile -t "$REGISTRY/ecm-host:$TAG" .
 
-        # Copy built SPA into AppGateway publish output when available
-        if [[ -d "src/AppGateway/ui/dist" ]]; then
-          gateway_publish="$publish_root/AppGateway.Api/wwwroot"
-          mkdir -p "$gateway_publish"
-          cp -a src/AppGateway/ui/dist/. "$gateway_publish"/
-        fi
-      displayName: 'Publish .NET services'
+        echo "= Build Workers"
+        docker build -f src/Workers/Notify.Worker/Dockerfile -t "$REGISTRY/notify-worker:$TAG" .
+        docker build -f src/Workers/OutboxDispatcher.Worker/Dockerfile -t "$REGISTRY/outbox-worker:$TAG" .
+        docker build -f src/Workers/SearchIndexer.Worker/Dockerfile -t "$REGISTRY/searchindexer-worker:$TAG" .
 
-    - script: |
-        set -euo pipefail
-        publish_root="$(publishRoot)"
-        manifest_path="$publish_root/manifest.json"
-        cat <<JSON > "$manifest_path"
-        {
-          "buildNumber": "$(Build.BuildNumber)",
-          "sourceVersion": "$(Build.SourceVersion)",
-          "configuration": "$(buildConfiguration)",
-          "createdUtc": "$(Build.BuildCreatedDate)",
-          "artifactName": "$(artifactName)"
-        }
-        JSON
-        mkdir -p "$publish_root/tools"
-        cp deploy/scripts/linux-deploy.sh "$publish_root/tools/"
-        chmod +x "$publish_root/tools/linux-deploy.sh"
-      displayName: 'Add deployment manifest & tools'
+        echo "= Push all images"
+        docker push "$REGISTRY/appgateway-api:$TAG"
+        docker push "$REGISTRY/ecm-host:$TAG"
+        docker push "$REGISTRY/notify-worker:$TAG"
+        docker push "$REGISTRY/outbox-worker:$TAG"
+        docker push "$REGISTRY/searchindexer-worker:$TAG"
+      displayName: 'Build & Push Docker Images'
 
-    - task: PublishTestResults@2
-      displayName: 'Publish test results'
-      inputs:
-        testResultsFormat: 'VSTest'
-        testResultsFiles: '**/test-results.trx'
-        searchFolder: '$(TestResultsDir)'
-      condition: succeededOrFailed()
-
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish deployment artifact'
-      inputs:
-        targetPath: '$(publishRoot)'
-        artifact: '$(artifactName)'
-        publishLocation: 'pipeline'
-
+# ==================== Deploy ====================
 - stage: Deploy
-  displayName: Deploy to Linux servers
+  displayName: Deploy to App Server
   dependsOn: Build
-  condition: succeeded()
   jobs:
-  - ${{ each server in parameters.linuxServers }}:
-    - deployment: Deploy_${{ replace(server.name, '-', '_') }}
-      displayName: Deploy to ${{ server.displayName }}
-      environment: ${{ server.environment }}
-      pool:
-        name: ${{ server.pool }}
-        demands:
-          - agent.os -equals Linux
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download build artifact'
-              inputs:
-                buildType: 'current'
-                artifactName: '$(artifactName)'
-                targetPath: '$(Pipeline.Workspace)/$(artifactName)'
+  - job: deploy
+    pool:
+      name: 'ECM_CI'
+    steps:
+    - task: SSH@0
+      displayName: "Deploy to 172.20.1.24"
+      inputs:
+        sshEndpoint: "ecm-appserver-ssh"
+        runOptions: "inline"
+        inline: |
+          set -euo pipefail
+          cd /data/ecm
 
-            - task: Bash@3
-              displayName: 'Deploy artifact to ${{ server.displayName }}'
-              inputs:
-                targetType: 'inline'
-                script: |
-                  set -euo pipefail
-                  artifact_dir="$(Pipeline.Workspace)/$(artifactName)"
-                  tool_path="$artifact_dir/tools/linux-deploy.sh"
-                  if [[ ! -x "$tool_path" ]]; then
-                    echo "Deployment tool not found at $tool_path" >&2
-                    exit 1
-                  fi
-                  "$tool_path" "$artifact_dir"
-              env:
-                ECM_DEPLOY_ROOT: ${{ server.deployPath }}
-                ECM_DEPLOY_SERVICES: ${{ server.services }}
-                ECM_DEPLOY_PRE_SCRIPT: ${{ server.preDeployScript }}
-                ECM_DEPLOY_POST_SCRIPT: ${{ server.postDeployScript }}
-                ECM_DEPLOY_USE_SUDO: ${{ server.useSudo }}
+          choose_secret() {
+            local var_name="$1"
+            local fallback="${2:-}"
+            local current="${!var_name:-}"
+
+            if [[ -z "$current" || "$current" == \$(* ]]; then
+              current="$fallback"
+            fi
+
+            if [[ "$current" == \$(* ]]; then
+              current=""
+            fi
+
+            printf -v "$var_name" '%s' "$current"
+          }
+
+          IMAGE_TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
+
+          DB_CONNSTRING_VALUE="${DB_CONNSTRING:-}"
+          MINIO_ENDPOINT_VALUE="${MINIO_ENDPOINT:-}"
+          MINIO_ACCESS_KEY_VALUE="${MINIO_ACCESS_KEY:-}"
+          MINIO_SECRET_KEY_VALUE="${MINIO_SECRET_KEY:-}"
+          REDPANDA_BROKERS_VALUE="${REDPANDA_BROKERS:-}"
+
+          choose_secret DB_CONNSTRING_VALUE "$(ECM_ConnectionStrings__postgres)"
+          choose_secret MINIO_ENDPOINT_VALUE "$(ECM_FileStorage__ServiceUrl)"
+          choose_secret MINIO_ACCESS_KEY_VALUE "$(ECM_FileStorage__AccessKeyId)"
+          choose_secret MINIO_SECRET_KEY_VALUE "$(ECM_FileStorage__SecretAccessKey)"
+          choose_secret REDPANDA_BROKERS_VALUE "$(ECM_Kafka__BootstrapServers)"
+
+          missing=()
+          [[ -z "$DB_CONNSTRING_VALUE" ]] && missing+=("DB_CONNSTRING / ECM_ConnectionStrings__postgres")
+          [[ -z "$MINIO_ENDPOINT_VALUE" ]] && missing+=("MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl")
+          [[ -z "$MINIO_ACCESS_KEY_VALUE" ]] && missing+=("MINIO_ACCESS_KEY / ECM_FileStorage__AccessKeyId")
+          [[ -z "$MINIO_SECRET_KEY_VALUE" ]] && missing+=("MINIO_SECRET_KEY / ECM_FileStorage__SecretAccessKey")
+          [[ -z "$REDPANDA_BROKERS_VALUE" ]] && missing+=("REDPANDA_BROKERS / ECM_Kafka__BootstrapServers")
+
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "[deploy] Thiếu biến môi trường bắt buộc: ${missing[*]}" >&2
+            exit 1
+          fi
+
+          export IMAGE_TAG
+          export DB_CONNSTRING="$DB_CONNSTRING_VALUE"
+          export MINIO_ENDPOINT="$MINIO_ENDPOINT_VALUE"
+          export MINIO_ACCESS_KEY="$MINIO_ACCESS_KEY_VALUE"
+          export MINIO_SECRET_KEY="$MINIO_SECRET_KEY_VALUE"
+          export REDPANDA_BROKERS="$REDPANDA_BROKERS_VALUE"
+
+          echo "= Login Harbor"
+          echo "$(HARBOR_PASS)" | docker login harbor.local:8443 -u "$(HARBOR_USER)" --password-stdin
+
+          echo "+ Pulling images..."
+          docker compose pull
+
+          echo "= Updating services..."
+          docker compose up -d --remove-orphans
+
+          echo "' Done."
