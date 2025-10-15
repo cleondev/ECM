@@ -6,6 +6,7 @@ using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Identity.Web;
 using ServiceDefaults;
 using Serilog;
@@ -17,6 +18,11 @@ public static class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        if (builder.Environment.IsDevelopment())
+        {
+            builder.Configuration.AddUserSecrets<Program>(optional: true);
+        }
 
         builder.AddServiceDefaults();
         builder.AddModule<AccessControlModule>();
