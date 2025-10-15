@@ -33,17 +33,15 @@ stages:
         pipeline_name="$(Build.DefinitionName)"
         stage_name="$(System.StageDisplayName)"
 
-        payload=$(printf '%s\n' \
-          '{' \
-          '  "text": "**Deployment Notice**\n\nPipeline **PIPELINE_NAME** is starting stage **STAGE_NAME**.\n\n**Time**: BUILD_TIME\n**Triggered by**: REQUESTED_BY\n**Branch**: BRANCH_NAME\n\nPlease prepare for the upcoming deployment."' \
-          '}'
-        )
+        payload_template='{
+  "text": "**Deployment Notice**\n\nPipeline **PIPELINE_NAME** is starting stage **STAGE_NAME**.\n\n**Time**: BUILD_TIME\n**Triggered by**: REQUESTED_BY\n**Branch**: BRANCH_NAME\n\nPlease prepare for the upcoming deployment."
+}'
 
-        payload="${payload/PIPELINE_NAME/$pipeline_name}"
-        payload="${payload/STAGE_NAME/$stage_name}"
-        payload="${payload/BUILD_TIME/$build_time}"
-        payload="${payload/REQUESTED_BY/$requested_by}"
-        payload="${payload/BRANCH_NAME/$branch_name}"
+        payload="${payload_template//PIPELINE_NAME/$pipeline_name}"
+        payload="${payload//STAGE_NAME/$stage_name}"
+        payload="${payload//BUILD_TIME/$build_time}"
+        payload="${payload//REQUESTED_BY/$requested_by}"
+        payload="${payload//BRANCH_NAME/$branch_name}"
 
         if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
           echo "✅ Sent build start notification."
@@ -119,17 +117,15 @@ stages:
         pipeline_name="$(Build.DefinitionName)"
         stage_name="$(System.StageDisplayName)"
 
-        payload=$(printf '%s\n' \
-          '{' \
-          '  "text": "**Deployment Notice**\n\nPipeline **PIPELINE_NAME** is starting stage **STAGE_NAME**.\n\n**Time**: DEPLOY_TIME\n**Triggered by**: REQUESTED_BY\n**Branch**: BRANCH_NAME"' \
-          '}'
-        )
+        payload_template='{
+  "text": "**Deployment Notice**\n\nPipeline **PIPELINE_NAME** is starting stage **STAGE_NAME**.\n\n**Time**: DEPLOY_TIME\n**Triggered by**: REQUESTED_BY\n**Branch**: BRANCH_NAME"
+}'
 
-        payload="${payload/PIPELINE_NAME/$pipeline_name}"
-        payload="${payload/STAGE_NAME/$stage_name}"
-        payload="${payload/DEPLOY_TIME/$deploy_time}"
-        payload="${payload/REQUESTED_BY/$requested_by}"
-        payload="${payload/BRANCH_NAME/$branch_name}"
+        payload="${payload_template//PIPELINE_NAME/$pipeline_name}"
+        payload="${payload//STAGE_NAME/$stage_name}"
+        payload="${payload//DEPLOY_TIME/$deploy_time}"
+        payload="${payload//REQUESTED_BY/$requested_by}"
+        payload="${payload//BRANCH_NAME/$branch_name}"
 
         if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
           echo "✅ Sent deployment start notification."
@@ -227,18 +223,16 @@ stages:
         pipeline_name="$(Build.DefinitionName)"
         stage_name="$(System.StageDisplayName)"
 
-        payload=$(printf '%s\n' \
-          '{' \
-          '  "text": "**PIPELINE_NAME deployment completed**\n\n**Stage**: STAGE_NAME\n**Branch**: BRANCH_NAME\n**Changeset**: CHANGESET\n**Requested by**: REQUESTED_BY\n**Finished at**: DEPLOY_TIME"' \
-          '}'
-        )
+        payload_template='{
+  "text": "**PIPELINE_NAME deployment completed**\n\n**Stage**: STAGE_NAME\n**Branch**: BRANCH_NAME\n**Changeset**: CHANGESET\n**Requested by**: REQUESTED_BY\n**Finished at**: DEPLOY_TIME"
+}'
 
-        payload="${payload/PIPELINE_NAME/$pipeline_name}"
-        payload="${payload/STAGE_NAME/$stage_name}"
-        payload="${payload/BRANCH_NAME/$branch_name}"
-        payload="${payload/CHANGESET/$changeset}"
-        payload="${payload/REQUESTED_BY/$requested_by}"
-        payload="${payload/DEPLOY_TIME/$deploy_time}"
+        payload="${payload_template//PIPELINE_NAME/$pipeline_name}"
+        payload="${payload//STAGE_NAME/$stage_name}"
+        payload="${payload//BRANCH_NAME/$branch_name}"
+        payload="${payload//CHANGESET/$changeset}"
+        payload="${payload//REQUESTED_BY/$requested_by}"
+        payload="${payload//DEPLOY_TIME/$deploy_time}"
 
         if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
           echo "✅ Sent deployment completion notification."
