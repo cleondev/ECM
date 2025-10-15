@@ -146,6 +146,7 @@ stages:
           set -euo pipefail
           cd /data/ecm
 
+          # ---------- Helpers ----------
           choose_secret() {
             local var_name="$1"
             shift
@@ -161,18 +162,12 @@ stages:
               if [[ -z "$candidate" || "$candidate" == \$\(*\) ]]; then
                 continue
               fi
-
               printf -v "$var_name" '%s' "$candidate"
               return
             done
 
             printf -v "$var_name" ''
           }
-
-          IMAGE_TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
-
-          missing=()
-          optional_missing=()
 
           require_env() {
             local var_name="$1"
@@ -203,6 +198,39 @@ stages:
               optional_missing+=("$description")
             fi
           }
+
+          # Mask a value for safe logging
+          mask_value() {
+            local v="${1:-}"
+            local n=${#v}
+            if (( n == 0 )); then
+              echo ""
+              return
+            fi
+            if (( n <= 8 )); then
+              echo "********"
+            else
+              # show last 4 chars + length
+              echo "****${v: -4} (len=${n})"
+            fi
+          }
+
+          # Log presence of a variable safely
+          log_var() {
+            local var_name="$1"
+            local val="${!var_name:-}"
+            if [[ -n "$val" ]]; then
+              echo "[OK] ${var_name}=$(mask_value "$val")"
+            else
+              echo "[MISSING] ${var_name}"
+            fi
+          }
+
+          # ---------- Resolve inputs ----------
+          IMAGE_TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
+
+          missing=()
+          optional_missing=()
 
           require_env DB_CONNSTRING \
             "DB_CONNSTRING / ECM_ConnectionStrings__postgres | ECM_Database__Connections__ops | ECM_Database__Connections__doc | ECM_Database__Connections__iam" \
@@ -280,13 +308,61 @@ stages:
             export ECM_AzureAd__ClientSecret="${ECM_AzureAd__ClientSecret:-${AzureAd__ClientSecret}}"
           fi
 
+          # ---------- Diagnostics: log each config safely ----------
+          echo "---- Diagnostics: resolved configuration (masked) ----"
+          # Core connections
+          
+          log_var DB_CONNSTRING
+
+          log_var ECM_FileStorage__BucketName__iam
+          log_var ECM_FileStorage__BucketName__doc
+          log_var ECM_FileStorage__BucketName__wf
+          log_var ECM_FileStorage__BucketName__search
+          log_var ECM_FileStorage__BucketName__ocr
+          log_var ECM_FileStorage__BucketName__ops
+
+          # Storage
+          log_var ECM_FileStorage__BucketName
+          log_var ECM_FileStorage__ServiceUrl
+          log_var ECM_FileStorage__AccessKeyId
+          log_var ECM_FileStorage__SecretAccessKey
+          log_var MINIO_ENDPOINT
+          log_var MINIO_ACCESS_KEY
+          log_var MINIO_SECRET_KEY
+
+          # Messaging
+          log_var REDPANDA_BROKERS
+          log_var Kafka__BootstrapServers
+
+          # Services / Auth
+          log_var Services__Ecm
+          log_var ECM_Workflow__Camunda__BaseUrl
+          log_var ECM_Workflow__Camunda__TenantId
+          log_var AzureAd__ClientSecret
+          log_var ECM_AzureAd__ClientSecret
+
+          # Harbor (deploy side)
+          HARBOR_USER_VAL="$(HARBOR_USER)"
+          HARBOR_PASS_VAL="$(HARBOR_PASS)"
+          if [[ -n "$HARBOR_USER_VAL" ]]; then echo "[OK] HARBOR_USER=$(mask_value "$HARBOR_USER_VAL")"; else echo "[MISSING] HARBOR_USER"; fi
+          if [[ -n "$HARBOR_PASS_VAL" ]]; then echo "[OK] HARBOR_PASS=$(mask_value "$HARBOR_PASS_VAL")"; else echo "[MISSING] HARBOR_PASS"; fi
+
+          echo "---- End diagnostics ----"
+
+          # ---------- Fail fast if required env missing ----------
           if [[ ${#missing[@]} -gt 0 ]]; then
-            echo "[deploy] Thiếu biến môi trường bắt buộc: ${missing[*]}" >&2
+            echo "[deploy] ❌ Thiếu biến môi trường bắt buộc:"
+            for item in "${missing[@]}"; do
+              echo " - $item"
+            done
             exit 1
           fi
 
           if [[ ${#optional_missing[@]} -gt 0 ]]; then
-            echo "[deploy] Thiếu biến môi trường tùy chọn: ${optional_missing[*]}" >&2
+            echo "[deploy] ⚠️ Thiếu biến môi trường tùy chọn:"
+            for item in "${optional_missing[@]}"; do
+              echo " - $item"
+            done
           fi
 
           export IMAGE_TAG
