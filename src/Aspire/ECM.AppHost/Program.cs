@@ -108,6 +108,11 @@ public static class Program
             .WithReference(ecmHost)
             .WithReference(moduleDatabases["Operations"]);
 
+        if (connectionStrings.TryGetValue("Operations", out var operationsConnection))
+        {
+            outboxDispatcher = outboxDispatcher.WithEnvironment("ConnectionStrings__Operations", operationsConnection);
+        }
+
         builder.AddProject<Projects.SearchIndexer>("notify")
             .WithReference(kafka);
 
