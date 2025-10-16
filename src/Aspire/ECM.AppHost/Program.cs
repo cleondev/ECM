@@ -1,3 +1,6 @@
+using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
+using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 
 namespace AppHost;
@@ -48,7 +51,32 @@ public static class Program
             builder.Configuration.AddInMemoryCollection(dashboardDefaults);
         }
 
-        var postgres = builder.AddConnectionString("postgres");
+        var moduleDatabaseNames = new[]
+        {
+            "AccessControl",
+            "Document",
+            "File",
+            "Workflow",
+            "Search",
+            "Ocr",
+            "Operations"
+        };
+
+        var moduleDatabases = new Dictionary<string, IResourceBuilder<ParameterResource>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var moduleDatabaseName in moduleDatabaseNames)
+        {
+            var connectionString = builder.Configuration.GetConnectionString(moduleDatabaseName);
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    $"Connection string '{moduleDatabaseName}' must be configured in the Aspire AppHost before starting the application.");
+            }
+
+            moduleDatabases[moduleDatabaseName] = builder.AddConnectionString(moduleDatabaseName);
+        }
+
         var kafka = builder.AddConnectionString("kafka");
         var minio = builder.AddConnectionString("minio");
 
@@ -56,25 +84,29 @@ public static class Program
         var gatewayUrl = builder.Configuration.GetValue<string>("Urls:Gateway") ?? "http://localhost:5090";
 
         var ecmHost = builder.AddProject<Projects.ECM_Host>("ecm")
-            .WithReference(postgres)
             .WithReference(kafka)
             .WithReference(minio)
             .WithEnvironment("ASPNETCORE_URLS", ecmUrl);
+
+        foreach (var moduleDatabase in moduleDatabases.Values)
+        {
+            ecmHost = ecmHost.WithReference(moduleDatabase);
+        }
 
         builder.AddProject<Projects.AppGateway_Api>("app-gateway")
             .WithReference(ecmHost)
             .WithEnvironment("ASPNETCORE_URLS", gatewayUrl)
             .WithEnvironment("Services__Ecm", ecmUrl);
 
-        builder.AddProject<Projects.SearchIndexer>("search-indexer")
-            .WithReference(postgres)
+        var searchIndexer = builder.AddProject<Projects.SearchIndexer>("search-indexer")
             .WithReference(kafka)
-            .WithReference(ecmHost);
+            .WithReference(ecmHost)
+            .WithReference(moduleDatabases["Search"]);
 
-        builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
-            .WithReference(postgres)
+        var outboxDispatcher = builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
             .WithReference(kafka)
-            .WithReference(ecmHost);
+            .WithReference(ecmHost)
+            .WithReference(moduleDatabases["Operations"]);
 
         builder.AddProject<Projects.SearchIndexer>("notify")
             .WithReference(kafka);
