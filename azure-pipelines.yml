@@ -28,14 +28,16 @@ stages:
           exit 0
         fi
 
-        # Convert multiline text -> JSON-safe text with \n
-        text="${BUILD_START_TEXT//$'\n'/\\n}"
-        payload="{\"text\":\"$text\"}"
+        # Convert multiline text -> JSON-safe text with <br> for line breaks
+        # 1) escape backslashes and quotes  2) replace \n -> <br>
+        raw="${BUILD_START_TEXT}"
+        esc="$(printf '%s' "$raw" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/<br>/g')"
+        payload="{\"text\":\"$esc\"}"
 
         if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
-          echo "✅ Sent build start notification."
+          echo "Sent build start notification."
         else
-          echo "⚠️ Failed to send build start notification." >&2
+          echo "Failed to send build start notification." >&2
         fi
       displayName: '📢 Notify: Build stage is starting'
       condition: always()
@@ -104,37 +106,46 @@ stages:
     pool:
       name: 'ECM_CI'
     steps:
-    # --- Notify: Deploy starting ---
+    # --- Notify: Deploy starting (Base64 template + date '+%d-%M-%Y %H:%M:%S') ---
     - script: |
         set -euo pipefail
 
         webhook_url="${WEBHOOK_URL:-}"
-
         if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$\(*\) ]]; then
           echo "Webhook URL is not configured. Skipping start notification."
           exit 0
         fi
 
-        text="${DEPLOY_START_TEXT//$'\n'/\\n}"
-        payload="{\"text\":\"$text\"}"
-
-        if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
-          echo "✅ Sent deployment start notification."
-        else
-          echo "⚠️ Failed to send start notification." >&2
+        # Decode template from secret
+        template="$(printf %s "${DEPLOY_BEFORE_B64:-}" | base64 -d || true)"
+        if [ -z "$template" ]; then
+          echo "Missing DEPLOY_BEFORE_B64; skip notification."
+          exit 0
         fi
+
+        now="$(date '+%d-%M-%Y %H:%M:%S')"   # %M = phút
+        triggered_by="${BUILD_REQUESTED_FOR:-$(Build.RequestedFor)}"
+        branch="${BUILD_SOURCEBRANCHNAME:-$(Build.SourceBranchName)}"
+
+        # Replace placeholders
+        msg="${template/__TIME__/$now}"
+        msg="${msg/__TRIGGERED_BY__/$triggered_by}"
+        msg="${msg/__BRANCH__/$branch}"
+
+        # Escape for JSON + convert newlines to <br> to force visible line breaks
+        esc="$(printf '%s' "$msg" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/<br>/g')"
+        payload="{\"text\":\"$esc\"}"
+
+        curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null \
+          && echo "Sent deployment start notification." \
+          || { echo "Failed to send start notification." >&2; }
       displayName: '📢 Notify: Deployment is about to start'
       condition: always()
       env:
         WEBHOOK_URL: $(Team_WebHook_Url)
-        DEPLOY_START_TEXT: |
-          **Deployment Notice**
-
-          Pipeline **$(Build.DefinitionName)** is starting stage **$(System.StageDisplayName)**.
-
-          **Time**: $(Date:yyyy-MM-dd HH:mm:ss)
-          **Triggered by**: $(Build.RequestedFor)
-          **Branch**: $(Build.SourceBranchName)
+        DEPLOY_BEFORE_B64: $(DEPLOY_BEFORE_B64)
+        BUILD_REQUESTED_FOR: $(Build.RequestedFor)
+        BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
 
     # --- Deploy via SSH ---
     - task: SSH@0
@@ -142,6 +153,7 @@ stages:
       inputs:
         sshEndpoint: "ecm-appserver-ssh"
         runOptions: "inline"
+        failOnStdErr: false
         inline: |
           set -euo pipefail
           cd /data/ecm
@@ -424,50 +436,56 @@ stages:
           echo "$HARBOR_PASS" | docker login harbor.local:8443 -u "$HARBOR_USER" --password-stdin
 
           echo "+ Pulling images..."
-          docker compose pull
+          docker compose pull 2>&1
 
           echo "= Updating services..."
-          docker compose up -d --remove-orphans
+          docker compose up -d --remove-orphans 2>&1
 
           echo "' Done."
 
-    # --- Notify: Deploy completed ---
+    # --- Notify: Deploy completed (Base64 template) ---
     - script: |
         set -euo pipefail
 
         webhook_url="${WEBHOOK_URL:-}"
-
         if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$\(*\) ]]; then
           echo "Webhook URL is not configured. Skipping completion notification."
           exit 0
         fi
 
-        # Compose message with details
-        text="${DEPLOY_DONE_TEXT//$'\n'/\\n}"
-        # Replace tokens that aren't available via built-in variables in env block
-        text="${text//{Stage}/$(System.StageDisplayName)}"
-        text="${text//{Branch}/$(Build.SourceBranchName)}"
-        text="${text//{Changeset}/$(Build.SourceVersion)}"
-        text="${text//{Pipeline}/$(Build.DefinitionName)}"
-        text="${text//{RequestedBy}/$(Build.RequestedFor)}"
-        text="${text//{FinishedAt}/$(Date:yyyy-MM-dd HH:mm:ss)}"
-
-        payload="{\"text\":\"$text\"}"
-
-        if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
-          echo "✅ Sent deployment completion notification."
-        else
-          echo "⚠️ Failed to send completion notification." >&2
+        template="$(printf %s "${DEPLOY_AFTER_B64:-}" | base64 -d || true)"
+        if [ -z "$template" ]; then
+          echo "Missing DEPLOY_AFTER_B64; skip notification."
+          exit 0
         fi
+
+        deploy_time="$(date '+%H:%M:%S')"
+        deployed_by="${AGENT_MACHINENAME:-$(Agent.MachineName)}"
+        from_ref="HEAD"
+        changeset="${BUILD_SOURCEVERSION:-$(Build.SourceVersion)}"
+        commit_msg="${BUILD_SOURCEVERSIONMESSAGE:-$(Build.SourceVersionMessage)}"
+        repo_path="${BUILD_SOURCESDIRECTORY:-$(Build.SourcesDirectory)}"
+
+        msg="${template/__DEPLOY_TIME__/$deploy_time}"
+        msg="${msg/__DEPLOYED_BY__/$deployed_by}"
+        msg="${msg/__FROM__/$from_ref}"
+        msg="${msg/__CHANGESET__/$changeset}"
+        msg="${msg/__COMMIT_MSG__/$commit_msg}"
+        msg="${msg/__REPO_PATH__/$repo_path}"
+
+        # Escape + chuyển newline thành <br> để hiển thị đúng
+        esc="$(printf '%s' "$msg" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/<br>/g')"
+        payload="{\"text\":\"$esc\"}"
+
+        curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null \
+          && echo "Sent deployment completion notification." \
+          || { echo "Failed to send completion notification." >&2; }
       displayName: '✅ Notify: Deployment completed'
       condition: succeeded()
       env:
         WEBHOOK_URL: $(Team_WebHook_Url)
-        DEPLOY_DONE_TEXT: |
-          **{Pipeline} deployment completed**
-
-          **Stage**: {Stage}
-          **Branch**: {Branch}
-          **Changeset**: {Changeset}
-          **Requested by**: {RequestedBy}
-          **Finished at**: {FinishedAt}
+        DEPLOY_AFTER_B64: $(DEPLOY_AFTER_B64)
+        AGENT_MACHINENAME: $(Agent.MachineName)
+        BUILD_SOURCEVERSION: $(Build.SourceVersion)
+        BUILD_SOURCEVERSIONMESSAGE: $(Build.SourceVersionMessage)
+        BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)
