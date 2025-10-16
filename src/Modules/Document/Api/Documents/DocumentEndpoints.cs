@@ -102,7 +102,7 @@ public static class DocumentEndpoints
             query = query.Where(document => document.Department == request.Department);
         }
 
-        if (request.Tags is { Count: > 0 })
+        if (request.Tags is { Length: > 0 })
         {
             query = query.Where(document => document.Tags.Any(tag => request.Tags.Contains(tag.TagId)));
         }
