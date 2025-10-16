@@ -1,4 +1,9 @@
 using Amazon.S3;
+using System;
+using System.IO;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using Amazon.S3.Model;
 using Amazon.S3.Util;
 
@@ -35,6 +40,71 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
         }
 
         await _client.PutObjectAsync(request, cancellationToken);
+    }
+
+    public Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+        {
+            return Task.FromResult<Uri?>(null);
+        }
+
+        var expiresAt = DateTime.UtcNow.Add(lifetime);
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _options.BucketName,
+            Key = storageKey,
+            Expires = expiresAt,
+        };
+
+        var url = _client.GetPreSignedURL(request);
+        return Task.FromResult(Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null);
+    }
+
+    public Task<FileDownload?> DownloadAsync(string storageKey, CancellationToken cancellationToken = default)
+    {
+        return DownloadObjectAsync(storageKey, cancellationToken);
+    }
+
+    public Task<FileDownload?> DownloadThumbnailAsync(string storageKey, int width, int height, string fit, CancellationToken cancellationToken = default)
+    {
+        var normalizedFit = string.IsNullOrWhiteSpace(fit) ? "cover" : fit.Trim().ToLowerInvariant();
+        var thumbnailKey = $"thumbnails/{width}x{height}/{normalizedFit}/{storageKey}";
+        return DownloadObjectAsync(thumbnailKey, cancellationToken);
+    }
+
+    private async Task<FileDownload?> DownloadObjectAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _client.GetObjectAsync(new GetObjectRequest
+            {
+                BucketName = _options.BucketName,
+                Key = key,
+            }, cancellationToken);
+
+            await using var memoryStream = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
+
+            var contentType = string.IsNullOrWhiteSpace(response.Headers.ContentType)
+                ? "application/octet-stream"
+                : response.Headers.ContentType;
+
+            var fileName = response.Metadata.TryGetValue("x-amz-meta-original-filename", out var originalFileName)
+                ? originalFileName
+                : null;
+
+            var lastModified = response.LastModified == default
+                ? (DateTimeOffset?)null
+                : response.LastModified;
+
+            return new FileDownload(memoryStream.ToArray(), contentType, fileName, lastModified);
+        }
+        catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.NotFound || string.Equals(exception.ErrorCode, "NoSuchKey", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogDebug(exception, "Object {Key} not found in bucket {Bucket}.", key, _options.BucketName);
+            return null;
+        }
     }
 
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)

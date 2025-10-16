@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 
+using ECM.Abstractions.Files;
 using ECM.Document.Api;
+using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Commands;
 
 using Microsoft.AspNetCore.Builder;
@@ -13,6 +18,8 @@ namespace ECM.Document.Api.Documents;
 
 public static class DocumentEndpoints
 {
+    private static readonly TimeSpan DownloadLinkLifetime = TimeSpan.FromMinutes(10);
+
     public static RouteGroupBuilder MapDocumentEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/ecm");
@@ -26,6 +33,18 @@ public static class DocumentEndpoints
         group.MapPost("/documents", CreateDocumentAsync)
              .WithName("CreateDocument")
              .WithDescription("Create a document using the application service (Clean Architecture).");
+
+        group.MapGet("/files/download/{versionId:guid}", DownloadFileAsync)
+             .WithName("DownloadDocumentVersion")
+             .WithDescription("Redirects to a signed URL for downloading a document version.");
+
+        group.MapGet("/files/preview/{versionId:guid}", PreviewFileAsync)
+             .WithName("PreviewDocumentVersion")
+             .WithDescription("Streams the original file content for preview purposes.");
+
+        group.MapGet("/files/thumbnails/{versionId:guid}", GetThumbnailAsync)
+             .WithName("GetDocumentThumbnail")
+             .WithDescription("Returns a generated thumbnail for the requested document version.");
 
         return group;
     }
@@ -102,6 +121,135 @@ public static class DocumentEndpoints
             version);
 
         return TypedResults.Created($"/api/ecm/documents/{response.Id}", response);
+    }
+
+    private static async Task<IResult> DownloadFileAsync(
+        Guid versionId,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
+        CancellationToken cancellationToken)
+    {
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var linkResult = await fileAccess.GetDownloadLinkAsync(version.StorageKey, DownloadLinkLifetime, cancellationToken);
+        if (linkResult.IsFailure || linkResult.Value is null)
+        {
+            return MapFileErrors(linkResult.Errors);
+        }
+
+        return TypedResults.Redirect(linkResult.Value.Uri.ToString(), permanent: false);
+    }
+
+    private static async Task<IResult> PreviewFileAsync(
+        Guid versionId,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
+        CancellationToken cancellationToken)
+    {
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var contentResult = await fileAccess.GetContentAsync(version.StorageKey, cancellationToken);
+        if (contentResult.IsFailure || contentResult.Value is null)
+        {
+            return MapFileErrors(contentResult.Errors);
+        }
+
+        var file = contentResult.Value;
+        return TypedResults.File(
+            fileContents: file.Content,
+            contentType: file.ContentType,
+            fileDownloadName: file.FileName,
+            enableRangeProcessing: true,
+            lastModified: file.LastModifiedUtc);
+    }
+
+    private static async Task<IResult> GetThumbnailAsync(
+        Guid versionId,
+        [FromQuery(Name = "w")] int? width,
+        [FromQuery(Name = "h")] int? height,
+        [FromQuery(Name = "fit")] string? fit,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
+        CancellationToken cancellationToken)
+    {
+        if (width is null or <= 0 || height is null or <= 0)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["dimensions"] = ["Parameters 'w' and 'h' must be positive integers."]
+            }, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var normalizedFit = string.IsNullOrWhiteSpace(fit)
+            ? "cover"
+            : fit.Trim().ToLowerInvariant();
+
+        if (normalizedFit != "cover" && normalizedFit != "contain")
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["fit"] = ["Parameter 'fit' must be either 'cover' or 'contain'."]
+            }, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var thumbnailResult = await fileAccess.GetThumbnailAsync(
+            version.StorageKey,
+            width.Value,
+            height.Value,
+            normalizedFit,
+            cancellationToken);
+
+        if (thumbnailResult.IsFailure || thumbnailResult.Value is null)
+        {
+            return MapFileErrors(thumbnailResult.Errors);
+        }
+
+        var thumbnail = thumbnailResult.Value;
+        return TypedResults.File(
+            fileContents: thumbnail.Content,
+            contentType: thumbnail.ContentType,
+            fileDownloadName: thumbnail.FileName,
+            enableRangeProcessing: false,
+            lastModified: thumbnail.LastModifiedUtc);
+    }
+
+    private static IResult MapFileErrors(IReadOnlyCollection<string> errors)
+    {
+        if (errors.Count == 0)
+        {
+            return TypedResults.Problem(statusCode: StatusCodes.Status500InternalServerError);
+        }
+
+        if (errors.Any(error => string.Equals(error, "NotFound", StringComparison.OrdinalIgnoreCase)))
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (errors.Any(error => string.Equals(error, "StorageKeyRequired", StringComparison.OrdinalIgnoreCase)))
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["storageKey"] = ["A valid storage key is required to access the file."]
+            }, statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return TypedResults.Problem(
+            detail: string.Join("; ", errors),
+            statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 
     private static async Task<string> ComputeSha256Async(IFormFile file, CancellationToken cancellationToken)
