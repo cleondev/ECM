@@ -1,5 +1,5 @@
 using ECM.Abstractions;
-using ECM.AccessControl.Api;
+using ECM.IAM.Api;
 using ECM.Document.Api;
 using ECM.File.Api;
 using ECM.SearchIndexer.Infrastructure;
@@ -34,7 +34,7 @@ public static class Program
         }
 
         builder.AddServiceDefaults();
-        builder.AddModule<AccessControlModule>();
+        builder.AddModule<IamModule>();
         builder.AddModule<DocumentModule>();
         builder.AddModule<FileModule>();
         builder.AddModule<WorkflowModule>();

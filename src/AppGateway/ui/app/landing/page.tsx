@@ -215,7 +215,7 @@ export default function ECMLandingPage() {
               <Card className="p-10 bg-card/50 backdrop-blur-sm border-border hover:shadow-2xl hover:shadow-primary/20 transition-all duration-500 float-animation">
                 <div className="space-y-6">
                   {[
-                    { icon: Lock, title: "Secure Access Control", desc: "Role-based permissions" },
+                    { icon: Lock, title: "Secure IAM", desc: "Role-based permissions" },
                     { icon: FileText, title: "Version History", desc: "Track all changes" },
                     { icon: Users, title: "Team Collaboration", desc: "Work together in real-time" },
                   ].map((item, i) => (

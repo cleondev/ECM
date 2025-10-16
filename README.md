@@ -76,7 +76,7 @@ Tùy bối cảnh mà lựa chọn chạy hạ tầng nền tảng trực tiếp
    - Các biến cấu hình quan trọng:
 
     ```bash
-    export ConnectionStrings__AccessControl="Host=<host>;Port=5432;Database=ecm_iam;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__IAM="Host=<host>;Port=5432;Database=ecm_iam;Username=<db-user>;Password=<db-pass>"
     export ConnectionStrings__Document="Host=<host>;Port=5432;Database=ecm_doc;Username=<db-user>;Password=<db-pass>"
     export ConnectionStrings__File="Host=<host>;Port=5432;Database=ecm_doc;Username=<db-user>;Password=<db-pass>"
     export ConnectionStrings__Workflow="Host=<host>;Port=5432;Database=ecm_wf;Username=<db-user>;Password=<db-pass>"
@@ -140,7 +140,7 @@ Các script khởi tạo (schema DB mẫu, bucket/object, topic) nằm trong `de
   .\deploy\scripts\init-all.ps1
   ```
 
-Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__AccessControl`, `ConnectionStrings__Document`, `ConnectionStrings__File`, `ConnectionStrings__Workflow`, `ConnectionStrings__Search`, `ConnectionStrings__Ocr`, `ConnectionStrings__Operations`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_NAME_PREFIX`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
+Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__IAM`, `ConnectionStrings__Document`, `ConnectionStrings__File`, `ConnectionStrings__Workflow`, `ConnectionStrings__Search`, `ConnectionStrings__Ocr`, `ConnectionStrings__Operations`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_NAME_PREFIX`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
 
 ## Khởi tạo cơ sở dữ liệu (EF Core migrations)
 

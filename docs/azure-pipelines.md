@@ -43,7 +43,7 @@ Các biến môi trường được export thành hai nhóm:
 
 | Biến môi trường | Bắt buộc | Ghi chú |
 |-----------------|----------|--------|
-| `ECM_Database__Connections__iam`, `doc`, `wf`, `search`, `ocr`, `ops` → `ConnectionStrings__AccessControl`, `Document`, `File`, `Workflow`, `Search`, `Ocr`, `Operations` | ✔️ | Chuỗi kết nối cho từng module. Pipeline copy từ secret tiền tố `ECM_` sang `ConnectionStrings__<Module>` tương ứng (secret `doc` được dùng chung cho Document và File). |
+| `ECM_Database__Connections__iam`, `doc`, `wf`, `search`, `ocr`, `ops` → `ConnectionStrings__IAM`, `Document`, `File`, `Workflow`, `Search`, `Ocr`, `Operations` | ✔️ | Chuỗi kết nối cho từng module. Pipeline copy từ secret tiền tố `ECM_` sang `ConnectionStrings__<Module>` tương ứng (secret `doc` được dùng chung cho Document và File). |
 | `ECM_FileStorage__BucketName`, `ECM_FileStorage__ServiceUrl`, `ECM_FileStorage__AccessKeyId`, `ECM_FileStorage__SecretAccessKey` | ✔️ | Thông tin lưu trữ file cho module File. Các giá trị tương ứng cũng được export dưới dạng `FileStorage__*` để giữ tương thích. |
 | `ECM_Workflow__Camunda__BaseUrl` | ✔️ | Endpoint Camunda REST cho module Workflow. |
 | `ECM_Workflow__Camunda__TenantId` | ⚠️ (tùy chọn) | Nếu bỏ trống, repository sẽ làm việc ở chế độ multi-tenant mặc định của Camunda. Pipeline sẽ log cảnh báo nhưng không dừng job. |

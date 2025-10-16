@@ -9,8 +9,8 @@ if (-not $env:DB_USER) { $env:DB_USER = "ecm" }
 if (-not $env:DB_PASSWORD) { $env:DB_PASSWORD = "ecm" }
 if (-not $env:DB_NAME_PREFIX) { $env:DB_NAME_PREFIX = "ecm" }
 
-$moduleMappings = @{ 
-  AccessControl = "iam"
+$moduleMappings = @{
+  IAM          = "iam"
   Document      = "doc"
   File          = "doc"
   Workflow      = "wf"

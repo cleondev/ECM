@@ -283,7 +283,7 @@ stages:
             '$(HARBOR_PASS)'
 
           module_mappings=(
-            AccessControl:iam
+            IAM:iam
             Document:doc
             File:doc
             Workflow:wf
@@ -293,11 +293,11 @@ stages:
           )
 
           require_env ECM_Database__Connections__iam \
-            "ECM_Database__Connections__iam / ConnectionStrings__AccessControl" \
+            "ECM_Database__Connections__iam / ConnectionStrings__IAM" \
             '$(ECM_Database__Connections__iam)' \
-            '$(ConnectionStrings__AccessControl)'
+            '$(ConnectionStrings__IAM)'
           if [[ -n "${ECM_Database__Connections__iam:-}" ]]; then
-            export ConnectionStrings__AccessControl="${ECM_Database__Connections__iam}"
+            export ConnectionStrings__IAM="${ECM_Database__Connections__iam}"
           fi
 
           require_env ECM_Database__Connections__doc \

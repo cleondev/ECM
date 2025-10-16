@@ -5,9 +5,9 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using AppGateway.Contracts.AccessControl.Relations;
-using AppGateway.Contracts.AccessControl.Roles;
-using AppGateway.Contracts.AccessControl.Users;
+using AppGateway.Contracts.IAM.Relations;
+using AppGateway.Contracts.IAM.Roles;
+using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Workflows;
@@ -23,14 +23,14 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
 
     public async Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, "api/access-control/users");
+        using var request = CreateRequest(HttpMethod.Get, "api/iam/users");
         var response = await SendAsync<IReadOnlyCollection<UserSummaryDto>>(request, cancellationToken);
         return response ?? [];
     }
 
     public async Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, $"api/access-control/users/{userId}");
+        using var request = CreateRequest(HttpMethod.Get, $"api/iam/users/{userId}");
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
@@ -41,102 +41,102 @@ internal sealed class EcmApiClient(HttpClient httpClient, IHttpContextAccessor h
             return null;
         }
 
-        var uri = QueryHelpers.AddQueryString("api/access-control/users/by-email", "email", email);
+        var uri = QueryHelpers.AddQueryString("api/iam/users/by-email", "email", email);
         using var request = CreateRequest(HttpMethod.Get, uri);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, "api/access-control/profile");
+        using var request = CreateRequest(HttpMethod.Get, "api/iam/profile");
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, "api/access-control/users");
+        using var request = CreateRequest(HttpMethod.Post, "api/iam/users");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Put, $"api/access-control/users/{userId}");
+        using var request = CreateRequest(HttpMethod.Put, $"api/iam/users/{userId}");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Put, "api/access-control/profile");
+        using var request = CreateRequest(HttpMethod.Put, "api/iam/profile");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, $"api/access-control/users/{userId}/roles");
+        using var request = CreateRequest(HttpMethod.Post, $"api/iam/users/{userId}/roles");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<UserSummaryDto?> RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Delete, $"api/access-control/users/{userId}/roles/{roleId}");
+        using var request = CreateRequest(HttpMethod.Delete, $"api/iam/users/{userId}/roles/{roleId}");
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<RoleSummaryDto>> GetRolesAsync(CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, "api/access-control/roles");
+        using var request = CreateRequest(HttpMethod.Get, "api/iam/roles");
         var response = await SendAsync<IReadOnlyCollection<RoleSummaryDto>>(request, cancellationToken);
         return response ?? [];
     }
 
     public async Task<RoleSummaryDto?> CreateRoleAsync(CreateRoleRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, "api/access-control/roles");
+        using var request = CreateRequest(HttpMethod.Post, "api/iam/roles");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<RoleSummaryDto>(request, cancellationToken);
     }
 
     public async Task<RoleSummaryDto?> RenameRoleAsync(Guid roleId, RenameRoleRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Put, $"api/access-control/roles/{roleId}");
+        using var request = CreateRequest(HttpMethod.Put, $"api/iam/roles/{roleId}");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<RoleSummaryDto>(request, cancellationToken);
     }
 
     public async Task<bool> DeleteRoleAsync(Guid roleId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Delete, $"api/access-control/roles/{roleId}");
+        using var request = CreateRequest(HttpMethod.Delete, $"api/iam/roles/{roleId}");
         return await SendAsync(request, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsBySubjectAsync(Guid subjectId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, $"api/access-control/relations/subjects/{subjectId}");
+        using var request = CreateRequest(HttpMethod.Get, $"api/iam/relations/subjects/{subjectId}");
         var response = await SendAsync<IReadOnlyCollection<AccessRelationDto>>(request, cancellationToken);
         return response ?? [];
     }
 
     public async Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsByObjectAsync(string objectType, Guid objectId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, $"api/access-control/relations/objects/{Uri.EscapeDataString(objectType)}/{objectId}");
+        using var request = CreateRequest(HttpMethod.Get, $"api/iam/relations/objects/{Uri.EscapeDataString(objectType)}/{objectId}");
         var response = await SendAsync<IReadOnlyCollection<AccessRelationDto>>(request, cancellationToken);
         return response ?? [];
     }
 
     public async Task<AccessRelationDto?> CreateRelationAsync(CreateAccessRelationRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, "api/access-control/relations");
+        using var request = CreateRequest(HttpMethod.Post, "api/iam/relations");
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<AccessRelationDto>(request, cancellationToken);
     }
 
     public async Task<bool> DeleteRelationAsync(Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default)
     {
-        var uri = $"api/access-control/relations/subjects/{subjectId}/objects/{Uri.EscapeDataString(objectType)}/{objectId}?relation={Uri.EscapeDataString(relation)}";
+        var uri = $"api/iam/relations/subjects/{subjectId}/objects/{Uri.EscapeDataString(objectType)}/{objectId}?relation={Uri.EscapeDataString(relation)}";
         using var request = CreateRequest(HttpMethod.Delete, uri);
         return await SendAsync(request, cancellationToken);
     }

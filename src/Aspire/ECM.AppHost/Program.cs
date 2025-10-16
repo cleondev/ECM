@@ -55,7 +55,7 @@ public static class Program
 
         var moduleDatabaseNames = new[]
         {
-            "AccessControl",
+            "IAM",
             "Document",
             "File",
             "Workflow",

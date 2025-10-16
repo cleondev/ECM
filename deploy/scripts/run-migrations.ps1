@@ -24,7 +24,7 @@ $rootDir = (Resolve-Path (Join-Paths $scriptDir '..' '..')).Path
 $startupProject = Join-Paths $rootDir 'src' 'ECM' 'ECM.Host' 'ECM.Host.csproj'
 
 $projects = @(
-    @{ Project = (Join-Paths $rootDir 'src' 'Modules' 'AccessControl' 'ECM.AccessControl.csproj'); Context = 'AccessControlDbContext' }
+    @{ Project = (Join-Paths $rootDir 'src' 'Modules' 'IAM' 'ECM.IAM.csproj'); Context = 'IamDbContext' }
     @{ Project = (Join-Paths $rootDir 'src' 'Modules' 'Document' 'ECM.Document.csproj'); Context = 'DocumentDbContext' }
     @{ Project = (Join-Paths $rootDir 'src' 'Modules' 'File' 'ECM.File.csproj'); Context = 'FileDbContext' }
 )

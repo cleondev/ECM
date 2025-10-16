@@ -6,9 +6,9 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using AppGateway.Contracts.AccessControl.Roles;
-using AppGateway.Contracts.AccessControl.Users;
-using AppGateway.Infrastructure.AccessControl;
+using AppGateway.Contracts.IAM.Roles;
+using AppGateway.Contracts.IAM.Users;
+using AppGateway.Infrastructure.IAM;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,11 +20,11 @@ public interface IUserProvisioningService
 
 public sealed class AzureAdUserProvisioningService(
     IEcmApiClient client,
-    IOptions<AccessControlOptions> options,
+    IOptions<IamOptions> options,
     ILogger<AzureAdUserProvisioningService> logger) : IUserProvisioningService
 {
     private readonly IEcmApiClient _client = client;
-    private readonly IOptions<AccessControlOptions> _options = options;
+    private readonly IOptions<IamOptions> _options = options;
     private readonly ILogger<AzureAdUserProvisioningService> _logger = logger;
 
     public async Task EnsureUserExistsAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)
