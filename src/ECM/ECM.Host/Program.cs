@@ -2,6 +2,7 @@ using ECM.Abstractions;
 using ECM.AccessControl.Api;
 using ECM.Document.Api;
 using ECM.File.Api;
+using ECM.SearchIndexer.Infrastructure;
 using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
@@ -36,6 +37,8 @@ public static class Program
         builder.AddModule<WorkflowModule>();
         builder.AddModule<SignatureModule>();
         builder.AddModule<SearchReadModule>();
+
+        builder.Services.AddSearchIndexerInfrastructure();
 
         builder.Services.AddAuthentication(options =>
         {
