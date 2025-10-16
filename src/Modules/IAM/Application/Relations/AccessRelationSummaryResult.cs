@@ -2,7 +2,7 @@ namespace ECM.IAM.Application.Relations;
 
 using System;
 
-public sealed record AccessRelationSummary(
+public sealed record AccessRelationSummaryResult(
     Guid SubjectId,
     string ObjectType,
     Guid ObjectId,

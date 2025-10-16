@@ -8,9 +8,9 @@ public sealed class GetUserByIdQueryHandler(IUserRepository userRepository)
 {
     private readonly IUserRepository _userRepository = userRepository;
 
-    public async Task<UserSummary?> HandleAsync(GetUserByIdQuery query, CancellationToken cancellationToken = default)
+    public async Task<UserSummaryResult?> HandleAsync(GetUserByIdQuery query, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(query.UserId, cancellationToken);
-        return user is null ? null : UserSummaryMapper.ToSummary(user);
+        return user is null ? null : user.ToResult();
     }
 }

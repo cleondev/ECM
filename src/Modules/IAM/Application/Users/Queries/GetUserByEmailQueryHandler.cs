@@ -9,7 +9,7 @@ public sealed class GetUserByEmailQueryHandler(IUserRepository repository)
 {
     private readonly IUserRepository _repository = repository;
 
-    public async Task<UserSummary?> HandleAsync(GetUserByEmailQuery query, CancellationToken cancellationToken = default)
+    public async Task<UserSummaryResult?> HandleAsync(GetUserByEmailQuery query, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query.Email))
         {
@@ -17,6 +17,6 @@ public sealed class GetUserByEmailQueryHandler(IUserRepository repository)
         }
 
         var user = await _repository.GetByEmailAsync(query.Email, cancellationToken);
-        return user is null ? null : UserSummaryMapper.ToSummary(user);
+        return user is null ? null : user.ToResult();
     }
 }

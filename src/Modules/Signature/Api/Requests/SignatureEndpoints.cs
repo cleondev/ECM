@@ -53,7 +53,7 @@ public static class SignatureEndpoints
     }
 
     private static async Task<Results<Created<SignatureRequest>, ValidationProblem>> CreateSignature(
-        CreateSignatureRequest request,
+        CreateSignatureRequestRequest request,
         CreateSignatureRequestCommandHandler handler,
         CancellationToken cancellationToken)
     {

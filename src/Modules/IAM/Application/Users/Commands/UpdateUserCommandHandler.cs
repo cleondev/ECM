@@ -10,12 +10,12 @@ public sealed class UpdateUserCommandHandler(IUserRepository userRepository)
 {
     private readonly IUserRepository _userRepository = userRepository;
 
-    public async Task<OperationResult<UserSummary>> HandleAsync(UpdateUserCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<UserSummaryResult>> HandleAsync(UpdateUserCommand command, CancellationToken cancellationToken = default)
     {
         var user = await _userRepository.GetByIdAsync(command.UserId, cancellationToken);
         if (user is null)
         {
-            return OperationResult<UserSummary>.Failure($"User '{command.UserId}' was not found.");
+            return OperationResult<UserSummaryResult>.Failure($"User '{command.UserId}' was not found.");
         }
 
         try
@@ -25,7 +25,7 @@ public sealed class UpdateUserCommandHandler(IUserRepository userRepository)
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<UserSummary>.Failure(exception.Message);
+            return OperationResult<UserSummaryResult>.Failure(exception.Message);
         }
 
         if (command.IsActive.HasValue)
@@ -42,6 +42,6 @@ public sealed class UpdateUserCommandHandler(IUserRepository userRepository)
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 
-        return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
+        return OperationResult<UserSummaryResult>.Success(user.ToResult());
     }
 }

@@ -10,9 +10,9 @@ public sealed class GetUsersQueryHandler(IUserRepository userRepository)
 {
     private readonly IUserRepository _userRepository = userRepository;
 
-    public async Task<IReadOnlyCollection<UserSummary>> HandleAsync(GetUsersQuery query, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<UserSummaryResult>> HandleAsync(GetUsersQuery query, CancellationToken cancellationToken = default)
     {
         var users = await _userRepository.GetAllAsync(cancellationToken);
-        return [.. users.Select(UserSummaryMapper.ToSummary)];
+        return [.. users.Select(user => user.ToResult())];
     }
 }

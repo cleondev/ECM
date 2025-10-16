@@ -38,7 +38,7 @@ public class CreateDocumentCommandHandlerTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        var summary = Assert.IsType<DocumentSummary>(result.Value);
+        var summary = Assert.IsType<DocumentSummaryResult>(result.Value);
         Assert.Equal("Employee Handbook", summary.Title);
         Assert.Equal("Policy", summary.DocType);
         Assert.Equal("Draft", summary.Status);

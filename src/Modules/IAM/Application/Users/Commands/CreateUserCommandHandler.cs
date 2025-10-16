@@ -19,11 +19,11 @@ public sealed class CreateUserCommandHandler(
     private readonly IRoleRepository _roleRepository = roleRepository;
     private readonly ISystemClock _clock = clock;
 
-    public async Task<OperationResult<UserSummary>> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<UserSummaryResult>> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken = default)
     {
         if (await _userRepository.GetByEmailAsync(command.Email, cancellationToken) is not null)
         {
-            return OperationResult<UserSummary>.Failure($"A user with email '{command.Email}' already exists.");
+            return OperationResult<UserSummaryResult>.Failure($"A user with email '{command.Email}' already exists.");
         }
 
         User user;
@@ -38,7 +38,7 @@ public sealed class CreateUserCommandHandler(
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<UserSummary>.Failure(exception.Message);
+            return OperationResult<UserSummaryResult>.Failure(exception.Message);
         }
 
         if (command.RoleIds.Count > 0)
@@ -48,7 +48,7 @@ public sealed class CreateUserCommandHandler(
                 var role = await _roleRepository.GetByIdAsync(roleId, cancellationToken);
                 if (role is null)
                 {
-                    return OperationResult<UserSummary>.Failure($"Role '{roleId}' was not found.");
+                    return OperationResult<UserSummaryResult>.Failure($"Role '{roleId}' was not found.");
                 }
 
                 user.AssignRole(role, _clock.UtcNow);
@@ -57,6 +57,6 @@ public sealed class CreateUserCommandHandler(
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
+        return OperationResult<UserSummaryResult>.Success(user.ToResult());
     }
 }

@@ -10,19 +10,19 @@ public sealed class UpdateUserProfileCommandHandler(IUserRepository userReposito
 {
     private readonly IUserRepository _userRepository = userRepository;
 
-    public async Task<OperationResult<UserSummary>> HandleAsync(
+    public async Task<OperationResult<UserSummaryResult>> HandleAsync(
         UpdateUserProfileCommand command,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(command.Email))
         {
-            return OperationResult<UserSummary>.Failure("User email is required.");
+            return OperationResult<UserSummaryResult>.Failure("User email is required.");
         }
 
         var user = await _userRepository.GetByEmailAsync(command.Email, cancellationToken);
         if (user is null)
         {
-            return OperationResult<UserSummary>.Failure($"User with email '{command.Email}' was not found.");
+            return OperationResult<UserSummaryResult>.Failure($"User with email '{command.Email}' was not found.");
         }
 
         try
@@ -32,11 +32,11 @@ public sealed class UpdateUserProfileCommandHandler(IUserRepository userReposito
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<UserSummary>.Failure(exception.Message);
+            return OperationResult<UserSummaryResult>.Failure(exception.Message);
         }
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 
-        return OperationResult<UserSummary>.Success(UserSummaryMapper.ToSummary(user));
+        return OperationResult<UserSummaryResult>.Success(user.ToResult());
     }
 }

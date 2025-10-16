@@ -13,7 +13,7 @@ public sealed class CreateDocumentCommandHandler(IDocumentRepository repository,
     private readonly IDocumentRepository _repository = repository;
     private readonly ISystemClock _clock = clock;
 
-    public async Task<OperationResult<DocumentSummary>> HandleAsync(CreateDocumentCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<DocumentSummaryResult>> HandleAsync(CreateDocumentCommand command, CancellationToken cancellationToken = default)
     {
         DocumentTitle title;
         try
@@ -22,7 +22,7 @@ public sealed class CreateDocumentCommandHandler(IDocumentRepository repository,
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<DocumentSummary>.Failure(exception.Message);
+            return OperationResult<DocumentSummaryResult>.Failure(exception.Message);
         }
 
         DocumentEntity document;
@@ -41,11 +41,11 @@ public sealed class CreateDocumentCommandHandler(IDocumentRepository repository,
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<DocumentSummary>.Failure(exception.Message);
+            return OperationResult<DocumentSummaryResult>.Failure(exception.Message);
         }
 
         document = await _repository.AddAsync(document, cancellationToken);
 
-        return OperationResult<DocumentSummary>.Success(DocumentSummaryMapper.ToSummary(document));
+        return OperationResult<DocumentSummaryResult>.Success(document.ToResult());
     }
 }

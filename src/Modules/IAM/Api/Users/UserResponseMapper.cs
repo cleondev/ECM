@@ -7,7 +7,7 @@ namespace ECM.IAM.Api.Users;
 
 internal static class UserResponseMapper
 {
-    public static UserResponse Map(UserSummary summary)
+    public static UserResponse Map(UserSummaryResult summary)
         => new(
             summary.Id,
             summary.Email,

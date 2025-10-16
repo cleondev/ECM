@@ -108,7 +108,7 @@ public static class RelationEndpoints
         return TypedResults.NoContent();
     }
 
-    private static AccessRelationResponse MapToResponse(AccessRelationSummary summary)
+    private static AccessRelationResponse MapToResponse(AccessRelationSummaryResult summary)
         => new(
             summary.SubjectId,
             summary.ObjectType,

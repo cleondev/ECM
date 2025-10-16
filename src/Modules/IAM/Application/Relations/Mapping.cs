@@ -3,13 +3,13 @@ using ECM.IAM.Domain.Relations;
 
 namespace ECM.IAM.Application.Relations;
 
-internal static class AccessRelationSummaryMapper
+internal static class Mapping
 {
-    public static AccessRelationSummary ToSummary(AccessRelation relation)
+    public static AccessRelationSummaryResult ToResult(this AccessRelation relation)
     {
         ArgumentNullException.ThrowIfNull(relation);
 
-        return new AccessRelationSummary(
+        return new AccessRelationSummaryResult(
             relation.SubjectId,
             relation.ObjectType,
             relation.ObjectId,
