@@ -96,7 +96,7 @@ public static class Program
         var ecmHost = builder.AddProject<Projects.ECM_Host>("ecm")
             .WithReference(kafka)
             .WithReference(minio)
-            .WithHttpEndpoint(targetPort: ecmUri.Port, port: ecmUri.Port)
+            .WithHttpEndpoint(targetPort: ecmUri.Port, port: ecmUri.Port, name: "ecm-http")
             .WithEnvironment("ASPNETCORE_URLS", ecmUri.ToString());
 
         foreach (var moduleDatabase in moduleDatabases.Values)
@@ -106,7 +106,7 @@ public static class Program
 
         builder.AddProject<Projects.AppGateway_Api>("app-gateway")
             .WithReference(ecmHost)
-            .WithHttpEndpoint(targetPort: gatewayUri.Port, port: gatewayUri.Port)
+            .WithHttpEndpoint(targetPort: gatewayUri.Port, port: gatewayUri.Port, name: "app-gateway-http")
             .WithEnvironment("ASPNETCORE_URLS", gatewayUri.ToString())
             .WithEnvironment("Services__Ecm", ecmUri.ToString());
 
