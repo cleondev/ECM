@@ -1,5 +1,6 @@
+using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Extensions.Configuration;
 
 namespace AppHost;
@@ -50,11 +51,31 @@ public static class Program
             builder.Configuration.AddInMemoryCollection(dashboardDefaults);
         }
 
-        var connectionStrings = builder.Configuration
-            .GetSection("ConnectionStrings")
-            .GetChildren()
-            .Where(section => !string.IsNullOrWhiteSpace(section.Value))
-            .ToDictionary(section => section.Key, section => section.Value!);
+        var moduleDatabaseNames = new[]
+        {
+            "AccessControl",
+            "Document",
+            "File",
+            "Workflow",
+            "Search",
+            "Ocr",
+            "Operations"
+        };
+
+        var moduleDatabases = new Dictionary<string, IResourceBuilder<ParameterResource>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var moduleDatabaseName in moduleDatabaseNames)
+        {
+            var connectionString = builder.Configuration.GetConnectionString(moduleDatabaseName);
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new InvalidOperationException(
+                    $"Connection string '{moduleDatabaseName}' must be configured in the Aspire AppHost before starting the application.");
+            }
+
+            moduleDatabases[moduleDatabaseName] = builder.AddConnectionString(moduleDatabaseName);
+        }
 
         var kafka = builder.AddConnectionString("kafka");
         var minio = builder.AddConnectionString("minio");
@@ -67,9 +88,9 @@ public static class Program
             .WithReference(minio)
             .WithEnvironment("ASPNETCORE_URLS", ecmUrl);
 
-        foreach (var (name, value) in connectionStrings)
+        foreach (var moduleDatabase in moduleDatabases.Values)
         {
-            ecmHost = ecmHost.WithEnvironment($"ConnectionStrings__{name}", value);
+            ecmHost = ecmHost.WithReference(moduleDatabase);
         }
 
         builder.AddProject<Projects.AppGateway_Api>("app-gateway")
@@ -79,16 +100,13 @@ public static class Program
 
         var searchIndexer = builder.AddProject<Projects.SearchIndexer>("search-indexer")
             .WithReference(kafka)
-            .WithReference(ecmHost);
-
-        if (connectionStrings.TryGetValue("Search", out var searchConnection))
-        {
-            searchIndexer = searchIndexer.WithEnvironment("ConnectionStrings__Search", searchConnection);
-        }
+            .WithReference(ecmHost)
+            .WithReference(moduleDatabases["Search"]);
 
         var outboxDispatcher = builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
             .WithReference(kafka)
-            .WithReference(ecmHost);
+            .WithReference(ecmHost)
+            .WithReference(moduleDatabases["Operations"]);
 
         if (connectionStrings.TryGetValue("Operations", out var operationsConnection))
         {
