@@ -21,4 +21,10 @@ public sealed class SignatureRequest(Guid id, Guid documentId, string signerEmai
         Status = SignatureStatus.Completed;
         CompletedAtUtc = completedAtUtc;
     }
+
+    public void Cancel(DateTimeOffset cancelledAtUtc)
+    {
+        Status = SignatureStatus.Cancelled;
+        CompletedAtUtc = cancelledAtUtc;
+    }
 }

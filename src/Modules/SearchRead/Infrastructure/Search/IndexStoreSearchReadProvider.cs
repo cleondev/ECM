@@ -30,6 +30,82 @@ internal sealed class IndexStoreSearchReadProvider(ISearchIndexReader reader) : 
         return results;
     }
 
+    public async Task<IReadOnlyCollection<string>> SuggestAsync(
+        string term,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var records = await _reader.ListAsync(cancellationToken).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            return records
+                .Select(record => record.Title)
+                .Where(title => !string.IsNullOrWhiteSpace(title))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(limit)
+                .ToArray();
+        }
+
+        var comparison = StringComparison.OrdinalIgnoreCase;
+        var normalizedTerm = term.Trim();
+
+        var suggestions = records
+            .Select(record => record.Title)
+            .Where(title => !string.IsNullOrWhiteSpace(title) && title.Contains(normalizedTerm, comparison))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(limit)
+            .ToArray();
+
+        return suggestions;
+    }
+
+    public async Task<SearchFacetsResult> GetFacetsAsync(
+        SearchFacetsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        var records = await _reader.ListAsync(cancellationToken).ConfigureAwait(false);
+        var filtered = records.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(query.Term))
+        {
+            filtered = filtered
+                .Where(record => record.Title.Contains(query.Term, StringComparison.OrdinalIgnoreCase) || record.Content.Contains(query.Term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var facets = new Dictionary<string, Dictionary<string, int>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var record in filtered)
+        {
+            if (!string.IsNullOrWhiteSpace(query.Department)
+                && (!record.Metadata.TryGetValue("department", out var dept) || !dept.Equals(query.Department, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            AddFacetValue(facets, "tags", record.Tags);
+            AddFacetValue(facets, "indexingType", record.IndexingType.ToString());
+
+            foreach (var (key, value) in record.Metadata)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
+                AddFacetValue(facets, $"metadata:{key}", value);
+            }
+        }
+
+        var result = facets.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyDictionary<string, int>)pair.Value,
+            StringComparer.OrdinalIgnoreCase);
+
+        return result.Count == 0
+            ? SearchFacetsResult.Empty
+            : new SearchFacetsResult(result);
+    }
+
     private static double CalculateScore(SearchIndexRecord record, string term)
     {
         if (string.IsNullOrWhiteSpace(term))
@@ -62,5 +138,35 @@ internal sealed class IndexStoreSearchReadProvider(ISearchIndexReader reader) : 
         }
 
         return score;
+    }
+
+    private static void AddFacetValue(
+        IDictionary<string, Dictionary<string, int>> facets,
+        string name,
+        IEnumerable<string> values)
+    {
+        foreach (var value in values)
+        {
+            AddFacetValue(facets, name, value);
+        }
+    }
+
+    private static void AddFacetValue(
+        IDictionary<string, Dictionary<string, int>> facets,
+        string name,
+        string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        if (!facets.TryGetValue(name, out var bucket))
+        {
+            bucket = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            facets[name] = bucket;
+        }
+
+        bucket[value] = bucket.TryGetValue(value, out var count) ? count + 1 : 1;
     }
 }

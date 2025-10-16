@@ -9,5 +9,9 @@ public interface ISignatureRequestRepository
 {
     Task AddAsync(SignatureRequest request, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<SignatureRequest>> GetPendingAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<SignatureRequest>> GetAsync(SignatureRequestQuery query, CancellationToken cancellationToken = default);
+
+    Task<SignatureRequest?> FindAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task UpdateAsync(SignatureRequest request, CancellationToken cancellationToken = default);
 }

@@ -21,6 +21,12 @@ public static class SearchEndpoints
         group.MapGet("/", SearchAsync)
              .WithName("SearchDocuments");
 
+        group.MapGet("/suggest", SuggestAsync)
+             .WithName("SuggestDocuments");
+
+        group.MapGet("/facets", FacetsAsync)
+             .WithName("SearchFacets");
+
         return group;
     }
 
@@ -29,5 +35,19 @@ public static class SearchEndpoints
         var query = new SearchQuery(request.Term, request.Department, request.Limit);
         var results = await handler.HandleAsync(query, cancellationToken);
         return TypedResults.Ok(results);
+    }
+
+    private static async Task<Ok<IReadOnlyCollection<string>>> SuggestAsync([AsParameters] SuggestRequest request, SuggestQueryHandler handler, CancellationToken cancellationToken)
+    {
+        var query = new SuggestQuery(request.Term, request.Limit);
+        var suggestions = await handler.HandleAsync(query, cancellationToken);
+        return TypedResults.Ok(suggestions);
+    }
+
+    private static async Task<Ok<SearchFacetsResult>> FacetsAsync([AsParameters] SearchFacetsRequest request, SearchFacetsQueryHandler handler, CancellationToken cancellationToken)
+    {
+        var query = new SearchFacetsQuery(request.Term, request.Department);
+        var facets = await handler.HandleAsync(query, cancellationToken);
+        return TypedResults.Ok(facets);
     }
 }
