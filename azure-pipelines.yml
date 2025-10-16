@@ -273,20 +273,55 @@ stages:
             Operations:ops
           )
 
-          for mapping in "${module_mappings[@]}"; do
-            module="${mapping%%:*}"
-            schema="${mapping##*:}"
+          require_env ECM_Database__Connections__iam \
+            "ECM_Database__Connections__iam / ConnectionStrings__AccessControl" \
+            '$(ECM_Database__Connections__iam)' \
+            '$(ConnectionStrings__AccessControl)'
+          if [[ -n "${ECM_Database__Connections__iam:-}" ]]; then
+            export ConnectionStrings__AccessControl="${ECM_Database__Connections__iam}"
+          fi
 
-            var="ECM_Database__Connections__${schema}"
-            secret_ref="\$(ECM_Database__Connections__${schema})"
-            require_env "$var" "$var" "$secret_ref"
+          require_env ECM_Database__Connections__doc \
+            "ECM_Database__Connections__doc / ConnectionStrings__Document" \
+            '$(ECM_Database__Connections__doc)' \
+            '$(ConnectionStrings__Document)' \
+            '$(ConnectionStrings__File)'
+          if [[ -n "${ECM_Database__Connections__doc:-}" ]]; then
+            export ConnectionStrings__Document="${ECM_Database__Connections__doc}"
+            export ConnectionStrings__File="${ECM_Database__Connections__doc}"
+          fi
 
-            resolved="${!var:-}"
-            if [[ -n "$resolved" ]]; then
-              printf -v "ConnectionStrings__${module}" '%s' "$resolved"
-              export "ConnectionStrings__${module}"
-            fi
-          done
+          require_env ECM_Database__Connections__wf \
+            "ECM_Database__Connections__wf / ConnectionStrings__Workflow" \
+            '$(ECM_Database__Connections__wf)' \
+            '$(ConnectionStrings__Workflow)'
+          if [[ -n "${ECM_Database__Connections__wf:-}" ]]; then
+            export ConnectionStrings__Workflow="${ECM_Database__Connections__wf}"
+          fi
+
+          require_env ECM_Database__Connections__search \
+            "ECM_Database__Connections__search / ConnectionStrings__Search" \
+            '$(ECM_Database__Connections__search)' \
+            '$(ConnectionStrings__Search)'
+          if [[ -n "${ECM_Database__Connections__search:-}" ]]; then
+            export ConnectionStrings__Search="${ECM_Database__Connections__search}"
+          fi
+
+          require_env ECM_Database__Connections__ocr \
+            "ECM_Database__Connections__ocr / ConnectionStrings__Ocr" \
+            '$(ECM_Database__Connections__ocr)' \
+            '$(ConnectionStrings__Ocr)'
+          if [[ -n "${ECM_Database__Connections__ocr:-}" ]]; then
+            export ConnectionStrings__Ocr="${ECM_Database__Connections__ocr}"
+          fi
+
+          require_env ECM_Database__Connections__ops \
+            "ECM_Database__Connections__ops / ConnectionStrings__Operations" \
+            '$(ECM_Database__Connections__ops)' \
+            '$(ConnectionStrings__Operations)'
+          if [[ -n "${ECM_Database__Connections__ops:-}" ]]; then
+            export ConnectionStrings__Operations="${ECM_Database__Connections__ops}"
+          fi
 
           require_env ECM_FileStorage__BucketName "ECM_FileStorage__BucketName" '$(ECM_FileStorage__BucketName)'
           require_env ECM_FileStorage__ServiceUrl "ECM_FileStorage__ServiceUrl" '$(ECM_FileStorage__ServiceUrl)'
@@ -353,8 +388,8 @@ stages:
           log_var ECM_AzureAd__ClientSecret
 
           # Harbor (deploy side)
-          HARBOR_USER_VAL="$(HARBOR_USER)"
-          HARBOR_PASS_VAL="$(HARBOR_PASS)"
+          HARBOR_USER_VAL="$HARBOR_USER"
+          HARBOR_PASS_VAL="$HARBOR_PASS"
           if [[ -n "$HARBOR_USER_VAL" ]]; then echo "[OK] HARBOR_USER=$(mask_value "$HARBOR_USER_VAL")"; else echo "[MISSING] HARBOR_USER"; fi
           if [[ -n "$HARBOR_PASS_VAL" ]]; then echo "[OK] HARBOR_PASS=$(mask_value "$HARBOR_PASS_VAL")"; else echo "[MISSING] HARBOR_PASS"; fi
 
@@ -379,7 +414,7 @@ stages:
           export IMAGE_TAG
 
           echo "= Login Harbor"
-          echo "$(HARBOR_PASS)" | docker login harbor.local:8443 -u "$(HARBOR_USER)" --password-stdin
+          echo "$HARBOR_PASS" | docker login harbor.local:8443 -u "$HARBOR_USER" --password-stdin
 
           echo "+ Pulling images..."
           docker compose pull
