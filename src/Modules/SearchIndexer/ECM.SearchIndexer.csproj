@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
+    <ProjectReference Include="../Abstractions/ECM.Abstractions.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Hangfire" />

@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.Workflow.Application.Workflows;
 using ECM.Workflow.Application.Workflows.Commands;
+using ECM.Workflow.Application.Workflows.Tasks;
 using ECM.Workflow.Domain.Definitions;
 using ECM.Workflow.Domain.Instances;
+using ECM.Workflow.Domain.Tasks;
 using Xunit;
 
 namespace Workflow.Tests.Application.Workflows;
@@ -60,5 +62,32 @@ public class StartWorkflowCommandHandlerTests
             StartCancellationToken = cancellationToken;
             return Task.FromResult(StartResult ?? OperationResult<WorkflowInstance>.Failure("Start result not configured"));
         }
+
+        public Task<IReadOnlyCollection<WorkflowDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<WorkflowDefinition>>(Array.Empty<WorkflowDefinition>());
+
+        public Task<WorkflowDefinition?> GetDefinitionByIdAsync(string definitionId, CancellationToken cancellationToken = default)
+            => Task.FromResult<WorkflowDefinition?>(null);
+
+        public Task<WorkflowInstance?> GetInstanceByExternalIdAsync(string instanceId, CancellationToken cancellationToken = default)
+            => Task.FromResult<WorkflowInstance?>(null);
+
+        public Task<OperationResult> CancelInstanceAsync(string instanceId, string? reason, CancellationToken cancellationToken = default)
+            => Task.FromResult(OperationResult.Success());
+
+        public Task<IReadOnlyCollection<WorkflowTask>> GetTasksAsync(WorkflowTaskQuery query, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<WorkflowTask>>(Array.Empty<WorkflowTask>());
+
+        public Task<WorkflowTask?> GetTaskAsync(string taskId, CancellationToken cancellationToken = default)
+            => Task.FromResult<WorkflowTask?>(null);
+
+        public Task<OperationResult> ClaimTaskAsync(string taskId, string assigneeId, CancellationToken cancellationToken = default)
+            => Task.FromResult(OperationResult.Success());
+
+        public Task<OperationResult> CompleteTaskAsync(CompleteWorkflowTaskCommand command, CancellationToken cancellationToken = default)
+            => Task.FromResult(OperationResult.Success());
+
+        public Task<OperationResult> ReassignTaskAsync(string taskId, string assigneeId, CancellationToken cancellationToken = default)
+            => Task.FromResult(OperationResult.Success());
     }
 }

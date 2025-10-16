@@ -202,6 +202,12 @@ public class UploadDocumentCommandHandlerTests
         public Task<DomainDocument?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default)
             => Task.FromResult<DomainDocument?>(null);
 
+        public Task DeleteAsync(DomainDocument document, CancellationToken cancellationToken = default)
+        {
+            Documents.Remove(document);
+            return Task.CompletedTask;
+        }
+
         public Task SaveChangesAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
     }

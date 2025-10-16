@@ -45,5 +45,11 @@ public class SearchQueryHandlerTests
             ReceivedCancellationToken = cancellationToken;
             return Task.FromResult(Results);
         }
+
+        public Task<IReadOnlyCollection<string>> SuggestAsync(string term, int limit, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<string>>(Array.Empty<string>());
+
+        public Task<SearchFacetsResult> GetFacetsAsync(SearchFacetsQuery query, CancellationToken cancellationToken = default)
+            => Task.FromResult(SearchFacetsResult.Empty);
     }
 }
