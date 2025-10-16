@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using ECM.Signature.Api;
 using ECM.Signature.Application.Requests.Commands;
 using ECM.Signature.Application.Requests.Queries;
 using ECM.Signature.Domain.Requests;
@@ -17,6 +18,7 @@ public static class SignatureEndpoints
     {
         var group = builder.MapGroup("/api/ecm/signatures");
         group.WithTags("Signature");
+        group.WithGroupName(SignatureSwagger.DocumentName);
 
         group.MapGet("/", GetPending)
              .WithName("GetPendingSignatures");

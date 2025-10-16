@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using ECM.Document.Api;
 using ECM.Document.Application.Tags.Commands;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +17,7 @@ public static class TagEndpoints
     {
         var tagGroup = builder.MapGroup("/api/ecm/tags");
         tagGroup.WithTags("Tags");
+        tagGroup.WithGroupName(DocumentSwagger.DocumentName);
 
         tagGroup.MapPost("/", CreateTagAsync)
             .WithName("CreateTag")
@@ -27,6 +29,7 @@ public static class TagEndpoints
 
         var documentTagGroup = builder.MapGroup("/api/ecm/documents/{documentId:guid}/tags");
         documentTagGroup.WithTags("Document Tags");
+        documentTagGroup.WithGroupName(DocumentSwagger.DocumentName);
 
         documentTagGroup.MapPost("/", AssignTagAsync)
             .WithName("AssignDocumentTag")

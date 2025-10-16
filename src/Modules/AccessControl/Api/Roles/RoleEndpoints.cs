@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Api;
 using ECM.AccessControl.Application.Roles.Commands;
 using ECM.AccessControl.Application.Roles.Queries;
 using Microsoft.AspNetCore.Builder;
@@ -18,6 +19,7 @@ public static class RoleEndpoints
     {
         var group = builder.MapGroup("/api/access-control/roles");
         group.WithTags("Access Control - Roles");
+        group.WithGroupName(AccessControlSwagger.DocumentName);
         group.RequireAuthorization();
 
         group.MapGet("/", GetRolesAsync)

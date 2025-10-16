@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.AccessControl.Api.Roles;
 using ECM.AccessControl.Application.Users;
+using ECM.AccessControl.Api;
 using ECM.AccessControl.Application.Users.Commands;
 using ECM.AccessControl.Application.Users.Queries;
 using Microsoft.AspNetCore.Builder;
@@ -20,6 +21,7 @@ public static class UserEndpoints
     {
         var group = builder.MapGroup("/api/access-control/users");
         group.WithTags("Access Control - Users");
+        group.WithGroupName(AccessControlSwagger.DocumentName);
         group.RequireAuthorization();
 
         group.MapGet("/", GetUsersAsync)

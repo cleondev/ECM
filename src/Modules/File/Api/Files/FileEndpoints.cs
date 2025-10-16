@@ -1,4 +1,5 @@
 using ECM.Abstractions.Files;
+using ECM.File.Api;
 using ECM.File.Application.Files;
 using ECM.File.Domain.Files;
 
@@ -15,6 +16,7 @@ public static class FileEndpoints
     {
         var group = builder.MapGroup("/api/ecm/files");
         group.WithTags("Files");
+        group.WithGroupName(FileSwagger.DocumentName);
 
         group.MapGet("/", GetRecentFiles)
              .WithName("GetRecentFiles")
