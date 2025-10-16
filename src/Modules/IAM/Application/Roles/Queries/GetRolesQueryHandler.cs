@@ -10,9 +10,9 @@ public sealed class GetRolesQueryHandler(IRoleRepository repository)
 {
     private readonly IRoleRepository _repository = repository;
 
-    public async Task<IReadOnlyCollection<RoleSummary>> HandleAsync(GetRolesQuery query, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<RoleSummaryResult>> HandleAsync(GetRolesQuery query, CancellationToken cancellationToken = default)
     {
         var roles = await _repository.GetAllAsync(cancellationToken);
-        return [.. roles.Select(RoleSummaryMapper.FromRole)];
+        return [.. roles.Select(role => role.ToResult())];
     }
 }

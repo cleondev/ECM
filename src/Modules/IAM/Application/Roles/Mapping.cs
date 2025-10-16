@@ -4,20 +4,20 @@ using ECM.IAM.Domain.Users;
 
 namespace ECM.IAM.Application.Roles;
 
-internal static class RoleSummaryMapper
+internal static class Mapping
 {
-    public static RoleSummary FromRole(Role role)
+    public static RoleSummaryResult ToResult(this Role role)
     {
         ArgumentNullException.ThrowIfNull(role);
 
-        return new RoleSummary(role.Id, role.Name);
+        return new RoleSummaryResult(role.Id, role.Name);
     }
 
-    public static RoleSummary FromLink(UserRole link)
+    public static RoleSummaryResult ToResult(this UserRole link)
     {
         ArgumentNullException.ThrowIfNull(link);
 
         var name = link.Role?.Name ?? string.Empty;
-        return new RoleSummary(link.RoleId, name);
+        return new RoleSummaryResult(link.RoleId, name);
     }
 }

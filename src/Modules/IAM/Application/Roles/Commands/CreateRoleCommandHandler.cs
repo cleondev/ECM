@@ -11,11 +11,11 @@ public sealed class CreateRoleCommandHandler(IRoleRepository repository)
 {
     private readonly IRoleRepository _repository = repository;
 
-    public async Task<OperationResult<RoleSummary>> HandleAsync(CreateRoleCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<RoleSummaryResult>> HandleAsync(CreateRoleCommand command, CancellationToken cancellationToken = default)
     {
         if (await _repository.GetByNameAsync(command.Name, cancellationToken) is not null)
         {
-            return OperationResult<RoleSummary>.Failure($"Role '{command.Name}' already exists.");
+            return OperationResult<RoleSummaryResult>.Failure($"Role '{command.Name}' already exists.");
         }
 
         Role role;
@@ -25,11 +25,11 @@ public sealed class CreateRoleCommandHandler(IRoleRepository repository)
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<RoleSummary>.Failure(exception.Message);
+            return OperationResult<RoleSummaryResult>.Failure(exception.Message);
         }
 
         await _repository.AddAsync(role, cancellationToken);
 
-        return OperationResult<RoleSummary>.Success(RoleSummaryMapper.FromRole(role));
+        return OperationResult<RoleSummaryResult>.Success(role.ToResult());
     }
 }

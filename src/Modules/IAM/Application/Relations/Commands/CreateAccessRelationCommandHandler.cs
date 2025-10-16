@@ -15,11 +15,11 @@ public sealed class CreateAccessRelationCommandHandler(
     private readonly IAccessRelationRepository _repository = repository;
     private readonly ISystemClock _clock = clock;
 
-    public async Task<OperationResult<AccessRelationSummary>> HandleAsync(CreateAccessRelationCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<AccessRelationSummaryResult>> HandleAsync(CreateAccessRelationCommand command, CancellationToken cancellationToken = default)
     {
         if (await _repository.GetAsync(command.SubjectId, command.ObjectType, command.ObjectId, command.Relation, cancellationToken) is not null)
         {
-            return OperationResult<AccessRelationSummary>.Failure("The relation already exists.");
+            return OperationResult<AccessRelationSummaryResult>.Failure("The relation already exists.");
         }
 
         AccessRelation relation;
@@ -34,11 +34,11 @@ public sealed class CreateAccessRelationCommandHandler(
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<AccessRelationSummary>.Failure(exception.Message);
+            return OperationResult<AccessRelationSummaryResult>.Failure(exception.Message);
         }
 
         await _repository.AddAsync(relation, cancellationToken);
 
-        return OperationResult<AccessRelationSummary>.Success(AccessRelationSummaryMapper.ToSummary(relation));
+        return OperationResult<AccessRelationSummaryResult>.Success(relation.ToResult());
     }
 }

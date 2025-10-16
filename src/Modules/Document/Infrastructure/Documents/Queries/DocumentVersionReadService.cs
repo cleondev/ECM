@@ -12,12 +12,12 @@ public sealed class DocumentVersionReadService(DocumentDbContext context) : IDoc
 {
     private readonly DocumentDbContext _context = context;
 
-    public async Task<DocumentVersionReadModel?> GetByIdAsync(Guid versionId, CancellationToken cancellationToken = default)
+    public async Task<DocumentVersionResult?> GetByIdAsync(Guid versionId, CancellationToken cancellationToken = default)
     {
         return await _context.DocumentVersions
             .AsNoTracking()
             .Where(version => version.Id == versionId)
-            .Select(version => new DocumentVersionReadModel(
+            .Select(version => new DocumentVersionResult(
                 version.Id,
                 version.DocumentId.Value,
                 version.StorageKey,

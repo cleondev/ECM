@@ -10,9 +10,9 @@ public sealed class GetAccessRelationsBySubjectQueryHandler(IAccessRelationRepos
 {
     private readonly IAccessRelationRepository _repository = repository;
 
-    public async Task<IReadOnlyCollection<AccessRelationSummary>> HandleAsync(GetAccessRelationsBySubjectQuery query, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<AccessRelationSummaryResult>> HandleAsync(GetAccessRelationsBySubjectQuery query, CancellationToken cancellationToken = default)
     {
         var relations = await _repository.GetBySubjectAsync(query.SubjectId, cancellationToken);
-        return [.. relations.Select(AccessRelationSummaryMapper.ToSummary)];
+        return [.. relations.Select(relation => relation.ToResult())];
     }
 }

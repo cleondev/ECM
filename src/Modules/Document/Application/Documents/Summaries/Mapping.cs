@@ -5,13 +5,13 @@ using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Application.Documents.Summaries;
 
-internal static class DocumentSummaryMapper
+internal static class Mapping
 {
-    public static DocumentSummary ToSummary(DomainDocument document)
+    public static DocumentSummaryResult ToResult(this DomainDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        return new DocumentSummary(
+        return new DocumentSummaryResult(
             document.Id.Value,
             document.Title.Value,
             document.DocType,
@@ -25,12 +25,12 @@ internal static class DocumentSummaryMapper
             document.TypeId);
     }
 
-    public static DocumentWithVersionSummary ToSummary(DomainDocument document, DocumentVersion latestVersion)
+    public static DocumentWithVersionResult ToResult(this DomainDocument document, DocumentVersion latestVersion)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(latestVersion);
 
-        return new DocumentWithVersionSummary(
+        return new DocumentWithVersionResult(
             document.Id.Value,
             document.Title.Value,
             document.DocType,
@@ -42,14 +42,14 @@ internal static class DocumentSummaryMapper
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             document.TypeId,
-            ToSummary(latestVersion));
+            latestVersion.ToResult());
     }
 
-    public static DocumentVersionSummary ToSummary(DocumentVersion version)
+    public static DocumentVersionResult ToResult(this DocumentVersion version)
     {
         ArgumentNullException.ThrowIfNull(version);
 
-        return new DocumentVersionSummary(
+        return new DocumentVersionResult(
             version.Id,
             version.VersionNo,
             version.StorageKey,

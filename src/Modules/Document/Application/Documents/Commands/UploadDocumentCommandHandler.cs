@@ -20,7 +20,7 @@ public sealed class UploadDocumentCommandHandler(
     private readonly IFileStorageGateway _fileStorage = fileStorage;
     private readonly ISystemClock _clock = clock;
 
-    public async Task<OperationResult<DocumentWithVersionSummary>> HandleAsync(UploadDocumentCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<DocumentWithVersionResult>> HandleAsync(UploadDocumentCommand command, CancellationToken cancellationToken = default)
     {
         if (command is null)
         {
@@ -29,7 +29,7 @@ public sealed class UploadDocumentCommandHandler(
 
         if (command.FileSize <= 0)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure("File size must be greater than zero.");
+            return OperationResult<DocumentWithVersionResult>.Failure("File size must be greater than zero.");
         }
 
         DocumentTitle title;
@@ -39,7 +39,7 @@ public sealed class UploadDocumentCommandHandler(
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure(exception.Message);
+            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
         }
 
         var now = _clock.UtcNow;
@@ -60,7 +60,7 @@ public sealed class UploadDocumentCommandHandler(
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure(exception.Message);
+            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
         }
 
         var uploadRequest = new FileUploadRequest(
@@ -72,7 +72,7 @@ public sealed class UploadDocumentCommandHandler(
         var uploadResult = await _fileStorage.UploadAsync(uploadRequest, cancellationToken);
         if (uploadResult.IsFailure || uploadResult.Value is null)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure([.. uploadResult.Errors]);
+            return OperationResult<DocumentWithVersionResult>.Failure([.. uploadResult.Errors]);
         }
 
         DocumentVersion version;
@@ -88,12 +88,12 @@ public sealed class UploadDocumentCommandHandler(
         }
         catch (Exception exception) when (exception is ArgumentException or ArgumentOutOfRangeException)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure(exception.Message);
+            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
         }
 
         await _repository.AddAsync(document, cancellationToken);
 
-        return OperationResult<DocumentWithVersionSummary>.Success(
-            DocumentSummaryMapper.ToSummary(document, version));
+        return OperationResult<DocumentWithVersionResult>.Success(
+            document.ToResult(version));
     }
 }

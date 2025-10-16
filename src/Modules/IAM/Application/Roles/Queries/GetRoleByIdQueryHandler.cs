@@ -8,9 +8,9 @@ public sealed class GetRoleByIdQueryHandler(IRoleRepository repository)
 {
     private readonly IRoleRepository _repository = repository;
 
-    public async Task<RoleSummary?> HandleAsync(GetRoleByIdQuery query, CancellationToken cancellationToken = default)
+    public async Task<RoleSummaryResult?> HandleAsync(GetRoleByIdQuery query, CancellationToken cancellationToken = default)
     {
         var role = await _repository.GetByIdAsync(query.RoleId, cancellationToken);
-        return role is null ? null : RoleSummaryMapper.FromRole(role);
+        return role is null ? null : role.ToResult();
     }
 }

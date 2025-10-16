@@ -1,6 +1,6 @@
 namespace ECM.Document.Application.Documents.Summaries;
 
-public sealed record DocumentWithVersionSummary(
+public sealed record DocumentWithVersionResult(
     Guid Id,
     string Title,
     string DocType,
@@ -12,4 +12,4 @@ public sealed record DocumentWithVersionSummary(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     Guid? DocumentTypeId,
-    DocumentVersionSummary? LatestVersion);
+    DocumentVersionResult? LatestVersion);

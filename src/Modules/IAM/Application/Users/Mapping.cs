@@ -5,17 +5,17 @@ using ECM.IAM.Domain.Users;
 
 namespace ECM.IAM.Application.Users;
 
-internal static class UserSummaryMapper
+internal static class Mapping
 {
-    public static UserSummary ToSummary(User user)
+    public static UserSummaryResult ToResult(this User user)
     {
         ArgumentNullException.ThrowIfNull(user);
 
         var roles = user.Roles
-            .Select(RoleSummaryMapper.FromLink)
+            .Select(link => link.ToResult())
             .ToArray();
 
-        return new UserSummary(
+        return new UserSummaryResult(
             user.Id,
             user.Email,
             user.DisplayName,

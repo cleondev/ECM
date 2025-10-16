@@ -1,6 +1,6 @@
 namespace ECM.Document.Application.Documents.Summaries;
 
-public sealed record DocumentSummary(
+public sealed record DocumentSummaryResult(
     Guid Id,
     string Title,
     string DocType,

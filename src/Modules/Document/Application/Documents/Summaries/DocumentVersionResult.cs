@@ -1,6 +1,6 @@
 namespace ECM.Document.Application.Documents.Summaries;
 
-public sealed record DocumentVersionSummary(
+public sealed record DocumentVersionResult(
     Guid Id,
     int VersionNo,
     string StorageKey,
