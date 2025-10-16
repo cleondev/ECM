@@ -263,6 +263,13 @@ stages:
             '$(ECM_AzureAd__ClientSecret)' \
             "${AzureAd__ClientSecret:-}"
 
+          require_env HARBOR_USER \
+            "HARBOR_USER" \
+            '$(HARBOR_USER)'
+          require_env HARBOR_PASS \
+            "HARBOR_PASS" \
+            '$(HARBOR_PASS)'
+
           module_mappings=(
             AccessControl:iam
             Document:doc
@@ -388,8 +395,8 @@ stages:
           log_var ECM_AzureAd__ClientSecret
 
           # Harbor (deploy side)
-          HARBOR_USER_VAL="$HARBOR_USER"
-          HARBOR_PASS_VAL="$HARBOR_PASS"
+          HARBOR_USER_VAL="${HARBOR_USER:-}"
+          HARBOR_PASS_VAL="${HARBOR_PASS:-}"
           if [[ -n "$HARBOR_USER_VAL" ]]; then echo "[OK] HARBOR_USER=$(mask_value "$HARBOR_USER_VAL")"; else echo "[MISSING] HARBOR_USER"; fi
           if [[ -n "$HARBOR_PASS_VAL" ]]; then echo "[OK] HARBOR_PASS=$(mask_value "$HARBOR_PASS_VAL")"; else echo "[MISSING] HARBOR_PASS"; fi
 
