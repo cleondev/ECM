@@ -13,6 +13,8 @@ using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Infrastructure.Persistence;
 
+using DomainDocument = ECM.Document.Domain.Documents.Document;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -263,7 +265,7 @@ public static class DocumentEndpoints
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["dimensions"] = ["Parameters 'w' and 'h' must be positive integers."]
-            }, statusCode: StatusCodes.Status400BadRequest);
+            });
         }
 
         var normalizedFit = string.IsNullOrWhiteSpace(fit)
@@ -275,7 +277,7 @@ public static class DocumentEndpoints
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["fit"] = ["Parameter 'fit' must be either 'cover' or 'contain'."]
-            }, statusCode: StatusCodes.Status400BadRequest);
+            });
         }
 
         var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
@@ -322,7 +324,7 @@ public static class DocumentEndpoints
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["storageKey"] = ["A valid storage key is required to access the file."]
-            }, statusCode: StatusCodes.Status400BadRequest);
+            });
         }
 
         return TypedResults.Problem(
@@ -338,7 +340,7 @@ public static class DocumentEndpoints
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    private static DocumentResponse MapDocument(Document document)
+    private static DocumentResponse MapDocument(DomainDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
