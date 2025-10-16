@@ -19,12 +19,27 @@ internal sealed class InMemorySignatureRequestRepository : ISignatureRequestRepo
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyCollection<SignatureRequest>> GetPendingAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyCollection<SignatureRequest>> GetAsync(SignatureRequestQuery query, CancellationToken cancellationToken = default)
     {
-        var pending = _requests.Values
-            .Where(request => request.Status is SignatureStatus.Pending)
-            .ToArray();
+        var items = _requests.Values.AsEnumerable();
 
-        return Task.FromResult<IReadOnlyCollection<SignatureRequest>>(pending);
+        if (query.Status.HasValue)
+        {
+            items = items.Where(request => request.Status == query.Status);
+        }
+
+        return Task.FromResult<IReadOnlyCollection<SignatureRequest>>(items.ToArray());
+    }
+
+    public Task<SignatureRequest?> FindAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        _requests.TryGetValue(id, out var request);
+        return Task.FromResult(request);
+    }
+
+    public Task UpdateAsync(SignatureRequest request, CancellationToken cancellationToken = default)
+    {
+        _requests[request.Id] = request;
+        return Task.CompletedTask;
     }
 }

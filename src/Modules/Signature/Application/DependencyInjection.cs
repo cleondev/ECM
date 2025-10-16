@@ -9,7 +9,9 @@ public static class SignatureApplicationModuleExtensions
     public static IServiceCollection AddSignatureApplication(this IServiceCollection services)
     {
         services.AddScoped<CreateSignatureRequestCommandHandler>();
-        services.AddScoped<GetPendingSignatureRequestsQueryHandler>();
+        services.AddScoped<CancelSignatureRequestCommandHandler>();
+        services.AddScoped<GetSignatureRequestsQueryHandler>();
+        services.AddScoped<GetSignatureRequestByIdQueryHandler>();
         return services;
     }
 }
