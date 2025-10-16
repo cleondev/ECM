@@ -6,8 +6,9 @@ using System.Text.Json;
 
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 
+using ECM.Abstractions.Files;
 using ECM.Document.Api;
-using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Infrastructure.Persistence;
@@ -23,6 +24,8 @@ namespace ECM.Document.Api.Documents;
 
 public static class DocumentEndpoints
 {
+    private static readonly TimeSpan DownloadLinkLifetime = TimeSpan.FromMinutes(10);
+
     public static RouteGroupBuilder MapDocumentEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/ecm");
@@ -41,33 +44,17 @@ public static class DocumentEndpoints
              .WithName("CreateDocument")
              .WithDescription("Create a document using the application service (Clean Architecture).");
 
-        group.MapGet("/documents/{id:guid}", GetDocumentAsync)
-             .WithName("GetDocument")
-             .WithDescription("Lấy chi tiết tài liệu kèm phiên bản gần nhất.");
+        group.MapGet("/files/download/{versionId:guid}", DownloadFileAsync)
+             .WithName("DownloadDocumentVersion")
+             .WithDescription("Redirects to a signed URL for downloading a document version.");
 
-        group.MapPatch("/documents/{id:guid}", UpdateDocumentAsync)
-             .WithName("UpdateDocument")
-             .WithDescription("Cập nhật các thuộc tính cơ bản của tài liệu.");
+        group.MapGet("/files/preview/{versionId:guid}", PreviewFileAsync)
+             .WithName("PreviewDocumentVersion")
+             .WithDescription("Streams the original file content for preview purposes.");
 
-        group.MapDelete("/documents/{id:guid}", DeleteDocumentAsync)
-             .WithName("DeleteDocument")
-             .WithDescription("Xóa tài liệu (mặc định là soft delete, hard delete khi hard=true).");
-
-        group.MapGet("/documents/{id:guid}/metadata", GetDocumentMetadataAsync)
-             .WithName("GetDocumentMetadata")
-             .WithDescription("Lấy metadata (key-value) của tài liệu.");
-
-        group.MapPut("/documents/{id:guid}/metadata", UpsertDocumentMetadataAsync)
-             .WithName("UpsertDocumentMetadata")
-             .WithDescription("Ghi đè metadata của tài liệu.");
-
-        group.MapGet("/documents/{id:guid}/history", GetDocumentHistoryAsync)
-             .WithName("GetDocumentHistory")
-             .WithDescription("Lịch sử thay đổi thuộc tính của tài liệu (placeholder).");
-
-        group.MapPut("/documents/{id:guid}/folder", UpdateDocumentFolderAsync)
-             .WithName("UpdateDocumentFolder")
-             .WithDescription("Cập nhật thư mục chứa tài liệu.");
+        group.MapGet("/files/thumbnails/{versionId:guid}", GetThumbnailAsync)
+             .WithName("GetDocumentThumbnail")
+             .WithDescription("Returns a generated thumbnail for the requested document version.");
 
         return group;
     }
@@ -214,218 +201,133 @@ public static class DocumentEndpoints
         return TypedResults.Created($"/api/ecm/documents/{response.Id}", response);
     }
 
-    private static async Task<Results<Ok<DocumentResponse>, NotFound>> GetDocumentAsync(
-        Guid id,
-        IDocumentRepository repository,
+    private static async Task<IResult> DownloadFileAsync(
+        Guid versionId,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
         CancellationToken cancellationToken)
     {
-        var document = await repository.GetAsync(DocumentId.FromGuid(id), cancellationToken);
-
-        if (document is null)
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
         {
             return TypedResults.NotFound();
         }
 
-        var response = MapDocument(document);
-        return TypedResults.Ok(response);
+        var linkResult = await fileAccess.GetDownloadLinkAsync(version.StorageKey, DownloadLinkLifetime, cancellationToken);
+        if (linkResult.IsFailure || linkResult.Value is null)
+        {
+            return MapFileErrors(linkResult.Errors);
+        }
+
+        return TypedResults.Redirect(linkResult.Value.Uri.ToString(), permanent: false);
     }
 
-    private static async Task<Results<Ok<DocumentResponse>, ValidationProblem, NotFound>> UpdateDocumentAsync(
-        Guid id,
-        UpdateDocumentRequest request,
-        IDocumentRepository repository,
-        ISystemClock clock,
+    private static async Task<IResult> PreviewFileAsync(
+        Guid versionId,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
         CancellationToken cancellationToken)
     {
-        var document = await repository.GetAsync(DocumentId.FromGuid(id), cancellationToken);
-
-        if (document is null)
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
         {
             return TypedResults.NotFound();
         }
 
-        var errors = new Dictionary<string, string[]>();
-        var now = clock.UtcNow;
-
-        if (request.Title is not null)
+        var contentResult = await fileAccess.GetContentAsync(version.StorageKey, cancellationToken);
+        if (contentResult.IsFailure || contentResult.Value is null)
         {
-            try
-            {
-                document.UpdateTitle(DocumentTitle.Create(request.Title), now);
-            }
-            catch (Exception exception)
-            {
-                errors["title"] = [exception.Message];
-            }
+            return MapFileErrors(contentResult.Errors);
         }
 
-        if (request.Status is not null)
-        {
-            try
-            {
-                document.UpdateStatus(request.Status, now);
-            }
-            catch (Exception exception)
-            {
-                errors["status"] = [exception.Message];
-            }
-        }
-
-        if (request.Sensitivity is not null)
-        {
-            try
-            {
-                document.UpdateSensitivity(request.Sensitivity, now);
-            }
-            catch (Exception exception)
-            {
-                errors["sensitivity"] = [exception.Message];
-            }
-        }
-
-        if (request.Department is not null)
-        {
-            document.UpdateDepartment(request.Department, now);
-        }
-
-        if (errors.Count > 0)
-        {
-            return TypedResults.ValidationProblem(errors);
-        }
-
-        await repository.SaveChangesAsync(cancellationToken);
-
-        var response = MapDocument(document);
-        return TypedResults.Ok(response);
+        var file = contentResult.Value;
+        return TypedResults.File(
+            fileContents: file.Content,
+            contentType: file.ContentType,
+            fileDownloadName: file.FileName,
+            enableRangeProcessing: true,
+            lastModified: file.LastModifiedUtc);
     }
 
-    private static async Task<Results<NoContent, NotFound, ValidationProblem>> DeleteDocumentAsync(
-        Guid id,
-        [FromQuery] bool? hard,
-        IDocumentRepository repository,
-        ISystemClock clock,
+    private static async Task<IResult> GetThumbnailAsync(
+        Guid versionId,
+        [FromQuery(Name = "w")] int? width,
+        [FromQuery(Name = "h")] int? height,
+        [FromQuery(Name = "fit")] string? fit,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
         CancellationToken cancellationToken)
     {
-        var document = await repository.GetAsync(DocumentId.FromGuid(id), cancellationToken);
-
-        if (document is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        if (hard is true)
-        {
-            await repository.DeleteAsync(document, cancellationToken);
-            return TypedResults.NoContent();
-        }
-
-        try
-        {
-            document.UpdateStatus("deleted", clock.UtcNow);
-        }
-        catch (Exception exception)
+        if (width is null or <= 0 || height is null or <= 0)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["status"] = [exception.Message]
-            });
+                ["dimensions"] = ["Parameters 'w' and 'h' must be positive integers."]
+            }, statusCode: StatusCodes.Status400BadRequest);
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
-        return TypedResults.NoContent();
-    }
+        var normalizedFit = string.IsNullOrWhiteSpace(fit)
+            ? "cover"
+            : fit.Trim().ToLowerInvariant();
 
-    private static async Task<Results<Ok<JsonElement>, NotFound>> GetDocumentMetadataAsync(
-        Guid id,
-        IDocumentRepository repository,
-        CancellationToken cancellationToken)
-    {
-        var document = await repository.GetAsync(DocumentId.FromGuid(id), cancellationToken);
-
-        if (document is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        if (document.Metadata is null)
-        {
-            using var emptyDoc = JsonDocument.Parse("{}");
-            var empty = emptyDoc.RootElement.Clone();
-            return TypedResults.Ok(empty);
-        }
-
-        var metadata = document.Metadata.Data.RootElement.Clone();
-        return TypedResults.Ok(metadata);
-    }
-
-    private static async Task<Results<NoContent, ValidationProblem, NotFound>> UpsertDocumentMetadataAsync(
-        Guid id,
-        UpsertDocumentMetadataRequest request,
-        IDocumentRepository repository,
-        ISystemClock clock,
-        CancellationToken cancellationToken)
-    {
-        if (request.Data.ValueKind is not JsonValueKind.Object)
+        if (normalizedFit != "cover" && normalizedFit != "contain")
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["data"] = ["Metadata payload must be a JSON object."]
-            });
+                ["fit"] = ["Parameter 'fit' must be either 'cover' or 'contain'."]
+            }, statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var document = await repository.GetAsync(DocumentId.FromGuid(id), cancellationToken);
-
-        if (document is null)
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
         {
             return TypedResults.NotFound();
         }
 
-        var now = clock.UtcNow;
-        var metadataDocument = JsonDocument.Parse(request.Data.GetRawText());
+        var thumbnailResult = await fileAccess.GetThumbnailAsync(
+            version.StorageKey,
+            width.Value,
+            height.Value,
+            normalizedFit,
+            cancellationToken);
 
-        if (document.Metadata is null)
+        if (thumbnailResult.IsFailure || thumbnailResult.Value is null)
         {
-            document.AttachMetadata(new DocumentMetadata(document.Id, metadataDocument), now);
-        }
-        else
-        {
-            document.Metadata.Update(metadataDocument);
-            document.AttachMetadata(document.Metadata, now);
+            return MapFileErrors(thumbnailResult.Errors);
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
-        return TypedResults.NoContent();
+        var thumbnail = thumbnailResult.Value;
+        return TypedResults.File(
+            fileContents: thumbnail.Content,
+            contentType: thumbnail.ContentType,
+            fileDownloadName: thumbnail.FileName,
+            enableRangeProcessing: false,
+            lastModified: thumbnail.LastModifiedUtc);
     }
 
-    private static Task<Ok<DocumentHistoryListResponse>> GetDocumentHistoryAsync(
-        Guid id,
-        [FromQuery] int page,
-        [FromQuery] int pageSize,
-        CancellationToken cancellationToken)
+    private static IResult MapFileErrors(IReadOnlyCollection<string> errors)
     {
-        _ = id;
-        _ = page;
-        _ = pageSize;
-        _ = cancellationToken;
+        if (errors.Count == 0)
+        {
+            return TypedResults.Problem(statusCode: StatusCodes.Status500InternalServerError);
+        }
 
-        var normalizedPage = page <= 0 ? 1 : page;
-        var normalizedPageSize = pageSize <= 0 ? 24 : pageSize;
-        var response = new DocumentHistoryListResponse(normalizedPage, normalizedPageSize, 0, 0, Array.Empty<DocumentHistoryEntryResponse>());
-        return Task.FromResult(TypedResults.Ok(response));
-    }
+        if (errors.Any(error => string.Equals(error, "NotFound", StringComparison.OrdinalIgnoreCase)))
+        {
+            return TypedResults.NotFound();
+        }
 
-    private static Task<IResult> UpdateDocumentFolderAsync(
-        Guid id,
-        UpdateDocumentFolderRequest request,
-        CancellationToken cancellationToken)
-    {
-        _ = id;
-        _ = request;
-        _ = cancellationToken;
+        if (errors.Any(error => string.Equals(error, "StorageKeyRequired", StringComparison.OrdinalIgnoreCase)))
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["storageKey"] = ["A valid storage key is required to access the file."]
+            }, statusCode: StatusCodes.Status400BadRequest);
+        }
 
-        return Task.FromResult<IResult>(TypedResults.Problem(
-            detail: "Folder updates are not implemented yet.",
-            statusCode: StatusCodes.Status501NotImplemented));
+        return TypedResults.Problem(
+            detail: string.Join("; ", errors),
+            statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 
     private static async Task<string> ComputeSha256Async(IFormFile file, CancellationToken cancellationToken)

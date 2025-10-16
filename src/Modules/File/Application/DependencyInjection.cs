@@ -14,7 +14,9 @@ public static class FileApplicationModuleExtensions
         services.AddSingleton<IStorageKeyGenerator, DefaultStorageKeyGenerator>();
         services.AddScoped<GetRecentFilesQueryHandler>();
         services.AddScoped<UploadFileCommandHandler>();
+        services.AddScoped<FileAccessGateway>();
         services.AddScoped<IFileStorageGateway>(provider => provider.GetRequiredService<UploadFileCommandHandler>());
+        services.AddScoped<IFileAccessGateway>(provider => provider.GetRequiredService<FileAccessGateway>());
         return services;
     }
 }
