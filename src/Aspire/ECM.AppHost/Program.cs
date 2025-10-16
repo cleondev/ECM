@@ -1,6 +1,7 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 
 namespace AppHost;
@@ -62,7 +63,12 @@ public static class Program
             "Operations"
         };
 
-        var moduleDatabases = new Dictionary<string, IResourceBuilder<ParameterResource>>(StringComparer.OrdinalIgnoreCase);
+        var moduleDatabases = new Dictionary<string, IResourceBuilder<IResourceWithConnectionString>>(StringComparer.OrdinalIgnoreCase);
+
+        var connectionStrings = builder.Configuration
+            .GetSection("ConnectionStrings")
+            .GetChildren()
+            .ToDictionary(section => section.Key, section => section.Value, StringComparer.OrdinalIgnoreCase);
 
         foreach (var moduleDatabaseName in moduleDatabaseNames)
         {
