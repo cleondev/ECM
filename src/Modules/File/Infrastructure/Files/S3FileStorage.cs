@@ -1,6 +1,7 @@
 using Amazon.S3;
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -90,8 +91,8 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
                 ? "application/octet-stream"
                 : response.Headers.ContentType;
 
-            var fileName = response.Metadata.TryGetValue("x-amz-meta-original-filename", out var originalFileName)
-                ? originalFileName
+            var fileName = response.Metadata.Keys.Contains("x-amz-meta-original-filename", StringComparer.OrdinalIgnoreCase)
+                ? response.Metadata["x-amz-meta-original-filename"]
                 : null;
 
             var lastModified = response.LastModified == default
