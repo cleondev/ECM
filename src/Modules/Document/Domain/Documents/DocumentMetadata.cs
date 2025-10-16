@@ -1,3 +1,4 @@
+using System;
 using System.Text.Json;
 
 namespace ECM.Document.Domain.Documents;
@@ -21,4 +22,9 @@ public sealed class DocumentMetadata
     public Document? Document { get; private set; }
 
     public JsonDocument Data { get; private set; }
+
+    public void Update(JsonDocument data)
+    {
+        Data = data ?? throw new ArgumentNullException(nameof(data));
+    }
 }

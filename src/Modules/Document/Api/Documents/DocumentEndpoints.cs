@@ -2,17 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text.Json;
+
+using ECM.BuildingBlocks.Application.Abstractions.Time;
 
 using ECM.Abstractions.Files;
 using ECM.Document.Api;
 using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Commands;
+using ECM.Document.Domain.Documents;
+using ECM.Document.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 
 namespace ECM.Document.Api.Documents;
 
@@ -29,6 +35,10 @@ public static class DocumentEndpoints
         group.MapGet("/", () => Results.Ok(new { message = "ECM API ready" }))
              .WithName("GetEcmStatus")
              .WithDescription("Return a readiness payload for the ECM edge API.");
+
+        group.MapGet("/documents", ListDocumentsAsync)
+             .WithName("ListDocuments")
+             .WithDescription("Liệt kê tài liệu theo các bộ lọc hỗ trợ phân trang.");
 
         group.MapPost("/documents", CreateDocumentAsync)
              .WithName("CreateDocument")
@@ -47,6 +57,74 @@ public static class DocumentEndpoints
              .WithDescription("Returns a generated thumbnail for the requested document version.");
 
         return group;
+    }
+
+    private static async Task<Ok<DocumentListResponse>> ListDocumentsAsync(
+        [AsParameters] ListDocumentsRequest request,
+        DocumentDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var page = request.Page <= 0 ? 1 : request.Page;
+        var pageSize = request.PageSize <= 0 ? 24 : request.PageSize;
+        pageSize = pageSize > 200 ? 200 : pageSize;
+
+        var query = context.Documents
+            .AsNoTracking()
+            .Include(document => document.Versions)
+            .Include(document => document.Tags)
+            .Include(document => document.Metadata)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.DocType))
+        {
+            query = query.Where(document => document.DocType == request.DocType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            query = query.Where(document => document.Status == request.Status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Sensitivity))
+        {
+            query = query.Where(document => document.Sensitivity == request.Sensitivity);
+        }
+
+        if (request.OwnerId.HasValue)
+        {
+            query = query.Where(document => document.OwnerId == request.OwnerId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Department))
+        {
+            query = query.Where(document => document.Department == request.Department);
+        }
+
+        if (request.Tags is { Count: > 0 })
+        {
+            query = query.Where(document => document.Tags.Any(tag => request.Tags.Contains(tag.TagId)));
+        }
+
+        var totalItems = await query.LongCountAsync(cancellationToken);
+
+        query = query.OrderByDescending(document => document.UpdatedAtUtc);
+
+        var skip = (page - 1) * pageSize;
+        var documents = await query
+            .Skip(skip)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var items = documents
+            .Select(MapDocument)
+            .ToArray();
+
+        var totalPages = totalItems == 0
+            ? 0
+            : (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var response = new DocumentListResponse(page, pageSize, totalItems, totalPages, items);
+        return TypedResults.Ok(response);
     }
 
     private static async Task<Results<Created<DocumentResponse>, ValidationProblem>> CreateDocumentAsync(
@@ -258,5 +336,40 @@ public static class DocumentEndpoints
         using var sha256 = SHA256.Create();
         var hash = await sha256.ComputeHashAsync(stream, cancellationToken);
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static DocumentResponse MapDocument(Document document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        var latestVersion = document.Versions
+            .OrderByDescending(version => version.VersionNo)
+            .FirstOrDefault();
+
+        var versionResponse = latestVersion is null
+            ? null
+            : new DocumentVersionResponse(
+                latestVersion.Id,
+                latestVersion.VersionNo,
+                latestVersion.StorageKey,
+                latestVersion.Bytes,
+                latestVersion.MimeType,
+                latestVersion.Sha256,
+                latestVersion.CreatedBy,
+                latestVersion.CreatedAtUtc);
+
+        return new DocumentResponse(
+            document.Id.Value,
+            document.Title.Value,
+            document.DocType,
+            document.Status,
+            document.Sensitivity,
+            document.OwnerId,
+            document.CreatedBy,
+            document.Department,
+            document.CreatedAtUtc,
+            document.UpdatedAtUtc,
+            document.TypeId,
+            versionResponse);
     }
 }
