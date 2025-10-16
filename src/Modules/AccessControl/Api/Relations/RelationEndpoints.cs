@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.AccessControl.Application.Relations;
+using ECM.AccessControl.Api;
 using ECM.AccessControl.Application.Relations.Commands;
 using ECM.AccessControl.Application.Relations.Queries;
 using Microsoft.AspNetCore.Builder;
@@ -19,6 +20,7 @@ public static class RelationEndpoints
     {
         var group = builder.MapGroup("/api/access-control/relations");
         group.WithTags("Access Control - Relations");
+        group.WithGroupName(AccessControlSwagger.DocumentName);
         group.RequireAuthorization();
 
         group.MapGet("/subjects/{subjectId:guid}", GetBySubjectAsync)

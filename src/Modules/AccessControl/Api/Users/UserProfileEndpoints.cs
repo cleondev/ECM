@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.AccessControl.Api;
 using ECM.AccessControl.Application.Users.Commands;
 using ECM.AccessControl.Application.Users.Queries;
 using Microsoft.AspNetCore.Builder;
@@ -19,6 +20,7 @@ public static class UserProfileEndpoints
     {
         var group = builder.MapGroup("/api/access-control/profile");
         group.WithTags("Access Control - Profile");
+        group.WithGroupName(AccessControlSwagger.DocumentName);
         group.RequireAuthorization();
 
         group.MapGet("/", GetProfileAsync)

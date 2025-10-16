@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using ECM.Workflow.Api;
 using ECM.Workflow.Application.Workflows.Commands;
 using ECM.Workflow.Application.Workflows.Queries;
 using ECM.Workflow.Domain.Instances;
@@ -17,6 +18,7 @@ public static class WorkflowEndpoints
     {
         var group = builder.MapGroup("/api/ecm/workflows");
         group.WithTags("Workflow");
+        group.WithGroupName(WorkflowSwagger.DocumentName);
 
         group.MapGet("/instances", GetActiveWorkflows)
              .WithName("GetActiveWorkflows");

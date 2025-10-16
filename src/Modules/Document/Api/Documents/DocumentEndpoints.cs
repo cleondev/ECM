@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 
+using ECM.Document.Api;
 using ECM.Document.Application.Documents.Commands;
 
 using Microsoft.AspNetCore.Builder;
@@ -16,6 +17,7 @@ public static class DocumentEndpoints
     {
         var group = builder.MapGroup("/api/ecm");
         group.WithTags("ECM");
+        group.WithGroupName(DocumentSwagger.DocumentName);
 
         group.MapGet("/", () => Results.Ok(new { message = "ECM API ready" }))
              .WithName("GetEcmStatus")

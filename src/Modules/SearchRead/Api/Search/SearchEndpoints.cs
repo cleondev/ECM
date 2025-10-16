@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
+using ECM.SearchRead.Api;
 using ECM.SearchRead.Application.Search;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,7 @@ public static class SearchEndpoints
     {
         var group = builder.MapGroup("/api/ecm/search");
         group.WithTags("Search");
+        group.WithGroupName(SearchReadSwagger.DocumentName);
 
         group.MapGet("/", SearchAsync)
              .WithName("SearchDocuments");
