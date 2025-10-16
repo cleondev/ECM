@@ -7,7 +7,7 @@ ROOT_DIR="$( cd "${SCRIPT_DIR}/../.." && pwd )"
 STARTUP_PROJECT="${ROOT_DIR}/src/ECM/ECM.Host/ECM.Host.csproj"
 
 PROJECTS=(
-  "${ROOT_DIR}/src/Modules/AccessControl/ECM.AccessControl.csproj:AccessControlDbContext"
+  "${ROOT_DIR}/src/Modules/IAM/ECM.IAM.csproj:IamDbContext"
   "${ROOT_DIR}/src/Modules/Document/ECM.Document.csproj:DocumentDbContext"
   "${ROOT_DIR}/src/Modules/File/ECM.File.csproj:FileDbContext"
 )

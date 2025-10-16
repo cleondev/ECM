@@ -8,28 +8,45 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 > * Các API liệt kê hỗ trợ tham số `sort` theo cú pháp `field:asc,field2:desc` trừ khi ghi chú khác.
 > * Tham số `q` là tìm kiếm toàn văn trên tên hoặc tiêu đề đối tượng tương ứng.
 
-## 1. Auth & Profile
+## 1. IAM
+
+### Users
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
-| `GET /iam/users/me` | Lấy hồ sơ người dùng đang đăng nhập. | – |
-| `GET /iam/users` | Tìm kiếm người dùng. | `q`, `page`, `pageSize`, `dept`, `role`, `active` |
-| `GET /iam/users/{id}` | Chi tiết người dùng theo ID. | `id` |
-| `POST /iam/users` | Tạo người dùng mới. | Body đối tượng người dùng |
-| `PATCH /iam/users/{id}` | Cập nhật thông tin người dùng. | `id`, body phần trường thay đổi |
-| `DELETE /iam/users/{id}` | Vô hiệu hóa hoặc xóa người dùng. | `id` |
-| `GET /iam/roles` | Danh sách vai trò. | `q`, `page`, `pageSize`, `active?` |
-| `POST /iam/roles` | Tạo vai trò. | Body vai trò |
-| `PATCH /iam/roles/{id}` | Cập nhật vai trò. | `id`, body |
-| `DELETE /iam/roles/{id}` | Xóa vai trò. | `id` |
-| `GET /iam/users/{id}/roles` | Lấy danh sách vai trò của người dùng. | `id` |
-| `PUT /iam/users/{id}/roles` | Gán vai trò cho người dùng (ghi đè). | `id`, body mảng `roleIds` |
-| `GET /iam/groups` | Danh sách nhóm người dùng. | `q`, `page`, `pageSize` |
-| `POST /iam/groups` | Tạo nhóm. | Body nhóm |
-| `PATCH /iam/groups/{id}` | Cập nhật nhóm. | `id`, body |
-| `DELETE /iam/groups/{id}` | Xóa nhóm. | `id` |
-| `GET /iam/groups/{id}/members` | Danh sách thành viên trong nhóm. | `id`, `page`, `pageSize` |
-| `PUT /iam/groups/{id}/members` | Cập nhật danh sách thành viên nhóm. | `id`, body mảng `userIds` |
+| `GET /api/iam/users` | Liệt kê người dùng trong module IAM. | – |
+| `GET /api/iam/users/{id}` | Chi tiết người dùng theo ID. | `id` |
+| `GET /api/iam/users/by-email` | Tìm người dùng theo email. | Query `email` |
+| `POST /api/iam/users` | Tạo người dùng mới và gán vai trò mặc định. | Body `{email, displayName, department?, isActive?, roleIds[]}` |
+| `PUT /api/iam/users/{id}` | Cập nhật hồ sơ cơ bản hoặc trạng thái hoạt động. | `id`, body `{displayName, department?, isActive?}` |
+| `POST /api/iam/users/{id}/roles` | Gán thêm một vai trò cho người dùng. | `id`, body `{roleId}` |
+| `DELETE /api/iam/users/{id}/roles/{roleId}` | Hủy gán vai trò khỏi người dùng. | `id`, `roleId` |
+
+### Profile
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /api/iam/profile` | Lấy hồ sơ của người dùng đang đăng nhập (theo email trong token). | – |
+| `PUT /api/iam/profile` | Cập nhật hồ sơ cá nhân (tên hiển thị, phòng ban). | Body `{displayName, department?}` |
+
+### Roles
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /api/iam/roles` | Danh sách vai trò. | – |
+| `GET /api/iam/roles/{id}` | Chi tiết vai trò theo ID. | `id` |
+| `POST /api/iam/roles` | Tạo vai trò mới. | Body `{name}` |
+| `PUT /api/iam/roles/{id}` | Đổi tên vai trò. | `id`, body `{name}` |
+| `DELETE /api/iam/roles/{id}` | Xóa vai trò. | `id` |
+
+### Relations (ReBAC)
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /api/iam/relations/subjects/{subjectId}` | Liệt kê quan hệ truy cập theo subject. | `subjectId` |
+| `GET /api/iam/relations/objects/{objectType}/{objectId}` | Liệt kê quan hệ truy cập theo object. | `objectType`, `objectId` |
+| `POST /api/iam/relations` | Tạo quan hệ truy cập mới. | Body `{subjectId, objectType, objectId, relation}` |
+| `DELETE /api/iam/relations/subjects/{subjectId}/objects/{objectType}/{objectId}` | Xóa quan hệ truy cập. | `subjectId`, `objectType`, `objectId`, query `relation` |
 
 ## 2. Share (ReBAC)
 

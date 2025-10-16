@@ -21,7 +21,7 @@ Tài liệu này tổng hợp các biến môi trường/secrets đã sử dụn
 
 | Secret/Azure Key Vault | Khóa cấu hình | Ghi chú |
 |------------------------|---------------|--------|
-| `ECM_Database__Connections__iam` | `ConnectionStrings:AccessControl` | Chuỗi kết nối module AccessControl. Secret vẫn giữ tên cũ (schema IAM) và được pipeline copy sang tên module chuẩn. |
+| `ECM_Database__Connections__iam` | `ConnectionStrings:IAM` | Chuỗi kết nối module IAM. Secret vẫn giữ tên cũ (schema IAM) và được pipeline copy sang tên module chuẩn. |
 | `ECM_Database__Connections__doc` | `ConnectionStrings:Document`, `ConnectionStrings:File` | Chuỗi kết nối chung cho module Document và File. |
 | `ECM_Database__Connections__wf` | `ConnectionStrings:Workflow` | Chuỗi kết nối module Workflow. |
 | `ECM_Database__Connections__search` | `ConnectionStrings:Search` | Chuỗi kết nối module Search. |
@@ -66,7 +66,7 @@ Các worker trong `src/Workers/*` dùng chung cấu hình với `ECM.Host`. Ch�
    ```bash
    cat <<'ENV' > .env.development
    # Kết nối database (khớp với deploy/compose.yml)
-   ConnectionStrings__AccessControl=Host=localhost;Port=5432;Database=ecm_iam;Username=ecm;Password=ecm
+   ConnectionStrings__IAM=Host=localhost;Port=5432;Database=ecm_iam;Username=ecm;Password=ecm
    ConnectionStrings__Document=Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm
    ConnectionStrings__File=Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm
    ConnectionStrings__Workflow=Host=localhost;Port=5432;Database=ecm_wf;Username=ecm;Password=ecm

@@ -40,7 +40,7 @@ connection_string_for() {
 }
 
 module_mappings=(
-  AccessControl:iam
+  IAM:iam
   Document:doc
   File:doc
   Workflow:wf

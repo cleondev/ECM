@@ -37,7 +37,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Document.Tests", "tests\Doc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "File.Tests", "tests\File.Tests\File.Tests.csproj", "{AC7E7806-02F4-4283-B87E-AD70F180B3A3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccessControl.Test", "tests\AccessControl.Test\AccessControl.Test.csproj", "{9D5FE251-7FB8-4081-869D-9C31FE659D6E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IAM.Test", "tests\IAM.Test\IAM.Test.csproj", "{9D5FE251-7FB8-4081-869D-9C31FE659D6E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Workflow.Tests", "tests\Workflow.Tests\Workflow.Tests.csproj", "{DB422851-9461-4346-85C1-80B05AAFB37C}"
 EndProject
@@ -61,7 +61,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.BuildingBlocks", "src\E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Abstractions", "src\Modules\Abstractions\ECM.Abstractions.csproj", "{76067658-16AD-47FB-A247-5C5DCFB1E427}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.AccessControl", "src\Modules\AccessControl\ECM.AccessControl.csproj", "{512473A3-D8BB-4C8F-8016-7CDA995427D2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.IAM", "src\Modules\IAM\ECM.IAM.csproj", "{512473A3-D8BB-4C8F-8016-7CDA995427D2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Document", "src\Modules\Document\ECM.Document.csproj", "{9936EEEA-FDC2-4772-A0DE-2556D4921905}"
 EndProject
