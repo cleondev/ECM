@@ -8,9 +8,12 @@ using ECM.Signature.Api;
 using ECM.Workflow.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
+using Microsoft.Extensions.Options;
 using ServiceDefaults;
 using Serilog;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace ECM.Host;
 
@@ -58,7 +61,21 @@ public static class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
-            app.UseSwaggerUI();
+
+            var swaggerGenOptions = app.Services.GetRequiredService<IOptions<SwaggerGenOptions>>();
+
+            app.UseSwaggerUI(options =>
+            {
+                foreach (var (documentName, documentInfo) in swaggerGenOptions.Value.SwaggerGeneratorOptions.SwaggerDocs)
+                {
+                    var endpointUrl = $"/swagger/{documentName}/swagger.json";
+                    var displayName = string.IsNullOrWhiteSpace(documentInfo.Title)
+                        ? documentName
+                        : documentInfo.Title;
+
+                    options.SwaggerEndpoint(endpointUrl, displayName);
+                }
+            });
         }
 
         app.UseDefaultFiles();
