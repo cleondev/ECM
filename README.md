@@ -206,6 +206,17 @@ dotnet run --project src/Aspire/ECM.AppHost
 
 Các project sẽ được khởi chạy kèm cấu hình connection string từ AppHost (`ecm` monolith, gateway, worker...). Aspire Dashboard mặc định trên `http://localhost:18888`.
 
+Khi mở Aspire Dashboard, bạn sẽ nhìn thấy các resource của hệ thống cùng URL đã được AppHost gán sẵn:
+
+| Ứng dụng (resource) | Chức năng | URL từ Aspire Dashboard |
+|---------------------|-----------|-------------------------|
+| `Aspire Dashboard`  | Quan sát trạng thái toàn bộ ứng dụng Aspire | `http://localhost:18888` |
+| `ecm`               | Monolith ECM.Host chạy nghiệp vụ chính | `http://localhost:8080` |
+| `app-gateway`       | BFF + reverse proxy phục vụ UI | `http://localhost:5090` |
+| `search-indexer`    | Worker cập nhật chỉ mục tìm kiếm | – (background worker, không expose HTTP) |
+| `outbox-dispatcher` | Worker đọc outbox và đẩy sự kiện ra Kafka | – (background worker, không expose HTTP) |
+| `notify`            | Worker gửi thông báo (email/webhook) | – (background worker, không expose HTTP) |
+
 ### Chạy thủ công từng service
 
 - Monolith ECM:

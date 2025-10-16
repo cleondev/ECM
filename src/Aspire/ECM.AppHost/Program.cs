@@ -1,3 +1,4 @@
+using System;
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using System.Collections.Generic;
@@ -89,10 +90,14 @@ public static class Program
         var ecmUrl = builder.Configuration.GetValue<string>("Urls:Ecm") ?? "http://localhost:8080";
         var gatewayUrl = builder.Configuration.GetValue<string>("Urls:Gateway") ?? "http://localhost:5090";
 
+        var ecmUri = EnsureHttpUri(ecmUrl, "Urls:Ecm");
+        var gatewayUri = EnsureHttpUri(gatewayUrl, "Urls:Gateway");
+
         var ecmHost = builder.AddProject<Projects.ECM_Host>("ecm")
             .WithReference(kafka)
             .WithReference(minio)
-            .WithEnvironment("ASPNETCORE_URLS", ecmUrl);
+            .WithHttpEndpoint(targetPort: ecmUri.Port, port: ecmUri.Port)
+            .WithEnvironment("ASPNETCORE_URLS", ecmUri.ToString());
 
         foreach (var moduleDatabase in moduleDatabases.Values)
         {
@@ -101,8 +106,9 @@ public static class Program
 
         builder.AddProject<Projects.AppGateway_Api>("app-gateway")
             .WithReference(ecmHost)
-            .WithEnvironment("ASPNETCORE_URLS", gatewayUrl)
-            .WithEnvironment("Services__Ecm", ecmUrl);
+            .WithHttpEndpoint(targetPort: gatewayUri.Port, port: gatewayUri.Port)
+            .WithEnvironment("ASPNETCORE_URLS", gatewayUri.ToString())
+            .WithEnvironment("Services__Ecm", ecmUri.ToString());
 
         var searchIndexer = builder.AddProject<Projects.SearchIndexer>("search-indexer")
             .WithReference(kafka)
@@ -123,5 +129,21 @@ public static class Program
             .WithReference(kafka);
 
         builder.Build().Run();
+    }
+
+    private static Uri EnsureHttpUri(string value, string settingName)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            throw new InvalidOperationException($"The configured URL '{value}' for '{settingName}' must be an absolute URI.");
+        }
+
+        if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"The configured URL '{value}' for '{settingName}' must use HTTP or HTTPS.");
+        }
+
+        return uri;
     }
 }
