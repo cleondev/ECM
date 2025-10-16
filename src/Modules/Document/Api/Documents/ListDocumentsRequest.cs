@@ -11,7 +11,7 @@ public sealed record ListDocumentsRequest(
     [property: FromQuery(Name = "sensitivity")] string? Sensitivity,
     [property: FromQuery(Name = "owner_id")] Guid? OwnerId,
     [property: FromQuery(Name = "dept")] string? Department,
-    [property: FromQuery(Name = "tags[]")] IReadOnlyList<Guid>? Tags,
+    [property: FromQuery(Name = "tags[]")] List<Guid>? Tags,
     [property: FromQuery] int Page = 1,
     [property: FromQuery] int PageSize = 24,
     [property: FromQuery] string? Sort = null);
