@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Configuration;
 
 namespace AppHost;
@@ -48,7 +50,12 @@ public static class Program
             builder.Configuration.AddInMemoryCollection(dashboardDefaults);
         }
 
-        var postgres = builder.AddConnectionString("postgres");
+        var connectionStrings = builder.Configuration
+            .GetSection("ConnectionStrings")
+            .GetChildren()
+            .Where(section => !string.IsNullOrWhiteSpace(section.Value))
+            .ToDictionary(section => section.Key, section => section.Value!);
+
         var kafka = builder.AddConnectionString("kafka");
         var minio = builder.AddConnectionString("minio");
 
@@ -56,25 +63,37 @@ public static class Program
         var gatewayUrl = builder.Configuration.GetValue<string>("Urls:Gateway") ?? "http://localhost:5090";
 
         var ecmHost = builder.AddProject<Projects.ECM_Host>("ecm")
-            .WithReference(postgres)
             .WithReference(kafka)
             .WithReference(minio)
             .WithEnvironment("ASPNETCORE_URLS", ecmUrl);
+
+        foreach (var (name, value) in connectionStrings)
+        {
+            ecmHost = ecmHost.WithEnvironment($"ConnectionStrings__{name}", value);
+        }
 
         builder.AddProject<Projects.AppGateway_Api>("app-gateway")
             .WithReference(ecmHost)
             .WithEnvironment("ASPNETCORE_URLS", gatewayUrl)
             .WithEnvironment("Services__Ecm", ecmUrl);
 
-        builder.AddProject<Projects.SearchIndexer>("search-indexer")
-            .WithReference(postgres)
+        var searchIndexer = builder.AddProject<Projects.SearchIndexer>("search-indexer")
             .WithReference(kafka)
             .WithReference(ecmHost);
 
-        builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
-            .WithReference(postgres)
+        if (connectionStrings.TryGetValue("Search", out var searchConnection))
+        {
+            searchIndexer = searchIndexer.WithEnvironment("ConnectionStrings__Search", searchConnection);
+        }
+
+        var outboxDispatcher = builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
             .WithReference(kafka)
             .WithReference(ecmHost);
+
+        if (connectionStrings.TryGetValue("Operations", out var operationsConnection))
+        {
+            outboxDispatcher = outboxDispatcher.WithEnvironment("ConnectionStrings__Operations", operationsConnection);
+        }
 
         builder.AddProject<Projects.SearchIndexer>("notify")
             .WithReference(kafka);
