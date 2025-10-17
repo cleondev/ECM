@@ -17,6 +17,16 @@ if ! command -v dotnet >/dev/null 2>&1; then
   exit 1
 fi
 
+TOOL_MANIFEST="${ROOT_DIR}/.config/dotnet-tools.json"
+
+if [ -f "${TOOL_MANIFEST}" ]; then
+  echo "Restoring local dotnet tools..."
+  dotnet tool restore --tool-manifest "${TOOL_MANIFEST}"
+elif ! command -v dotnet-ef >/dev/null 2>&1; then
+  echo "dotnet-ef CLI tool is required but was not found. Install it globally (dotnet tool install --global dotnet-ef) or add a tool manifest." >&2
+  exit 1
+fi
+
 dotnet restore "${ROOT_DIR}/ECM.sln"
 
 for entry in "${PROJECTS[@]}"; do
