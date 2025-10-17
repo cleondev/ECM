@@ -1,9 +1,10 @@
+using System;
+using System.Data.Common;
 using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Microsoft.Extensions.Configuration;
-using System.Data.Common;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace ECM.Document.Infrastructure.Persistence;
 
@@ -35,12 +36,19 @@ public sealed class DocumentDbContextFactory : IDesignTimeDbContextFactory<Docum
         Console.WriteLine($"[DocumentDbContextFactory] Current directory: {basePath}");
         Console.WriteLine($"[DocumentDbContextFactory] Environment: {environment}");
 
-        return new ConfigurationBuilder()
+        var configurationBuilder = new ConfigurationBuilder()
             .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+            .AddJsonFile($"appsettings.{environment}.json", optional: true);
+
+        if (string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            configurationBuilder.AddUserSecrets<DocumentDbContextFactory>(optional: true);
+        }
+
+        configurationBuilder.AddEnvironmentVariables();
+
+        return configurationBuilder.Build();
     }
 
     private static string ResolveConnectionString(IConfiguration configuration)

@@ -25,6 +25,13 @@ public static class Program
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true);
 
+        if (string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true);
+        }
+
+        builder.Configuration.AddEnvironmentVariables();
+
         var dashboardDefaults = new Dictionary<string, string?>();
 
         if (string.IsNullOrWhiteSpace(builder.Configuration[DashboardUrlVariable]))

@@ -1,9 +1,10 @@
+using System;
+using System.Data.Common;
 using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Microsoft.Extensions.Configuration;
-using System.Data.Common;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 namespace ECM.IAM.Infrastructure.Persistence;
 
@@ -35,12 +36,19 @@ public sealed class IamDbContextFactory : IDesignTimeDbContextFactory<IamDbConte
         Console.WriteLine($"[IamDbContextFactory] Current directory: {basePath}");
         Console.WriteLine($"[IamDbContextFactory] Environment: {environment}");
 
-        return new ConfigurationBuilder()
+        var configurationBuilder = new ConfigurationBuilder()
             .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+            .AddJsonFile($"appsettings.{environment}.json", optional: true);
+
+        if (string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+        {
+            configurationBuilder.AddUserSecrets<IamDbContextFactory>(optional: true);
+        }
+
+        configurationBuilder.AddEnvironmentVariables();
+
+        return configurationBuilder.Build();
     }
 
     private static string ResolveConnectionString(IConfiguration configuration)
