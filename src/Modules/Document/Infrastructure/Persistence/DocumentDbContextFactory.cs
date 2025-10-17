@@ -1,4 +1,4 @@
-using ECM.BuildingBlocks.Infrastructure.Persistence;
+using ECM.Modules.Abstractions.Persistence;
 using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;

@@ -3,7 +3,7 @@ using System.Data.Common;
 using System.IO;
 using Microsoft.Extensions.Configuration;
 
-namespace ECM.BuildingBlocks.Infrastructure.Persistence;
+namespace ECM.Modules.Abstractions.Persistence;
 
 public static class DesignTimeDbContextFactoryHelper
 {
