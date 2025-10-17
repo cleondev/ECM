@@ -34,6 +34,16 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
+$toolManifestPath = Join-Paths $rootDir '.config' 'dotnet-tools.json'
+
+if (Test-Path $toolManifestPath) {
+    Write-Host 'Restoring local dotnet tools...' -ForegroundColor Cyan
+    & dotnet tool restore --tool-manifest $toolManifestPath
+} elseif (-not (Get-Command dotnet-ef -ErrorAction SilentlyContinue)) {
+    Write-Error 'dotnet-ef CLI tool is required but was not found. Install it globally (dotnet tool install --global dotnet-ef) or add a tool manifest.'
+    exit 1
+}
+
 & dotnet restore (Join-Paths $rootDir 'ECM.sln')
 
 foreach ($entry in $projects) {
