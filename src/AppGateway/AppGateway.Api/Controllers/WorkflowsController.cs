@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers;
 
 [ApiController]
-[Route("api/gateway/workflows")]
+[Route("api/workflows")]
 [Authorize]
 public sealed class WorkflowsController(IEcmApiClient client) : ControllerBase
 {

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers;
 
 [ApiController]
-[Route("api/gateway/documents")]
+[Route("api/documents")]
 [Authorize]
 public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
 {
