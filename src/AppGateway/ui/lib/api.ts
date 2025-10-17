@@ -142,7 +142,7 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
 
 export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedResponse<FileItem>> {
   try {
-    const documents = await gatewayRequest<DocumentSummary[]>("/api/gateway/documents")
+    const documents = await gatewayRequest<DocumentSummary[]>("/api/documents")
     const mapped = documents.map(mapDocumentToFileItem)
     return filterAndPaginate(mapped, params)
   } catch (error) {
@@ -153,7 +153,7 @@ export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedRes
 
 export async function fetchTags(): Promise<TagNode[]> {
   try {
-    const response = await gatewayRequest<TagNode[]>("/api/gateway/tags")
+    const response = await gatewayRequest<TagNode[]>("/api/tags")
     return response
   } catch (error) {
     console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
@@ -166,7 +166,7 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
     const payload = parentId
       ? { ...data, parentId }
       : data
-    return await gatewayRequest<TagNode>("/api/gateway/tags", {
+    return await gatewayRequest<TagNode>("/api/tags", {
       method: "POST",
       body: JSON.stringify(payload),
     })
@@ -183,7 +183,7 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
 
 export async function updateTag(tagId: string, data: TagUpdateData): Promise<TagNode> {
   try {
-    return await gatewayRequest<TagNode>(`/api/gateway/tags/${tagId}`, {
+    return await gatewayRequest<TagNode>(`/api/tags/${tagId}`, {
       method: "PUT",
       body: JSON.stringify(data),
     })
@@ -200,7 +200,7 @@ export async function updateTag(tagId: string, data: TagUpdateData): Promise<Tag
 
 export async function deleteTag(tagId: string): Promise<void> {
   try {
-    await gatewayRequest(`/api/gateway/tags/${tagId}`, {
+    await gatewayRequest(`/api/tags/${tagId}`, {
       method: "DELETE",
     })
   } catch (error) {
@@ -210,7 +210,7 @@ export async function deleteTag(tagId: string): Promise<void> {
 
 export async function updateFile(fileId: string, data: Partial<FileItem>): Promise<FileItem> {
   try {
-    const response = await gatewayRequest<DocumentSummary>(`/api/gateway/documents/${fileId}`, {
+    const response = await gatewayRequest<DocumentSummary>(`/api/documents/${fileId}`, {
       method: "PUT",
       body: JSON.stringify({ title: data.name }),
     })
@@ -224,7 +224,7 @@ export async function updateFile(fileId: string, data: Partial<FileItem>): Promi
 
 export async function fetchFlows(fileId: string): Promise<Flow[]> {
   try {
-    return await gatewayRequest<Flow[]>(`/api/gateway/documents/${fileId}/flows`)
+    return await gatewayRequest<Flow[]>(`/api/documents/${fileId}/flows`)
   } catch (error) {
     console.warn("[ui] Failed to fetch flows via gateway, using mock data:", error)
     return mockFlowsByFile[fileId] || mockFlowsByFile.default
@@ -233,7 +233,7 @@ export async function fetchFlows(fileId: string): Promise<Flow[]> {
 
 export async function fetchSystemTags(fileId: string): Promise<SystemTag[]> {
   try {
-    return await gatewayRequest<SystemTag[]>(`/api/gateway/documents/${fileId}/system-tags`)
+    return await gatewayRequest<SystemTag[]>(`/api/documents/${fileId}/system-tags`)
   } catch (error) {
     console.warn("[ui] Failed to fetch system tags via gateway, using mock data:", error)
     return mockSystemTags
@@ -242,7 +242,7 @@ export async function fetchSystemTags(fileId: string): Promise<SystemTag[]> {
 
 export async function updateSystemTag(fileId: string, tagName: string, value: string): Promise<void> {
   try {
-    await gatewayRequest(`/api/gateway/documents/${fileId}/system-tags/${encodeURIComponent(tagName)}`, {
+    await gatewayRequest(`/api/documents/${fileId}/system-tags/${encodeURIComponent(tagName)}`, {
       method: "PUT",
       body: JSON.stringify({ value }),
     })
@@ -254,7 +254,7 @@ export async function updateSystemTag(fileId: string, tagName: string, value: st
 export async function fetchUser(): Promise<User | null> {
   await delay(150)
   try {
-    const response = await gatewayFetch("/api/gateway/iam/profile")
+    const response = await gatewayFetch("/api/iam/profile")
 
     if (response.status === 401 || response.status === 404) {
       return null
@@ -282,7 +282,7 @@ export async function fetchUser(): Promise<User | null> {
 export async function uploadFile(data: UploadFileData): Promise<FileItem> {
   try {
     const title = (data.metadata?.title?.trim() || data.file.name || "Untitled document").slice(0, 256)
-    const document = await gatewayRequest<DocumentSummary>("/api/gateway/documents", {
+    const document = await gatewayRequest<DocumentSummary>("/api/documents", {
       method: "POST",
       body: JSON.stringify({ title }),
     })

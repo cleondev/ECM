@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers.IAM;
 
 [ApiController]
-[Route("api/gateway/iam/roles")]
+[Route("api/iam/roles")]
 [Authorize]
 public sealed class IamRolesController(IEcmApiClient client) : ControllerBase
 {
@@ -33,7 +33,7 @@ public sealed class IamRolesController(IEcmApiClient client) : ControllerBase
             return Problem(title: "Failed to create role", statusCode: StatusCodes.Status400BadRequest);
         }
 
-        return Created($"api/gateway/access-control/roles/{role.Id}", role);
+        return Created($"api/access-control/roles/{role.Id}", role);
     }
 
     [HttpPut("{id:guid}")]

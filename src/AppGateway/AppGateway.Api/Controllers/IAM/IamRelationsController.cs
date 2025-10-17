@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers.IAM;
 
 [ApiController]
-[Route("api/gateway/iam/relations")]
+[Route("api/iam/relations")]
 [Authorize]
 public sealed class IamRelationsController(IEcmApiClient client) : ControllerBase
 {

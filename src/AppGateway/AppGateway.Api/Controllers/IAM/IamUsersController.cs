@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers.IAM;
 
 [ApiController]
-[Route("api/gateway/iam/users")]
+[Route("api/iam/users")]
 [Authorize]
 public sealed class IamUsersController(IEcmApiClient client) : ControllerBase
 {

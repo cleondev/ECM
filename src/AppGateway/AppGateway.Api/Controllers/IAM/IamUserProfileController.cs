@@ -9,14 +9,13 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers.IAM;
 
 [ApiController]
-[Route("api/gateway/iam/profile")]
+[Route("api/iam/profile")]
 [Authorize]
 public sealed class IamUserProfileController(IEcmApiClient client) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;
 
     [HttpGet]
-    [HttpGet("/api/profile")]
     [ProducesResponseType(typeof(UserSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)

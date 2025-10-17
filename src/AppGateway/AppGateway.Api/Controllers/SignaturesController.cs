@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers;
 
 [ApiController]
-[Route("api/gateway/signatures")]
+[Route("api/signatures")]
 [Authorize]
 public sealed class SignaturesController(IEcmApiClient client) : ControllerBase
 {
