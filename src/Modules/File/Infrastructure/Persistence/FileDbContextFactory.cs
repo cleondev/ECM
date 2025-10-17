@@ -21,7 +21,9 @@ public sealed class FileDbContextFactory : IDesignTimeDbContextFactory<FileDbCon
         optionsBuilder
             .UseNpgsql(
                 connectionString,
-                builder => builder.MigrationsAssembly(typeof(FileDbContext).Assembly.FullName))
+                builder => builder
+                    .MigrationsAssembly(typeof(FileDbContext).Assembly.FullName)
+                    .MigrationsHistoryTable("__EFMigrationsHistory", "file"))
             .UseSnakeCaseNamingConvention();
 
         return new FileDbContext(optionsBuilder.Options);

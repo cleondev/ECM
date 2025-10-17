@@ -21,7 +21,9 @@ public sealed class DocumentDbContextFactory : IDesignTimeDbContextFactory<Docum
         optionsBuilder
             .UseNpgsql(
                 connectionString,
-                builder => builder.MigrationsAssembly(typeof(DocumentDbContext).Assembly.FullName))
+                builder => builder
+                    .MigrationsAssembly(typeof(DocumentDbContext).Assembly.FullName)
+                    .MigrationsHistoryTable("__EFMigrationsHistory", "doc"))
             .UseSnakeCaseNamingConvention();
 
         return new DocumentDbContext(optionsBuilder.Options);
