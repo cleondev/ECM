@@ -21,7 +21,9 @@ public sealed class IamDbContextFactory : IDesignTimeDbContextFactory<IamDbConte
         optionsBuilder
             .UseNpgsql(
                 connectionString,
-                builder => builder.MigrationsAssembly(typeof(IamDbContext).Assembly.FullName))
+                builder => builder
+                    .MigrationsAssembly(typeof(IamDbContext).Assembly.FullName)
+                    .MigrationsHistoryTable("__EFMigrationsHistory", "iam"))
             .UseSnakeCaseNamingConvention();
 
         return new IamDbContext(optionsBuilder.Options);
