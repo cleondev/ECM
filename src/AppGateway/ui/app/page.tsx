@@ -13,7 +13,7 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true
 
-    fetch('/api/profile', { credentials: 'include', cache: 'no-store' })
+    fetch('/api/iam/profile', { credentials: 'include', cache: 'no-store' })
       .then(res => {
         if (!isMounted) return
 
