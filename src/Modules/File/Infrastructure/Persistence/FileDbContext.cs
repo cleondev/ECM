@@ -12,7 +12,7 @@ public sealed class FileDbContext(DbContextOptions<FileDbContext> options) : DbC
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("doc");
+        modelBuilder.HasDefaultSchema("file");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(FileDbContext).Assembly);
     }
 }

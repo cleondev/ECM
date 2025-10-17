@@ -9,14 +9,14 @@ public partial class InitialFileModule : Migration
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.EnsureSchema(
-            name: "doc");
+            name: "file");
 
         migrationBuilder.EnsureSchema(
             name: "ops");
 
         migrationBuilder.CreateTable(
             name: "file_object",
-            schema: "doc",
+            schema: "file",
             columns: table => new
             {
                 storage_key = table.Column<string>(type: "text", nullable: false),
@@ -56,6 +56,6 @@ public partial class InitialFileModule : Migration
 
         migrationBuilder.DropTable(
             name: "file_object",
-            schema: "doc");
+            schema: "file");
     }
 }
