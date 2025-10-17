@@ -1,8 +1,3 @@
-using System.Collections.Generic;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application;
 using ECM.Workflow.Application.Workflows.Commands;
 using ECM.Workflow.Application.Workflows.Tasks;

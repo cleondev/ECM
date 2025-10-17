@@ -150,7 +150,7 @@ public class FileAccessGatewayTests
         var storage = new FakeFileStorage();
         var gateway = new FileAccessGateway(storage);
 
-        var result = await gateway.GetThumbnailAsync("", 100, 100, null, CancellationToken.None);
+        var result = await gateway.GetThumbnailAsync("", 100, 100, "cover", CancellationToken.None);
 
         Assert.True(result.IsFailure);
         Assert.Contains("StorageKeyRequired", result.Errors);
