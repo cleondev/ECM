@@ -46,6 +46,9 @@ if (Test-Path $toolManifestPath) {
 
 & dotnet restore (Join-Paths $rootDir 'ECM.sln')
 
+Write-Host 'Building startup project to ensure migrations are up to date...' -ForegroundColor Cyan
+& dotnet build $startupProject
+
 foreach ($entry in $projects) {
     $projectPath = $entry.Project
     $context = $entry.Context
@@ -69,8 +72,7 @@ foreach ($entry in $projects) {
     & dotnet ef database update `
         --project $projectPath `
         --startup-project $startupProject `
-        --context $context `
-        --no-build
+        --context $context
     Write-Host
 }
 

@@ -29,6 +29,9 @@ fi
 
 dotnet restore "${ROOT_DIR}/ECM.sln"
 
+echo "Building startup project to ensure migrations are up to date..."
+dotnet build "${STARTUP_PROJECT}"
+
 for entry in "${PROJECTS[@]}"; do
   IFS=":" read -r project context <<<"${entry}"
   migrations_dir="$( dirname "${project}" )/Infrastructure/Migrations"
@@ -43,8 +46,7 @@ for entry in "${PROJECTS[@]}"; do
   dotnet ef database update \
     --project "${project}" \
     --startup-project "${STARTUP_PROJECT}" \
-    --context "${context}" \
-    --no-build
+    --context "${context}"
   echo
 done
 
