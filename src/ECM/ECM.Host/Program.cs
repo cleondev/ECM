@@ -25,13 +25,14 @@ public static class Program
 
         builder.Configuration
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-            .AddEnvironmentVariables();
+            .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
         if (builder.Environment.IsDevelopment())
         {
             builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true);
         }
+
+        builder.Configuration.AddEnvironmentVariables();
 
         builder.AddServiceDefaults();
         builder.AddModule<IamModule>();
