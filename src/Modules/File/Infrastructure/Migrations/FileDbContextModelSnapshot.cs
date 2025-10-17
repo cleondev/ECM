@@ -16,7 +16,7 @@ partial class FileDbContextModelSnapshot : ModelSnapshot
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .HasDefaultSchema("doc")
+            .HasDefaultSchema("file")
             .HasAnnotation("ProductVersion", "8.0.8")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -40,7 +40,7 @@ partial class FileDbContextModelSnapshot : ModelSnapshot
 
             b.HasKey("StorageKey");
 
-            b.ToTable("file_object", "doc");
+            b.ToTable("file_object", "file");
         });
 
         modelBuilder.Entity<OutboxMessage>(b =>

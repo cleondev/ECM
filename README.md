@@ -166,7 +166,8 @@ Các module sử dụng Entity Framework Core để quản lý schema. Bộ kh�
    ```
 
    > **Mẹo:** với môi trường server, thay `localhost` bằng địa chỉ thực tế và thông tin user/password tương ứng.
-   > **Lưu ý:** file `appsettings.json` mẫu trong `ECM.Host` dùng user `postgres`. Nếu chạy Docker Compose với user `ecm`, hãy override bằng biến môi trường như trên hoặc chỉnh sửa file cấu hình cho trùng khớp.
+   > **Lưu ý:** `Database` (ví dụ `ecm_doc`) và `Username` (ví dụ `ecm`) là hai tham số khác nhau của connection string — đừng hoán đổi chúng khi cấu hình.
+   > **Ghi chú:** file `appsettings.json` mẫu trong `ECM.Host` dùng user `postgres`. Nếu chạy Docker Compose với user `ecm`, hãy override bằng biến môi trường như trên hoặc chỉnh sửa file cấu hình cho trùng khớp.
 
 3. **Chạy migrate để khởi tạo schema** (từ thư mục gốc repo):
 
