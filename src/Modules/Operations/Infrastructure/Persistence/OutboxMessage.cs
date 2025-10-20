@@ -1,6 +1,6 @@
 using System;
 
-namespace ECM.Outbox.Infrastructure.Persistence;
+namespace ECM.Operations.Infrastructure.Persistence;
 
 public sealed class OutboxMessage
 {

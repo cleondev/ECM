@@ -3,7 +3,7 @@ param(
   [ValidateSet("add","update","script","list","rollback","miglist","diag","scan")] [string]$Action,
 
   [Parameter(Mandatory=$false)]
-  [ValidateSet("iam","document","file","outbox","all")] [string]$Module,
+  [ValidateSet("iam","document","file","operations","operation","all")] [string]$Module,
 
   [string]$Name = "",
   [string]$Configuration = "Debug",
@@ -25,16 +25,25 @@ if (!(Test-Path $settingsPath)) { throw "Cannot find ecm.settings.json at $setti
 $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
 
 $startup = $settings.StartupProject
-$map = @{
-  "iam"      = @{ Key="iam";      Ctx = $settings.Contexts.iam.Context;      Proj = $settings.Contexts.iam.Project;      Root = "src/Modules/IAM" };
-  "document" = @{ Key="document"; Ctx = $settings.Contexts.document.Context; Proj = $settings.Contexts.document.Project; Root = "src/Modules/Document" };
-  "file"     = @{ Key="file";     Ctx = $settings.Contexts.file.Context;     Proj = $settings.Contexts.file.Project;    Root = "src/Modules/File" };
-  "outbox"   = @{ Key="outbox";   Ctx = $settings.Contexts.outbox.Context;   Proj = $settings.Contexts.outbox.Project;   Root = "src/Modules/Outbox" };
+$operationsContext = $settings.Contexts.operations
+if (-not $operationsContext) {
+  $operationsContext = $settings.Contexts.operation
+}
+if (-not $operationsContext) {
+  throw "Missing 'operations' context configuration in ecm.settings.json"
 }
 
+$map = @{
+  "iam"        = @{ Key="iam";        Ctx = $settings.Contexts.iam.Context;        Proj = $settings.Contexts.iam.Project;        Root = "src/Modules/IAM" };
+  "document"   = @{ Key="document";   Ctx = $settings.Contexts.document.Context;   Proj = $settings.Contexts.document.Project;   Root = "src/Modules/Document" };
+  "file"       = @{ Key="file";       Ctx = $settings.Contexts.file.Context;       Proj = $settings.Contexts.file.Project;      Root = "src/Modules/File" };
+  "operations" = @{ Key="operations"; Ctx = $operationsContext.Context;           Proj = $operationsContext.Project;           Root = "src/Modules/Operations" };
+}
+$map["operation"] = $map["operations"]
+
 function Get-Targets($module) {
-  if ($module -eq "all") { return @($map.iam, $map.document, $map.file, $map.outbox) }
-  if (-not $map.ContainsKey($module)) { throw "Invalid module. Use: iam | document | file | all" }
+  if ($module -eq "all") { return @($map.iam, $map.document, $map.file, $map.operations) }
+  if (-not $map.ContainsKey($module)) { throw "Invalid module. Use: iam | document | file | operations | all" }
   return @($map[$module])
 }
 
@@ -44,7 +53,7 @@ switch ($Action) {
   }
 
   "add" {
-    if (-not $Module -or $Module -eq "all") { throw "'add' must target a single module. Use -Module iam|document|file" }
+    if (-not $Module -or $Module -eq "all") { throw "'add' must target a single module. Use -Module iam|document|file|operations" }
     if (-not $Name) { throw "Missing -Name (migration name)" }
     $t = $map[$Module]
     dotnet ef migrations add $Name `

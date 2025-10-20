@@ -4,7 +4,7 @@ using ECM.Document.Domain.Files;
 using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
-using ECM.Outbox.Infrastructure.Persistence;
+using ECM.Operations.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 

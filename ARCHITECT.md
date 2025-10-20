@@ -158,7 +158,7 @@ Schemas:
 
 * `ocr.result / ocr.page_text / ocr.annotation / ocr.extraction`
 
-* `ops.outbox / ops.audit_event / ops.retention_policy / ops.retention_candidate`
+* `ops.outbox / ops.outbox_deadletter / ops.audit_event / ops.notification / ops.webhook / ops.webhook_delivery / ops.retention_policy / ops.retention_candidate`
 
 RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (department).
 
@@ -249,7 +249,7 @@ open http://localhost:8080   # Gateway
 ```
 
 **DB init**: put full DDL into `deploy/init/db-init.sql` (RLS + schemas).  
-**Outbox**: dispatcher will publish events to topics; consumers update read models.
+**Operations module (Outbox)**: dispatcher will publish events to topics; consumers update read models.
 
 ---
 

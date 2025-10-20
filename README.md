@@ -32,7 +32,7 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   ├── ECM
   │   ├── ECM.Host/           # Modular monolith host (nạp các module domain)
   │   └── ECM.BuildingBlocks/ # Shared kernel, outbox, event abstractions
-  ├── Modules/                # Các module độc lập: IAM, Document, File, Outbox, Workflow, Signature, SearchRead
+  ├── Modules/                # Các module độc lập: IAM, Document, File, Operations, Workflow, Signature, SearchRead
   ├── Workers                 # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
   ├── Ocr
   │   ├── ocr-engine          # Service Python cho OCR

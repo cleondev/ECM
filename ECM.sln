@@ -68,7 +68,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Document", "src\Modules
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.File", "src\Modules\File\ECM.File.csproj", "{B77ABD68-3942-46CD-BF56-85C59BB202E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Outbox", "src\Modules\Outbox\ECM.Outbox.csproj", "{95F08584-E7A9-423B-A22D-DB551AA0A991}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Operations", "src\Modules\Operations\ECM.Operations.csproj", "{95F08584-E7A9-423B-A22D-DB551AA0A991}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Workflow", "src\Modules\Workflow\ECM.Workflow.csproj", "{6F199300-8A79-439E-992D-32B66A632952}"
 EndProject

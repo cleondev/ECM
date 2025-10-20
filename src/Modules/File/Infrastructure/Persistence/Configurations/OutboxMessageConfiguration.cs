@@ -1,4 +1,4 @@
-using ECM.Outbox.Infrastructure.Persistence;
+using ECM.Operations.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

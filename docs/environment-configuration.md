@@ -26,7 +26,7 @@ Tài liệu này tổng hợp các biến môi trường/secrets đã sử dụn
 | `ECM_Database__Connections__wf` | `ConnectionStrings:Workflow` | Chuỗi kết nối module Workflow. |
 | `ECM_Database__Connections__search` | `ConnectionStrings:Search` | Chuỗi kết nối module Search. |
 | `ECM_Database__Connections__ocr` | `ConnectionStrings:Ocr` | Chuỗi kết nối module OCR. |
-| `ECM_Database__Connections__ops` | `ConnectionStrings:Operations` | Chuỗi kết nối module Operations (dùng chung cho outbox). |
+| `ECM_Database__Connections__ops` | `ConnectionStrings:Operations` | Chuỗi kết nối module Operations (outbox, audit, notifications, retention). |
 | `ECM_FileStorage__BucketName` | `FileStorage:BucketName` | Tên bucket MinIO/S3. |
 | `ECM_FileStorage__ServiceUrl` | `FileStorage:ServiceUrl` | Endpoint MinIO/S3 (ví dụ `http://localhost:9000`). |
 | `ECM_FileStorage__AccessKeyId` | `FileStorage:AccessKeyId` | Access key MinIO/S3. |

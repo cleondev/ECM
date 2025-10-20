@@ -3,7 +3,7 @@ using System.Text.Json;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Domain.Documents.Events;
 using ECM.Document.Domain.Tags.Events;
-using ECM.Outbox.Infrastructure.Persistence;
+using ECM.Operations.Infrastructure.Persistence;
 using Shared.Contracts.Documents;
 
 namespace ECM.Document.Infrastructure.Outbox;
