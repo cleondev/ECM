@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.File.Domain.Files.Events;
+using ECM.Outbox.Infrastructure.Persistence;
 using Shared.Contracts.Files;
 
 namespace ECM.File.Infrastructure.Outbox;

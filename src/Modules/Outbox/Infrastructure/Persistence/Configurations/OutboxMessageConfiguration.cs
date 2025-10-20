@@ -2,13 +2,13 @@ using ECM.Outbox.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace ECM.IAM.Infrastructure.Persistence.Configurations;
+namespace ECM.Outbox.Infrastructure.Persistence.Configurations;
 
 internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
 {
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
-        builder.ToTable("outbox", "ops", tableBuilder => tableBuilder.ExcludeFromMigrations());
+        builder.ToTable("outbox", "ops");
 
         builder.HasKey(message => message.Id);
 
@@ -41,5 +41,11 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
 
         builder.Property(message => message.ProcessedAtUtc)
             .HasColumnName("processed_at");
+
+        builder.HasIndex(message => message.ProcessedAtUtc)
+            .HasDatabaseName("ops_outbox_processed_idx");
+
+        builder.HasIndex(message => new { message.Aggregate, message.AggregateId })
+            .HasDatabaseName("ops_outbox_agg_idx");
     }
 }

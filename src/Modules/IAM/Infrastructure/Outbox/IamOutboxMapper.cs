@@ -3,6 +3,7 @@ using System.Text.Json;
 using ECM.IAM.Domain.Relations.Events;
 using ECM.IAM.Domain.Users.Events;
 using ECM.BuildingBlocks.Domain.Events;
+using ECM.Outbox.Infrastructure.Persistence;
 using Shared.Contracts.IAM;
 
 namespace ECM.IAM.Infrastructure.Outbox;

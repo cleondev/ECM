@@ -1,4 +1,6 @@
-namespace ECM.IAM.Infrastructure.Outbox;
+using System;
+
+namespace ECM.Outbox.Infrastructure.Persistence;
 
 public sealed class OutboxMessage
 {
