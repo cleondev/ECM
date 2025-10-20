@@ -12,6 +12,10 @@
     "file": {
       "Context": "ECM.File.Infrastructure.Persistence.FileDbContext",
       "Project": "src/Modules/File/ECM.File.csproj"
+    },
+    "outbox": {
+      "Context": "ECM.Outbox.Infrastructure.Persistence.OutboxDbContext",
+      "Project": "src/Modules/Outbox/ECM.Outbox.csproj"
     }
   }
 }

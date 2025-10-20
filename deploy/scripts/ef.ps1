@@ -3,7 +3,7 @@ param(
   [ValidateSet("add","update","script","list","rollback","miglist","diag","scan")] [string]$Action,
 
   [Parameter(Mandatory=$false)]
-  [ValidateSet("iam","document","file","all")] [string]$Module,
+  [ValidateSet("iam","document","file","outbox","all")] [string]$Module,
 
   [string]$Name = "",
   [string]$Configuration = "Debug",
@@ -29,10 +29,11 @@ $map = @{
   "iam"      = @{ Key="iam";      Ctx = $settings.Contexts.iam.Context;      Proj = $settings.Contexts.iam.Project;      Root = "src/Modules/IAM" };
   "document" = @{ Key="document"; Ctx = $settings.Contexts.document.Context; Proj = $settings.Contexts.document.Project; Root = "src/Modules/Document" };
   "file"     = @{ Key="file";     Ctx = $settings.Contexts.file.Context;     Proj = $settings.Contexts.file.Project;    Root = "src/Modules/File" };
+  "outbox"   = @{ Key="outbox";   Ctx = $settings.Contexts.outbox.Context;   Proj = $settings.Contexts.outbox.Project;   Root = "src/Modules/Outbox" };
 }
 
 function Get-Targets($module) {
-  if ($module -eq "all") { return @($map.iam, $map.document, $map.file) }
+  if ($module -eq "all") { return @($map.iam, $map.document, $map.file, $map.outbox) }
   if (-not $map.ContainsKey($module)) { throw "Invalid module. Use: iam | document | file | all" }
   return @($map[$module])
 }

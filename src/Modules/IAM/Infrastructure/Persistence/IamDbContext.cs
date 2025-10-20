@@ -1,7 +1,7 @@
 using ECM.IAM.Domain.Relations;
 using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users;
-using ECM.IAM.Infrastructure.Outbox;
+using ECM.Outbox.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECM.IAM.Infrastructure.Persistence;

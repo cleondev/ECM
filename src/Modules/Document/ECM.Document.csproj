@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Abstractions/ECM.Abstractions.csproj" />
+    <ProjectReference Include="../Outbox/ECM.Outbox.csproj" />
     <ProjectReference Include="../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
     <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
   </ItemGroup>

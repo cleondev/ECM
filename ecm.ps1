@@ -31,40 +31,48 @@ switch ($cmd) {
     function ef-iam-add     { param([Parameter(Mandatory=$true)]$Name) ef add iam -Name $Name }
     function ef-doc-add     { param([Parameter(Mandatory=$true)]$Name) ef add document -Name $Name }
     function ef-file-add    { param([Parameter(Mandatory=$true)]$Name) ef add file -Name $Name }
+    function ef-outbox-add  { param([Parameter(Mandatory=$true)]$Name) ef add outbox -Name $Name }
 
-    function ef-iam-update  { ef update iam }
-    function ef-doc-update  { ef update document }
-    function ef-file-update { ef update file }
+    function ef-iam-update    { ef update iam }
+    function ef-doc-update    { ef update document }
+    function ef-file-update   { ef update file }
+    function ef-outbox-update { ef update outbox }
     function ef-update-all  { ef update all }
 
-    function ef-iam-rollback { param($Target="0") ef rollback iam -Name $Target }
-    function ef-doc-rollback { param($Target="0") ef rollback document -Name $Target }
-    function ef-file-rollback{ param($Target="0") ef rollback file -Name $Target }
+    function ef-iam-rollback    { param($Target="0") ef rollback iam -Name $Target }
+    function ef-doc-rollback    { param($Target="0") ef rollback document -Name $Target }
+    function ef-file-rollback   { param($Target="0") ef rollback file -Name $Target }
+    function ef-outbox-rollback { param($Target="0") ef rollback outbox -Name $Target }
     function ef-rollback-all { param($Target="0") ef rollback all -Name $Target }
 
-    function ef-iam-script  { param([string]$From="", [string]$To="", [switch]$Idempotent) 
+    function ef-iam-script  { param([string]$From="", [string]$To="", [switch]$Idempotent)
       $args=@("script","iam"); if($From){$args+=@("-From",$From)}; if($To){$args+=@("-To",$To)}; if($Idempotent){$args+="-Idempotent"}; ef @args }
-    function ef-doc-script  { param([string]$From="", [string]$To="", [switch]$Idempotent) 
+    function ef-doc-script  { param([string]$From="", [string]$To="", [switch]$Idempotent)
       $args=@("script","document"); if($From){$args+=@("-From",$From)}; if($To){$args+=@("-To",$To)}; if($Idempotent){$args+="-Idempotent"}; ef @args }
-    function ef-file-script { param([string]$From="", [string]$To="", [switch]$Idempotent) 
+    function ef-file-script { param([string]$From="", [string]$To="", [switch]$Idempotent)
       $args=@("script","file"); if($From){$args+=@("-From",$From)}; if($To){$args+=@("-To",$To)}; if($Idempotent){$args+="-Idempotent"}; ef @args }
+    function ef-outbox-script { param([string]$From="", [string]$To="", [switch]$Idempotent)
+      $args=@("script","outbox"); if($From){$args+=@("-From",$From)}; if($To){$args+=@("-To",$To)}; if($Idempotent){$args+="-Idempotent"}; ef @args }
     function ef-script-all  { param([string]$From="", [string]$To="", [switch]$Idempotent)
       $args=@("script","all"); if($From){$args+=@("-From",$From)}; if($To){$args+=@("-To",$To)}; if($Idempotent){$args+="-Idempotent"}; ef @args }
 
     function ef-list        { ef list }
-    function ef-miglist-iam { ef miglist iam }
-    function ef-miglist-doc { ef miglist document }
-    function ef-miglist-file{ ef miglist file }
+    function ef-miglist-iam    { ef miglist iam }
+    function ef-miglist-doc    { ef miglist document }
+    function ef-miglist-file   { ef miglist file }
+    function ef-miglist-outbox { ef miglist outbox }
     function ef-miglist-all { ef miglist all }
 
     function ef-diag-iam    { ef diag iam }
     function ef-diag-doc    { ef diag document }
     function ef-diag-file   { ef diag file }
+    function ef-diag-outbox { ef diag outbox }
     function ef-diag-all    { ef diag all }
     function ef-scan-all    { ef scan all }
     function ef-scan-iam    { ef scan iam }
     function ef-scan-doc    { ef scan document }
     function ef-scan-file   { ef scan file }
+    function ef-scan-outbox { ef scan outbox }
 
     Write-Host "✅ Aliases loaded for this session."
   }
