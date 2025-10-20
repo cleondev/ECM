@@ -179,7 +179,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `GET /retention/candidates` | Danh sách đối tượng sắp hết hạn. | `due_before`, `page`, `pageSize` |
 | `POST /retention/execute` | Thực thi policy (hủy hoặc đóng hồ sơ). | Body `{policy_id?, document_ids?}` |
 
-## 12. Notifications, Outbox & Webhooks
+## 12. Notifications, Operations & Webhooks
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |

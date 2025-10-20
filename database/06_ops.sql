@@ -47,3 +47,42 @@ CREATE TABLE ops.retention_candidate (
     reason          text
 );
 CREATE INDEX ops_retention_due_idx ON ops.retention_candidate (due_at);
+
+CREATE TABLE ops.notification (
+    id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         uuid NOT NULL,
+    type            text NOT NULL,
+    title           text NOT NULL,
+    message         text NOT NULL,
+    payload         jsonb NOT NULL DEFAULT '{}'::jsonb,
+    is_read         boolean NOT NULL DEFAULT false,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    read_at         timestamptz
+);
+CREATE INDEX ops_notification_user_idx ON ops.notification (user_id, is_read, created_at DESC);
+
+CREATE TABLE ops.webhook (
+    id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name            text NOT NULL,
+    event_types     text[] NOT NULL,
+    url             text NOT NULL,
+    secret          text NOT NULL,
+    description     text NOT NULL,
+    is_active       boolean NOT NULL DEFAULT true,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    deactivated_at  timestamptz
+);
+CREATE INDEX ops_webhook_active_idx ON ops.webhook (is_active);
+
+CREATE TABLE ops.webhook_delivery (
+    id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    webhook_id      uuid NOT NULL REFERENCES ops.webhook(id) ON DELETE CASCADE,
+    event_type      text NOT NULL,
+    payload         jsonb NOT NULL,
+    status          text NOT NULL,
+    attempt_count   integer NOT NULL DEFAULT 0,
+    enqueued_at     timestamptz NOT NULL DEFAULT now(),
+    delivered_at    timestamptz,
+    error           text
+);
+CREATE INDEX ops_webhook_delivery_status_idx ON ops.webhook_delivery (webhook_id, status);
