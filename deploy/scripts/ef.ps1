@@ -1,6 +1,10 @@
 param(
-  [Parameter(Mandatory=$true)][ValidateSet("add","update","script","list","rollback","miglist")] [string]$Action,
-  [Parameter(Mandatory=$false)][ValidateSet("iam","document","file","all")] [string]$Module,
+  [Parameter(Mandatory=$true)]
+  [ValidateSet("add","update","script","list","rollback","miglist","diag","scan")] [string]$Action,
+
+  [Parameter(Mandatory=$false)]
+  [ValidateSet("iam","document","file","all")] [string]$Module,
+
   [string]$Name = "",
   [string]$Configuration = "Debug",
   [string]$OutputDir = "Infrastructure/Persistence/Migrations",
@@ -13,16 +17,15 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path "$PSScriptRoot/../../").Path
 Set-Location $repoRoot
 
-# Load settings
 $settingsPath = Join-Path $repoRoot "ecm.settings.json"
 if (!(Test-Path $settingsPath)) { throw "Không tìm thấy ecm.settings.json tại $settingsPath" }
 $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
 
 $startup = $settings.StartupProject
 $map = @{
-  "iam"      = @{ Key="iam";      Ctx = $settings.Contexts.iam.Context;      Proj = $settings.Contexts.iam.Project };
-  "document" = @{ Key="document"; Ctx = $settings.Contexts.document.Context; Proj = $settings.Contexts.document.Project };
-  "file"     = @{ Key="file";     Ctx = $settings.Contexts.file.Context;     Proj = $settings.Contexts.file.Project };
+  "iam"      = @{ Key="iam";      Ctx = $settings.Contexts.iam.Context;      Proj = $settings.Contexts.iam.Project;      Root = "src/Modules/IAM" };
+  "document" = @{ Key="document"; Ctx = $settings.Contexts.document.Context; Proj = $settings.Contexts.document.Project; Root = "src/Modules/Document" };
+  "file"     = @{ Key="file";     Ctx = $settings.Contexts.file.Context;     Proj = $settings.Contexts.file.Project;    Root = "src/Modules/File" };
 }
 
 function Get-Targets($module) {
@@ -31,7 +34,6 @@ function Get-Targets($module) {
   return @($map[$module])
 }
 
-# Build startup once
 dotnet build $startup -c $Configuration | Out-Null
 
 switch ($Action) {
@@ -106,6 +108,33 @@ switch ($Action) {
         --project $t.Proj `
         --startup-project $startup `
         --configuration $Configuration
+    }
+  }
+
+  "diag" {
+    foreach ($t in (Get-Targets $Module)) {
+      Write-Host "`n=== DIAG: $($t.Key) (verbose EF) ==="
+      dotnet ef migrations list `
+        --context $t.Ctx `
+        --project $t.Proj `
+        --startup-project $startup `
+        --configuration $Configuration -v
+    }
+    Write-Host "`nTip: kiểm tra 'Migrations assembly', 'Startup project' và 'DbContext' trong log verbose."
+  }
+
+  "scan" {
+    foreach ($t in (Get-Targets $Module)) {
+      Write-Host "`n=== SCAN source for [Migration(...)] in $($t.Key) ==="
+      $root = $t.Root
+      if (!(Test-Path $root)) { Write-Host "  (skip) Không tìm thấy $root"; continue }
+      Get-ChildItem -Path $root -Recurse -Include *.cs | ForEach-Object {
+        $lines = Select-String -Path $_.FullName -Pattern '^\s*\[Migration\(".*' | Select-Object LineNumber, Line, Path
+        foreach ($l in $lines) {
+          Write-Host ("  {0}:{1}: {2}" -f $l.Path, $l.LineNumber, $l.Line.Trim())
+        }
+      }
+      Write-Host ">>> Nếu SCAN thấy nhiều migration nhưng 'miglist' không thấy, có thể migration thuộc context/assembly khác."
     }
   }
 }
