@@ -7,6 +7,7 @@ using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ECM.IAM.Api.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
@@ -49,6 +50,27 @@ public static class Program
             options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+        builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+        {
+            options.Events ??= new JwtBearerEvents();
+            var previousHandler = options.Events.OnTokenValidated;
+
+            options.Events.OnTokenValidated = async context =>
+            {
+                if (previousHandler is not null)
+                {
+                    await previousHandler(context);
+                }
+
+                var provisioningService = context.HttpContext.RequestServices
+                    .GetRequiredService<IUserProvisioningService>();
+
+                await provisioningService.EnsureUserExistsAsync(
+                    context.Principal,
+                    context.HttpContext.RequestAborted);
+            };
+        });
 
         builder.Services.AddAuthorization();
 
