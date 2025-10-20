@@ -12,7 +12,7 @@ param(
   [string]$To = "",
   [switch]$Idempotent,
 
-  # NEW: only build when you explicitly ask for it
+  # Build only when explicitly requested
   [switch]$ForceBuild
 )
 
@@ -21,7 +21,7 @@ $repoRoot = (Resolve-Path "$PSScriptRoot/../../").Path
 Set-Location $repoRoot
 
 $settingsPath = Join-Path $repoRoot "ecm.settings.json"
-if (!(Test-Path $settingsPath)) { throw "❌ Cannot find ecm.settings.json at $settingsPath" }
+if (!(Test-Path $settingsPath)) { throw "Cannot find ecm.settings.json at $settingsPath" }
 $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
 
 $startup = $settings.StartupProject
@@ -37,22 +37,14 @@ function Get-Targets($module) {
   return @($map[$module])
 }
 
-# ⏭️ Skip auto-build by default; build only when -ForceBuild is passed
-if ($ForceBuild) {
-  Write-Host "🔧 Building startup project ($Configuration) ..."
-  dotnet build $startup -c $Configuration | Out-Null
-} else {
-  Write-Host "⏩ Skipping build (using --no-build for EF commands)."
-}
-
 switch ($Action) {
   "list" {
-    dotnet ef dbcontext list --startup-project $startup --no-build
+    dotnet ef dbcontext list --startup-project $startup
   }
 
   "add" {
-    if (-not $Module -or $Module -eq "all") { throw "❌ 'add' must target a single module. Use -Module iam|document|file" }
-    if (-not $Name) { throw "❌ Missing -Name (migration name)" }
+    if (-not $Module -or $Module -eq "all") { throw "'add' must target a single module. Use -Module iam|document|file" }
+    if (-not $Name) { throw "Missing -Name (migration name)" }
     $t = $map[$Module]
     dotnet ef migrations add $Name `
       --context $t.Ctx `
@@ -60,34 +52,31 @@ switch ($Action) {
       --startup-project $startup `
       --configuration $Configuration `
       --output-dir $OutputDir `
-      --no-build
   }
 
   "update" {
     foreach ($t in (Get-Targets $Module)) {
-      Write-Host "==> Applying migrations for: $($t.Key)"
+      Write-Host "Applying migrations for: $($t.Key)"
       dotnet ef database update `
         --context $t.Ctx `
         --project $t.Proj `
         --startup-project $startup `
         --configuration $Configuration `
-        --no-build
     }
-    Write-Host "✅ Database update completed."
+    Write-Host "Database update completed."
   }
 
   "rollback" {
-    if (-not $Name) { throw "❌ Missing -Name (target migration, e.g., 0 or 20251017_AddX)" }
+    if (-not $Name) { throw "Missing -Name (target migration, e.g., 0 or 20251017_AddX)" }
     foreach ($t in (Get-Targets $Module)) {
-      Write-Host "==> Rolling back: $($t.Key) → $Name"
+      Write-Host "Rolling back: $($t.Key) -> $Name"
       dotnet ef database update $Name `
         --context $t.Ctx `
         --project $t.Proj `
         --startup-project $startup `
         --configuration $Configuration `
-        --no-build
     }
-    Write-Host "✅ Rollback completed."
+    Write-Host "Rollback completed."
   }
 
   "script" {
@@ -95,22 +84,24 @@ switch ($Action) {
     New-Item -ItemType Directory -Force -Path $outDir | Out-Null
     foreach ($t in (Get-Targets $Module)) {
       $out = Join-Path $outDir ("ef-{0}.sql" -f $t.Key)
-      $cmd = @("migrations","script",
-                "--context", $t.Ctx,
-                "--project", $t.Proj,
-                "--startup-project", $startup,
-                "--configuration", $Configuration,
-                "-o", $out,
-                "--no-build")
 
-      if ($From) { $cmd = @($From) + $cmd }
-      if ($To)   { $cmd = $cmd + @($To) }
+      # Build EF command in correct order: migrations script [from] [to] [options]
+      $cmd = @("migrations","script")
+      if ($From) { $cmd += $From }
+      if ($To)   { $cmd += $To }
+      $cmd += @(
+        "--context", $t.Ctx,
+        "--project", $t.Proj,
+        "--startup-project", $startup,
+        "--configuration", $Configuration,
+        "-o", $out
+      )
       if ($Idempotent) { $cmd += "--idempotent" }
 
-      Write-Host "==> Generating SQL script for: $($t.Key) → $out"
+      Write-Host "Generating SQL script for: $($t.Key) -> $out"
       dotnet ef @cmd
     }
-    Write-Host "✅ SQL script(s) generated in: $outDir"
+    Write-Host "SQL script(s) generated in: $outDir"
   }
 
   "miglist" {
@@ -121,22 +112,20 @@ switch ($Action) {
         --project $t.Proj `
         --startup-project $startup `
         --configuration $Configuration `
-        --no-build
     }
   }
 
   "diag" {
     foreach ($t in (Get-Targets $Module)) {
-      Write-Host "`n=== DIAGNOSTICS for: $($t.Key) (verbose EF output) ==="
+      Write-Host "`n=== Diagnostics for: $($t.Key) (verbose EF output) ==="
       dotnet ef migrations list `
         --context $t.Ctx `
         --project $t.Proj `
         --startup-project $startup `
         --configuration $Configuration `
         -v `
-        --no-build
     }
-    Write-Host "`n💡 Tip: Check 'Migrations assembly', 'Startup project', and 'DbContext' in the verbose logs above."
+    Write-Host "`nTip: Check 'Migrations assembly', 'Startup project', and 'DbContext' in the verbose logs above."
   }
 
   "scan" {
@@ -147,10 +136,10 @@ switch ($Action) {
       Get-ChildItem -Path $root -Recurse -Include *.cs | ForEach-Object {
         $lines = Select-String -Path $_.FullName -Pattern '^\s*\[Migration\(".*' | Select-Object LineNumber, Line, Path
         foreach ($l in $lines) {
-          Write-Host ("  {0}:{1}: {2}" -f $l.Path, $l.LineNumber, $l.Line.Trim())
+          Write-Host ('  {0}:{1}: {2}' -f $l.Path, $l.LineNumber, $l.Line.Trim())
         }
       }
-      Write-Host ">>> If 'scan' finds migrations but 'miglist' does not show them, they may belong to a different context or assembly."
+      Write-Host 'Hint: If ''scan'' finds migrations but ''miglist'' does not show them, they may belong to a different context or assembly.'
     }
   }
 }
