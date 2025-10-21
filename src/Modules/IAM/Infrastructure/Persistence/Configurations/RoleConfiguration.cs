@@ -15,8 +15,7 @@ public sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
 
         builder.Property(role => role.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
         builder.Property(role => role.Name)
             .HasColumnName("name")
