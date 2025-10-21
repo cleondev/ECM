@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using AppGateway.Api.Auth;
 using AppGateway.Api.ReverseProxy;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -8,7 +9,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace AppGateway.Api.Configuration;
 
@@ -28,11 +28,11 @@ public static class GatewayEndpointConfiguration
     {
         app.MapGet("/signin-azure/url", (HttpContext context) =>
         {
-            var redirectUri = ResolveRedirectPath(
+            var redirectUri = AzureLoginRedirectHelper.ResolveRedirectPath(
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.MainAppPath);
 
-            var loginPath = QueryHelpers.AddQueryString("/signin-azure", "redirectUri", redirectUri);
+            var loginPath = AzureLoginRedirectHelper.CreateLoginPath(redirectUri);
 
             return Results.Json(new
             {
@@ -42,7 +42,7 @@ public static class GatewayEndpointConfiguration
 
         app.MapGet("/signin-azure", (HttpContext context) =>
         {
-            var redirectUri = ResolveRedirectPath(
+            var redirectUri = AzureLoginRedirectHelper.ResolveRedirectPath(
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.MainAppPath);
 
@@ -56,7 +56,7 @@ public static class GatewayEndpointConfiguration
 
         app.MapPost("/signout", async (HttpContext context) =>
         {
-            var redirectUri = ResolveRedirectPath(
+            var redirectUri = AzureLoginRedirectHelper.ResolveRedirectPath(
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.LandingPagePath,
                 allowRoot: true);
@@ -96,28 +96,4 @@ public static class GatewayEndpointConfiguration
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
     }
 
-    private static string ResolveRedirectPath(string? candidate, string defaultPath, bool allowRoot = false)
-    {
-        if (string.IsNullOrWhiteSpace(candidate))
-        {
-            return defaultPath;
-        }
-
-        if (!candidate.StartsWith("/", StringComparison.Ordinal))
-        {
-            return defaultPath;
-        }
-
-        if (candidate.StartsWith("//", StringComparison.Ordinal))
-        {
-            return defaultPath;
-        }
-
-        if (!allowRoot && string.Equals(candidate, "/", StringComparison.Ordinal))
-        {
-            return defaultPath;
-        }
-
-        return candidate;
-    }
 }
