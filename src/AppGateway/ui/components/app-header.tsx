@@ -259,7 +259,7 @@ export function AppHeader({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600" asChild>
-                <a href="/signin" className="cursor-pointer">
+                <a href="/signout?redirectUri=/landing" className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </a>
