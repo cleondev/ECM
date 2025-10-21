@@ -205,7 +205,7 @@ internal sealed class EcmApiClient(
             return;
         }
 
-        var scopes = ParseScopes(_options.Scope);
+        var scopes = ScopeUtilities.ParseScopes(_options.Scope);
         if (scopes.Length == 0)
         {
             return;
@@ -243,13 +243,28 @@ internal sealed class EcmApiClient(
             }
         }
 
-        var appToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
-            _options.Scope!,
-            authenticationScheme: authenticationScheme,
-            tenant: _options.TenantId,
-            tokenAcquisitionOptions: tokenAcquisitionOptions);
+        try
+        {
+            var appToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
+                _options.Scope!,
+                authenticationScheme: authenticationScheme,
+                tenant: _options.TenantId,
+                tokenAcquisitionOptions: tokenAcquisitionOptions);
 
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", appToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", appToken);
+        }
+        catch (MsalException exception)
+        {
+            _logger.LogError(
+                exception,
+                "Unable to acquire an application access token for the ECM API using scope {Scope} and tenant {TenantId}.",
+                _options.Scope,
+                _options.TenantId);
+
+            throw new HttpRequestException(
+                "Failed to acquire an application access token required to call the ECM API.",
+                exception);
+        }
     }
 
     private async Task<T?> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -274,7 +289,4 @@ internal sealed class EcmApiClient(
         return response.IsSuccessStatusCode;
     }
 
-    private static string[] ParseScopes(string scope)
-        => scope
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }
