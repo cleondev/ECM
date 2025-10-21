@@ -12,6 +12,22 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { checkLogin } from "@/lib/api"
 
+function resolveGatewayUrl(path: string) {
+  const envBase = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
+  const runtimeBase = envBase || (typeof window !== "undefined" ? window.location.origin : "")
+
+  if (!runtimeBase) {
+    return path
+  }
+
+  try {
+    return new URL(path, runtimeBase).toString()
+  } catch (error) {
+    console.warn("[ui] Không thể chuẩn hoá URL đăng nhập:", error)
+    return path
+  }
+}
+
 export default function SignInPage() {
   return (
     <Suspense fallback={<SignInPageFallback />}>
@@ -53,7 +69,7 @@ function SignInPageContent() {
 
       if (result.loginUrl) {
         setStatus("Đang chuyển tới đăng nhập Microsoft…")
-        window.location.href = result.loginUrl
+        window.location.href = resolveGatewayUrl(result.loginUrl)
         return
       }
 
@@ -61,7 +77,9 @@ function SignInPageContent() {
     } catch (error) {
       console.error("[ui] Không lấy được đường dẫn đăng nhập Azure:", error)
       setStatus("Đi thẳng tới trang đăng nhập mặc định.")
-      window.location.href = `/signin-azure?redirectUri=${encodeURIComponent(targetAfterLogin)}`
+      window.location.href = resolveGatewayUrl(
+        `/signin-azure?redirectUri=${encodeURIComponent(targetAfterLogin)}`,
+      )
     } finally {
       setIsLoading(false)
     }
