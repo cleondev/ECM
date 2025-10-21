@@ -61,9 +61,11 @@ public static class GatewayServiceConfiguration
         });
 
         authenticationBuilder.AddMicrosoftIdentityWebApp(
-            builder.Configuration.GetSection("AzureAd"),
-            cookieScheme: CookieAuthenticationDefaults.AuthenticationScheme,
-            openIdConnectScheme: OpenIdConnectDefaults.AuthenticationScheme);
+                builder.Configuration.GetSection("AzureAd"),
+                cookieScheme: CookieAuthenticationDefaults.AuthenticationScheme,
+                openIdConnectScheme: OpenIdConnectDefaults.AuthenticationScheme)
+            .EnableTokenAcquisitionToCallDownstreamApi()
+            .AddInMemoryTokenCaches();
 
         authenticationBuilder.AddMicrosoftIdentityWebApi(
             builder.Configuration.GetSection("AzureAd"),
