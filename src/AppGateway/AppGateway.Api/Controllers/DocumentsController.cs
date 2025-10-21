@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using AppGateway.Contracts.Documents;
+using AppGateway.Api.Auth;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -9,7 +10,7 @@ namespace AppGateway.Api.Controllers;
 
 [ApiController]
 [Route("api/documents")]
-[Authorize]
+[Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
 public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Contracts.IAM.Users;
+using AppGateway.Api.Auth;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -12,7 +13,7 @@ namespace AppGateway.Api.Controllers.IAM;
 
 [ApiController]
 [Route("api/iam/users")]
-[Authorize]
+[Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
 public sealed class IamUsersController(IEcmApiClient client) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;

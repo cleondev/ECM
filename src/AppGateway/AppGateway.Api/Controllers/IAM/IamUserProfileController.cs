@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using AppGateway.Api.Auth;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,7 @@ namespace AppGateway.Api.Controllers.IAM;
 
 [ApiController]
 [Route("api/iam/profile")]
-[Authorize]
+[Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
 public sealed class IamUserProfileController(IEcmApiClient client) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;
