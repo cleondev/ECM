@@ -1,4 +1,5 @@
 using AppGateway.Contracts.Workflows;
+using AppGateway.Api.Auth;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -8,7 +9,7 @@ namespace AppGateway.Api.Controllers;
 
 [ApiController]
 [Route("api/workflows")]
-[Authorize]
+[Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
 public sealed class WorkflowsController(IEcmApiClient client) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;
