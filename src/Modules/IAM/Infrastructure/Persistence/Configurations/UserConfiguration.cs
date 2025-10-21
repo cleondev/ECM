@@ -19,7 +19,6 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(user => user.Email)
             .HasColumnName("email")
-            .HasColumnType("citext")
             .IsRequired();
 
         builder.Property(user => user.DisplayName)
