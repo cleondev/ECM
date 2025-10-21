@@ -20,6 +20,7 @@ public sealed class WebhookDelivery
         Payload = payload;
         Status = status;
         EnqueuedAtUtc = enqueuedAtUtc;
+        Error = string.Empty;
     }
 
     public Guid Id { get; private set; }
