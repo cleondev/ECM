@@ -200,9 +200,14 @@ internal sealed class EcmApiClient(
             return;
         }
 
+        var tokenAcquisitionOptions = new TokenAcquisitionOptions
+        {
+            CancellationToken = cancellationToken,
+        };
+
         var accessToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
-            [ _options.Scope ],
-            cancellationToken: cancellationToken);
+            _options.Scope!,
+            tokenAcquisitionOptions: tokenAcquisitionOptions);
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
