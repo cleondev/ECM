@@ -12,6 +12,7 @@ using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Workflows;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Identity.Web;
@@ -205,8 +206,13 @@ internal sealed class EcmApiClient(
             CancellationToken = cancellationToken,
         };
 
+        var authenticationScheme = string.IsNullOrWhiteSpace(_options.AuthenticationScheme)
+            ? OpenIdConnectDefaults.AuthenticationScheme
+            : _options.AuthenticationScheme;
+
         var accessToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
             _options.Scope!,
+            authenticationScheme: authenticationScheme,
             tokenAcquisitionOptions: tokenAcquisitionOptions);
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

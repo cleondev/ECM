@@ -2,6 +2,7 @@ using System;
 using AppGateway.Infrastructure.IAM;
 using AppGateway.Infrastructure.Ecm;
 
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,12 +20,24 @@ public static class DependencyInjection
     {
         var baseAddress = configuration.GetValue<string>("Services:Ecm") ?? "http://localhost:8080";
         var scope = configuration.GetValue<string>("Services:EcmScope") ?? "api://ecm-host/.default";
+        var authenticationScheme = configuration.GetValue<string>("Services:EcmAuthenticationScheme");
 
         services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri(baseAddress))
                 .AddStandardResilienceHandler();
 
         services.Configure<IamOptions>(configuration.GetSection("IAM"));
-        services.Configure<EcmApiClientOptions>(options => options.Scope = scope);
+        services.Configure<EcmApiClientOptions>(options =>
+        {
+            options.Scope = scope;
+            if (!string.IsNullOrWhiteSpace(authenticationScheme))
+            {
+                options.AuthenticationScheme = authenticationScheme!;
+            }
+            else
+            {
+                options.AuthenticationScheme = OpenIdConnectDefaults.AuthenticationScheme;
+            }
+        });
 
         services.AddHttpContextAccessor();
 
