@@ -113,7 +113,7 @@ export default function SignUpPage() {
 
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Already have an account? </span>
-            <Link href="/signin" className="text-primary hover:underline">
+            <Link href="/signin?redirectUri=/" className="text-primary hover:underline">
               Sign in
             </Link>
           </div>

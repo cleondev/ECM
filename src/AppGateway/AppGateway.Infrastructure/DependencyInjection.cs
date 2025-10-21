@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
 
@@ -50,7 +51,14 @@ public static class DependencyInjection
             var accessor = sp.GetRequiredService<IHttpContextAccessor>();
             var tokenAcquisition = sp.GetRequiredService<ITokenAcquisition>();
             var options = sp.GetRequiredService<IOptions<EcmApiClientOptions>>();
-            return new EcmApiClient(factory.CreateClient(HttpClientName), accessor, tokenAcquisition, options);
+            var logger = sp.GetRequiredService<ILogger<EcmApiClient>>();
+
+            return new EcmApiClient(
+                factory.CreateClient(HttpClientName),
+                accessor,
+                tokenAcquisition,
+                options,
+                logger);
         });
 
         return services;
