@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using AppGateway.Api.Auth;
 using AppGateway.Infrastructure;
+using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,12 +27,24 @@ public static class GatewayServiceConfiguration
         builder.Services.AddGatewayInfrastructure(builder.Configuration);
         builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
 
+        var ecmScopes = ScopeUtilities.ParseScopes(
+            builder.Configuration.GetValue<string>("Services:EcmScope"));
+
         builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
         {
             options.ResponseType = OpenIdConnectResponseType.Code;
             options.UsePkce = true;
             options.ResponseMode = OpenIdConnectResponseMode.FormPost;
             options.Events ??= new OpenIdConnectEvents();
+
+            foreach (var scope in ecmScopes)
+            {
+                if (!options.Scope.Contains(scope, StringComparer.Ordinal))
+                {
+                    options.Scope.Add(scope);
+                }
+            }
+
             var previousHandler = options.Events.OnTokenValidated;
 
             options.Events.OnTokenValidated = async context =>

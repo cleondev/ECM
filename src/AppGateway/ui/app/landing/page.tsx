@@ -41,7 +41,7 @@ export default function ECMLandingPage() {
               </a>
             </nav>
             <div className="flex items-center gap-3">
-            <Link href="/signin">
+            <Link href="/signin?redirectUri=/">
               <Button variant="ghost" size="sm" className="text-foreground hover:text-primary hover:scale-105">
                 Sign In
               </Button>
