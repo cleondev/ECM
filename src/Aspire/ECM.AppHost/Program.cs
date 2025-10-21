@@ -102,20 +102,20 @@ public static class Program
 
         var ecmHost = builder.AddProject<Projects.ECM_Host>("ecm")
             .WithReference(kafka)
-            .WithReference(minio)
-            .WithHttpEndpoint(port: ecmUri.Port, name: "ecm-http", isProxied: false)
-            .WithEnvironment("ASPNETCORE_URLS", ecmUri.ToString());
+            .WithReference(minio);
 
         foreach (var moduleDatabase in moduleDatabases.Values)
         {
             ecmHost = ecmHost.WithReference(moduleDatabase);
         }
 
-        builder.AddProject<Projects.AppGateway_Api>("app-gateway")
+        ecmHost = ConfigureProjectResource(ecmHost, ecmUri, "ecm");
+
+        var appGateway = builder.AddProject<Projects.AppGateway_Api>("app-gateway")
             .WithReference(ecmHost)
-            .WithHttpEndpoint(port: gatewayUri.Port, name: "app-gateway-http", isProxied: false)
-            .WithEnvironment("ASPNETCORE_URLS", gatewayUri.ToString())
             .WithEnvironment("Services__Ecm", ecmUri.ToString());
+
+        appGateway = ConfigureProjectResource(appGateway, gatewayUri, "app-gateway");
 
         var searchIndexer = builder.AddProject<Projects.SearchIndexer>("search-indexer")
             .WithReference(kafka)
@@ -152,5 +152,81 @@ public static class Program
         }
 
         return uri;
+    }
+
+    private static IResourceBuilder<ProjectResource> ConfigureProjectResource(
+        IResourceBuilder<ProjectResource> builder,
+        Uri uri,
+        string endpointBaseName)
+    {
+        var port = GetEffectivePort(uri);
+
+        RemoveHttpAndHttpsEndpoints(builder);
+
+        if (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            builder = builder.WithHttpsEndpoint(
+                port: port,
+                targetPort: port,
+                name: $"{endpointBaseName}-https",
+                isProxied: false);
+        }
+        else
+        {
+            builder = builder.WithHttpEndpoint(
+                port: port,
+                targetPort: port,
+                name: $"{endpointBaseName}-http",
+                isProxied: false);
+        }
+
+        builder = builder.WithEnvironment("ASPNETCORE_URLS", BuildBindingUrl(uri));
+
+        return builder;
+    }
+
+    private static string BuildBindingUrl(Uri uri)
+    {
+        var port = GetEffectivePort(uri);
+        return $"{uri.Scheme}://0.0.0.0:{port}";
+    }
+
+    private static int GetEffectivePort(Uri uri)
+    {
+        if (!uri.IsDefaultPort)
+        {
+            return uri.Port;
+        }
+
+        return string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            ? 443
+            : 80;
+    }
+
+    private static void RemoveHttpAndHttpsEndpoints(IResourceBuilder<ProjectResource> builder)
+    {
+        var projectResource = builder.Resource;
+
+        var endpointsToRemove = projectResource.Annotations
+            .OfType<EndpointAnnotation>()
+            .Where(annotation => string.Equals(annotation.UriScheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(annotation.UriScheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (endpointsToRemove.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var annotation in endpointsToRemove)
+        {
+            projectResource.Annotations.Remove(annotation);
+        }
+
+        if (projectResource.DefaultHttpsEndpoint is not null
+            && endpointsToRemove.Contains(projectResource.DefaultHttpsEndpoint))
+        {
+            projectResource.DefaultHttpsEndpoint = null;
+        }
     }
 }
