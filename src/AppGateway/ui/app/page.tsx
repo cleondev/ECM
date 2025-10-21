@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { FileManager } from '@/components/file-manager'
+import { checkLogin } from '@/lib/api'
 
 const LANDING_PAGE_ROUTE = '/landing'
 
@@ -13,11 +14,11 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true
 
-    fetch('/api/iam/profile', { credentials: 'include', cache: 'no-store' })
-      .then(res => {
+    checkLogin('/')
+      .then(result => {
         if (!isMounted) return
 
-        if (res.ok) {
+        if (result.isAuthenticated) {
           setIsAuthenticated(true)
         } else {
           router.replace(LANDING_PAGE_ROUTE)
