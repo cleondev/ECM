@@ -33,7 +33,7 @@ public sealed class IamAuthenticationController(
             redirectUri,
             Program.MainAppPath);
 
-        var loginUrl = AzureLoginRedirectHelper.CreateLoginPath(resolvedRedirect);
+        var loginUrl = AzureLoginRedirectHelper.CreateLoginUrl(HttpContext, resolvedRedirect);
 
         if (User.Identity?.IsAuthenticated != true)
         {

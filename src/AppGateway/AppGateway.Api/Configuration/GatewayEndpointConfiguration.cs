@@ -32,11 +32,11 @@ public static class GatewayEndpointConfiguration
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.MainAppPath);
 
-            var loginPath = AzureLoginRedirectHelper.CreateLoginPath(redirectUri);
+            var loginUrl = AzureLoginRedirectHelper.CreateLoginUrl(context, redirectUri);
 
             return Results.Json(new
             {
-                url = loginPath
+                url = loginUrl
             });
         }).AllowAnonymous();
 
