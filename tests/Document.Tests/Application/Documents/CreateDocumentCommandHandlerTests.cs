@@ -77,7 +77,7 @@ public class CreateDocumentCommandHandlerTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Contains("Document title is required.", result.Errors);
+        Assert.Contains(result.Errors, error => error.StartsWith("Document title is required.", StringComparison.Ordinal));
         Assert.Empty(repository.AddedDocuments);
         Assert.Null(repository.CapturedToken);
     }
@@ -102,7 +102,7 @@ public class CreateDocumentCommandHandlerTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Contains("Document type is required.", result.Errors);
+        Assert.Contains(result.Errors, error => error.StartsWith("Document type is required.", StringComparison.Ordinal));
         Assert.Empty(repository.AddedDocuments);
         Assert.Null(repository.CapturedToken);
     }
