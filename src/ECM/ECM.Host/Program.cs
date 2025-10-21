@@ -1,7 +1,8 @@
 using ECM.Abstractions;
-using ECM.IAM.Api;
 using ECM.Document.Api;
 using ECM.File.Api;
+using ECM.Host.Swagger;
+using ECM.IAM.Api;
 using ECM.SearchIndexer.Infrastructure;
 using ECM.SearchRead.Api;
 using ECM.Signature.Api;
@@ -102,6 +103,8 @@ public static class Program
                     Array.Empty<string>()
                 }
             });
+
+            options.OperationFilter<MinimalApiParameterOperationFilter>();
         });
 
         var app = builder.Build();
