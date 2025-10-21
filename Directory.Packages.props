@@ -10,24 +10,24 @@
     <PackageVersion Include="AWSSDK.S3" Version="3.7.305.14" />
     <PackageVersion Include="Confluent.Kafka" Version="2.5.0" />
     <PackageVersion Include="EnyimMemcachedCore" Version="3.4.5" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.9" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.8" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.8" />
-    <PackageVersion Include="Microsoft.Identity.Web" Version="3.1.0" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.8" />
-    <PackageVersion Include="EFCore.NamingConventions" Version="8.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.10" />
+    <PackageVersion Include="Microsoft.Identity.Web" Version="3.14.1" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.10.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.7.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.7.0" />
@@ -37,9 +37,9 @@
     <PackageVersion Include="Serilog.Settings.Configuration" Version="8.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="5.0.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageVersion Include="xunit" Version="2.5.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.3" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-    <PackageVersion Include="Npgsql" Version="8.0.3" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="Npgsql" Version="9.0.4" />
   </ItemGroup>
 </Project>
