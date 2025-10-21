@@ -15,8 +15,10 @@ using AppGateway.Contracts.Workflows;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Identity.Web;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
+using Microsoft.Identity.Web;
 
 namespace AppGateway.Infrastructure.Ecm;
 
@@ -24,12 +26,14 @@ internal sealed class EcmApiClient(
     HttpClient httpClient,
     IHttpContextAccessor httpContextAccessor,
     ITokenAcquisition tokenAcquisition,
-    IOptions<EcmApiClientOptions> options) : IEcmApiClient
+    IOptions<EcmApiClientOptions> options,
+    ILogger<EcmApiClient> logger) : IEcmApiClient
 {
     private readonly HttpClient _httpClient = httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly ITokenAcquisition _tokenAcquisition = tokenAcquisition;
     private readonly EcmApiClientOptions _options = options.Value;
+    private readonly ILogger<EcmApiClient> _logger = logger;
 
     public async Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
@@ -201,6 +205,12 @@ internal sealed class EcmApiClient(
             return;
         }
 
+        var scopes = ParseScopes(_options.Scope);
+        if (scopes.Length == 0)
+        {
+            return;
+        }
+
         var tokenAcquisitionOptions = new TokenAcquisitionOptions
         {
             CancellationToken = cancellationToken,
@@ -210,13 +220,36 @@ internal sealed class EcmApiClient(
             ? OpenIdConnectDefaults.AuthenticationScheme
             : _options.AuthenticationScheme;
 
-        var accessToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext?.User?.Identity?.IsAuthenticated == true)
+        {
+            try
+            {
+                var accessToken = await _tokenAcquisition.GetAccessTokenForUserAsync(
+                    scopes,
+                    authenticationScheme: authenticationScheme,
+                    tenant: _options.TenantId,
+                    user: httpContext.User,
+                    tokenAcquisitionOptions: tokenAcquisitionOptions);
+
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                return;
+            }
+            catch (MsalException exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Falling back to app-only token while calling ECM API because acquiring a user token failed.");
+            }
+        }
+
+        var appToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
             _options.Scope!,
             authenticationScheme: authenticationScheme,
             tenant: _options.TenantId,
             tokenAcquisitionOptions: tokenAcquisitionOptions);
 
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", appToken);
     }
 
     private async Task<T?> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -240,4 +273,8 @@ internal sealed class EcmApiClient(
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         return response.IsSuccessStatusCode;
     }
+
+    private static string[] ParseScopes(string scope)
+        => scope
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

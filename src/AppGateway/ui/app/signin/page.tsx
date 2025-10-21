@@ -2,14 +2,14 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { checkLogin } from "@/lib/api"
 
 export default function SignInPage() {
@@ -18,8 +18,17 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState("")
   const router = useRouter()
-
-  const targetAfterLogin = '/'
+  const searchParams = useSearchParams()
+  const targetAfterLogin = useMemo(() => {
+    const candidate = searchParams?.get("redirectUri") ?? searchParams?.get("redirect")
+    if (!candidate || !candidate.startsWith("/")) {
+      return "/"
+    }
+    if (candidate.startsWith("//")) {
+      return "/"
+    }
+    return candidate
+  }, [searchParams])
 
   // Thay đổi logic đăng nhập Azure
   const handleAzureSignIn = async () => {
