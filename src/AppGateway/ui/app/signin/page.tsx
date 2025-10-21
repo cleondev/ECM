@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { checkLogin } from "@/lib/api"
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
@@ -23,18 +24,25 @@ export default function SignInPage() {
   // Thay đổi logic đăng nhập Azure
   const handleAzureSignIn = async () => {
     setIsLoading(true)
-    setStatus("Đang chuẩn bị đăng nhập…")
+    setStatus("Đang kiểm tra trạng thái đăng nhập…")
     try {
-      const redirectUri = encodeURIComponent(targetAfterLogin)
-      const res = await fetch(`/signin-azure/url?redirectUri=${redirectUri}`, { cache: 'no-store' })
-      if (!res.ok) throw new Error('Không lấy được đường dẫn.')
-      const data = await res.json()
-      if (data?.url) {
-        window.location.href = data.url
+      const result = await checkLogin(targetAfterLogin)
+
+      if (result.isAuthenticated) {
+        setStatus("Đã đăng nhập, đang chuyển hướng…")
+        router.replace(targetAfterLogin)
         return
       }
+
+      if (result.loginUrl) {
+        setStatus("Đang chuyển tới đăng nhập Microsoft…")
+        window.location.href = result.loginUrl
+        return
+      }
+
       throw new Error('Thiếu đường dẫn đăng nhập.')
     } catch (error) {
+      console.error("[ui] Không lấy được đường dẫn đăng nhập Azure:", error)
       setStatus("Đi thẳng tới trang đăng nhập mặc định.")
       window.location.href = `/signin-azure?redirectUri=${encodeURIComponent(targetAfterLogin)}`
     } finally {

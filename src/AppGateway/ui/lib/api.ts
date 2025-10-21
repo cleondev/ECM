@@ -15,12 +15,26 @@ const SIMULATED_DELAY = 800 // milliseconds
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-type GatewayUserResponse = {
+type RoleSummaryResponse = {
+  id: string
+  name: string
+}
+
+type UserSummaryResponse = {
   id: string
   email: string
   displayName: string
   department?: string | null
-  roles?: { id: string; name: string }[]
+  roles?: RoleSummaryResponse[]
+}
+
+type CheckLoginResponse = {
+  isAuthenticated: boolean
+  loginUrl?: string | null
+  profile?: (UserSummaryResponse & {
+    isActive?: boolean
+    createdAtUtc?: string
+  }) | null
 }
 
 type DocumentSummary = {
@@ -79,6 +93,47 @@ function mapDocumentToFileItem(document: DocumentSummary): FileItem {
     folder: "All Files",
     owner: "",
     description: "",
+  }
+}
+
+function mapUserSummaryToUser(profile: UserSummaryResponse): User {
+  return {
+    id: profile.id,
+    displayName: profile.displayName,
+    email: profile.email,
+    department: profile.department ?? null,
+    roles: profile.roles?.map((role) => role.name) ?? [],
+  }
+}
+
+export type CheckLoginResult = {
+  isAuthenticated: boolean
+  loginUrl: string | null
+  user: User | null
+}
+
+export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult> {
+  const params = new URLSearchParams()
+
+  if (redirectUri) {
+    params.set("redirectUri", redirectUri)
+  }
+
+  const search = params.toString()
+  const response = await gatewayFetch(
+    `/api/iam/check-login${search ? `?${search}` : ""}`,
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to check login status (${response.status})`)
+  }
+
+  const data = (await response.json()) as CheckLoginResponse
+
+  return {
+    isAuthenticated: Boolean(data.isAuthenticated),
+    loginUrl: data.loginUrl ?? null,
+    user: data.profile ? mapUserSummaryToUser(data.profile) : null,
   }
 }
 
@@ -254,25 +309,8 @@ export async function updateSystemTag(fileId: string, tagName: string, value: st
 export async function fetchUser(): Promise<User | null> {
   await delay(150)
   try {
-    const response = await gatewayFetch("/api/iam/profile")
-
-    if (response.status === 401 || response.status === 404) {
-      return null
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch profile (${response.status})`)
-    }
-
-    const data = (await response.json()) as GatewayUserResponse
-
-    return {
-      id: data.id,
-      displayName: data.displayName,
-      email: data.email,
-      department: data.department ?? null,
-      roles: data.roles?.map((role) => role.name) ?? [],
-    }
+    const { user } = await checkLogin()
+    return user
   } catch (error) {
     console.error("[ui] Không lấy được thông tin người dùng:", error)
     throw error
