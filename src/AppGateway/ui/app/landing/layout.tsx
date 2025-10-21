@@ -12,16 +12,16 @@ export const metadata: Metadata = {
   generator: "v0.app",
 }
 
-export default function RootLayout({
+export default function LandingLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+    <div className={`dark ${GeistSans.variable} ${GeistMono.variable}`}>
+      <div className="font-sans antialiased">
         <Suspense fallback={null}>{children}</Suspense>
-      </body>
-    </html>
+      </div>
+    </div>
   )
 }

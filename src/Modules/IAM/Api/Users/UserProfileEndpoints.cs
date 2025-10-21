@@ -88,5 +88,7 @@ public static class UserProfileEndpoints
 
     private static string? GetEmail(ClaimsPrincipal principal)
         => principal.FindFirst(ClaimTypes.Email)?.Value
-           ?? principal.FindFirst("preferred_username")?.Value;
+           ?? principal.FindFirst("preferred_username")?.Value
+           ?? principal.FindFirst("emails")?.Value
+           ?? principal.FindFirst(ClaimTypes.Upn)?.Value;
 }
