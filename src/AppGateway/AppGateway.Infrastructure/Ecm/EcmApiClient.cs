@@ -228,7 +228,7 @@ internal sealed class EcmApiClient(
                 var accessToken = await _tokenAcquisition.GetAccessTokenForUserAsync(
                     scopes,
                     authenticationScheme: authenticationScheme,
-                    tenant: _options.TenantId,
+                    tenantId: _options.TenantId,
                     user: httpContext.User,
                     tokenAcquisitionOptions: tokenAcquisitionOptions);
 
