@@ -16,6 +16,7 @@ public sealed class WebhookSubscription
 
     public WebhookSubscription(string name, IEnumerable<string> eventTypes, string url, string secret, string description, bool isActive, DateTimeOffset createdAtUtc)
     {
+        Id = Guid.NewGuid();
         Name = name;
         EventTypes = eventTypes.Distinct().ToArray();
         Url = url;

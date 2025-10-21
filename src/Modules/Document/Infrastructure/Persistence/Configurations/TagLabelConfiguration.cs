@@ -18,8 +18,7 @@ public sealed class TagLabelConfiguration : IEntityTypeConfiguration<TagLabel>
 
         builder.Property(label => label.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
         builder.Property(label => label.NamespaceSlug)
             .HasColumnName("namespace_slug")

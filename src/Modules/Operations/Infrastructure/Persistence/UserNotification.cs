@@ -14,6 +14,7 @@ public sealed class UserNotification
 
     public UserNotification(Guid userId, string type, string title, string message, string payload, DateTimeOffset createdAtUtc)
     {
+        Id = Guid.NewGuid();
         UserId = userId;
         Type = type;
         Title = title;

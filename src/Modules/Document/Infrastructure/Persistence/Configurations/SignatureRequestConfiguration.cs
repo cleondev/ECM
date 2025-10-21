@@ -15,8 +15,7 @@ public sealed class SignatureRequestConfiguration : IEntityTypeConfiguration<Sig
 
         builder.Property(request => request.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
         builder.Property(request => request.DocumentId)
             .HasColumnName("document_id")

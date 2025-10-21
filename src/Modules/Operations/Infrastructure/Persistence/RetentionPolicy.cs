@@ -12,6 +12,7 @@ public sealed class RetentionPolicy
 
     public RetentionPolicy(string name, string rule, bool isActive, DateTimeOffset createdAtUtc)
     {
+        Id = Guid.NewGuid();
         Name = name;
         Rule = rule;
         IsActive = isActive;

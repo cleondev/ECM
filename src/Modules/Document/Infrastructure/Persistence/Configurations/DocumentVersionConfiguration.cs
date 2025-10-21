@@ -16,8 +16,7 @@ public sealed class DocumentVersionConfiguration : IEntityTypeConfiguration<Docu
 
         builder.Property(version => version.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
         builder.Property(version => version.DocumentId)
             .HasColumnName("document_id")

@@ -14,8 +14,7 @@ internal sealed class RetentionPolicyConfiguration : IEntityTypeConfiguration<Re
 
         builder.Property(entity => entity.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
         builder.Property(entity => entity.Name)
             .HasColumnName("name")

@@ -15,8 +15,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(user => user.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
         builder.Property(user => user.Email)
             .HasColumnName("email")

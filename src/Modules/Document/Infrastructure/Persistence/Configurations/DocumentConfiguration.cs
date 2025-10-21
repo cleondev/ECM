@@ -16,9 +16,8 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
 
         builder.Property(document => document.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value))
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever()
+            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value));
 
         builder.Property(document => document.Title)
             .HasColumnName("title")

@@ -14,6 +14,7 @@ public sealed class WebhookDelivery
 
     public WebhookDelivery(Guid webhookId, string eventType, string payload, string status, DateTimeOffset enqueuedAtUtc)
     {
+        Id = Guid.NewGuid();
         WebhookId = webhookId;
         EventType = eventType;
         Payload = payload;
