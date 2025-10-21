@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useMemo, useState } from "react"
+import { Suspense, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,14 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { checkLogin } from "@/lib/api"
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInPageFallback />}>
+      <SignInPageContent />
+    </Suspense>
+  )
+}
+
+function SignInPageContent() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -134,6 +142,25 @@ export default function SignInPage() {
               Sign up
             </Link>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function SignInPageFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center space-y-2">
+          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-4">
+            <span className="text-muted-foreground font-bold text-xl">FM</span>
+          </div>
+          <CardTitle className="text-2xl">Loading sign-in…</CardTitle>
+          <CardDescription>Please wait while we prepare your sign-in experience.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-sm text-muted-foreground">Loading…</p>
         </CardContent>
       </Card>
     </div>
