@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AppGateway.Infrastructure.Ecm;
 
-internal static class ScopeUtilities
+public static class ScopeUtilities
 {
     private static readonly char[] Separators =
     [
@@ -19,7 +19,7 @@ internal static class ScopeUtilities
     {
         if (string.IsNullOrWhiteSpace(scope))
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         var uniqueScopes = new List<string>();
@@ -40,7 +40,7 @@ internal static class ScopeUtilities
         }
 
         return uniqueScopes.Count == 0
-            ? Array.Empty<string>()
+            ? []
             : [.. uniqueScopes];
     }
 }

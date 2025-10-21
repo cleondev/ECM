@@ -97,15 +97,13 @@ public static class GatewayServiceConfiguration
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
             });
 
-        builder.Services.AddAuthorization(options =>
-        {
-            options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        builder.Services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(
                     JwtBearerDefaults.AuthenticationScheme,
                     ApiKeyAuthenticationHandler.AuthenticationScheme,
                     CookieAuthenticationDefaults.AuthenticationScheme)
                 .RequireAuthenticatedUser()
-                .Build();
-        });
+                .Build());
     }
 }

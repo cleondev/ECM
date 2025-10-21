@@ -8,7 +8,7 @@ public sealed class WebhookSubscription
 {
     private WebhookSubscription()
     {
-        EventTypes = Array.Empty<string>();
+        EventTypes = [];
         Url = string.Empty;
         Secret = string.Empty;
         Description = string.Empty;
