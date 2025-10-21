@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
@@ -6,6 +7,7 @@ using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace AppGateway.Api.Controllers.IAM;
 
@@ -13,10 +15,12 @@ namespace AppGateway.Api.Controllers.IAM;
 [Route("api/iam")]
 public sealed class IamAuthenticationController(
     IEcmApiClient client,
-    IUserProvisioningService provisioningService) : ControllerBase
+    IUserProvisioningService provisioningService,
+    ILogger<IamAuthenticationController> logger) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;
     private readonly IUserProvisioningService _provisioningService = provisioningService;
+    private readonly ILogger<IamAuthenticationController> _logger = logger;
 
     [HttpGet("check-login")]
     [AllowAnonymous]
@@ -36,14 +40,22 @@ public sealed class IamAuthenticationController(
             return Ok(new CheckLoginResponseDto(false, loginUrl, null));
         }
 
-        await _provisioningService.EnsureUserExistsAsync(User, cancellationToken);
-
-        var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
-        if (profile is null)
+        try
         {
+            await _provisioningService.EnsureUserExistsAsync(User, cancellationToken);
+
+            var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
+            if (profile is null)
+            {
+                return Ok(new CheckLoginResponseDto(false, loginUrl, null));
+            }
+
+            return Ok(new CheckLoginResponseDto(true, null, profile));
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "An error occurred while checking the current user's login state.");
             return Ok(new CheckLoginResponseDto(false, loginUrl, null));
         }
-
-        return Ok(new CheckLoginResponseDto(true, null, profile));
     }
 }
