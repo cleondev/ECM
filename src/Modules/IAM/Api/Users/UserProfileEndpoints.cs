@@ -23,11 +23,11 @@ public static class UserProfileEndpoints
         group.WithGroupName(IamSwagger.DocumentName);
         group.RequireAuthorization();
 
-        group.MapGet("/", GetProfileAsync)
+        group.MapGet(string.Empty, GetProfileAsync)
             .WithName("GetCurrentUserProfile")
             .WithSummary("Get the profile of the current user");
 
-        group.MapPut("/", UpdateProfileAsync)
+        group.MapPut(string.Empty, UpdateProfileAsync)
             .WithName("UpdateCurrentUserProfile")
             .WithSummary("Update the profile of the current user");
 
