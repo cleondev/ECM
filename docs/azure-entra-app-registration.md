@@ -34,6 +34,7 @@ App Gateway đóng vai trò BFF và reverse proxy. Cần một ứng dụng Azur
 | **Tenant ID** | `<tenant-guid>` | `AzureAd:TenantId` | Trùng với tenant. |
 | **Domain** | `<tenant-domain>.onmicrosoft.com` | `AzureAd:Domain` | |
 | **API permissions** | Tối thiểu `ECM Host API/.default` (application permission) nếu Gateway gọi xuống ECM bằng chứng thực ứng dụng. | – | Cấp quyền thông qua mục **API permissions**. |
+| **Tenant cho downstream API** | `<tenant-guid>` | `appsettings.json` (`Services:EcmTenantId`, mặc định dùng `AzureAd:TenantId`) | Bắt buộc khi cho phép người dùng từ tenant khác đăng nhập (B2B). |
 
 > Cập nhật các giá trị vào `src/AppGateway/AppGateway.Api/appsettings.json` hoặc secret tương ứng sau khi đăng ký.【F:src/AppGateway/AppGateway.Api/appsettings.json†L27-L36】
 

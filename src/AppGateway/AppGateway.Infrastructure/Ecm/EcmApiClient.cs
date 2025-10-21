@@ -213,6 +213,7 @@ internal sealed class EcmApiClient(
         var accessToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
             _options.Scope!,
             authenticationScheme: authenticationScheme,
+            tenant: _options.TenantId,
             tokenAcquisitionOptions: tokenAcquisitionOptions);
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

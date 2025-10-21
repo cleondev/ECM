@@ -20,6 +20,8 @@ public static class DependencyInjection
     {
         var baseAddress = configuration.GetValue<string>("Services:Ecm") ?? "http://localhost:8080";
         var scope = configuration.GetValue<string>("Services:EcmScope") ?? "api://ecm-host/.default";
+        var tenantId = configuration.GetValue<string>("Services:EcmTenantId")
+                       ?? configuration.GetValue<string>("AzureAd:TenantId");
         var authenticationScheme = configuration.GetValue<string>("Services:EcmAuthenticationScheme");
 
         services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri(baseAddress))
@@ -29,6 +31,7 @@ public static class DependencyInjection
         services.Configure<EcmApiClientOptions>(options =>
         {
             options.Scope = scope;
+            options.TenantId = tenantId;
             if (!string.IsNullOrWhiteSpace(authenticationScheme))
             {
                 options.AuthenticationScheme = authenticationScheme!;

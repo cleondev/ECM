@@ -6,5 +6,7 @@ public sealed class EcmApiClientOptions
 {
     public string? Scope { get; set; }
 
+    public string? TenantId { get; set; }
+
     public string AuthenticationScheme { get; set; } = OpenIdConnectDefaults.AuthenticationScheme;
 }
