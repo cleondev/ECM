@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 
 namespace AppGateway.Infrastructure;
 
@@ -16,11 +18,13 @@ public static class DependencyInjection
     public static IServiceCollection AddGatewayInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var baseAddress = configuration.GetValue<string>("Services:Ecm") ?? "http://localhost:8080";
+        var scope = configuration.GetValue<string>("Services:EcmScope") ?? "api://ecm-host/.default";
 
         services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri(baseAddress))
                 .AddStandardResilienceHandler();
 
         services.Configure<IamOptions>(configuration.GetSection("IAM"));
+        services.Configure<EcmApiClientOptions>(options => options.Scope = scope);
 
         services.AddHttpContextAccessor();
 
@@ -28,7 +32,9 @@ public static class DependencyInjection
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
             var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-            return new EcmApiClient(factory.CreateClient(HttpClientName), accessor);
+            var tokenAcquisition = sp.GetRequiredService<ITokenAcquisition>();
+            var options = sp.GetRequiredService<IOptions<EcmApiClientOptions>>();
+            return new EcmApiClient(factory.CreateClient(HttpClientName), accessor, tokenAcquisition, options);
         });
 
         return services;
