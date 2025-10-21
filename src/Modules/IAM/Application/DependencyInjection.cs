@@ -1,12 +1,12 @@
-namespace Microsoft.Extensions.DependencyInjection;
-
 using ECM.IAM.Application.Relations.Commands;
 using ECM.IAM.Application.Relations.Queries;
 using ECM.IAM.Application.Roles.Commands;
 using ECM.IAM.Application.Roles.Queries;
 using ECM.IAM.Application.Users.Commands;
 using ECM.IAM.Application.Users.Queries;
+using Microsoft.Extensions.DependencyInjection;
 
+namespace ECM.IAM.Application;
 public static class IamApplicationModuleExtensions
 {
     public static IServiceCollection AddIamApplication(this IServiceCollection services)

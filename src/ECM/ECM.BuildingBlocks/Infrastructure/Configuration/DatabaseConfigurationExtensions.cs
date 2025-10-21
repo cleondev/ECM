@@ -7,10 +7,7 @@ public static class DatabaseConfigurationExtensions
 {
     public static string GetRequiredConnectionStringForModule(this IConfiguration configuration, string moduleName)
     {
-        if (configuration is null)
-        {
-            throw new ArgumentNullException(nameof(configuration));
-        }
+        ArgumentNullException.ThrowIfNull(configuration);
 
         if (string.IsNullOrWhiteSpace(moduleName))
         {

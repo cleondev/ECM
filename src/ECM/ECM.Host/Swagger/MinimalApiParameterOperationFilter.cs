@@ -18,9 +18,12 @@ namespace ECM.Host.Swagger;
 /// <summary>
 /// Adds missing parameter metadata for minimal API endpoints so that Swagger UI displays query, route and body inputs.
 /// </summary>
-internal sealed class MinimalApiParameterOperationFilter : IOperationFilter
+internal sealed partial class MinimalApiParameterOperationFilter : IOperationFilter
 {
-    private static readonly Regex RouteParameterRegex = new("\\{(.*?)(:|\\})", RegexOptions.Compiled);
+    // Replace Regex field with a method using [GeneratedRegex]
+    [GeneratedRegex("\\{(.*?)(:|\\})", RegexOptions.Compiled)]
+    private static partial Regex RouteParameterRegex();
+
     private static readonly NullabilityInfoContext NullabilityContext = new();
 
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
@@ -175,7 +178,7 @@ internal sealed class MinimalApiParameterOperationFilter : IOperationFilter
 
     private static void AddParameter(OpenApiOperation operation, OperationFilterContext context, string name, Type type, ParameterLocation location, bool required)
     {
-        operation.Parameters ??= new List<OpenApiParameter>();
+        operation.Parameters ??= [];
 
         if (operation.Parameters.Any(parameter => string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase)))
         {
@@ -276,14 +279,14 @@ internal sealed class MinimalApiParameterOperationFilter : IOperationFilter
                type == typeof(Uri);
     }
 
-    private static ISet<string> ExtractRouteParameters(string? template)
+    private static HashSet<string> ExtractRouteParameters(string? template)
     {
         if (string.IsNullOrWhiteSpace(template))
         {
             return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        var matches = RouteParameterRegex.Matches(template);
+        var matches = RouteParameterRegex().Matches(template);
         var names = matches
             .Select(match => match.Groups[1].Value)
             .Where(value => !string.IsNullOrWhiteSpace(value))

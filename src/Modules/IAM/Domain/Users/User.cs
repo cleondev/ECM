@@ -89,10 +89,7 @@ public sealed class User : IHasDomainEvents
 
     public void AssignRole(Role role, DateTimeOffset assignedAtUtc)
     {
-        if (role is null)
-        {
-            throw new ArgumentNullException(nameof(role));
-        }
+        ArgumentNullException.ThrowIfNull(role);
 
         if (HasRole(role.Id))
         {
