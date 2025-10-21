@@ -222,10 +222,5 @@ public static class Program
         {
             projectResource.Annotations.Remove(annotation);
         }
-
-        // Older versions of .NET Aspire (used when targeting .NET 8) don't expose the
-        // DefaultHttpsEndpoint property on ProjectResource. Clearing the annotations
-        // above is sufficient to remove the HTTPS endpoint configuration, so we can
-        // safely skip updating that property when it isn't available.
     }
 }
