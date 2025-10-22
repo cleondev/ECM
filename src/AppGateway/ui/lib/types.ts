@@ -61,11 +61,26 @@ export type User = {
   roles: string[]
 }
 
+export type UploadMetadata = {
+  title: string
+  docType: string
+  status: string
+  department?: string
+  sensitivity: string
+  description?: string
+  notes?: string
+}
+
+export type SelectedTag = {
+  id: string
+  name: string
+}
+
 export type UploadFileData = {
   file: File
-  flowId?: string
-  metadata: Record<string, string>
-  tags: string[]
+  flowDefinition?: string
+  metadata: UploadMetadata
+  tags: SelectedTag[]
 }
 
 export type FileQueryParams = {

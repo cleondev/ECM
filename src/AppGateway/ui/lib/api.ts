@@ -8,6 +8,7 @@ import type {
   SystemTag,
   User,
   UploadFileData,
+  SelectedTag,
 } from "./types"
 import { mockFiles, mockTagTree, mockFlowsByFile, mockSystemTags, mockUser } from "./mock-data"
 
@@ -159,6 +160,44 @@ export type CheckLoginResult = {
   isAuthenticated: boolean
   loginUrl: string | null
   user: User | null
+}
+
+async function assignTagsToDocument(documentId: string, tags: SelectedTag[], userId: string) {
+  if (!tags.length) {
+    return
+  }
+
+  await Promise.all(
+    tags.map((tag) =>
+      gatewayRequest(`/api/documents/${documentId}/tags`, {
+        method: "POST",
+        body: JSON.stringify({ tagId: tag.id, appliedBy: userId }),
+      }).catch((error) => {
+        console.error(
+          `[ui] Failed to assign tag '${tag.id}' to document '${documentId}':`,
+          error,
+        )
+      }),
+    ),
+  )
+}
+
+async function startWorkflowForDocument(documentId: string, flowDefinition?: string) {
+  if (!flowDefinition) {
+    return
+  }
+
+  try {
+    await gatewayRequest(`/api/workflows/instances`, {
+      method: "POST",
+      body: JSON.stringify({ documentId, definition: flowDefinition }),
+    })
+  } catch (error) {
+    console.error(
+      `[ui] Failed to start workflow '${flowDefinition}' for document '${documentId}':`,
+      error,
+    )
+  }
 }
 
 export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult> {
@@ -392,25 +431,29 @@ export async function uploadFile(data: UploadFileData): Promise<FileItem> {
       throw new Error("User must be authenticated before uploading a document")
     }
 
-    const title = (data.metadata?.title?.trim() || data.file.name || "Untitled document").slice(0, 256)
+    const { metadata } = data
+    const title = (metadata.title?.trim() || data.file.name || "Untitled document").slice(0, 256)
     const formData = new FormData()
     formData.append("Title", title)
-    formData.append("DocType", data.metadata?.docType?.trim() || "General")
-    formData.append("Status", data.metadata?.status?.trim() || "Draft")
+    formData.append("DocType", metadata.docType?.trim() || "General")
+    formData.append("Status", metadata.status?.trim() || "Draft")
     formData.append("OwnerId", user.id)
     formData.append("CreatedBy", user.id)
 
-    if (data.metadata?.department?.trim()) {
-      formData.append("Department", data.metadata.department.trim())
+    if (metadata.department?.trim()) {
+      formData.append("Department", metadata.department.trim())
     }
 
-    formData.append("Sensitivity", data.metadata?.sensitivity?.trim() || "Internal")
+    formData.append("Sensitivity", metadata.sensitivity?.trim() || "Internal")
     formData.append("File", data.file, data.file.name)
 
     const document = await gatewayRequest<DocumentResponse>("/api/documents", {
       method: "POST",
       body: formData,
     })
+
+    await assignTagsToDocument(document.id, data.tags, user.id)
+    await startWorkflowForDocument(document.id, data.flowDefinition)
 
     return mapDocumentToFileItem(document)
   } catch (error) {
@@ -424,7 +467,7 @@ export async function uploadFile(data: UploadFileData): Promise<FileItem> {
       type: "document",
       size: `${(data.file.size / 1024 / 1024).toFixed(1)} MB`,
       modified: "Just now",
-      tags: data.tags,
+      tags: data.tags.map((tag) => tag.name),
       folder: "All Files",
       owner: mockUser.displayName,
       description: data.metadata.description || "",
