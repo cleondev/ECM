@@ -6,20 +6,15 @@ namespace ECM.Document.Api.Documents;
 
 public sealed class CreateDocumentRequest
 {
-    [Required]
-    public string Title { get; init; } = string.Empty;
+    public string? Title { get; init; }
 
-    [Required]
-    public string DocType { get; init; } = string.Empty;
+    public string? DocType { get; init; }
 
-    [Required]
-    public string Status { get; init; } = string.Empty;
+    public string? Status { get; init; }
 
-    [Required]
-    public Guid OwnerId { get; init; }
+    public Guid? OwnerId { get; init; }
 
-    [Required]
-    public Guid CreatedBy { get; init; }
+    public Guid? CreatedBy { get; init; }
 
     public string? Department { get; init; }
 

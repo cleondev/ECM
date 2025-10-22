@@ -16,6 +16,8 @@ public sealed class DocumentModule : IModule
     {
         services.AddDocumentApplication();
         services.AddDocumentInfrastructure();
+        services.AddOptions<DocumentUploadDefaultsOptions>()
+            .BindConfiguration(DocumentUploadDefaultsOptions.SectionName);
         services.ConfigureModuleSwagger(DocumentSwagger.DocumentName, DocumentSwagger.Info);
     }
 
