@@ -4,7 +4,7 @@ public sealed record DocumentVersionResponse(
     Guid Id,
     int VersionNo,
     string StorageKey,
-    long Size,
+    long Bytes,
     string MimeType,
     string Sha256,
     Guid CreatedBy,

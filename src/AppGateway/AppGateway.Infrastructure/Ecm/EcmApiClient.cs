@@ -232,7 +232,7 @@ internal sealed class EcmApiClient(
 
         if (!string.IsNullOrWhiteSpace(request.DocType))
         {
-            query["docType"] = request.DocType;
+            query["doc_type"] = request.DocType;
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status))
@@ -247,12 +247,12 @@ internal sealed class EcmApiClient(
 
         if (request.OwnerId.HasValue)
         {
-            query["ownerId"] = request.OwnerId.Value.ToString();
+            query["owner_id"] = request.OwnerId.Value.ToString();
         }
 
         if (!string.IsNullOrWhiteSpace(request.Department))
         {
-            query["department"] = request.Department;
+            query["dept"] = request.Department;
         }
 
         var uri = QueryHelpers.AddQueryString("api/ecm/documents", query);
@@ -261,7 +261,7 @@ internal sealed class EcmApiClient(
         {
             foreach (var tag in request.Tags)
             {
-                uri = QueryHelpers.AddQueryString(uri, "tags", tag.ToString());
+                uri = QueryHelpers.AddQueryString(uri, "tags[]", tag.ToString());
             }
         }
 

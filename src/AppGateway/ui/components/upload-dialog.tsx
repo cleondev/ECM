@@ -13,6 +13,27 @@ import { Upload, X, FileIcon, CheckCircle2 } from "lucide-react"
 import { fetchFlows, fetchTags, uploadFile } from "@/lib/api"
 import type { Flow, TagNode, UploadFileData } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+
+type UploadMetadata = {
+  title: string
+  docType: string
+  status: string
+  department: string
+  sensitivity: string
+  description: string
+  notes: string
+}
+
+const defaultMetadata: UploadMetadata = {
+  title: "",
+  docType: "General",
+  status: "Draft",
+  department: "",
+  sensitivity: "Internal",
+  description: "",
+  notes: "",
+}
 
 type UploadDialogProps = {
   open: boolean
@@ -27,10 +48,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [tags, setTags] = useState<TagNode[]>([])
   const [selectedFlow, setSelectedFlow] = useState<string>("")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [metadata, setMetadata] = useState({
-    description: "",
-    notes: "",
-  })
+  const [metadata, setMetadata] = useState<UploadMetadata>(defaultMetadata)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -41,6 +59,13 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       fetchTags().then(setTags)
     }
   }, [open])
+
+  useEffect(() => {
+    if (file && !metadata.title.trim()) {
+      const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, "")
+      setMetadata((prev) => ({ ...prev, title: nameWithoutExtension }))
+    }
+  }, [file, metadata.title])
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -97,7 +122,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     setFile(null)
     setSelectedFlow("")
     setSelectedTags([])
-    setMetadata({ description: "", notes: "" })
+    setMetadata({ ...defaultMetadata })
     setUploadSuccess(false)
     onOpenChange(false)
   }
@@ -230,7 +255,84 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               </TabsContent>
 
               <TabsContent value="metadata" className="flex-1 overflow-y-auto mt-4">
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Title</Label>
+                      <Input
+                        id="title"
+                        placeholder="Enter document title"
+                        value={metadata.title}
+                        onChange={(e) => setMetadata((prev) => ({ ...prev, title: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Department</Label>
+                      <Input
+                        id="department"
+                        placeholder="Enter department"
+                        value={metadata.department}
+                        onChange={(e) => setMetadata((prev) => ({ ...prev, department: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Document type</Label>
+                      <Select
+                        value={metadata.docType}
+                        onValueChange={(value) => setMetadata((prev) => ({ ...prev, docType: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select document type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="General">General</SelectItem>
+                          <SelectItem value="Contract">Contract</SelectItem>
+                          <SelectItem value="Policy">Policy</SelectItem>
+                          <SelectItem value="Report">Report</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select
+                        value={metadata.status}
+                        onValueChange={(value) => setMetadata((prev) => ({ ...prev, status: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Draft">Draft</SelectItem>
+                          <SelectItem value="InReview">In review</SelectItem>
+                          <SelectItem value="Published">Published</SelectItem>
+                          <SelectItem value="Archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Sensitivity</Label>
+                      <Select
+                        value={metadata.sensitivity}
+                        onValueChange={(value) => setMetadata((prev) => ({ ...prev, sensitivity: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select sensitivity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Public">Public</SelectItem>
+                          <SelectItem value="Internal">Internal</SelectItem>
+                          <SelectItem value="Confidential">Confidential</SelectItem>
+                          <SelectItem value="Restricted">Restricted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
                     <Textarea
