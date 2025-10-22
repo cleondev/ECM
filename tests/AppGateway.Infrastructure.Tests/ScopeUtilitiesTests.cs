@@ -16,11 +16,11 @@ public static class ScopeUtilitiesTests
     [Fact]
     public static void ParseScopes_EliminatesDuplicatesAndWhitespace()
     {
-        const string scope = " api://contoso.onmicrosoft.com/ecm-host/.default  api://contoso.onmicrosoft.com/ecm-host/.default \nuser.read;offline_access,profile";
+        const string scope = " api://istsvn.onmicrosoft.com/ecm-host/.default  api://istsvn.onmicrosoft.com/ecm-host/.default \nuser.read;offline_access,profile";
 
         var result = ScopeUtilities.ParseScopes(scope);
 
-        Assert.Contains("api://contoso.onmicrosoft.com/ecm-host/.default", result);
+        Assert.Contains("api://istsvn.onmicrosoft.com/ecm-host", result);
         Assert.Contains("user.read", result);
         Assert.Contains("offline_access", result);
         Assert.Contains("profile", result);
