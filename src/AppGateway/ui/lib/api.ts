@@ -74,6 +74,16 @@ type DocumentListResponse = {
   items: DocumentResponse[]
 }
 
+type TagLabelResponse = {
+  id: string
+  namespaceSlug: string
+  slug: string
+  path: string
+  isActive: boolean
+  createdBy?: string | null
+  createdAtUtc: string
+}
+
 const API_BASE_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
 
 function createGatewayUrl(path: string): string {
@@ -87,6 +97,21 @@ function createGatewayUrl(path: string): string {
 }
 
 const jsonHeaders = { Accept: "application/json" }
+
+const TAG_COLOR_PALETTE = [
+  "bg-blue-200 dark:bg-blue-900",
+  "bg-purple-200 dark:bg-purple-900",
+  "bg-green-200 dark:bg-green-900",
+  "bg-red-200 dark:bg-red-900",
+  "bg-yellow-200 dark:bg-yellow-900",
+  "bg-pink-200 dark:bg-pink-900",
+  "bg-orange-200 dark:bg-orange-900",
+  "bg-teal-200 dark:bg-teal-900",
+  "bg-cyan-200 dark:bg-cyan-900",
+  "bg-indigo-200 dark:bg-indigo-900",
+  "bg-violet-200 dark:bg-violet-900",
+  "bg-fuchsia-200 dark:bg-fuchsia-900",
+]
 
 async function gatewayFetch(path: string, init?: RequestInit) {
   const url = createGatewayUrl(path)
@@ -381,23 +406,50 @@ export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedRes
 
 export async function fetchTags(): Promise<TagNode[]> {
   try {
-    const response = await gatewayRequest<TagNode[]>("/api/tags")
-    return response
+    const response = await gatewayRequest<TagLabelResponse[]>("/api/tags")
+    return buildTagTree(response)
   } catch (error) {
     console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
-    return mockTagTree
+    return normalizeMockTagTree(mockTagTree)
   }
 }
 
 export async function createTag(data: TagUpdateData, parentId?: string): Promise<TagNode> {
   try {
-    const payload = parentId
-      ? { ...data, parentId }
-      : data
-    return await gatewayRequest<TagNode>("/api/tags", {
+    const normalizedName = data.name.trim()
+    if (!normalizedName) {
+      throw new Error("Tag name is required")
+    }
+
+    const namespaceSlug = parentId?.startsWith("ns:")
+      ? parentId.slice(3)
+      : parentId && parentId.length > 0
+        ? parentId
+        : "user"
+
+    const slug = slugify(normalizedName)
+    const payload = {
+      namespaceSlug,
+      slug,
+      path: normalizedName,
+      createdBy: null as string | null,
+    }
+
+    const response = await gatewayRequest<TagLabelResponse>("/api/tags", {
       method: "POST",
       body: JSON.stringify(payload),
     })
+
+    return {
+      id: response.id,
+      name: response.path || response.slug,
+      color: colorForKey(response.path || response.slug),
+      kind: "label",
+      namespaceSlug: response.namespaceSlug,
+      slug: response.slug,
+      path: response.path,
+      isActive: response.isActive,
+    }
   } catch (error) {
     console.warn("[ui] Failed to create tag via gateway, using mock response:", error)
     return {
@@ -405,6 +457,11 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
       name: data.name,
       color: data.color,
       icon: data.icon,
+      kind: "label",
+      namespaceSlug: parentId?.startsWith("ns:") ? parentId.slice(3) : undefined,
+      slug: slugify(data.name),
+      path: data.name,
+      isActive: true,
     }
   }
 }
@@ -422,6 +479,9 @@ export async function updateTag(tagId: string, data: TagUpdateData): Promise<Tag
       name: data.name,
       color: data.color,
       icon: data.icon,
+      kind: "label",
+      slug: slugify(data.name),
+      path: data.name,
     }
   }
 }

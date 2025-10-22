@@ -63,7 +63,9 @@ export function AppHeader({
   const getAllTags = (nodes: TagNode[]): TagNode[] => {
     const result: TagNode[] = []
     const traverse = (node: TagNode) => {
-      result.push(node)
+      if (!node.kind || node.kind === "label") {
+        result.push(node)
+      }
       node.children?.forEach(traverse)
     }
     nodes.forEach(traverse)

@@ -4,10 +4,12 @@ using System.Linq;
 using System.Threading;
 using ECM.Document.Api;
 using ECM.Document.Application.Tags.Commands;
+using ECM.Document.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 
 namespace ECM.Document.Api.Tags;
 
@@ -18,6 +20,10 @@ public static class TagEndpoints
         var tagGroup = builder.MapGroup("/api/ecm/tags");
         tagGroup.WithTags("Tags");
         tagGroup.WithGroupName(DocumentSwagger.DocumentName);
+
+        tagGroup.MapGet("/", ListTagsAsync)
+            .WithName("ListTags")
+            .WithDescription("Retrieve all tag labels grouped by namespace.");
 
         tagGroup.MapPost("/", CreateTagAsync)
             .WithName("CreateTag")
@@ -38,6 +44,27 @@ public static class TagEndpoints
         documentTagGroup.MapDelete("/{tagId:guid}", RemoveTagAsync)
             .WithName("RemoveDocumentTag")
             .WithDescription("Remove a tag label assignment from a document.");
+    }
+
+    private static async Task<Ok<TagLabelResponse[]>> ListTagsAsync(
+        DocumentDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var tags = await context.TagLabels
+            .AsNoTracking()
+            .OrderBy(label => label.NamespaceSlug)
+            .ThenBy(label => label.Path)
+            .Select(label => new TagLabelResponse(
+                label.Id,
+                label.NamespaceSlug,
+                label.Slug,
+                label.Path,
+                label.IsActive,
+                label.CreatedBy,
+                label.CreatedAtUtc))
+            .ToArrayAsync(cancellationToken);
+
+        return TypedResults.Ok(tags);
     }
 
     private static async Task<Results<Created<TagLabelResponse>, ValidationProblem>> CreateTagAsync(

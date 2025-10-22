@@ -63,6 +63,8 @@ public interface IEcmApiClient
         string? fit,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default);
+
     Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
@@ -44,6 +45,14 @@ public sealed class TagsController(IEcmApiClient client) : ControllerBase
         }
 
         return Created($"/api/tags/{tag.Id}", tag);
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyCollection<TagLabelDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListAsync(CancellationToken cancellationToken)
+    {
+        var tags = await _client.GetTagsAsync(cancellationToken);
+        return Ok(tags);
     }
 
     [HttpDelete("{tagId:guid}")]
