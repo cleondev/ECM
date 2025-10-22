@@ -64,6 +64,8 @@ export type User = {
   avatar?: string
   department?: string | null
   roles: string[]
+  isActive?: boolean
+  createdAtUtc?: string
 }
 
 export type UploadMetadata = {

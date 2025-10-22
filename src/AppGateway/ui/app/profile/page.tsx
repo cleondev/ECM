@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { ArrowLeft, Camera, Mail, Briefcase, MapPin, Phone, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { fetchUser, updateUserAvatar } from "@/lib/api"
+import { fetchCurrentUserProfile, updateCurrentUserProfile, updateUserAvatar } from "@/lib/api"
 import type { User } from "@/lib/types"
 
 const LANDING_PAGE_ROUTE = '/landing'
@@ -21,11 +21,14 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [formValues, setFormValues] = useState({ displayName: "", department: "" })
+  const [isSaving, setIsSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   useEffect(() => {
     let mounted = true
 
-    fetchUser()
+    fetchCurrentUserProfile()
       .then((profile) => {
         if (!mounted) return
 
@@ -35,6 +38,10 @@ export default function ProfilePage() {
         }
 
         setUser(profile)
+        setFormValues({
+          displayName: profile.displayName,
+          department: profile.department ?? "",
+        })
       })
       .catch(() => {
         if (!mounted) return
@@ -65,6 +72,84 @@ export default function ProfilePage() {
       console.error("[v0] Error uploading avatar:", error)
     }
   }
+
+  const handleInputChange = (field: "displayName" | "department") =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value
+      setFormValues((prev) => ({ ...prev, [field]: value }))
+    }
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setFormValues({
+        displayName: user.displayName,
+        department: user.department ?? "",
+      })
+    }
+    setIsEditing(false)
+    setFeedback(null)
+  }
+
+  const handleSaveChanges = async () => {
+    if (!user) return
+
+    setIsSaving(true)
+    setFeedback(null)
+
+    try {
+      const updated = await updateCurrentUserProfile({
+        displayName: formValues.displayName,
+        department: formValues.department,
+      })
+
+      setUser(updated)
+      setFormValues({
+        displayName: updated.displayName,
+        department: updated.department ?? "",
+      })
+      setIsEditing(false)
+      setFeedback({ type: "success", message: "Hồ sơ của bạn đã được cập nhật." })
+    } catch (error) {
+      console.error("[ui] Không thể cập nhật hồ sơ:", error)
+      setFeedback({ type: "error", message: "Không thể cập nhật hồ sơ. Vui lòng thử lại." })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const hasChanges = useMemo(() => {
+    if (!user) return false
+    const normalizedName = formValues.displayName.trim()
+    const currentName = user.displayName.trim()
+    const normalizedDepartment = formValues.department.trim()
+    const currentDepartment = (user.department ?? "").trim()
+
+    return (
+      normalizedName !== currentName ||
+      normalizedDepartment !== currentDepartment
+    )
+  }, [formValues.displayName, formValues.department, user])
+
+  const joinedDate = useMemo(() => {
+    if (!user?.createdAtUtc) {
+      return "—"
+    }
+
+    try {
+      const date = new Date(user.createdAtUtc)
+      if (Number.isNaN(date.getTime())) {
+        return "—"
+      }
+
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    } catch {
+      return "—"
+    }
+  }, [user?.createdAtUtc])
 
   if (!user) {
     return (
@@ -121,24 +206,51 @@ export default function ProfilePage() {
                 <h2 className="text-2xl font-bold">{user.displayName}</h2>
                 <p className="text-muted-foreground">{user.roles[0] ?? "Member"}</p>
               </div>
-              <Button variant={isEditing ? "outline" : "default"} onClick={() => setIsEditing(!isEditing)}>
+              <Button
+                variant={isEditing ? "outline" : "default"}
+                onClick={() => {
+                  if (isEditing) {
+                    handleCancelEdit()
+                  } else {
+                    setIsEditing(true)
+                    setFeedback(null)
+                  }
+                }}
+              >
                 {isEditing ? "Cancel" : "Edit Profile"}
               </Button>
             </div>
 
             <Separator />
 
+            {feedback && (
+              <div
+                className={
+                  feedback.type === "error"
+                    ? "text-sm text-destructive"
+                    : "text-sm text-green-600"
+                }
+              >
+                {feedback.message}
+              </div>
+            )}
+
             <div className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" defaultValue={user.displayName} disabled={!isEditing} />
+                <Input
+                  id="name"
+                  value={formValues.displayName}
+                  onChange={handleInputChange("displayName")}
+                  disabled={!isEditing}
+                />
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" defaultValue={user.email} disabled={!isEditing} />
+                  <Input id="email" type="email" value={user.email} disabled readOnly />
                 </div>
               </div>
 
@@ -154,7 +266,12 @@ export default function ProfilePage() {
                 <Label htmlFor="department">Department</Label>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  <Input id="department" defaultValue={user.department ?? ""} disabled={!isEditing} />
+                  <Input
+                    id="department"
+                    value={formValues.department}
+                    onChange={handleInputChange("department")}
+                    disabled={!isEditing}
+                  />
                 </div>
               </div>
 
@@ -170,7 +287,7 @@ export default function ProfilePage() {
                 <Label htmlFor="joined">Joined Date</Label>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <Input id="joined" defaultValue="January 15, 2024" disabled />
+                  <Input id="joined" value={joinedDate} disabled readOnly />
                 </div>
               </div>
 
@@ -190,10 +307,12 @@ export default function ProfilePage() {
               <>
                 <Separator />
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                  <Button variant="outline" onClick={handleCancelEdit} disabled={isSaving}>
                     Cancel
                   </Button>
-                  <Button onClick={() => setIsEditing(false)}>Save Changes</Button>
+                  <Button onClick={handleSaveChanges} disabled={!hasChanges || isSaving}>
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
                 </div>
               </>
             )}

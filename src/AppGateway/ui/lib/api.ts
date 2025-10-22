@@ -26,6 +26,8 @@ type UserSummaryResponse = {
   email: string
   displayName: string
   department?: string | null
+  isActive?: boolean
+  createdAtUtc?: string
   roles?: RoleSummaryResponse[]
 }
 
@@ -84,6 +86,16 @@ type TagLabelResponse = {
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
 
+function createGatewayUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+
+  if (!API_BASE_URL) {
+    return normalizedPath
+  }
+
+  return `${API_BASE_URL}${normalizedPath}`
+}
+
 const jsonHeaders = { Accept: "application/json" }
 
 const TAG_COLOR_PALETTE = [
@@ -102,7 +114,7 @@ const TAG_COLOR_PALETTE = [
 ]
 
 async function gatewayFetch(path: string, init?: RequestInit) {
-  const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`
+  const url = createGatewayUrl(path)
   const headers = new Headers(init?.headers ?? jsonHeaders)
 
   if (!headers.has("Accept")) {
@@ -178,104 +190,61 @@ function mapUserSummaryToUser(profile: UserSummaryResponse): User {
     email: profile.email,
     department: profile.department ?? null,
     roles: profile.roles?.map((role) => role.name) ?? [],
+    isActive: profile.isActive,
+    createdAtUtc: profile.createdAtUtc,
   }
 }
 
-function hashString(value: string): number {
-  let hash = 0
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(index)
-    hash |= 0
-  }
-  return hash
-}
+export async function fetchCurrentUserProfile(): Promise<User | null> {
+  try {
+    const response = await gatewayFetch("/api/iam/profile")
 
-function colorForKey(key: string): string {
-  if (TAG_COLOR_PALETTE.length === 0) {
-    return "bg-muted"
-  }
-
-  const normalized = key.trim()
-  const hash = hashString(normalized)
-  const index = Math.abs(hash) % TAG_COLOR_PALETTE.length
-  return TAG_COLOR_PALETTE[index]
-}
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "")
-    || "tag"
-}
-
-function normalizeMockTagTree(nodes: TagNode[], parentNamespace?: string): TagNode[] {
-  return nodes.map((node) => {
-    const hasChildren = Array.isArray(node.children) && node.children.length > 0
-    const namespaceSlug = hasChildren ? node.namespaceSlug ?? node.id : parentNamespace ?? node.namespaceSlug ?? "mock"
-    const normalizedChildren = node.children
-      ? normalizeMockTagTree(node.children, namespaceSlug)
-      : undefined
-
-    return {
-      ...node,
-      kind: hasChildren ? "namespace" : "label",
-      namespaceSlug,
-      slug: node.slug ?? (hasChildren ? undefined : slugify(node.name)),
-      path: node.path ?? (hasChildren ? undefined : node.name),
-      children: normalizedChildren,
+    if ([401, 403, 404].includes(response.status)) {
+      return null
     }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch current user profile (${response.status})`)
+    }
+
+    const data = (await response.json()) as UserSummaryResponse
+    return mapUserSummaryToUser(data)
+  } catch (error) {
+    console.error("[ui] Không lấy được hồ sơ người dùng hiện tại:", error)
+    throw error
+  }
+}
+
+export type UpdateUserProfileInput = {
+  displayName: string
+  department?: string | null
+}
+
+export async function updateCurrentUserProfile({
+  displayName,
+  department,
+}: UpdateUserProfileInput): Promise<User> {
+  const trimmedName = displayName.trim()
+  if (!trimmedName) {
+    throw new Error("Display name is required")
+  }
+
+  const payload = {
+    displayName: trimmedName,
+    department: department?.trim() ? department.trim() : null,
+  }
+
+  const response = await gatewayFetch("/api/iam/profile", {
+    method: "PUT",
+    body: JSON.stringify(payload),
   })
-}
 
-function buildTagTree(tags: TagLabelResponse[]): TagNode[] {
-  if (!tags || tags.length === 0) {
-    return []
+  if (!response.ok) {
+    throw new Error(`Failed to update profile (${response.status})`)
   }
 
-  const namespaces = new Map<string, TagNode>()
-
-  for (const tag of tags) {
-    const namespaceSlug = tag.namespaceSlug?.trim() || "default"
-    let namespaceNode = namespaces.get(namespaceSlug)
-
-    if (!namespaceNode) {
-      namespaceNode = {
-        id: `ns:${namespaceSlug}`,
-        name: namespaceSlug,
-        color: colorForKey(namespaceSlug),
-        kind: "namespace",
-        namespaceSlug,
-        children: [],
-      }
-
-      namespaces.set(namespaceSlug, namespaceNode)
-    }
-
-    const childNode: TagNode = {
-      id: tag.id,
-      name: tag.path || tag.slug,
-      color: colorForKey(tag.path || tag.slug),
-      kind: "label",
-      namespaceSlug,
-      slug: tag.slug,
-      path: tag.path,
-      isActive: tag.isActive,
-    }
-
-    namespaceNode.children = namespaceNode.children ?? []
-    namespaceNode.children.push(childNode)
-  }
-
-  const tree = Array.from(namespaces.values())
-  tree.sort((a, b) => a.name.localeCompare(b.name))
-  for (const node of tree) {
-    node.children?.sort((a, b) => a.name.localeCompare(b.name))
-  }
-
-  return tree
+  const data = (await response.json()) as UserSummaryResponse
+  return mapUserSummaryToUser(data)
 }
 
 export type CheckLoginResult = {
@@ -573,11 +542,81 @@ export async function updateSystemTag(fileId: string, tagName: string, value: st
 export async function fetchUser(): Promise<User | null> {
   await delay(150)
   try {
+    const profile = await fetchCurrentUserProfile()
+    if (profile) {
+      return profile
+    }
+  } catch (error) {
+    console.warn("[ui] Không thể lấy hồ sơ người dùng qua /api/iam/profile:", error)
+  }
+
+  try {
     const { user } = await checkLogin()
     return user
   } catch (error) {
     console.error("[ui] Không lấy được thông tin người dùng:", error)
     throw error
+  }
+}
+
+function resolveRedirectLocation(location: string): string {
+  if (/^https?:\/\//i.test(location)) {
+    return location
+  }
+
+  if (location.startsWith("/")) {
+    return location
+  }
+
+  return `/${location}`
+}
+
+export async function signOut(redirectUri?: string): Promise<void> {
+  const search = redirectUri ? `?redirectUri=${encodeURIComponent(redirectUri)}` : ""
+
+  if (typeof window === "undefined") {
+    return
+  }
+
+  try {
+    const response = await gatewayFetch(`/signout${search}`, {
+      method: "POST",
+      redirect: "manual",
+    })
+
+    if (response.type === "opaqueredirect") {
+      if (redirectUri) {
+        window.location.href = redirectUri
+      }
+      return
+    }
+
+    const location = response.headers.get("Location")
+
+    if (location) {
+      window.location.href = resolveRedirectLocation(location)
+      return
+    }
+
+    if (response.ok) {
+      if (redirectUri) {
+        window.location.href = redirectUri
+      } else {
+        window.location.reload()
+      }
+      return
+    }
+
+    throw new Error(`Failed to sign out (${response.status})`)
+  } catch (error) {
+    console.error("[ui] Đăng xuất qua fetch thất bại, thử chuyển hướng trực tiếp:", error)
+
+    const form = document.createElement("form")
+    form.method = "POST"
+    form.action = createGatewayUrl(`/signout${search}`)
+    form.style.display = "none"
+    document.body.appendChild(form)
+    form.submit()
   }
 }
 
