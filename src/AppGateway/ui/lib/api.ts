@@ -37,10 +37,38 @@ type CheckLoginResponse = {
   }) | null
 }
 
-type DocumentSummary = {
+type DocumentVersionResponse = {
+  id: string
+  versionNo: number
+  storageKey: string
+  bytes: number
+  mimeType: string
+  sha256: string
+  createdBy: string
+  createdAtUtc: string
+}
+
+type DocumentResponse = {
   id: string
   title: string
+  docType: string
+  status: string
+  sensitivity: string
+  ownerId: string
+  createdBy: string
+  department?: string | null
   createdAtUtc: string
+  updatedAtUtc: string
+  documentTypeId?: string | null
+  latestVersion?: DocumentVersionResponse | null
+}
+
+type DocumentListResponse = {
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+  items: DocumentResponse[]
 }
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
@@ -82,17 +110,38 @@ async function gatewayRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T
 }
 
-function mapDocumentToFileItem(document: DocumentSummary): FileItem {
+function formatFileSize(bytes?: number | null): string {
+  if (!bytes || bytes <= 0) {
+    return "--"
+  }
+
+  const kiloBytes = bytes / 1024
+  if (kiloBytes < 1024) {
+    return `${kiloBytes.toFixed(1)} KB`
+  }
+
+  const megaBytes = kiloBytes / 1024
+  if (megaBytes < 1024) {
+    return `${megaBytes.toFixed(1)} MB`
+  }
+
+  const gigaBytes = megaBytes / 1024
+  return `${gigaBytes.toFixed(1)} GB`
+}
+
+function mapDocumentToFileItem(document: DocumentResponse): FileItem {
+  const latestVersion = document.latestVersion
   return {
     id: document.id,
     name: document.title || "Untitled document",
     type: "document",
-    size: "--",
-    modified: new Date(document.createdAtUtc).toISOString(),
+    size: formatFileSize(latestVersion?.bytes ?? null),
+    modified: new Date(document.updatedAtUtc ?? document.createdAtUtc).toISOString(),
     tags: [],
     folder: "All Files",
-    owner: "",
+    owner: document.ownerId,
     description: "",
+    status: document.status?.toLowerCase() === "draft" ? "draft" : "in-progress",
   }
 }
 
@@ -197,9 +246,28 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
 
 export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedResponse<FileItem>> {
   try {
-    const documents = await gatewayRequest<DocumentSummary[]>("/api/documents")
-    const mapped = documents.map(mapDocumentToFileItem)
-    return filterAndPaginate(mapped, params)
+    const searchParams = new URLSearchParams()
+
+    if (params?.page && params.page > 0) {
+      searchParams.set("page", params.page.toString())
+    }
+
+    if (params?.limit && params.limit > 0) {
+      searchParams.set("pageSize", params.limit.toString())
+    }
+
+    const query = searchParams.toString()
+    const path = query ? `/api/documents?${query}` : "/api/documents"
+    const response = await gatewayRequest<DocumentListResponse>(path)
+    const mapped = response.items.map(mapDocumentToFileItem)
+
+    return {
+      data: mapped,
+      total: response.totalItems,
+      page: response.page,
+      limit: response.pageSize,
+      hasMore: response.page < response.totalPages,
+    }
   } catch (error) {
     console.error("[ui] Failed to fetch documents from gateway, falling back to mock data:", error)
     return filterAndPaginate(mockFiles, params)
@@ -265,7 +333,7 @@ export async function deleteTag(tagId: string): Promise<void> {
 
 export async function updateFile(fileId: string, data: Partial<FileItem>): Promise<FileItem> {
   try {
-    const response = await gatewayRequest<DocumentSummary>(`/api/documents/${fileId}`, {
+    const response = await gatewayRequest<DocumentResponse>(`/api/documents/${fileId}`, {
       method: "PUT",
       body: JSON.stringify({ title: data.name }),
     })
@@ -319,10 +387,29 @@ export async function fetchUser(): Promise<User | null> {
 
 export async function uploadFile(data: UploadFileData): Promise<FileItem> {
   try {
+    const { user } = await checkLogin()
+    if (!user) {
+      throw new Error("User must be authenticated before uploading a document")
+    }
+
     const title = (data.metadata?.title?.trim() || data.file.name || "Untitled document").slice(0, 256)
-    const document = await gatewayRequest<DocumentSummary>("/api/documents", {
+    const formData = new FormData()
+    formData.append("Title", title)
+    formData.append("DocType", data.metadata?.docType?.trim() || "General")
+    formData.append("Status", data.metadata?.status?.trim() || "Draft")
+    formData.append("OwnerId", user.id)
+    formData.append("CreatedBy", user.id)
+
+    if (data.metadata?.department?.trim()) {
+      formData.append("Department", data.metadata.department.trim())
+    }
+
+    formData.append("Sensitivity", data.metadata?.sensitivity?.trim() || "Internal")
+    formData.append("File", data.file, data.file.name)
+
+    const document = await gatewayRequest<DocumentResponse>("/api/documents", {
       method: "POST",
-      body: JSON.stringify({ title }),
+      body: formData,
     })
 
     return mapDocumentToFileItem(document)
