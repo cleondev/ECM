@@ -661,6 +661,8 @@ export const mockUser: User = {
   avatar: "/diverse-user-avatars.png",
   department: "Product Design",
   roles: ["Senior Designer"],
+  isActive: true,
+  createdAtUtc: new Date("2023-09-18T08:30:00Z").toISOString(),
 }
 
 export const mockFlows = mockFlowsByFile.default

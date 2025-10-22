@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
-import { fetchUser } from "@/lib/api"
+import { fetchUser, signOut } from "@/lib/api"
 import type { User as UserType } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -43,6 +43,7 @@ export function AppHeader({
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
   const [tags, setTags] = useState<TagNode[]>([])
   const [advancedSearchTags, setAdvancedSearchTags] = useState<string[]>([])
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
     fetchUser()
@@ -71,6 +72,21 @@ export function AppHeader({
 
   const toggleAdvancedSearchTag = (tagName: string) => {
     setAdvancedSearchTags((prev) => (prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]))
+  }
+
+  const handleSignOut = async () => {
+    if (isSigningOut) {
+      return
+    }
+
+    setIsSigningOut(true)
+
+    try {
+      await signOut("/landing")
+    } catch (error) {
+      console.error("[ui] Đăng xuất thất bại:", error)
+      setIsSigningOut(false)
+    }
   }
 
   return (
@@ -258,11 +274,17 @@ export function AppHeader({
                 </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600" asChild>
-                <a href="/signout?redirectUri=/landing" className="cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </a>
+              <DropdownMenuItem
+                className="text-red-600"
+                variant="destructive"
+                onSelect={(event) => {
+                  event.preventDefault()
+                  handleSignOut()
+                }}
+                disabled={isSigningOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {isSigningOut ? "Signing out..." : "Logout"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

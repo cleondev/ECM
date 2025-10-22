@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { ArrowLeft, Bell, Lock, Palette, Globe, Shield, Database } from "lucide-react"
+import type React from "react"
+import { useEffect, useMemo, useState } from "react"
+import { ArrowLeft, Bell, Lock, Palette, Globe, Shield, Database, User as UserIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,11 +11,142 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { fetchCurrentUserProfile, updateCurrentUserProfile } from "@/lib/api"
+import type { User } from "@/lib/types"
+
+const LANDING_PAGE_ROUTE = "/landing"
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(true)
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
+  const [profile, setProfile] = useState<User | null>(null)
+  const [formValues, setFormValues] = useState({ displayName: "", department: "" })
+  const [isSaving, setIsSaving] = useState(false)
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    fetchCurrentUserProfile()
+      .then((data) => {
+        if (!mounted) return
+
+        if (!data) {
+          window.location.href = LANDING_PAGE_ROUTE
+          return
+        }
+
+        setProfile(data)
+        setFormValues({
+          displayName: data.displayName,
+          department: data.department ?? "",
+        })
+      })
+      .catch(() => {
+        if (!mounted) return
+        window.location.href = LANDING_PAGE_ROUTE
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const handleInputChange = (field: "displayName" | "department") =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value
+      setFormValues((prev) => ({ ...prev, [field]: value }))
+    }
+
+  const handleReset = () => {
+    if (!profile) return
+    setFormValues({
+      displayName: profile.displayName,
+      department: profile.department ?? "",
+    })
+    setFeedback(null)
+  }
+
+  const handleSave = async () => {
+    if (!profile) return
+
+    setIsSaving(true)
+    setFeedback(null)
+
+    try {
+      const updated = await updateCurrentUserProfile({
+        displayName: formValues.displayName,
+        department: formValues.department,
+      })
+
+      setProfile(updated)
+      setFormValues({
+        displayName: updated.displayName,
+        department: updated.department ?? "",
+      })
+      setFeedback({ type: "success", message: "Đã lưu thay đổi hồ sơ." })
+    } catch (error) {
+      console.error("[ui] Không thể cập nhật hồ sơ trong trang cài đặt:", error)
+      setFeedback({ type: "error", message: "Không thể lưu thay đổi. Vui lòng thử lại." })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const hasChanges = useMemo(() => {
+    if (!profile) return false
+    const normalizedName = formValues.displayName.trim()
+    const currentName = profile.displayName.trim()
+    const normalizedDepartment = formValues.department.trim()
+    const currentDepartment = (profile.department ?? "").trim()
+
+    return (
+      normalizedName !== currentName ||
+      normalizedDepartment !== currentDepartment
+    )
+  }, [formValues.displayName, formValues.department, profile])
+
+  const joinedDate = useMemo(() => {
+    if (!profile?.createdAtUtc) {
+      return "—"
+    }
+
+    try {
+      const date = new Date(profile.createdAtUtc)
+      if (Number.isNaN(date.getTime())) {
+        return "—"
+      }
+
+      return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    } catch {
+      return "—"
+    }
+  }, [profile?.createdAtUtc])
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Files
+              </a>
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-24">
+          <div className="text-muted-foreground">Loading settings…</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -44,6 +176,63 @@ export default function SettingsPage() {
           </TabsList>
 
           <TabsContent value="general" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserIcon className="h-5 w-5" />
+                  Profile Information
+                </CardTitle>
+                <CardDescription>Update your basic profile details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {feedback && (
+                  <div
+                    className={
+                      feedback.type === "error"
+                        ? "text-sm text-destructive"
+                        : "text-sm text-green-600"
+                    }
+                  >
+                    {feedback.message}
+                  </div>
+                )}
+                <div className="grid gap-2">
+                  <Label htmlFor="settings-name">Full Name</Label>
+                  <Input
+                    id="settings-name"
+                    value={formValues.displayName}
+                    onChange={handleInputChange("displayName")}
+                    placeholder="Your full name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="settings-email">Email</Label>
+                  <Input id="settings-email" type="email" value={profile.email} readOnly disabled />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="settings-department">Department</Label>
+                  <Input
+                    id="settings-department"
+                    value={formValues.department}
+                    onChange={handleInputChange("department")}
+                    placeholder="Department"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="settings-joined">Joined</Label>
+                  <Input id="settings-joined" value={joinedDate} readOnly disabled />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={handleReset} disabled={!hasChanges || isSaving}>
+                    Reset
+                  </Button>
+                  <Button onClick={handleSave} disabled={!hasChanges || isSaving}>
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
