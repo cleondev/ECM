@@ -6,6 +6,7 @@ using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Workflows;
 
@@ -50,6 +51,25 @@ public interface IEcmApiClient
     Task<DocumentListDto> GetDocumentsAsync(ListDocumentsRequestDto request, CancellationToken cancellationToken = default);
 
     Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload request, CancellationToken cancellationToken = default);
+
+    Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default);
+
+    Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default);
+
+    Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(
+        Guid versionId,
+        int width,
+        int height,
+        string? fit,
+        CancellationToken cancellationToken = default);
+
+    Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default);
+
+    Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto request, CancellationToken cancellationToken = default);
+
+    Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken = default);
 
     Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto request, CancellationToken cancellationToken = default);
 

@@ -1,4 +1,5 @@
 using System;
+using System.Net.Http;
 using AppGateway.Infrastructure.IAM;
 using AppGateway.Infrastructure.Ecm;
 
@@ -25,6 +26,10 @@ public static class DependencyInjection
         var authenticationScheme = configuration.GetValue<string>("Services:EcmAuthenticationScheme");
 
         services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri(baseAddress))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    AllowAutoRedirect = false
+                })
                 .AddStandardResilienceHandler();
 
         services.Configure<IamOptions>(configuration.GetSection("IAM"));

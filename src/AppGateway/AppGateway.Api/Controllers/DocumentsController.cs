@@ -2,8 +2,9 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
-using AppGateway.Contracts.Documents;
 using AppGateway.Api.Auth;
+using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.Tags;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -60,6 +61,120 @@ public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
         }
 
         return CreatedAtAction(nameof(GetAsync), new { id = document.Id }, document);
+    }
+
+    [HttpGet("files/download/{versionId:guid}")]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadVersionAsync(Guid versionId, CancellationToken cancellationToken)
+    {
+        var downloadUri = await _client.GetDocumentVersionDownloadUriAsync(versionId, cancellationToken);
+        if (downloadUri is null)
+        {
+            return NotFound();
+        }
+
+        return Redirect(downloadUri.ToString());
+    }
+
+    [HttpGet("files/preview/{versionId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PreviewVersionAsync(Guid versionId, CancellationToken cancellationToken)
+    {
+        var file = await _client.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        return File(
+            file.Content,
+            file.ContentType,
+            fileDownloadName: file.FileName,
+            lastModified: file.LastModifiedUtc,
+            enableRangeProcessing: file.EnableRangeProcessing);
+    }
+
+    [HttpGet("files/thumbnails/{versionId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetThumbnailAsync(
+        Guid versionId,
+        [FromQuery(Name = "w")] int width,
+        [FromQuery(Name = "h")] int height,
+        [FromQuery(Name = "fit")] string? fit,
+        CancellationToken cancellationToken)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            ModelState.AddModelError("dimensions", "Parameters 'w' and 'h' must be positive integers.");
+            return ValidationProblem(ModelState);
+        }
+
+        var normalizedFit = string.IsNullOrWhiteSpace(fit)
+            ? null
+            : fit.Trim().ToLowerInvariant();
+
+        if (normalizedFit is not null && normalizedFit != "cover" && normalizedFit != "contain")
+        {
+            ModelState.AddModelError("fit", "Parameter 'fit' must be either 'cover' or 'contain'.");
+            return ValidationProblem(ModelState);
+        }
+
+        var file = await _client.GetDocumentVersionThumbnailAsync(versionId, width, height, normalizedFit, cancellationToken);
+        if (file is null)
+        {
+            return NotFound();
+        }
+
+        return File(
+            file.Content,
+            file.ContentType,
+            fileDownloadName: file.FileName,
+            lastModified: file.LastModifiedUtc,
+            enableRangeProcessing: file.EnableRangeProcessing);
+    }
+
+    [HttpPost("{documentId:guid}/tags")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AssignTagAsync(Guid documentId, [FromBody] AssignTagRequestDto request, CancellationToken cancellationToken)
+    {
+        if (request.TagId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(request.TagId), "Tag identifier is required.");
+            return ValidationProblem(ModelState);
+        }
+
+        var assigned = await _client.AssignTagToDocumentAsync(documentId, request, cancellationToken);
+        if (!assigned)
+        {
+            return Problem(title: "Failed to assign tag to document", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("{documentId:guid}/tags/{tagId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RemoveTagAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken)
+    {
+        if (tagId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(tagId), "Tag identifier is required.");
+            return ValidationProblem(ModelState);
+        }
+
+        var removed = await _client.RemoveTagFromDocumentAsync(documentId, tagId, cancellationToken);
+        if (!removed)
+        {
+            return Problem(title: "Failed to remove tag from document", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        return NoContent();
     }
 }
 
