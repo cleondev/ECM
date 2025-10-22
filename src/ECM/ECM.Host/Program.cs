@@ -76,6 +76,11 @@ public static class Program
 
         builder.Services.AddAuthorization();
 
+        builder.Services.AddAntiforgery(options =>
+        {
+            options.HeaderName = "X-CSRF-TOKEN";
+        });
+
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(options =>
         {
@@ -136,6 +141,7 @@ public static class Program
 
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseAntiforgery();
 
         app.MapDefaultEndpoints();
         app.MapModules();
