@@ -88,12 +88,7 @@ public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
             return NotFound();
         }
 
-        return File(
-            file.Content,
-            file.ContentType,
-            fileDownloadName: file.FileName,
-            lastModified: file.LastModifiedUtc,
-            enableRangeProcessing: file.EnableRangeProcessing);
+        return CreateFileResult(file);
     }
 
     [HttpGet("files/thumbnails/{versionId:guid}")]
@@ -129,12 +124,7 @@ public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
             return NotFound();
         }
 
-        return File(
-            file.Content,
-            file.ContentType,
-            fileDownloadName: file.FileName,
-            lastModified: file.LastModifiedUtc,
-            enableRangeProcessing: file.EnableRangeProcessing);
+        return CreateFileResult(file);
     }
 
     [HttpPost("{documentId:guid}/tags")]
@@ -175,6 +165,16 @@ public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
         }
 
         return NoContent();
+    }
+
+    private static FileContentResult CreateFileResult(DocumentFileContent file)
+    {
+        return new FileContentResult(file.Content, file.ContentType)
+        {
+            FileDownloadName = file.FileName,
+            LastModified = file.LastModifiedUtc,
+            EnableRangeProcessing = file.EnableRangeProcessing,
+        };
     }
 }
 

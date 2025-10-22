@@ -54,8 +54,11 @@ public sealed class IamTokenController : ControllerBase
         try
         {
             var result = await _tokenAcquisition.GetAuthenticationResultForAppAsync(
-                new[] { _appScope },
-                cancellationToken: cancellationToken);
+                _appScope!,
+                tokenAcquisitionOptions: new TokenAcquisitionOptions
+                {
+                    CancellationToken = cancellationToken,
+                });
 
             return Ok(new AccessTokenResponseDto(result.AccessToken, result.ExpiresOn));
         }

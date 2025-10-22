@@ -6,6 +6,7 @@ using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Workflows;
+using AppGateway.Contracts.Tags;
 using AppGateway.Infrastructure.Ecm;
 using AppGateway.Infrastructure.IAM;
 using FluentAssertions;
@@ -180,6 +181,32 @@ public class AzureAdUserProvisioningServiceTests
             => throw new NotSupportedException();
 
         public Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(
+            Guid versionId,
+            int width,
+            int height,
+            string? fit,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto request, CancellationToken cancellationToken = default)
