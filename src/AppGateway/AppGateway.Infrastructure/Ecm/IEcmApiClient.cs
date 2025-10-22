@@ -47,9 +47,9 @@ public interface IEcmApiClient
 
     Task<bool> DeleteRelationAsync(Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyCollection<DocumentSummaryDto>> GetDocumentsAsync(CancellationToken cancellationToken = default);
+    Task<DocumentListDto> GetDocumentsAsync(ListDocumentsRequestDto request, CancellationToken cancellationToken = default);
 
-    Task<DocumentSummaryDto?> CreateDocumentAsync(CreateDocumentRequestDto request, CancellationToken cancellationToken = default);
+    Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload request, CancellationToken cancellationToken = default);
 
     Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto request, CancellationToken cancellationToken = default);
 

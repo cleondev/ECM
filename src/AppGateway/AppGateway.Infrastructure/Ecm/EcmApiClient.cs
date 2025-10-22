@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -155,18 +156,50 @@ internal sealed class EcmApiClient(
         return await SendAsync(request, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<DocumentSummaryDto>> GetDocumentsAsync(CancellationToken cancellationToken = default)
+    public async Task<DocumentListDto> GetDocumentsAsync(ListDocumentsRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Get, "api/ecm/documents", cancellationToken);
-        var response = await SendAsync<IReadOnlyCollection<DocumentSummaryDto>>(request, cancellationToken);
-        return response ?? [];
+        var uri = BuildDocumentListUri(requestDto);
+        using var request = await CreateRequestAsync(HttpMethod.Get, uri, cancellationToken);
+        var response = await SendAsync<DocumentListDto>(request, cancellationToken);
+        return response ?? DocumentListDto.Empty;
     }
 
-    public async Task<DocumentSummaryDto?> CreateDocumentAsync(CreateDocumentRequestDto requestDto, CancellationToken cancellationToken = default)
+    public async Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload requestDto, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/documents", cancellationToken);
-        request.Content = JsonContent.Create(requestDto);
-        return await SendAsync<DocumentSummaryDto>(request, cancellationToken);
+
+        using var form = new MultipartFormDataContent();
+        form.Add(new StringContent(requestDto.Title), nameof(requestDto.Title));
+        form.Add(new StringContent(requestDto.DocType), nameof(requestDto.DocType));
+        form.Add(new StringContent(requestDto.Status), nameof(requestDto.Status));
+        form.Add(new StringContent(requestDto.OwnerId.ToString()), nameof(requestDto.OwnerId));
+        form.Add(new StringContent(requestDto.CreatedBy.ToString()), nameof(requestDto.CreatedBy));
+
+        if (!string.IsNullOrWhiteSpace(requestDto.Department))
+        {
+            form.Add(new StringContent(requestDto.Department), nameof(requestDto.Department));
+        }
+
+        if (!string.IsNullOrWhiteSpace(requestDto.Sensitivity))
+        {
+            form.Add(new StringContent(requestDto.Sensitivity), nameof(requestDto.Sensitivity));
+        }
+
+        if (requestDto.DocumentTypeId.HasValue)
+        {
+            form.Add(new StringContent(requestDto.DocumentTypeId.Value.ToString()), nameof(requestDto.DocumentTypeId));
+        }
+
+        var stream = await requestDto.OpenReadStream(cancellationToken);
+        var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.TryParse(requestDto.ContentType, out var contentType)
+            ? contentType
+            : new MediaTypeHeaderValue("application/octet-stream");
+
+        form.Add(fileContent, "File", requestDto.FileName);
+
+        request.Content = form;
+        return await SendAsync<DocumentDto>(request, cancellationToken);
     }
 
     public async Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto requestDto, CancellationToken cancellationToken = default)
@@ -181,6 +214,58 @@ internal sealed class EcmApiClient(
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/signatures", cancellationToken);
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<SignatureReceiptDto>(request, cancellationToken);
+    }
+
+    private static string BuildDocumentListUri(ListDocumentsRequestDto request)
+    {
+        var query = new Dictionary<string, string?>();
+
+        if (request.Page > 0)
+        {
+            query["page"] = request.Page.ToString();
+        }
+
+        if (request.PageSize > 0)
+        {
+            query["pageSize"] = request.PageSize.ToString();
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.DocType))
+        {
+            query["docType"] = request.DocType;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            query["status"] = request.Status;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Sensitivity))
+        {
+            query["sensitivity"] = request.Sensitivity;
+        }
+
+        if (request.OwnerId.HasValue)
+        {
+            query["ownerId"] = request.OwnerId.Value.ToString();
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Department))
+        {
+            query["department"] = request.Department;
+        }
+
+        var uri = QueryHelpers.AddQueryString("api/ecm/documents", query);
+
+        if (request.Tags is { Length: > 0 })
+        {
+            foreach (var tag in request.Tags)
+            {
+                uri = QueryHelpers.AddQueryString(uri, "tags", tag.ToString());
+            }
+        }
+
+        return uri;
     }
 
     private async Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string uri, CancellationToken cancellationToken)
