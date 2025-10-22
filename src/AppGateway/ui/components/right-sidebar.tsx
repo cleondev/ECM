@@ -154,7 +154,9 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange }: RightSide
   const getTagColor = (tagName: string): string => {
     const findTag = (tags: TagNode[]): string | null => {
       for (const tag of tags) {
-        if (tag.name === tagName) return tag.color
+        if ((!tag.kind || tag.kind === "label") && tag.name === tagName && tag.color) {
+          return tag.color
+        }
         if (tag.children) {
           const found = findTag(tag.children)
           if (found) return found

@@ -15,9 +15,14 @@ export type FileItem = {
 export type TagNode = {
   id: string
   name: string
-  color: string
+  color?: string
   icon?: string
   children?: TagNode[]
+  kind?: "namespace" | "label"
+  namespaceSlug?: string
+  slug?: string
+  path?: string
+  isActive?: boolean
 }
 
 export type TagUpdateData = {

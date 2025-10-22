@@ -56,6 +56,8 @@ const iconOptions = [
   "🎪",
 ]
 
+const DEFAULT_TAG_COLOR = "bg-blue-200 dark:bg-blue-900"
+
 export function TagManagementDialog({
   open,
   onOpenChange,
@@ -65,18 +67,18 @@ export function TagManagementDialog({
   onSave,
 }: TagManagementDialogProps) {
   const [tagName, setTagName] = useState("")
-  const [tagColor, setTagColor] = useState("bg-blue-200 dark:bg-blue-900")
+  const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR)
   const [tagIcon, setTagIcon] = useState("")
   const [applyColorToChildren, setApplyColorToChildren] = useState(false)
 
   useEffect(() => {
     if (mode === "edit" && editingTag) {
       setTagName(editingTag.name)
-      setTagColor(editingTag.color)
+      setTagColor(editingTag.color ?? DEFAULT_TAG_COLOR)
       setTagIcon(editingTag.icon || "")
     } else {
       setTagName("")
-      setTagColor("bg-blue-200 dark:bg-blue-900")
+      setTagColor(DEFAULT_TAG_COLOR)
       setTagIcon("")
     }
     setApplyColorToChildren(false)

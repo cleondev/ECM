@@ -307,6 +307,13 @@ internal sealed class EcmApiClient(
         return await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Get, "api/ecm/tags", cancellationToken);
+        var response = await SendAsync<IReadOnlyCollection<TagLabelDto>>(request, cancellationToken);
+        return response ?? [];
+    }
+
     public async Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto requestDto, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/tags", cancellationToken);
