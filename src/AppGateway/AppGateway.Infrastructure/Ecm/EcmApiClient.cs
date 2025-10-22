@@ -211,6 +211,8 @@ internal sealed class EcmApiClient(
             return;
         }
 
+        var appScope = ScopeUtilities.TryGetAppScope(scopes);
+
         var tokenAcquisitionOptions = new TokenAcquisitionOptions
         {
             CancellationToken = cancellationToken,
@@ -245,8 +247,17 @@ internal sealed class EcmApiClient(
 
         try
         {
+            if (string.IsNullOrWhiteSpace(appScope))
+            {
+                _logger.LogWarning(
+                    "Unable to determine an application scope from the configured scopes: {Scopes}.",
+                    string.Join(", ", scopes));
+
+                return;
+            }
+
             var appToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
-                _options.Scope!,
+                appScope,
                 authenticationScheme: authenticationScheme,
                 tenant: _options.TenantId,
                 tokenAcquisitionOptions: tokenAcquisitionOptions);

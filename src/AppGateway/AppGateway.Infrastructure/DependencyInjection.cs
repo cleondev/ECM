@@ -20,7 +20,7 @@ public static class DependencyInjection
     public static IServiceCollection AddGatewayInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var baseAddress = configuration.GetValue<string>("Services:Ecm") ?? "http://localhost:8080";
-        var scope = configuration.GetValue<string>("Services:EcmScope") ?? "api://istsvn.onmicrosoft.com/ecm-host/.default";
+        var scope = configuration.GetValue<string>("Services:EcmScope") ?? "api://istsvn.onmicrosoft.com/ecm-host/Access.All";
         var tenantId = configuration.GetValue<string>("Services:EcmTenantId") ?? configuration.GetValue<string>("AzureAd:TenantId");
         var authenticationScheme = configuration.GetValue<string>("Services:EcmAuthenticationScheme");
 
