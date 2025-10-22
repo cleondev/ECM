@@ -43,4 +43,68 @@ public static class ScopeUtilities
             ? []
             : [.. uniqueScopes];
     }
+
+    public static string? TryGetAppScope(string? scope)
+    {
+        var scopes = ParseScopes(scope);
+        return TryGetAppScope(scopes);
+    }
+
+    public static string? TryGetAppScope(IReadOnlyList<string> scopes)
+    {
+        if (scopes.Count == 0)
+        {
+            return null;
+        }
+
+        foreach (var candidate in scopes)
+        {
+            if (candidate.EndsWith("/.default", StringComparison.Ordinal))
+            {
+                return candidate;
+            }
+        }
+
+        foreach (var candidate in scopes)
+        {
+            var normalized = NormalizeToDefaultScope(candidate);
+            if (!string.IsNullOrWhiteSpace(normalized))
+            {
+                return normalized;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeToDefaultScope(string scope)
+    {
+        if (string.IsNullOrWhiteSpace(scope))
+        {
+            return null;
+        }
+
+        var schemeSeparatorIndex = scope.IndexOf(Uri.SchemeDelimiter, StringComparison.Ordinal);
+        if (schemeSeparatorIndex < 0)
+        {
+            return null;
+        }
+
+        var firstSlashAfterAuthority = scope.IndexOf('/', schemeSeparatorIndex + Uri.SchemeDelimiter.Length);
+        if (firstSlashAfterAuthority < 0)
+        {
+            return null;
+        }
+
+        var lastSlashIndex = scope.LastIndexOf('/');
+        if (lastSlashIndex <= firstSlashAfterAuthority)
+        {
+            return null;
+        }
+
+        var resource = scope[..lastSlashIndex];
+        return string.IsNullOrWhiteSpace(resource)
+            ? null
+            : string.Concat(resource, "/.default");
+    }
 }

@@ -10,7 +10,7 @@ Tài liệu này tổng hợp các thông tin cần thiết để đăng ký **A
 | **Account type** | Accounts in this organizational directory only (Single tenant) | – | Phù hợp khi triển khai nội bộ trong 1 tenant. |
 | **Redirect URI (loại Web)** | `https://localhost:5001/signin-oidc` _(tùy chọn)_ | – | Chỉ cần khi sử dụng OpenID Connect interactive flow. Với API thuần bearer token có thể bỏ qua. |
 | **Identifier (App ID URI)** | `api://contoso.onmicrosoft.com/ecm-host` | `appsettings.json` (`AzureAd:Audience`) | Phải chứa verified domain/tenant ID/app ID theo chính sách mới của Entra. |
-| **Expose API → Scope mặc định** | `api://contoso.onmicrosoft.com/ecm-host/.default` | Suy ra từ App ID URI | Sử dụng cho client khi yêu cầu access token. |
+| **Expose API → Scope mặc định** | `api://contoso.onmicrosoft.com/ecm-host/Access.All` | `Services:EcmScope` | Sử dụng cho delegated flow; client credentials tiếp tục dùng `/.default`. |
 | **Client ID (Application ID)** | Tự sinh sau khi đăng ký | – | Thay vào cấu hình `AzureAd:ClientId` của `ECM.Host`. |
 | **Tenant ID** | `<tenant-guid>` | `AzureAd:TenantId` | Điền GUID tenant thực tế. |
 | **Domain** | `<tenant-domain>.onmicrosoft.com` | `AzureAd:Domain` | Giúp SDK xác định authority. |
@@ -33,7 +33,7 @@ App Gateway đóng vai trò BFF và reverse proxy. Cần một ứng dụng Azur
 | **Logout redirect URI** | `https://localhost:5090/signout-callback-oidc` | `AzureAd:SignedOutCallbackPath` | Đảm bảo người dùng được chuyển hướng đúng sau khi đăng xuất. |
 | **Tenant ID** | `<tenant-guid>` | `AzureAd:TenantId` | Trùng với tenant. |
 | **Domain** | `<tenant-domain>.onmicrosoft.com` | `AzureAd:Domain` | |
-| **API permissions** | Tối thiểu `ECM Host API/.default` (application permission) nếu Gateway gọi xuống ECM bằng chứng thực ứng dụng. | – | Cấp quyền thông qua mục **API permissions**. |
+| **API permissions** | Tối thiểu `ECM Host API/Access.All` (delegated). Thêm `ECM Host API/.default` nếu Gateway cần chứng thực ứng dụng. | – | Cấp quyền thông qua mục **API permissions** và grant admin consent. |
 | **Tenant cho downstream API** | `<tenant-guid>` | `appsettings.json` (`Services:EcmTenantId`, mặc định dùng `AzureAd:TenantId`) | Bắt buộc khi cho phép người dùng từ tenant khác đăng nhập (B2B). |
 
 > Cập nhật các giá trị vào `src/AppGateway/AppGateway.Api/appsettings.json` hoặc secret tương ứng sau khi đăng ký.【F:src/AppGateway/AppGateway.Api/appsettings.json†L27-L36】
