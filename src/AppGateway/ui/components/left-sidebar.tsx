@@ -65,6 +65,10 @@ function TagTreeItem({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hasChildren = tag.children && tag.children.length > 0
   const isSelected = selectedTag === tag.name
+  const isNamespace = tag.kind === "namespace"
+  const canSelect = !isNamespace
+  const canManage = tag.kind === "label"
+  const canAddChild = isNamespace
 
   return (
     <div>
@@ -79,6 +83,7 @@ function TagTreeItem({
       >
         {hasChildren && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation()
               setIsExpanded(!isExpanded)
@@ -94,57 +99,83 @@ function TagTreeItem({
         )}
         {!hasChildren && <div className="w-3 flex-shrink-0" />}
 
-        <button onClick={() => onTagClick(tag.name)} className="flex items-center gap-1.5 flex-1 min-w-0 text-left">
-          <div className={cn("flex items-center gap-1 px-1.5 py-0.5 rounded flex-1 min-w-0", tag.color)}>
+        <button
+          type="button"
+          onClick={() => {
+            if (canSelect) {
+              onTagClick(tag.name)
+            }
+          }}
+          className="flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:cursor-default"
+          disabled={!canSelect}
+        >
+          <div
+            className={cn(
+              "flex items-center gap-1 px-1.5 py-0.5 rounded flex-1 min-w-0",
+              tag.color ?? "bg-muted/50",
+              canSelect ? "cursor-pointer" : "opacity-80",
+            )}
+          >
             {tag.icon && <span className="text-xs flex-shrink-0">{tag.icon}</span>}
             <span className="truncate text-sm text-foreground">{tag.name}</span>
           </div>
         </button>
 
-        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 flex-shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <MoreVertical className="h-3 w-3" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-48 p-1" align="end">
-            <button
-              onClick={() => {
-                onEditTag(tag)
-                setIsPopoverOpen(false)
-              }}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent"
-            >
-              <Edit className="h-3 w-3" />
-              Edit Tag
-            </button>
-            <button
-              onClick={() => {
-                onAddChildTag(tag)
-                setIsPopoverOpen(false)
-              }}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent"
-            >
-              <Plus className="h-3 w-3" />
-              Add Child Tag
-            </button>
-            <button
-              onClick={() => {
-                onDeleteTag(tag.id)
-                setIsPopoverOpen(false)
-              }}
-              className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-destructive"
-            >
-              <Trash className="h-3 w-3" />
-              Delete Tag
-            </button>
-          </PopoverContent>
-        </Popover>
+        {(canManage || canAddChild) && (
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-3 w-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-1" align="end">
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onEditTag(tag)
+                    setIsPopoverOpen(false)
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent"
+                >
+                  <Edit className="h-3 w-3" />
+                  Edit Tag
+                </button>
+              )}
+              {canAddChild && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onAddChildTag(tag)
+                    setIsPopoverOpen(false)
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent"
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Tag
+                </button>
+              )}
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDeleteTag(tag.id)
+                    setIsPopoverOpen(false)
+                  }}
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-destructive"
+                >
+                  <Trash className="h-3 w-3" />
+                  Delete Tag
+                </button>
+              )}
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {hasChildren && isExpanded && (

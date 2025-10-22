@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Upload, X, FileIcon, CheckCircle2 } from "lucide-react"
 import { fetchFlows, fetchTags, uploadFile } from "@/lib/api"
 import type { Flow, SelectedTag, TagNode, UploadFileData, UploadMetadata } from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 
@@ -129,7 +130,9 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const getAllTags = (nodes: TagNode[]): TagNode[] => {
     const result: TagNode[] = []
     const traverse = (node: TagNode) => {
-      result.push(node)
+      if (!node.kind || node.kind === "label") {
+        result.push(node)
+      }
       node.children?.forEach(traverse)
     }
     nodes.forEach(traverse)
@@ -201,22 +204,24 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                 <div className="space-y-2">
                   <Label>Select Tags</Label>
                   <div className="flex flex-wrap gap-2 min-h-[200px] p-3 border rounded-md">
-                    {getAllTags(tags).map((tag) => (
-                      <Badge
-                        key={tag.id}
-                        variant={selectedTags.some((selected) => selected.id === tag.id) ? "default" : "outline"}
-                        className="cursor-pointer h-fit"
-                        onClick={() => toggleTag(tag)}
-                        style={
-                          selectedTags.some((selected) => selected.id === tag.id) && tag.color
-                            ? { backgroundColor: tag.color, borderColor: tag.color }
-                            : {}
-                        }
-                      >
-                        {tag.icon && <span className="mr-1">{tag.icon}</span>}
-                        {tag.name}
-                      </Badge>
-                    ))}
+                    {getAllTags(tags).map((tag) => {
+                      const isSelected = selectedTags.some((selected) => selected.id === tag.id)
+                      return (
+                        <Badge
+                          key={tag.id}
+                          variant={isSelected ? "default" : "outline"}
+                          className={cn(
+                            "cursor-pointer h-fit",
+                            tag.color && !isSelected ? tag.color : undefined,
+                            isSelected ? "bg-primary text-primary-foreground border-primary" : undefined,
+                          )}
+                          onClick={() => toggleTag(tag)}
+                        >
+                          {tag.icon && <span className="mr-1">{tag.icon}</span>}
+                          {tag.name}
+                        </Badge>
+                      )
+                    })}
                   </div>
                   {selectedTags.length > 0 && (
                     <p className="text-sm text-muted-foreground">

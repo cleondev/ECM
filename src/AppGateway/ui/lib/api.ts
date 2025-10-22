@@ -72,9 +72,34 @@ type DocumentListResponse = {
   items: DocumentResponse[]
 }
 
+type TagLabelResponse = {
+  id: string
+  namespaceSlug: string
+  slug: string
+  path: string
+  isActive: boolean
+  createdBy?: string | null
+  createdAtUtc: string
+}
+
 const API_BASE_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
 
 const jsonHeaders = { Accept: "application/json" }
+
+const TAG_COLOR_PALETTE = [
+  "bg-blue-200 dark:bg-blue-900",
+  "bg-purple-200 dark:bg-purple-900",
+  "bg-green-200 dark:bg-green-900",
+  "bg-red-200 dark:bg-red-900",
+  "bg-yellow-200 dark:bg-yellow-900",
+  "bg-pink-200 dark:bg-pink-900",
+  "bg-orange-200 dark:bg-orange-900",
+  "bg-teal-200 dark:bg-teal-900",
+  "bg-cyan-200 dark:bg-cyan-900",
+  "bg-indigo-200 dark:bg-indigo-900",
+  "bg-violet-200 dark:bg-violet-900",
+  "bg-fuchsia-200 dark:bg-fuchsia-900",
+]
 
 async function gatewayFetch(path: string, init?: RequestInit) {
   const url = `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`
@@ -154,6 +179,103 @@ function mapUserSummaryToUser(profile: UserSummaryResponse): User {
     department: profile.department ?? null,
     roles: profile.roles?.map((role) => role.name) ?? [],
   }
+}
+
+function hashString(value: string): number {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index)
+    hash |= 0
+  }
+  return hash
+}
+
+function colorForKey(key: string): string {
+  if (TAG_COLOR_PALETTE.length === 0) {
+    return "bg-muted"
+  }
+
+  const normalized = key.trim()
+  const hash = hashString(normalized)
+  const index = Math.abs(hash) % TAG_COLOR_PALETTE.length
+  return TAG_COLOR_PALETTE[index]
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "")
+    || "tag"
+}
+
+function normalizeMockTagTree(nodes: TagNode[], parentNamespace?: string): TagNode[] {
+  return nodes.map((node) => {
+    const hasChildren = Array.isArray(node.children) && node.children.length > 0
+    const namespaceSlug = hasChildren ? node.namespaceSlug ?? node.id : parentNamespace ?? node.namespaceSlug ?? "mock"
+    const normalizedChildren = node.children
+      ? normalizeMockTagTree(node.children, namespaceSlug)
+      : undefined
+
+    return {
+      ...node,
+      kind: hasChildren ? "namespace" : "label",
+      namespaceSlug,
+      slug: node.slug ?? (hasChildren ? undefined : slugify(node.name)),
+      path: node.path ?? (hasChildren ? undefined : node.name),
+      children: normalizedChildren,
+    }
+  })
+}
+
+function buildTagTree(tags: TagLabelResponse[]): TagNode[] {
+  if (!tags || tags.length === 0) {
+    return []
+  }
+
+  const namespaces = new Map<string, TagNode>()
+
+  for (const tag of tags) {
+    const namespaceSlug = tag.namespaceSlug?.trim() || "default"
+    let namespaceNode = namespaces.get(namespaceSlug)
+
+    if (!namespaceNode) {
+      namespaceNode = {
+        id: `ns:${namespaceSlug}`,
+        name: namespaceSlug,
+        color: colorForKey(namespaceSlug),
+        kind: "namespace",
+        namespaceSlug,
+        children: [],
+      }
+
+      namespaces.set(namespaceSlug, namespaceNode)
+    }
+
+    const childNode: TagNode = {
+      id: tag.id,
+      name: tag.path || tag.slug,
+      color: colorForKey(tag.path || tag.slug),
+      kind: "label",
+      namespaceSlug,
+      slug: tag.slug,
+      path: tag.path,
+      isActive: tag.isActive,
+    }
+
+    namespaceNode.children = namespaceNode.children ?? []
+    namespaceNode.children.push(childNode)
+  }
+
+  const tree = Array.from(namespaces.values())
+  tree.sort((a, b) => a.name.localeCompare(b.name))
+  for (const node of tree) {
+    node.children?.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  return tree
 }
 
 export type CheckLoginResult = {
@@ -315,23 +437,50 @@ export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedRes
 
 export async function fetchTags(): Promise<TagNode[]> {
   try {
-    const response = await gatewayRequest<TagNode[]>("/api/tags")
-    return response
+    const response = await gatewayRequest<TagLabelResponse[]>("/api/tags")
+    return buildTagTree(response)
   } catch (error) {
     console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
-    return mockTagTree
+    return normalizeMockTagTree(mockTagTree)
   }
 }
 
 export async function createTag(data: TagUpdateData, parentId?: string): Promise<TagNode> {
   try {
-    const payload = parentId
-      ? { ...data, parentId }
-      : data
-    return await gatewayRequest<TagNode>("/api/tags", {
+    const normalizedName = data.name.trim()
+    if (!normalizedName) {
+      throw new Error("Tag name is required")
+    }
+
+    const namespaceSlug = parentId?.startsWith("ns:")
+      ? parentId.slice(3)
+      : parentId && parentId.length > 0
+        ? parentId
+        : "user"
+
+    const slug = slugify(normalizedName)
+    const payload = {
+      namespaceSlug,
+      slug,
+      path: normalizedName,
+      createdBy: null as string | null,
+    }
+
+    const response = await gatewayRequest<TagLabelResponse>("/api/tags", {
       method: "POST",
       body: JSON.stringify(payload),
     })
+
+    return {
+      id: response.id,
+      name: response.path || response.slug,
+      color: colorForKey(response.path || response.slug),
+      kind: "label",
+      namespaceSlug: response.namespaceSlug,
+      slug: response.slug,
+      path: response.path,
+      isActive: response.isActive,
+    }
   } catch (error) {
     console.warn("[ui] Failed to create tag via gateway, using mock response:", error)
     return {
@@ -339,6 +488,11 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
       name: data.name,
       color: data.color,
       icon: data.icon,
+      kind: "label",
+      namespaceSlug: parentId?.startsWith("ns:") ? parentId.slice(3) : undefined,
+      slug: slugify(data.name),
+      path: data.name,
+      isActive: true,
     }
   }
 }
@@ -356,6 +510,9 @@ export async function updateTag(tagId: string, data: TagUpdateData): Promise<Tag
       name: data.name,
       color: data.color,
       icon: data.icon,
+      kind: "label",
+      slug: slugify(data.name),
+      path: data.name,
     }
   }
 }
