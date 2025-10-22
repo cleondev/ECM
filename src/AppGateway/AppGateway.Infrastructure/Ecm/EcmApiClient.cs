@@ -168,12 +168,14 @@ internal sealed class EcmApiClient(
     {
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/documents", cancellationToken);
 
-        using var form = new MultipartFormDataContent();
-        form.Add(new StringContent(requestDto.Title), nameof(requestDto.Title));
-        form.Add(new StringContent(requestDto.DocType), nameof(requestDto.DocType));
-        form.Add(new StringContent(requestDto.Status), nameof(requestDto.Status));
-        form.Add(new StringContent(requestDto.OwnerId.ToString()), nameof(requestDto.OwnerId));
-        form.Add(new StringContent(requestDto.CreatedBy.ToString()), nameof(requestDto.CreatedBy));
+        using var form = new MultipartFormDataContent
+        {
+            { new StringContent(requestDto.Title), nameof(requestDto.Title) },
+            { new StringContent(requestDto.DocType), nameof(requestDto.DocType) },
+            { new StringContent(requestDto.Status), nameof(requestDto.Status) },
+            { new StringContent(requestDto.OwnerId.ToString()), nameof(requestDto.OwnerId) },
+            { new StringContent(requestDto.CreatedBy.ToString()), nameof(requestDto.CreatedBy) }
+        };
 
         if (!string.IsNullOrWhiteSpace(requestDto.Department))
         {

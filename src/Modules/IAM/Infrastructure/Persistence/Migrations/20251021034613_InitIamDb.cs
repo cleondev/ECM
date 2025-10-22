@@ -91,7 +91,7 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 name: "iam_relations_object_idx",
                 schema: "iam",
                 table: "relations",
-                columns: new[] { "object_type", "object_id" });
+                columns: ["object_type", "object_id"]);
 
             migrationBuilder.CreateIndex(
                 name: "ix_roles_name",

@@ -64,7 +64,7 @@ public class AzureAdUserProvisioningServiceTests
         var client = new FakeEcmApiClient
         {
             CreatedUser = createdUser,
-            Roles = new[] { role }
+            Roles = [role]
         };
 
         var options = Options.Create(new IamOptions
@@ -105,7 +105,7 @@ public class AzureAdUserProvisioningServiceTests
     }
 
     private static UserSummaryDto CreateUserSummary()
-        => new(Guid.NewGuid(), "user@example.com", "User", null, true, DateTimeOffset.UtcNow, Array.Empty<RoleSummaryDto>());
+        => new(Guid.NewGuid(), "user@example.com", "User", null, true, DateTimeOffset.UtcNow, []);
 
     private sealed class FakeEcmApiClient : IEcmApiClient
     {
@@ -113,7 +113,7 @@ public class AzureAdUserProvisioningServiceTests
 
         public UserSummaryDto? CreatedUser { get; set; }
 
-        public IReadOnlyCollection<RoleSummaryDto> Roles { get; set; } = Array.Empty<RoleSummaryDto>();
+        public IReadOnlyCollection<RoleSummaryDto> Roles { get; set; } = [];
 
         public CreateUserRequestDto? LastCreateRequest { get; private set; }
 

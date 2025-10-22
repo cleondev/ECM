@@ -333,7 +333,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 name: "tag_label_ns_path_idx",
                 schema: "doc",
                 table: "tag_label",
-                columns: new[] { "namespace_slug", "path" },
+                columns: ["namespace_slug", "path"],
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -352,7 +352,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 name: "IX_version_document_id_version_no",
                 schema: "doc",
                 table: "version",
-                columns: new[] { "document_id", "version_no" },
+                columns: ["document_id", "version_no"],
                 unique: true);
         }
 

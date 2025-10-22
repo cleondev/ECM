@@ -51,7 +51,7 @@ public static class GatewayEndpointConfiguration
                 RedirectUri = redirectUri
             };
 
-            return Results.Challenge(properties, new[] { OpenIdConnectDefaults.AuthenticationScheme });
+            return Results.Challenge(properties, [OpenIdConnectDefaults.AuthenticationScheme]);
         }).AllowAnonymous();
 
         app.MapPost("/signout", async (HttpContext context) =>

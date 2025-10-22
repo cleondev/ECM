@@ -8,12 +8,16 @@ using ECM.IAM.Infrastructure.Persistence;
 using ECM.IAM.Infrastructure.Relations;
 using ECM.IAM.Infrastructure.Roles;
 using ECM.IAM.Infrastructure.Users;
+
 using EFCore.NamingConventions;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace ECM.IAM.Infrastructure;
 
 public static class IamInfrastructureModuleExtensions
 {

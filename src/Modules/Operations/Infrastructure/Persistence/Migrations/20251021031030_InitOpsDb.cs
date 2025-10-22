@@ -162,7 +162,7 @@ namespace ECM.Operations.Infrastructure.Persistence.Migrations
                 name: "ops_audit_obj_idx",
                 schema: "ops",
                 table: "audit_event",
-                columns: new[] { "object_type", "object_id" });
+                columns: ["object_type", "object_id"]);
 
             migrationBuilder.CreateIndex(
                 name: "ops_audit_time_idx",
@@ -174,13 +174,13 @@ namespace ECM.Operations.Infrastructure.Persistence.Migrations
                 name: "ops_notification_user_idx",
                 schema: "ops",
                 table: "notification",
-                columns: new[] { "user_id", "is_read", "created_at" });
+                columns: ["user_id", "is_read", "created_at"]);
 
             migrationBuilder.CreateIndex(
                 name: "ops_outbox_agg_idx",
                 schema: "ops",
                 table: "outbox",
-                columns: new[] { "aggregate", "aggregate_id" });
+                columns: ["aggregate", "aggregate_id"]);
 
             migrationBuilder.CreateIndex(
                 name: "ops_outbox_processed_idx",
@@ -210,7 +210,7 @@ namespace ECM.Operations.Infrastructure.Persistence.Migrations
                 name: "ops_webhook_delivery_status_idx",
                 schema: "ops",
                 table: "webhook_delivery",
-                columns: new[] { "webhook_id", "status" });
+                columns: ["webhook_id", "status"]);
         }
 
         /// <inheritdoc />
