@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 
 public interface IUserProvisioningService
 {
-    Task EnsureUserExistsAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken);
+    Task<UserSummaryDto?> EnsureUserExistsAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken);
 }
 
 public sealed class AzureAdUserProvisioningService(
@@ -27,18 +27,18 @@ public sealed class AzureAdUserProvisioningService(
     private readonly IOptions<IamOptions> _options = options;
     private readonly ILogger<AzureAdUserProvisioningService> _logger = logger;
 
-    public async Task EnsureUserExistsAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)
+    public async Task<UserSummaryDto?> EnsureUserExistsAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)
     {
         if (principal is null)
         {
-            return;
+            return null;
         }
 
         var email = GetEmail(principal);
         if (string.IsNullOrWhiteSpace(email))
         {
             _logger.LogWarning("Unable to automatically provision user because no email claim was found.");
-            return;
+            return null;
         }
 
         try
@@ -46,7 +46,7 @@ public sealed class AzureAdUserProvisioningService(
             var existing = await _client.GetUserByEmailAsync(email, cancellationToken);
             if (existing is not null)
             {
-                return;
+                return existing;
             }
 
             var displayName = GetDisplayName(principal, email);
@@ -63,26 +63,29 @@ public sealed class AzureAdUserProvisioningService(
             };
 
             var created = await _client.CreateUserAsync(request, cancellationToken);
-            if (created is null)
+            if (created is not null)
             {
-                _logger.LogWarning("Automatic provisioning failed for user {Email}.", email);
-                return;
+                var createdRoles = created.Roles ?? Array.Empty<RoleSummaryDto>();
+                var roleDescription = createdRoles.Count > 0
+                    ? string.Join(", ", createdRoles.Select(role => role.Name))
+                    : "<none>";
+
+                _logger.LogInformation(
+                    "Automatically provisioned user {Email} with roles: {Roles}.",
+                    email,
+                    roleDescription);
+
+                return created;
             }
 
-            var createdRoles = created.Roles ?? Array.Empty<RoleSummaryDto>();
-            var roleDescription = createdRoles.Count > 0
-                ? string.Join(", ", createdRoles.Select(role => role.Name))
-                : "<none>";
-
-            _logger.LogInformation(
-                "Automatically provisioned user {Email} with roles: {Roles}.",
-                email,
-                roleDescription);
+            _logger.LogWarning("Automatic provisioning failed for user {Email}.", email);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while provisioning user {Email}.", email);
         }
+
+        return null;
     }
 
     private async Task<IReadOnlyCollection<Guid>> ResolveDefaultRoleIdsAsync(CancellationToken cancellationToken)
