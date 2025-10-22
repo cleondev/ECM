@@ -11,19 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Upload, X, FileIcon, CheckCircle2 } from "lucide-react"
 import { fetchFlows, fetchTags, uploadFile } from "@/lib/api"
-import type { Flow, TagNode, UploadFileData } from "@/lib/types"
+import type { Flow, SelectedTag, TagNode, UploadFileData, UploadMetadata } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-
-type UploadMetadata = {
-  title: string
-  docType: string
-  status: string
-  department: string
-  sensitivity: string
-  description: string
-  notes: string
-}
 
 const defaultMetadata: UploadMetadata = {
   title: "",
@@ -47,7 +37,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [flows, setFlows] = useState<Flow[]>([])
   const [tags, setTags] = useState<TagNode[]>([])
   const [selectedFlow, setSelectedFlow] = useState<string>("")
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([])
   const [metadata, setMetadata] = useState<UploadMetadata>(defaultMetadata)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadSuccess, setUploadSuccess] = useState(false)
@@ -99,7 +89,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     try {
       const uploadData: UploadFileData = {
         file,
-        flowId: selectedFlow || undefined,
+        flowDefinition: selectedFlow || undefined,
         metadata,
         tags: selectedTags,
       }
@@ -127,8 +117,13 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     onOpenChange(false)
   }
 
-  const toggleTag = (tagName: string) => {
-    setSelectedTags((prev) => (prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]))
+  const toggleTag = (tag: TagNode) => {
+    setSelectedTags((prev) => {
+      const isSelected = prev.some((selected) => selected.id === tag.id)
+      return isSelected
+        ? prev.filter((selected) => selected.id !== tag.id)
+        : [...prev, { id: tag.id, name: tag.name }]
+    })
   }
 
   const getAllTags = (nodes: TagNode[]): TagNode[] => {
@@ -209,11 +204,11 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                     {getAllTags(tags).map((tag) => (
                       <Badge
                         key={tag.id}
-                        variant={selectedTags.includes(tag.name) ? "default" : "outline"}
+                        variant={selectedTags.some((selected) => selected.id === tag.id) ? "default" : "outline"}
                         className="cursor-pointer h-fit"
-                        onClick={() => toggleTag(tag.name)}
+                        onClick={() => toggleTag(tag)}
                         style={
-                          selectedTags.includes(tag.name) && tag.color
+                          selectedTags.some((selected) => selected.id === tag.id) && tag.color
                             ? { backgroundColor: tag.color, borderColor: tag.color }
                             : {}
                         }
