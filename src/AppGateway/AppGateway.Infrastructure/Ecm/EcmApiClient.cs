@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -12,6 +13,7 @@ using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Signatures;
+using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
@@ -204,6 +206,133 @@ internal sealed class EcmApiClient(
         return await SendAsync<DocumentDto>(request, cancellationToken);
     }
 
+    public async Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/files/download/{versionId}", cancellationToken);
+        var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        try
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            if (IsRedirectStatusCode(response.StatusCode))
+            {
+                var location = response.Headers.Location;
+                if (location is null)
+                {
+                    return null;
+                }
+
+                if (!location.IsAbsoluteUri && _httpClient.BaseAddress is not null)
+                {
+                    location = new Uri(_httpClient.BaseAddress, location);
+                }
+
+                return location;
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                var location = response.Headers.Location;
+                if (location is not null && !location.IsAbsoluteUri && _httpClient.BaseAddress is not null)
+                {
+                    location = new Uri(_httpClient.BaseAddress, location);
+                }
+
+                return location;
+            }
+
+            return null;
+        }
+        finally
+        {
+            response.Dispose();
+        }
+    }
+
+    public async Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/files/preview/{versionId}", cancellationToken);
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await CreateDocumentFileContentAsync(response, enableRangeProcessing: true, cancellationToken);
+    }
+
+    public async Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(
+        Guid versionId,
+        int width,
+        int height,
+        string? fit,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new Dictionary<string, string?>
+        {
+            ["w"] = width.ToString(),
+            ["h"] = height.ToString(),
+        };
+
+        if (!string.IsNullOrWhiteSpace(fit))
+        {
+            query["fit"] = fit;
+        }
+
+        var uri = QueryHelpers.AddQueryString($"api/ecm/files/thumbnails/{versionId}", query);
+
+        using var request = await CreateRequestAsync(HttpMethod.Get, uri, cancellationToken);
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken);
+    }
+
+    public async Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto requestDto, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/tags", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<TagLabelDto>(request, cancellationToken);
+    }
+
+    public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/tags/{tagId}", cancellationToken);
+        return await SendAsync(request, cancellationToken);
+    }
+
+    public async Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto requestDto, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, $"api/ecm/documents/{documentId}/tags", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync(request, cancellationToken);
+    }
+
+    public async Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/documents/{documentId}/tags/{tagId}", cancellationToken);
+        return await SendAsync(request, cancellationToken);
+    }
+
     public async Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto requestDto, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/workflows/instances", cancellationToken);
@@ -385,6 +514,49 @@ internal sealed class EcmApiClient(
     {
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         return response.IsSuccessStatusCode;
+    }
+
+    private static bool IsRedirectStatusCode(HttpStatusCode statusCode) => (int)statusCode is >= 300 and < 400;
+
+    private static async Task<DocumentFileContent?> CreateDocumentFileContentAsync(
+        HttpResponseMessage response,
+        bool enableRangeProcessing,
+        CancellationToken cancellationToken)
+    {
+        var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+
+        if (content.Length == 0 && response.StatusCode == HttpStatusCode.NoContent)
+        {
+            return null;
+        }
+
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var fileName = GetFileName(response.Content);
+        var lastModified = response.Content.Headers.LastModified;
+        var supportsRangeProcessing = enableRangeProcessing && response.Headers.AcceptRanges.Any(range => string.Equals(range, "bytes", StringComparison.OrdinalIgnoreCase));
+
+        return new DocumentFileContent(content, contentType, fileName, lastModified, supportsRangeProcessing);
+    }
+
+    private static string? GetFileName(HttpContent content)
+    {
+        var disposition = content.Headers.ContentDisposition;
+        if (disposition is null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrEmpty(disposition.FileNameStar))
+        {
+            return disposition.FileNameStar;
+        }
+
+        if (string.IsNullOrEmpty(disposition.FileName))
+        {
+            return null;
+        }
+
+        return disposition.FileName.Trim('\"');
     }
 
 }
