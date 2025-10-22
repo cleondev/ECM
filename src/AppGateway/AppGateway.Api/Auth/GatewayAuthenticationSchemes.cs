@@ -5,10 +5,6 @@ namespace AppGateway.Api.Auth;
 
 public static class GatewayAuthenticationSchemes
 {
-    public const string Default = string.Join(",", new[]
-    {
-        JwtBearerDefaults.AuthenticationScheme,
-        CookieAuthenticationDefaults.AuthenticationScheme,
-        ApiKeyAuthenticationHandler.AuthenticationScheme
-    });
+    public const string Default =
+        $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme},{ApiKeyAuthenticationHandler.AuthenticationScheme}";
 }
