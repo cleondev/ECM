@@ -42,12 +42,13 @@ public sealed class IamAuthenticationController(
 
         try
         {
-            await _provisioningService.EnsureUserExistsAsync(User, cancellationToken);
+            var provisionedProfile = await _provisioningService.EnsureUserExistsAsync(User, cancellationToken);
+            var profile = provisionedProfile ?? await _client.GetCurrentUserProfileAsync(cancellationToken);
 
-            var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
             if (profile is null)
             {
-                return Ok(new CheckLoginResponseDto(false, loginUrl, null));
+                _logger.LogWarning("Authenticated principal did not resolve to a user profile.");
+                return Ok(new CheckLoginResponseDto(true, null, null));
             }
 
             return Ok(new CheckLoginResponseDto(true, null, profile));

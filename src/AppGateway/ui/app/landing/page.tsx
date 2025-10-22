@@ -1,9 +1,39 @@
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import Link from 'next/link';
+import { checkLogin } from "@/lib/api"
 import { FileText, Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react"
 
 export default function ECMLandingPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    let isMounted = true
+
+    checkLogin("/")
+      .then(result => {
+        if (!isMounted) {
+          return
+        }
+
+        if (result.isAuthenticated) {
+          router.replace("/")
+        }
+      })
+      .catch(() => {
+        /* landing page vẫn hiển thị nếu gọi API lỗi */
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [router])
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
