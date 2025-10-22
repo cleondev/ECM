@@ -83,7 +83,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
 | `GET /documents` | Liệt kê tài liệu theo bộ lọc. | `q`, `page`, `pageSize`, `sort`, `doc_type`, `status`, `sensitivity`, `owner_id`, `dept`, `tags[]` |
-| `POST /documents` | Tạo tài liệu mới. | Body `{title, doc_type, type_id?, sensitivity, department, metadata?}` |
+| `POST /documents` | Tạo tài liệu mới. | Body `{title?, doc_type?, status?, owner_id?, created_by?, department?, sensitivity?, type_id?, file}` |
 | `GET /documents/{id}` | Chi tiết tài liệu (owner, badges, version). | `id` |
 | `PATCH /documents/{id}` | Cập nhật thông tin cơ bản. | `id`, body |
 | `DELETE /documents/{id}` | Xóa mềm (mặc định) hoặc xóa hẳn khi `hard=true`. | `id`, query `hard?` |
@@ -91,6 +91,8 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `PUT /documents/{id}/metadata` | Ghi đè metadata. | `id`, body `{data}` |
 | `GET /documents/{id}/history` | Lịch sử thay đổi thuộc tính. | `id`, `page`, `pageSize` |
 | `PUT /documents/{id}/folder` | Cập nhật thư mục chứa tài liệu. | `id`, body `{folder}` |
+
+> **Ghi chú:** Khi thiếu các trường metadata trong body, dịch vụ sẽ tự động suy luận tiêu đề từ tên file, ghép `doc_type`, `status`, `sensitivity` theo cấu hình `DocumentUploadDefaults` và lấy `created_by`/`owner_id` từ người dùng hiện tại (hoặc cấu hình dự phòng). Vì vậy popup upload cũ chỉ cần gửi `file` vẫn tương thích.
 
 ## 5. Document Types
 

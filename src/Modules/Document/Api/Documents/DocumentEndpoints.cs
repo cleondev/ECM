@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -21,6 +23,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace ECM.Document.Api.Documents;
 
@@ -130,8 +133,10 @@ public static class DocumentEndpoints
     }
 
     private static async Task<Results<Created<DocumentResponse>, ValidationProblem>> CreateDocumentAsync(
+        ClaimsPrincipal principal,
         [FromForm] CreateDocumentRequest request,
         UploadDocumentCommandHandler handler,
+        IOptions<DocumentUploadDefaultsOptions> defaultsOptions,
         CancellationToken cancellationToken)
     {
         if (request.File is null || request.File.Length <= 0)
@@ -142,6 +147,43 @@ public static class DocumentEndpoints
             });
         }
 
+        var defaults = defaultsOptions.Value ?? new DocumentUploadDefaultsOptions();
+        var claimedUserId = principal.GetUserObjectId();
+
+        var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId ?? defaults.CreatedBy;
+        var ownerId = NormalizeGuid(request.OwnerId) ?? createdBy ?? defaults.OwnerId;
+
+        if (createdBy is null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["createdBy"] = ["The creator could not be determined from the request or user context."]
+            });
+        }
+
+        if (ownerId is null)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["ownerId"] = ["The owner could not be determined from the request or user context."]
+            });
+        }
+
+        var title = NormalizeTitle(request.Title, request.File.FileName);
+        var docType = string.IsNullOrWhiteSpace(request.DocType)
+            ? (string.IsNullOrWhiteSpace(defaults.DocType) ? "general" : defaults.DocType.Trim())
+            : request.DocType.Trim();
+        var status = string.IsNullOrWhiteSpace(request.Status)
+            ? (string.IsNullOrWhiteSpace(defaults.Status) ? "draft" : defaults.Status.Trim())
+            : request.Status.Trim();
+        var department = string.IsNullOrWhiteSpace(request.Department)
+            ? defaults.Department?.Trim()
+            : request.Department?.Trim();
+        var sensitivity = string.IsNullOrWhiteSpace(request.Sensitivity)
+            ? (string.IsNullOrWhiteSpace(defaults.Sensitivity) ? "Internal" : defaults.Sensitivity.Trim())
+            : request.Sensitivity.Trim();
+        var documentTypeId = request.DocumentTypeId ?? defaults.DocumentTypeId;
+
         var contentType = string.IsNullOrWhiteSpace(request.File.ContentType)
             ? "application/octet-stream"
             : request.File.ContentType;
@@ -150,14 +192,14 @@ public static class DocumentEndpoints
 
         await using var uploadStream = request.File.OpenReadStream();
         var command = new UploadDocumentCommand(
-            request.Title,
-            request.DocType,
-            request.Status,
-            request.OwnerId,
-            request.CreatedBy,
-            request.Department,
-            request.Sensitivity,
-            request.DocumentTypeId,
+            title,
+            docType,
+            status,
+            ownerId.Value,
+            createdBy.Value,
+            department,
+            sensitivity,
+            documentTypeId,
             request.File.FileName,
             contentType,
             request.File.Length,
@@ -201,6 +243,35 @@ public static class DocumentEndpoints
             version);
 
         return TypedResults.Created($"/api/ecm/documents/{response.Id}", response);
+    }
+
+    private static Guid? NormalizeGuid(Guid? value)
+    {
+        if (value is null || value == Guid.Empty)
+        {
+            return null;
+        }
+
+        return value;
+    }
+
+    private static string NormalizeTitle(string? title, string fileName)
+    {
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            return title.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(fileName))
+        {
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+            if (!string.IsNullOrWhiteSpace(nameWithoutExtension))
+            {
+                return nameWithoutExtension.Trim();
+            }
+        }
+
+        return "Untitled document";
     }
 
     private static async Task<IResult> DownloadFileAsync(
