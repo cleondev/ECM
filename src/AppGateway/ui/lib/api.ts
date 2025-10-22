@@ -11,6 +11,7 @@ import type {
   SelectedTag,
 } from "./types"
 import { mockFiles, mockTagTree, mockFlowsByFile, mockSystemTags, mockUser } from "./mock-data"
+import { slugify } from "./utils"
 
 const SIMULATED_DELAY = 800 // milliseconds
 
