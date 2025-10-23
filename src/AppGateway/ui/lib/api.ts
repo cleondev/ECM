@@ -11,7 +11,7 @@ import type {
   SelectedTag,
 } from "./types"
 import { mockFiles, mockTagTree, mockFlowsByFile, mockSystemTags, mockUser } from "./mock-data"
-import { slugify } from "./utils"
+import { normalizeRedirectTarget, slugify } from "./utils"
 import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapshot } from "./auth-state"
 
 const SIMULATED_DELAY = 800 // milliseconds
@@ -383,10 +383,11 @@ async function startWorkflowForDocument(documentId: string, flowDefinition?: str
 }
 
 export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult> {
+  const normalizedRedirect = normalizeRedirectTarget(redirectUri, "/app/")
   const params = new URLSearchParams()
 
-  if (redirectUri) {
-    params.set("redirectUri", redirectUri)
+  if (normalizedRedirect) {
+    params.set("redirectUri", normalizedRedirect)
   }
 
   const search = params.toString()
@@ -399,10 +400,11 @@ export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult
   }
 
   const data = (await response.json()) as CheckLoginResponse
+  const redirectPath = normalizeRedirectTarget(data.redirectPath, normalizedRedirect)
 
   const result = {
     isAuthenticated: Boolean(data.isAuthenticated),
-    redirectPath: data.redirectPath,
+    redirectPath,
     loginUrl: data.loginUrl ?? null,
     user: data.profile ? mapUserSummaryToUser(data.profile) : null,
   }
@@ -411,7 +413,7 @@ export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult
     if (result.isAuthenticated) {
       updateCachedAuthSnapshot({
         isAuthenticated: true,
-        redirectPath: result.redirectPath,
+        redirectPath,
         user: result.user,
       })
     } else {

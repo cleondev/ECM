@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { checkLogin } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
+import { normalizeRedirectTarget } from "@/lib/utils"
 import { FileText, Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react"
 
 import "./globals.css"
@@ -20,19 +21,19 @@ export default function ECMLandingPage() {
 
     const cached = getCachedAuthSnapshot()
     if (cached?.isAuthenticated) {
-      router.replace(cached.redirectPath ?? "/app")
+      router.replace(normalizeRedirectTarget(cached.redirectPath, "/app/"))
       return () => {
         isMounted = false
       }
     }
 
-    checkLogin("/app")
+    checkLogin("/app/")
       .then((result) => {
         if (!isMounted || !result.isAuthenticated) {
           return
         }
 
-        router.replace(result.redirectPath ?? "/app")
+        router.replace(normalizeRedirectTarget(result.redirectPath, "/app/"))
       })
       .catch((error) => {
         console.error("[landing] Failed to verify login status", error)
@@ -80,7 +81,7 @@ export default function ECMLandingPage() {
               </a>
             </nav>
             <div className="flex items-center gap-3">
-            <Link href="/signin?redirectUri=/app">
+            <Link href="/signin/?redirectUri=/app/">
               <Button variant="ghost" size="sm" className="text-foreground hover:text-primary hover:scale-105">
                 Sign In
               </Button>
