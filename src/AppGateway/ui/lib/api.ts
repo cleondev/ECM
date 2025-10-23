@@ -12,6 +12,7 @@ import type {
 } from "./types"
 import { mockFiles, mockTagTree, mockFlowsByFile, mockSystemTags, mockUser } from "./mock-data"
 import { slugify } from "./utils"
+import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapshot } from "./auth-state"
 
 const SIMULATED_DELAY = 800 // milliseconds
 
@@ -399,12 +400,26 @@ export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult
 
   const data = (await response.json()) as CheckLoginResponse
 
-  return {
+  const result = {
     isAuthenticated: Boolean(data.isAuthenticated),
     redirectPath: data.redirectPath,
     loginUrl: data.loginUrl ?? null,
     user: data.profile ? mapUserSummaryToUser(data.profile) : null,
   }
+
+  if (typeof window !== "undefined") {
+    if (result.isAuthenticated) {
+      updateCachedAuthSnapshot({
+        isAuthenticated: true,
+        redirectPath: result.redirectPath,
+        user: result.user,
+      })
+    } else {
+      clearCachedAuthSnapshot()
+    }
+  }
+
+  return result
 }
 
 function filterAndPaginate(files: FileItem[], params?: FileQueryParams): PaginatedResponse<FileItem> {
@@ -634,6 +649,11 @@ export async function updateSystemTag(fileId: string, tagName: string, value: st
 }
 
 export async function fetchUser(): Promise<User | null> {
+  const cached = getCachedAuthSnapshot()
+  if (cached?.isAuthenticated && cached.user) {
+    return cached.user
+  }
+
   await delay(150)
   try {
     const profile = await fetchCurrentUserProfile()
@@ -671,6 +691,8 @@ export async function signOut(redirectUri?: string): Promise<void> {
   if (typeof window === "undefined") {
     return
   }
+
+  clearCachedAuthSnapshot()
 
   try {
     const response = await gatewayFetch(`/signout${search}`, {
