@@ -115,6 +115,93 @@ const TAG_COLOR_PALETTE = [
   "bg-fuchsia-200 dark:bg-fuchsia-900",
 ]
 
+function colorForKey(key: string): string {
+  if (!key) {
+    return TAG_COLOR_PALETTE[0]
+  }
+
+  let hash = 0
+  for (let index = 0; index < key.length; index += 1) {
+    hash = (hash << 5) - hash + key.charCodeAt(index)
+    hash |= 0
+  }
+
+  const paletteIndex = Math.abs(hash) % TAG_COLOR_PALETTE.length
+  return TAG_COLOR_PALETTE[paletteIndex]
+}
+
+function formatNamespaceName(slug: string): string {
+  if (!slug) {
+    return "Tags"
+  }
+
+  return slug
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ")
+}
+
+function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
+  if (!labels?.length) {
+    return []
+  }
+
+  const namespaces = new Map<string, TagNode>()
+
+  for (const label of labels) {
+    const namespaceSlug = label.namespaceSlug || "user"
+    if (!namespaces.has(namespaceSlug)) {
+      namespaces.set(namespaceSlug, {
+        id: `ns:${namespaceSlug}`,
+        name: formatNamespaceName(namespaceSlug),
+        color: colorForKey(namespaceSlug),
+        kind: "namespace",
+        namespaceSlug,
+        children: [],
+      })
+    }
+
+    const namespaceNode = namespaces.get(namespaceSlug)!
+    const name = (label.path || label.slug || label.id || "").split("/").filter(Boolean).pop() || label.slug || label.id
+
+    namespaceNode.children?.push({
+      id: label.id,
+      name,
+      color: colorForKey(label.slug || label.path || label.id),
+      kind: "label",
+      namespaceSlug: label.namespaceSlug,
+      slug: label.slug,
+      path: label.path,
+      isActive: label.isActive,
+    })
+  }
+
+  const result = Array.from(namespaces.values()).map((namespace) => ({
+    ...namespace,
+    children: namespace.children
+      ? [...namespace.children].sort((a, b) => a.name.localeCompare(b.name))
+      : undefined,
+  }))
+
+  result.sort((a, b) => a.name.localeCompare(b.name))
+  return result
+}
+
+function normalizeMockTagTree(nodes: TagNode[]): TagNode[] {
+  return nodes.map((node) => {
+    const children = node.children ? normalizeMockTagTree(node.children) : undefined
+    const normalizedChildren = children && children.length > 0 ? children : undefined
+
+    return {
+      ...node,
+      color: node.color || colorForKey(node.slug || node.path || node.name),
+      kind: node.kind || (normalizedChildren ? "namespace" : "label"),
+      children: normalizedChildren,
+    }
+  })
+}
+
 async function gatewayFetch(path: string, init?: RequestInit) {
   const url = createGatewayUrl(path)
   const headers = new Headers(init?.headers ?? jsonHeaders)
