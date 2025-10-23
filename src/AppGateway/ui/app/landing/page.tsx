@@ -1,7 +1,4 @@
-"use client"
-
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { redirect } from "next/navigation"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -9,30 +6,18 @@ import { Card } from "@/components/ui/card"
 import { checkLogin } from "@/lib/api"
 import { FileText, Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react"
 
-export default function ECMLandingPage() {
-  const router = useRouter()
+import "./globals.css"
 
-  useEffect(() => {
-    let isMounted = true
+export default async function ECMLandingPage() {
+  try {
+    const result = await checkLogin("/app")
 
-    checkLogin("/app")
-      .then(result => {
-        if (!isMounted) {
-          return
-        }
-
-        if (result.isAuthenticated) {
-          router.replace("/app")
-        }
-      })
-      .catch(() => {
-        /* landing page vẫn hiển thị nếu gọi API lỗi */
-      })
-
-    return () => {
-      isMounted = false
+    if (result.isAuthenticated) {
+      redirect("/app")
     }
-  }, [router])
+  } catch (error) {
+    console.error("[landing] Failed to verify login status", error)
+  }
 
   return (
     <div className="min-h-screen bg-background">
