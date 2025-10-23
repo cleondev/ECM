@@ -112,19 +112,46 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
     {
         try
         {
-            var response = await AmazonS3Util.DoesS3BucketExistV2Async(_client, _options.BucketName);
-            if (!response)
+            if (await BucketExistsAsync(cancellationToken))
             {
-                await _client.PutBucketAsync(new PutBucketRequest
-                {
-                    BucketName = _options.BucketName,
-                    UseClientRegion = true,
-                }, cancellationToken);
+                return;
             }
+
+            await CreateBucketAsync(cancellationToken);
         }
-        catch (AmazonS3Exception exception) when (exception.ErrorCode == "BucketAlreadyOwnedByYou")
+        catch (AmazonS3Exception exception) when (exception.ErrorCode == "BucketAlreadyOwnedByYou" ||
+                                                 exception.StatusCode == HttpStatusCode.Conflict)
         {
             _logger.LogDebug("Bucket {Bucket} already exists.", _options.BucketName);
         }
+    }
+
+    private async Task<bool> BucketExistsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_options.ServiceUrl))
+            {
+                var response = await _client.ListBucketsAsync(new ListBucketsRequest(), cancellationToken);
+                return response.Buckets.Any(bucket => string.Equals(bucket.BucketName, _options.BucketName, StringComparison.Ordinal));
+            }
+
+            return await AmazonS3Util.DoesS3BucketExistV2Async(_client, _options.BucketName);
+        }
+        catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.NotFound ||
+                                                  string.Equals(exception.ErrorCode, "NoSuchBucket", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+    }
+
+    private Task CreateBucketAsync(CancellationToken cancellationToken)
+    {
+        return _client.PutBucketAsync(new PutBucketRequest
+        {
+            BucketName = _options.BucketName,
+            BucketRegionName = _options.Region,
+            UseClientRegion = true,
+        }, cancellationToken);
     }
 }
