@@ -34,6 +34,7 @@ type UserSummaryResponse = {
 
 type CheckLoginResponse = {
   isAuthenticated: boolean
+  redirectPath: string
   loginUrl?: string | null
   profile?: (UserSummaryResponse & {
     isActive?: boolean
@@ -250,6 +251,7 @@ export async function updateCurrentUserProfile({
 
 export type CheckLoginResult = {
   isAuthenticated: boolean
+  redirectPath: string
   loginUrl: string | null
   user: User | null
 }
@@ -312,6 +314,7 @@ export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult
 
   return {
     isAuthenticated: Boolean(data.isAuthenticated),
+    redirectPath: data.redirectPath,
     loginUrl: data.loginUrl ?? null,
     user: data.profile ? mapUserSummaryToUser(data.profile) : null,
   }
