@@ -35,6 +35,7 @@ public static class DependencyInjection
                 {
                     options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(2);
                     options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(3);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(5);
                 });
 
         services.Configure<IamOptions>(configuration.GetSection("IAM"));
