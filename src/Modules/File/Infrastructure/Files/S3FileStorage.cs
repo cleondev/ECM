@@ -27,6 +27,12 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
 
         await EnsureBucketExistsAsync(cancellationToken);
 
+        var response = _client.ListBucketsAsync().Result;
+        foreach (var b in response.Buckets)
+        {
+            Console.WriteLine($"Bucket: {b.BucketName}");
+        }
+
         var request = new PutObjectRequest
         {
             BucketName = _options.BucketName,
