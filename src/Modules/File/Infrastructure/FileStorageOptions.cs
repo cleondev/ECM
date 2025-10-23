@@ -4,7 +4,7 @@ namespace ECM.File.Infrastructure;
 
 public sealed class FileStorageOptions
 {
-    public FileStorageProvider Provider { get; init; } = FileStorageProvider.AwsS3;
+    public FileStorageProvider Provider { get; init; } = FileStorageProvider.Minio;
 
     [Required]
     public string BucketName { get; init; } = string.Empty;
