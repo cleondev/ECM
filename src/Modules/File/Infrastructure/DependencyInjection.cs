@@ -6,6 +6,8 @@ using ECM.BuildingBlocks.Infrastructure.Configuration;
 using ECM.File.Application.Files;
 using ECM.File.Infrastructure.Files;
 using ECM.File.Infrastructure.Persistence;
+using Microsoft.Extensions.Options;
+using Minio;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,13 +34,22 @@ public static class FileInfrastructureModuleExtensions
         });
 
         services.AddScoped<IFileRepository, EfFileRepository>();
-        services.AddScoped<IFileStorage, S3FileStorage>();
+        services.AddScoped<IFileStorage>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<FileStorageOptions>>().Value;
+
+            return options.Provider switch
+            {
+                FileStorageProvider.AwsS3 => ActivatorUtilities.CreateInstance<S3FileStorage>(serviceProvider),
+                FileStorageProvider.Minio => ActivatorUtilities.CreateInstance<MinioFileStorage>(serviceProvider),
+                _ => throw new InvalidOperationException($"Unsupported file storage provider '{options.Provider}'."),
+            };
+        });
 
         services.AddSingleton<IAmazonS3>(serviceProvider =>
         {
-            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageOptions>>().Value;
+            var options = serviceProvider.GetRequiredService<IOptions<FileStorageOptions>>().Value;
             var credentials = new BasicAWSCredentials(options.AccessKeyId, options.SecretAccessKey);
-            var hasCustomServiceUrl = !string.IsNullOrWhiteSpace(options.ServiceUrl);
             var config = new AmazonS3Config
             {
                 ForcePathStyle = options.ForcePathStyle,
@@ -56,6 +67,54 @@ public static class FileInfrastructureModuleExtensions
             }
             return new AmazonS3Client(credentials, config);
         });
+
+        services.AddSingleton<IMinioClient>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<FileStorageOptions>>().Value;
+
+            if (options.Provider != FileStorageProvider.Minio)
+            {
+                throw new InvalidOperationException("MinIO client is only available when the file storage provider is set to Minio.");
+            }
+
+            return CreateMinioClient(options);
+        });
         return services;
+    }
+
+    private static IMinioClient CreateMinioClient(FileStorageOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.ServiceUrl))
+        {
+            throw new InvalidOperationException("FileStorage:ServiceUrl must be configured when using the Minio provider.");
+        }
+
+        var builder = new MinioClient();
+        var endpoint = options.ServiceUrl.Trim();
+
+        if (Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+        {
+            var secure = string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+            var host = uri.Host;
+            if (!uri.IsDefaultPort)
+            {
+                host = $"{host}:{uri.Port}";
+            }
+
+            builder = builder.WithEndpoint(host);
+
+            if (secure)
+            {
+                builder = builder.WithSSL();
+            }
+        }
+        else
+        {
+            builder = builder.WithEndpoint(endpoint);
+        }
+
+        builder = builder.WithCredentials(options.AccessKeyId, options.SecretAccessKey);
+
+        return builder.Build();
     }
 }
