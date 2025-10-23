@@ -529,7 +529,7 @@ internal sealed class EcmApiClient(
             }
         }
 
-        if (string.IsNullOrWhiteSpace(principal.GetHomeAccountId()))
+        if (string.IsNullOrWhiteSpace(principal.FindFirstValue(ClaimConstants.HomeAccountId)))
         {
             var objectId = principal.GetObjectId();
             var tenantId = principal.GetTenantId();
