@@ -10,8 +10,8 @@ namespace AppGateway.Api;
 public static class Program
 {
     internal const string UiRequestPath = "/ecm";
-    internal const string LandingPagePath = "/landing";
-    internal const string MainAppPath = "/";
+    internal const string LandingPagePath = "/";
+    internal const string MainAppPath = "/app";
 
     public static void Main(string[] args)
     {

@@ -14,7 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchCurrentUserProfile, updateCurrentUserProfile } from "@/lib/api"
 import type { User } from "@/lib/types"
 
-const LANDING_PAGE_ROUTE = "/landing"
+const LANDING_PAGE_ROUTE = "/"
+const APP_HOME_ROUTE = "/app"
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
@@ -134,7 +135,7 @@ export default function SettingsPage() {
         <div className="border-b border-border bg-card">
           <div className="container mx-auto px-4 py-4">
             <Button variant="ghost" size="sm" asChild>
-              <a href="/" className="gap-2">
+              <a href={APP_HOME_ROUTE} className="gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Files
               </a>
@@ -153,7 +154,7 @@ export default function SettingsPage() {
       <div className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">
           <Button variant="ghost" size="sm" asChild>
-            <a href="/" className="gap-2">
+            <a href={APP_HOME_ROUTE} className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               Back to Files
             </a>
