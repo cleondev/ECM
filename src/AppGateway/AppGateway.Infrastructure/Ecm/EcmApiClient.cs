@@ -446,6 +446,27 @@ internal sealed class EcmApiClient(
             : _options.AuthenticationScheme;
 
         var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext?.User is { } principal)
+        {
+            var loginHint = principal.GetLoginHint();
+            if (!string.IsNullOrWhiteSpace(loginHint))
+            {
+                tokenAcquisitionOptions.LoginHint = loginHint;
+            }
+
+            var accountId = principal.GetMsalAccountId();
+            if (!string.IsNullOrWhiteSpace(accountId))
+            {
+                tokenAcquisitionOptions.Account = accountId;
+            }
+
+            var ccsRoutingHint = principal.GetCcsRoutingHint();
+            if (!string.IsNullOrWhiteSpace(ccsRoutingHint))
+            {
+                tokenAcquisitionOptions.CcsRoutingHint = ccsRoutingHint;
+            }
+        }
+
         if (httpContext?.User?.Identity?.IsAuthenticated == true)
         {
             try
