@@ -13,7 +13,7 @@ export default async function ECMLandingPage() {
     const result = await checkLogin("/app")
 
     if (result.isAuthenticated) {
-      redirect("/app")
+      redirect(result.redirectPath)
     }
   } catch (error) {
     console.error("[landing] Failed to verify login status", error)

@@ -38,6 +38,7 @@ public static class FileInfrastructureModuleExtensions
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<FileStorageOptions>>().Value;
             var credentials = new BasicAWSCredentials(options.AccessKeyId, options.SecretAccessKey);
+            var hasCustomServiceUrl = !string.IsNullOrWhiteSpace(options.ServiceUrl);
             var config = new AmazonS3Config
             {
                 ForcePathStyle = options.ForcePathStyle,

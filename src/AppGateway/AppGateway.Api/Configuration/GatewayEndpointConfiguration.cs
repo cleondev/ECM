@@ -29,6 +29,7 @@ public static class GatewayEndpointConfiguration
         app.MapGet("/signin-azure/url", (HttpContext context) =>
         {
             var redirectUri = AzureLoginRedirectHelper.ResolveRedirectPath(
+                context,
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.MainAppPath);
 
@@ -43,6 +44,7 @@ public static class GatewayEndpointConfiguration
         app.MapGet("/signin-azure", (HttpContext context) =>
         {
             var redirectUri = AzureLoginRedirectHelper.ResolveRedirectPath(
+                context,
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.MainAppPath);
 
@@ -57,6 +59,7 @@ public static class GatewayEndpointConfiguration
         app.MapPost("/signout", async (HttpContext context) =>
         {
             var redirectUri = AzureLoginRedirectHelper.ResolveRedirectPath(
+                context,
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.LandingPagePath,
                 allowRoot: true);

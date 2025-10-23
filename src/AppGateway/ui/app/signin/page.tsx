@@ -28,6 +28,28 @@ function resolveGatewayUrl(path: string) {
   }
 }
 
+function normalizeRedirectTarget(candidate: string | null | undefined, fallback = "/app") {
+  if (!candidate) {
+    return fallback
+  }
+
+  const trimmed = candidate.trim()
+
+  if (!trimmed.startsWith("/")) {
+    return fallback
+  }
+
+  if (trimmed.startsWith("//")) {
+    return fallback
+  }
+
+  if (trimmed === "/") {
+    return fallback
+  }
+
+  return trimmed.length > 1 ? trimmed.replace(/\/+$/, "") : trimmed
+}
+
 export default function SignInPage() {
   return (
     <Suspense fallback={<SignInPageFallback />}>
@@ -45,25 +67,21 @@ function SignInPageContent() {
   const searchParams = useSearchParams()
   const targetAfterLogin = useMemo(() => {
     const candidate = searchParams?.get("redirectUri") ?? searchParams?.get("redirect")
-    if (!candidate || !candidate.startsWith("/")) {
-      return "/app"
-    }
-    if (candidate.startsWith("//")) {
-      return "/app"
-    }
-    return candidate
+    return normalizeRedirectTarget(candidate)
   }, [searchParams])
 
   // Thay đổi logic đăng nhập Azure
   const handleAzureSignIn = async () => {
     setIsLoading(true)
     setStatus("Đang kiểm tra trạng thái đăng nhập…")
+    let safeRedirect = targetAfterLogin
     try {
       const result = await checkLogin(targetAfterLogin)
+      safeRedirect = normalizeRedirectTarget(result.redirectPath, targetAfterLogin)
 
       if (result.isAuthenticated) {
         setStatus("Đã đăng nhập, đang chuyển hướng…")
-        router.replace(targetAfterLogin)
+        router.replace(safeRedirect)
         return
       }
 
@@ -78,7 +96,7 @@ function SignInPageContent() {
       console.error("[ui] Không lấy được đường dẫn đăng nhập Azure:", error)
       setStatus("Đi thẳng tới trang đăng nhập mặc định.")
       window.location.href = resolveGatewayUrl(
-        `/signin-azure?redirectUri=${encodeURIComponent(targetAfterLogin)}`,
+        `/signin-azure?redirectUri=${encodeURIComponent(safeRedirect)}`,
       )
     } finally {
       setIsLoading(false)
@@ -92,7 +110,7 @@ function SignInPageContent() {
       // Giữ nguyên logic cũ cho email
       // Nếu bạn có logic riêng, hãy thay thế ở đây
       // await signInWithEmail(email, password)
-      router.push(targetAfterLogin)
+      router.push(normalizeRedirectTarget(targetAfterLogin))
     } catch (error) {
       console.error("[v0] Email sign in error:", error)
     } finally {

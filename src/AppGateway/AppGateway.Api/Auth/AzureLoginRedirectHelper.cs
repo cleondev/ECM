@@ -7,29 +7,26 @@ namespace AppGateway.Api.Auth;
 
 internal static class AzureLoginRedirectHelper
 {
-    public static string ResolveRedirectPath(string? candidate, string defaultPath, bool allowRoot = false)
+    private static readonly PathString RootPath = new("/");
+
+    public static string ResolveRedirectPath(HttpContext context, string? candidate, string defaultPath, bool allowRoot = false)
     {
-        if (string.IsNullOrWhiteSpace(candidate))
+        ArgumentNullException.ThrowIfNull(context);
+
+        var normalizedCandidate = TryNormalize(candidate, allowRoot);
+        if (normalizedCandidate is not null)
         {
-            return defaultPath;
+            return EnsureWithinPathBase(context.Request.PathBase, normalizedCandidate);
         }
 
-        if (!candidate.StartsWith("/", StringComparison.Ordinal))
+        var normalizedDefault = TryNormalize(defaultPath, allowRoot);
+        if (normalizedDefault is not null)
         {
-            return defaultPath;
+            return EnsureWithinPathBase(context.Request.PathBase, normalizedDefault);
         }
 
-        if (candidate.StartsWith("//", StringComparison.Ordinal))
-        {
-            return defaultPath;
-        }
-
-        if (!allowRoot && string.Equals(candidate, "/", StringComparison.Ordinal))
-        {
-            return defaultPath;
-        }
-
-        return candidate;
+        var fallback = FallbackDefault(defaultPath, allowRoot);
+        return EnsureWithinPathBase(context.Request.PathBase, fallback);
     }
 
     public static string CreateLoginPath(string redirectPath)
@@ -56,5 +53,91 @@ internal static class AzureLoginRedirectHelper
             context.Request.PathBase,
             path,
             query);
+    }
+
+    private static string? TryNormalize(string? value, bool allowRoot)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+
+        if (!trimmed.StartsWith("/", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        if (trimmed.StartsWith("//", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var path = PathString.FromUriComponent(trimmed);
+
+        if (!path.HasValue)
+        {
+            return null;
+        }
+
+        if (!allowRoot && path == RootPath)
+        {
+            return null;
+        }
+
+        if (path == RootPath)
+        {
+            return "/";
+        }
+
+        var normalized = path.Value!;
+
+        return normalized.Length > 1
+            ? normalized.TrimEnd('/')
+            : normalized;
+    }
+
+    private static string FallbackDefault(string defaultPath, bool allowRoot)
+    {
+        if (allowRoot)
+        {
+            return "/";
+        }
+
+        if (string.IsNullOrWhiteSpace(defaultPath))
+        {
+            return "/app";
+        }
+
+        var trimmed = defaultPath.Trim();
+        trimmed = trimmed.TrimEnd('/');
+
+        return trimmed.StartsWith("/", StringComparison.Ordinal)
+            ? trimmed
+            : $"/{trimmed}";
+    }
+
+    private static string EnsureWithinPathBase(PathString pathBase, string target)
+    {
+        if (!pathBase.HasValue)
+        {
+            return target;
+        }
+
+        if (string.Equals(target, "/", StringComparison.Ordinal))
+        {
+            return pathBase.Value!;
+        }
+
+        var baseValue = pathBase.Value!;
+
+        if (target.StartsWith(baseValue, StringComparison.Ordinal))
+        {
+            return target;
+        }
+
+        var combined = pathBase.Add(PathString.FromUriComponent(target));
+        return combined.Value ?? target;
     }
 }
