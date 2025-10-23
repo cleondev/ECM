@@ -33,6 +33,8 @@ internal sealed class EcmApiClient(
     IOptions<EcmApiClientOptions> options,
     ILogger<EcmApiClient> logger) : IEcmApiClient
 {
+    private const string HomeAccountIdClaimType = "homeAccountId";
+
     private readonly HttpClient _httpClient = httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly ITokenAcquisition _tokenAcquisition = tokenAcquisition;
@@ -529,16 +531,16 @@ internal sealed class EcmApiClient(
             }
         }
 
-        if (string.IsNullOrWhiteSpace(principal.FindFirstValue(ClaimConstants.HomeAccountId)))
+        if (string.IsNullOrWhiteSpace(principal.FindFirstValue(HomeAccountIdClaimType)))
         {
             var objectId = principal.GetObjectId();
             var tenantId = principal.GetTenantId();
 
             if (!string.IsNullOrWhiteSpace(objectId)
                 && !string.IsNullOrWhiteSpace(tenantId)
-                && !identity.HasClaim(c => c.Type == ClaimConstants.HomeAccountId))
+                && !identity.HasClaim(c => c.Type == HomeAccountIdClaimType))
             {
-                identity.AddClaim(new Claim(ClaimConstants.HomeAccountId, $"{objectId}.{tenantId}"));
+                identity.AddClaim(new Claim(HomeAccountIdClaimType, $"{objectId}.{tenantId}"));
             }
         }
 
