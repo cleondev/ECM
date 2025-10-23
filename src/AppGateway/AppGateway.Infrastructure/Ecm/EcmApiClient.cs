@@ -529,6 +529,19 @@ internal sealed class EcmApiClient(
             }
         }
 
+        if (string.IsNullOrWhiteSpace(principal.FindFirstValue(ClaimConstants.HomeAccountId)))
+        {
+            var objectId = principal.GetObjectId();
+            var tenantId = principal.GetTenantId();
+
+            if (!string.IsNullOrWhiteSpace(objectId)
+                && !string.IsNullOrWhiteSpace(tenantId)
+                && !identity.HasClaim(c => c.Type == ClaimConstants.HomeAccountId))
+            {
+                identity.AddClaim(new Claim(ClaimConstants.HomeAccountId, $"{objectId}.{tenantId}"));
+            }
+        }
+
         return principal;
     }
 
