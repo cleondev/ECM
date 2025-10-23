@@ -33,9 +33,9 @@ public static class DependencyInjection
                 .AddStandardResilienceHandler()
                 .Configure(options =>
                 {
-                    options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(2);
-                    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(3);
-                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(5);
+                    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(120);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(180);
                 });
 
         services.Configure<IamOptions>(configuration.GetSection("IAM"));
