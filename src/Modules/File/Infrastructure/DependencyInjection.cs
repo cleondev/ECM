@@ -42,15 +42,15 @@ public static class FileInfrastructureModuleExtensions
             var config = new AmazonS3Config
             {
                 ForcePathStyle = options.ForcePathStyle,
-                AuthenticationRegion = options.Region,
             };
 
-            if (hasCustomServiceUrl)
+            if (!string.IsNullOrWhiteSpace(options.ServiceUrl))
             {
                 config.ServiceURL = options.ServiceUrl;
+                config.AuthenticationRegion = options.Region;
                 config.UseHttp = options.ServiceUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(options.Region))
             {
                 config.RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region);
             }
