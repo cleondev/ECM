@@ -15,14 +15,14 @@ export default function ECMLandingPage() {
   useEffect(() => {
     let isMounted = true
 
-    checkLogin("/")
+    checkLogin("/app")
       .then(result => {
         if (!isMounted) {
           return
         }
 
         if (result.isAuthenticated) {
-          router.replace("/")
+          router.replace("/app")
         }
       })
       .catch(() => {
@@ -71,7 +71,7 @@ export default function ECMLandingPage() {
               </a>
             </nav>
             <div className="flex items-center gap-3">
-            <Link href="/signin?redirectUri=/">
+            <Link href="/signin?redirectUri=/app">
               <Button variant="ghost" size="sm" className="text-foreground hover:text-primary hover:scale-105">
                 Sign In
               </Button>

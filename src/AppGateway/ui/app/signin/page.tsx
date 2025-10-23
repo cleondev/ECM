@@ -46,10 +46,10 @@ function SignInPageContent() {
   const targetAfterLogin = useMemo(() => {
     const candidate = searchParams?.get("redirectUri") ?? searchParams?.get("redirect")
     if (!candidate || !candidate.startsWith("/")) {
-      return "/"
+      return "/app"
     }
     if (candidate.startsWith("//")) {
-      return "/"
+      return "/app"
     }
     return candidate
   }, [searchParams])

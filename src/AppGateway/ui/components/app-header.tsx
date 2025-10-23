@@ -84,7 +84,7 @@ export function AppHeader({
     setIsSigningOut(true)
 
     try {
-      await signOut("/landing")
+      await signOut("/")
     } catch (error) {
       console.error("[ui] Đăng xuất thất bại:", error)
       setIsSigningOut(false)
