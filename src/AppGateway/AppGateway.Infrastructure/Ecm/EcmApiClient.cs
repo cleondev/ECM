@@ -460,7 +460,7 @@ internal sealed class EcmApiClient(
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 return;
             }
-            catch (Exception exception) when (exception is MsalException or MicrosoftIdentityWebException)
+            catch (Exception exception) when (exception is MsalException or MicrosoftIdentityWebChallengeUserException)
             {
                 _logger.LogWarning(
                     exception,
