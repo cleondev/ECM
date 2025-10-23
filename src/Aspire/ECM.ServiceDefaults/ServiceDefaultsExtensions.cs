@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Security.Claims;
 using ECM.BuildingBlocks.Infrastructure.Caching;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -6,12 +8,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 using Serilog;
+using Serilog.Context;
 using Serilog.Extensions.Hosting;
 using Serilog.Extensions.Logging;
 
@@ -94,11 +98,88 @@ public static class ServiceDefaultsExtensions
 
 public static class ServiceDefaultsApplicationBuilderExtensions
 {
+    public const string CorrelationIdHeaderName = "X-Correlation-ID";
+
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
         app.MapHealthChecks("/health");
         app.MapGet("/", () => Results.Ok(new { status = "Healthy" }));
 
         return app;
+    }
+
+    public static WebApplication UseSerilogEnrichedRequestLogging(this WebApplication app)
+    {
+        app.Use(async (context, next) =>
+        {
+            var correlationId = ResolveCorrelationId(context);
+
+            if (!context.Response.Headers.ContainsKey(CorrelationIdHeaderName))
+            {
+                context.Response.Headers.TryAdd(CorrelationIdHeaderName, correlationId);
+            }
+
+            var correlationScope = LogContext.PushProperty("CorrelationId", correlationId);
+            var requestScope = LogContext.PushProperty("RequestId", context.TraceIdentifier);
+            IDisposable? traceScope = null;
+
+            try
+            {
+                if (Activity.Current is { } activity)
+                {
+                    traceScope = LogContext.PushProperty("TraceId", activity.TraceId.ToString());
+                }
+
+                await next();
+            }
+            finally
+            {
+                traceScope?.Dispose();
+                requestScope.Dispose();
+                correlationScope.Dispose();
+            }
+        });
+
+        app.UseSerilogRequestLogging(options =>
+        {
+            options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+            {
+                diagnosticContext.Set("RequestId", httpContext.TraceIdentifier);
+
+                var correlationId = ResolveCorrelationId(httpContext);
+                diagnosticContext.Set("CorrelationId", correlationId);
+
+                if (Activity.Current is { } activity)
+                {
+                    diagnosticContext.Set("TraceId", activity.TraceId.ToString());
+                }
+
+                var userId = httpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? httpContext.User?.FindFirst("sub")?.Value;
+
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    diagnosticContext.Set("UserId", userId);
+                }
+            };
+        });
+
+        return app;
+    }
+
+    private static string ResolveCorrelationId(HttpContext context)
+    {
+        if (context.Request.Headers.TryGetValue(CorrelationIdHeaderName, out StringValues headerValue)
+            && !StringValues.IsNullOrEmpty(headerValue))
+        {
+            return headerValue.ToString();
+        }
+
+        if (Activity.Current is { } activity)
+        {
+            return activity.TraceId.ToString();
+        }
+
+        return context.TraceIdentifier;
     }
 }

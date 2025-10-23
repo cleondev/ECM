@@ -114,7 +114,7 @@ public static class Program
 
         var app = builder.Build();
 
-        app.UseSerilogRequestLogging();
+        app.UseSerilogEnrichedRequestLogging();
 
         if (app.Environment.IsDevelopment())
         {
