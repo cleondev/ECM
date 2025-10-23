@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { checkLogin } from "@/lib/api"
+import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import { FileText, Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react"
 
 import "./globals.css"
@@ -16,6 +17,14 @@ export default function ECMLandingPage() {
 
   useEffect(() => {
     let isMounted = true
+
+    const cached = getCachedAuthSnapshot()
+    if (cached?.isAuthenticated) {
+      router.replace(cached.redirectPath ?? "/app")
+      return () => {
+        isMounted = false
+      }
+    }
 
     checkLogin("/app")
       .then((result) => {

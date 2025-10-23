@@ -55,7 +55,14 @@ public static class FileInfrastructureModuleExtensions
                 config.RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region);
             }
 
-            return new AmazonS3Client(credentials, config);
+            var s3Client = new AmazonS3Client(credentials, config);
+            var response = s3Client.ListBucketsAsync().Result;
+            foreach (var b in response.Buckets)
+            {
+                Console.WriteLine($"Bucket: {b.BucketName}");
+            }
+
+            return s3Client;
         });
 
         return services;
