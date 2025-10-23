@@ -84,6 +84,41 @@ public class AzureAdUserProvisioningServiceTests
         client.LastCreateRequest!.RoleIds.Should().ContainSingle().Which.Should().Be(role.Id);
     }
 
+    [Fact]
+    public async Task EnsureUserExistsAsync_UsesAlternativeEmailClaim_WhenEmailClaimPresent()
+    {
+        var existingUser = CreateUserSummary();
+        var client = new FakeEcmApiClient
+        {
+            ExistingUser = existingUser
+        };
+        var service = CreateService(client: client);
+        var principal = CreatePrincipal(existingUser.Email, existingUser.DisplayName, claimType: "email");
+
+        var result = await service.EnsureUserExistsAsync(principal, CancellationToken.None);
+
+        result.Should().Be(existingUser);
+    }
+
+    [Fact]
+    public async Task EnsureUserExistsAsync_UsesEmailsArrayClaim_WhenPresent()
+    {
+        var existingUser = CreateUserSummary();
+        var client = new FakeEcmApiClient
+        {
+            ExistingUser = existingUser
+        };
+        var service = CreateService(client: client);
+        var identity = new ClaimsIdentity();
+        identity.AddClaim(new Claim("emails", $"[\"{existingUser.Email}\"]"));
+        identity.AddClaim(new Claim("name", existingUser.DisplayName));
+        var principal = new ClaimsPrincipal(identity);
+
+        var result = await service.EnsureUserExistsAsync(principal, CancellationToken.None);
+
+        result.Should().Be(existingUser);
+    }
+
     private static AzureAdUserProvisioningService CreateService(
         FakeEcmApiClient? client = null,
         IOptions<IamOptions>? options = null)
@@ -97,10 +132,10 @@ public class AzureAdUserProvisioningServiceTests
             NullLogger<AzureAdUserProvisioningService>.Instance);
     }
 
-    private static ClaimsPrincipal CreatePrincipal(string email, string name)
+    private static ClaimsPrincipal CreatePrincipal(string email, string name, string claimType = ClaimTypes.Email)
     {
         var identity = new ClaimsIdentity();
-        identity.AddClaim(new Claim(ClaimTypes.Email, email));
+        identity.AddClaim(new Claim(claimType, email));
         identity.AddClaim(new Claim("name", name));
         return new ClaimsPrincipal(identity);
     }

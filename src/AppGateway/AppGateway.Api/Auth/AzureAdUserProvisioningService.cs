@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Contracts.IAM.Roles;
@@ -131,8 +132,71 @@ public sealed class AzureAdUserProvisioningService(
     }
 
     private static string? GetEmail(ClaimsPrincipal principal)
-        => principal.FindFirst(ClaimTypes.Email)?.Value
-           ?? principal.FindFirst("preferred_username")?.Value
-           ?? principal.FindFirst("emails")?.Value
-           ?? principal.FindFirst(ClaimTypes.Upn)?.Value;
+    {
+        foreach (var value in GetPotentialEmailValues(principal))
+        {
+            var email = NormalizeEmailValue(value);
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                return email;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string?> GetPotentialEmailValues(ClaimsPrincipal principal)
+    {
+        yield return principal.FindFirst(ClaimTypes.Email)?.Value;
+        yield return principal.FindFirst("email")?.Value;
+
+        foreach (var claim in principal.FindAll("emails"))
+        {
+            yield return claim.Value;
+        }
+
+        yield return principal.FindFirst("preferred_username")?.Value;
+        yield return principal.FindFirst(ClaimTypes.Upn)?.Value;
+    }
+
+    private static string? NormalizeEmailValue(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+
+        if (trimmed.StartsWith('['))
+        {
+            try
+            {
+                var emails = JsonSerializer.Deserialize<string[]>(trimmed);
+                if (emails is not null)
+                {
+                    foreach (var email in emails)
+                    {
+                        var normalized = NormalizeEmailValue(email);
+                        if (!string.IsNullOrWhiteSpace(normalized))
+                        {
+                            return normalized;
+                        }
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Ignore invalid JSON and fall through to the standard validation.
+            }
+        }
+
+        return IsLikelyEmail(trimmed) ? trimmed : null;
+    }
+
+    private static bool IsLikelyEmail(string? value)
+        => !string.IsNullOrWhiteSpace(value)
+           && value.Contains('@')
+           && value.IndexOf('@') > 0
+           && value.IndexOf('@') < value.Length - 1;
 }
