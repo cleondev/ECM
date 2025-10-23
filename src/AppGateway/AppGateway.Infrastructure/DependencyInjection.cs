@@ -30,7 +30,8 @@ public static class DependencyInjection
                 {
                     AllowAutoRedirect = false
                 })
-                .AddStandardResilienceHandler();
+                .AddStandardResilienceHandler()
+                .Configure(options => options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(60));
 
         services.Configure<IamOptions>(configuration.GetSection("IAM"));
         services.Configure<EcmApiClientOptions>(options =>
