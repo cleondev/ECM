@@ -22,10 +22,7 @@ public sealed class UploadDocumentCommandHandler(
 
     public async Task<OperationResult<DocumentWithVersionResult>> HandleAsync(UploadDocumentCommand command, CancellationToken cancellationToken = default)
     {
-        if (command is null)
-        {
-            throw new ArgumentNullException(nameof(command));
-        }
+        ArgumentNullException.ThrowIfNull(command);
 
         if (command.FileSize <= 0)
         {
