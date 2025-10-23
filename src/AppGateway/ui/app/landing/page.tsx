@@ -1,5 +1,8 @@
-import { redirect } from "next/navigation"
+"use client"
+
+import { useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -8,16 +11,28 @@ import { FileText, Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRigh
 
 import "./globals.css"
 
-export default async function ECMLandingPage() {
-  try {
-    const result = await checkLogin("/app")
+export default function ECMLandingPage() {
+  const router = useRouter()
 
-    if (result.isAuthenticated) {
-      redirect(result.redirectPath)
+  useEffect(() => {
+    let isMounted = true
+
+    checkLogin("/app")
+      .then((result) => {
+        if (!isMounted || !result.isAuthenticated) {
+          return
+        }
+
+        router.replace(result.redirectPath ?? "/app")
+      })
+      .catch((error) => {
+        console.error("[landing] Failed to verify login status", error)
+      })
+
+    return () => {
+      isMounted = false
     }
-  } catch (error) {
-    console.error("[landing] Failed to verify login status", error)
-  }
+  }, [router])
 
   return (
     <div className="min-h-screen bg-background">
