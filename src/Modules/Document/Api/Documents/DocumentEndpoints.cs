@@ -17,6 +17,7 @@ using ECM.Document.Infrastructure.Persistence;
 
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -36,6 +37,7 @@ public static class DocumentEndpoints
         var group = builder.MapGroup("/api/ecm");
         group.WithTags("ECM");
         group.WithGroupName(DocumentSwagger.DocumentName);
+        group.DisableAntiforgery();
 
         group.MapGet("/", () => Results.Ok(new { message = "ECM API ready" }))
              .WithName("GetEcmStatus")
