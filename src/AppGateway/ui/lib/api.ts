@@ -519,10 +519,13 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
         : "user"
 
     const slug = slugify(normalizedName)
+    if (!slug) {
+      throw new Error("Tag name must include alphanumeric characters")
+    }
     const payload = {
       namespaceSlug,
       slug,
-      path: normalizedName,
+      path: slug,
       createdBy: null as string | null,
     }
 
@@ -533,7 +536,7 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
 
     return {
       id: response.id,
-      name: response.path || response.slug,
+      name: normalizedName,
       color: colorForKey(response.path || response.slug),
       kind: "label",
       namespaceSlug: response.namespaceSlug,
