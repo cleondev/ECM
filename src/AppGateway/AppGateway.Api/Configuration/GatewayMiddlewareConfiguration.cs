@@ -2,7 +2,7 @@ using System.IO;
 using AppGateway.Api.Middlewares;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.StaticFiles;
-using Serilog;
+using ServiceDefaults;
 
 namespace AppGateway.Api.Configuration;
 
@@ -10,7 +10,7 @@ public static class GatewayMiddlewareConfiguration
 {
     public static WebApplication UseGatewayMiddleware(this WebApplication app)
     {
-        app.UseSerilogRequestLogging();
+        app.UseSerilogEnrichedRequestLogging();
         app.UseMiddleware<RequestLoggingMiddleware>();
 
         if (app.Environment.IsDevelopment())
