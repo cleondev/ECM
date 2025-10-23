@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Contracts.IAM.Relations;
@@ -446,28 +447,9 @@ internal sealed class EcmApiClient(
             : _options.AuthenticationScheme;
 
         var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext?.User is { } principal)
-        {
-            var loginHint = principal.GetLoginHint();
-            if (!string.IsNullOrWhiteSpace(loginHint))
-            {
-                tokenAcquisitionOptions.LoginHint = loginHint;
-            }
+        var principal = EnsureHomeAccountIdentifiers(httpContext?.User);
 
-            var accountId = principal.GetMsalAccountId();
-            if (!string.IsNullOrWhiteSpace(accountId))
-            {
-                tokenAcquisitionOptions.Account = accountId;
-            }
-
-            var ccsRoutingHint = principal.GetCcsRoutingHint();
-            if (!string.IsNullOrWhiteSpace(ccsRoutingHint))
-            {
-                tokenAcquisitionOptions.CcsRoutingHint = ccsRoutingHint;
-            }
-        }
-
-        if (httpContext?.User?.Identity?.IsAuthenticated == true)
+        if (principal?.Identity?.IsAuthenticated == true)
         {
             try
             {
@@ -475,7 +457,7 @@ internal sealed class EcmApiClient(
                     scopes,
                     authenticationScheme: authenticationScheme,
                     tenantId: _options.TenantId,
-                    user: httpContext.User,
+                    user: principal,
                     tokenAcquisitionOptions: tokenAcquisitionOptions);
 
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -520,6 +502,34 @@ internal sealed class EcmApiClient(
                 "Failed to acquire an application access token required to call the ECM API.",
                 exception);
         }
+    }
+
+    private static ClaimsPrincipal? EnsureHomeAccountIdentifiers(ClaimsPrincipal? principal)
+    {
+        if (principal?.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated)
+        {
+            return principal;
+        }
+
+        if (string.IsNullOrWhiteSpace(principal.GetHomeObjectId()))
+        {
+            var objectId = principal.GetObjectId();
+            if (!string.IsNullOrWhiteSpace(objectId) && !identity.HasClaim(c => c.Type == ClaimConstants.UniqueObjectIdentifier))
+            {
+                identity.AddClaim(new Claim(ClaimConstants.UniqueObjectIdentifier, objectId));
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(principal.GetHomeTenantId()))
+        {
+            var tenantId = principal.GetTenantId();
+            if (!string.IsNullOrWhiteSpace(tenantId) && !identity.HasClaim(c => c.Type == ClaimConstants.UniqueTenantIdentifier))
+            {
+                identity.AddClaim(new Claim(ClaimConstants.UniqueTenantIdentifier, tenantId));
+            }
+        }
+
+        return principal;
     }
 
     private async Task<T?> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
