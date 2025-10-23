@@ -30,6 +30,7 @@ public sealed class IamAuthenticationController(
         CancellationToken cancellationToken)
     {
         var resolvedRedirect = AzureLoginRedirectHelper.ResolveRedirectPath(
+            HttpContext,
             redirectUri,
             Program.MainAppPath);
 
@@ -37,7 +38,7 @@ public sealed class IamAuthenticationController(
 
         if (User.Identity?.IsAuthenticated != true)
         {
-            return Ok(new CheckLoginResponseDto(false, loginUrl, null));
+            return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
         }
 
         try
@@ -48,15 +49,15 @@ public sealed class IamAuthenticationController(
             if (profile is null)
             {
                 _logger.LogWarning("Authenticated principal did not resolve to a user profile.");
-                return Ok(new CheckLoginResponseDto(true, null, null));
+                return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null));
             }
 
-            return Ok(new CheckLoginResponseDto(true, null, profile));
+            return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, profile));
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "An error occurred while checking the current user's login state.");
-            return Ok(new CheckLoginResponseDto(false, loginUrl, null));
+            return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
         }
     }
 }
