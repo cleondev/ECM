@@ -15,7 +15,7 @@ import { fetchCurrentUserProfile, updateCurrentUserProfile, updateUserAvatar } f
 import type { User } from "@/lib/types"
 
 const LANDING_PAGE_ROUTE = "/"
-const APP_HOME_ROUTE = "/app"
+const APP_HOME_ROUTE = "/app/"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)

@@ -12,6 +12,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { checkLogin } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
+import { normalizeRedirectTarget } from "@/lib/utils"
 
 function resolveGatewayUrl(path: string) {
   const envBase = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
@@ -27,28 +28,6 @@ function resolveGatewayUrl(path: string) {
     console.warn("[ui] Không thể chuẩn hoá URL đăng nhập:", error)
     return path
   }
-}
-
-function normalizeRedirectTarget(candidate: string | null | undefined, fallback = "/app") {
-  if (!candidate) {
-    return fallback
-  }
-
-  const trimmed = candidate.trim()
-
-  if (!trimmed.startsWith("/")) {
-    return fallback
-  }
-
-  if (trimmed.startsWith("//")) {
-    return fallback
-  }
-
-  if (trimmed === "/") {
-    return fallback
-  }
-
-  return trimmed.length > 1 ? trimmed.replace(/\/+$/, "") : trimmed
 }
 
 export default function SignInPage() {

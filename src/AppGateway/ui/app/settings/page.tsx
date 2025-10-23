@@ -15,7 +15,7 @@ import { fetchCurrentUserProfile, updateCurrentUserProfile } from "@/lib/api"
 import type { User } from "@/lib/types"
 
 const LANDING_PAGE_ROUTE = "/"
-const APP_HOME_ROUTE = "/app"
+const APP_HOME_ROUTE = "/app/"
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)

@@ -3,7 +3,7 @@
 import { FileManager } from "@/components/file-manager"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 
-const MAIN_APP_ROUTE = "/app"
+const MAIN_APP_ROUTE = "/app/"
 
 export default function AppHomePage() {
   const { isAuthenticated, isChecking } = useAuthGuard(MAIN_APP_ROUTE)

@@ -13,3 +13,54 @@ export function slugify(value: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
 }
+
+type MaybeString = string | null | undefined
+
+function splitPathAndSuffix(path: string): [string, string] {
+  const queryIndex = path.indexOf("?")
+  const hashIndex = path.indexOf("#")
+
+  const cutIndex =
+    queryIndex >= 0 && hashIndex >= 0
+      ? Math.min(queryIndex, hashIndex)
+      : queryIndex >= 0
+        ? queryIndex
+        : hashIndex
+
+  if (cutIndex === -1) {
+    return [path, ""]
+  }
+
+  return [path.slice(0, cutIndex), path.slice(cutIndex)]
+}
+
+function normalizeCandidatePath(candidate: MaybeString): string | null {
+  if (!candidate) {
+    return null
+  }
+
+  const trimmed = candidate.trim()
+
+  if (!trimmed || !trimmed.startsWith("/") || trimmed.startsWith("//")) {
+    return null
+  }
+
+  const [pathname, suffix] = splitPathAndSuffix(trimmed)
+
+  if (pathname === "/") {
+    return null
+  }
+
+  const normalizedPathname = pathname.endsWith("/") ? pathname : `${pathname}/`
+  return `${normalizedPathname}${suffix}`
+}
+
+export function normalizeRedirectTarget(
+  candidate: MaybeString,
+  fallback: string = "/app/",
+): string {
+  const normalizedFallback = normalizeCandidatePath(fallback) ?? "/app/"
+  const normalizedCandidate = normalizeCandidatePath(candidate)
+
+  return normalizedCandidate ?? normalizedFallback
+}
