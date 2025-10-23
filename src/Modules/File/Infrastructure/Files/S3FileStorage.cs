@@ -27,12 +27,6 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
 
         await EnsureBucketExistsAsync(cancellationToken);
 
-        var response = _client.ListBucketsAsync().Result;
-        foreach (var b in response.Buckets)
-        {
-            Console.WriteLine($"Bucket: {b.BucketName}");
-        }
-
         var request = new PutObjectRequest
         {
             BucketName = _options.BucketName,
@@ -138,8 +132,16 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
         {
             if (!string.IsNullOrWhiteSpace(_options.ServiceUrl))
             {
-                var response = await _client.ListBucketsAsync(new ListBucketsRequest(), cancellationToken);
-                return response.Buckets.Any(bucket => string.Equals(bucket.BucketName, _options.BucketName, StringComparison.Ordinal));
+                try
+                {
+                    var response = await _client.ListBucketsAsync(new ListBucketsRequest(), cancellationToken);
+                    return response.Buckets.Any(bucket => string.Equals(bucket.BucketName, _options.BucketName, StringComparison.Ordinal));
+                }
+                catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.Forbidden ||
+                                                          string.Equals(exception.ErrorCode, "AccessDenied", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug(exception, "Access denied when listing buckets for custom endpoint {ServiceUrl}. Falling back to direct bucket existence check.", _options.ServiceUrl);
+                }
             }
 
             return await AmazonS3Util.DoesS3BucketExistV2Async(_client, _options.BucketName);
