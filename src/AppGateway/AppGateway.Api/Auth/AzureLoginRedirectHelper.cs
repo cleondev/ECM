@@ -64,7 +64,7 @@ internal static class AzureLoginRedirectHelper
 
         var trimmed = value.Trim();
 
-        if (!trimmed.StartsWith("/", StringComparison.Ordinal))
+        if (!trimmed.StartsWith('/'))
         {
             return null;
         }
@@ -113,7 +113,7 @@ internal static class AzureLoginRedirectHelper
         var trimmed = defaultPath.Trim();
         trimmed = trimmed.TrimEnd('/');
 
-        return trimmed.StartsWith("/", StringComparison.Ordinal)
+        return trimmed.StartsWith('/')
             ? trimmed
             : $"/{trimmed}";
     }
