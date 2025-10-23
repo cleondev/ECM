@@ -101,19 +101,19 @@ public static class FileInfrastructureModuleExtensions
                 host = $"{host}:{uri.Port}";
             }
 
-            builder = builder.WithEndpoint(host);
+            builder = (MinioClient)builder.WithEndpoint(host);
 
             if (secure)
             {
-                builder = builder.WithSSL();
+                builder = (MinioClient)builder.WithSSL();
             }
         }
         else
         {
-            builder = builder.WithEndpoint(endpoint);
+            builder = (MinioClient)builder.WithEndpoint(endpoint);
         }
 
-        builder = builder.WithCredentials(options.AccessKeyId, options.SecretAccessKey);
+        builder = (MinioClient)builder.WithCredentials(options.AccessKeyId, options.SecretAccessKey);
 
         return builder.Build();
     }
