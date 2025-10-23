@@ -1,3 +1,4 @@
+using System;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.S3;
@@ -39,11 +40,19 @@ public static class FileInfrastructureModuleExtensions
             var credentials = new BasicAWSCredentials(options.AccessKeyId, options.SecretAccessKey);
             var config = new AmazonS3Config
             {
-                ServiceURL = options.ServiceUrl,
                 ForcePathStyle = options.ForcePathStyle,
-                AuthenticationRegion = options.Region,
-                RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region)
             };
+
+            if (!string.IsNullOrWhiteSpace(options.ServiceUrl))
+            {
+                config.ServiceURL = options.ServiceUrl;
+                config.AuthenticationRegion = options.Region;
+                config.UseHttp = options.ServiceUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
+            }
+            else if (!string.IsNullOrWhiteSpace(options.Region))
+            {
+                config.RegionEndpoint = RegionEndpoint.GetBySystemName(options.Region);
+            }
 
             return new AmazonS3Client(credentials, config);
         });
