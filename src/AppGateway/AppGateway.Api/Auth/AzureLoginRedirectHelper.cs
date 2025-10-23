@@ -7,6 +7,8 @@ namespace AppGateway.Api.Auth;
 
 internal static class AzureLoginRedirectHelper
 {
+    private static readonly PathString RootPath = new("/");
+
     public static string ResolveRedirectPath(HttpContext context, string? candidate, string defaultPath, bool allowRoot = false)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -79,12 +81,12 @@ internal static class AzureLoginRedirectHelper
             return null;
         }
 
-        if (!allowRoot && path == PathString.Slash)
+        if (!allowRoot && path == RootPath)
         {
             return null;
         }
 
-        if (path == PathString.Slash)
+        if (path == RootPath)
         {
             return "/";
         }
