@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { Suspense, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { checkLogin } from "@/lib/api"
+import { getCachedAuthSnapshot } from "@/lib/auth-state"
 
 function resolveGatewayUrl(path: string) {
   const envBase = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
@@ -69,6 +70,13 @@ function SignInPageContent() {
     const candidate = searchParams?.get("redirectUri") ?? searchParams?.get("redirect")
     return normalizeRedirectTarget(candidate)
   }, [searchParams])
+
+  useEffect(() => {
+    const cached = getCachedAuthSnapshot()
+    if (cached?.isAuthenticated) {
+      router.replace(cached.redirectPath ?? targetAfterLogin)
+    }
+  }, [router, targetAfterLogin])
 
   // Thay đổi logic đăng nhập Azure
   const handleAzureSignIn = async () => {
