@@ -7,13 +7,8 @@ import { checkLogin } from "@/lib/api"
 import { getCachedAuthSnapshot, clearCachedAuthSnapshot } from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
 
-const DEFAULT_REDIRECT = "/signin/"
+const LANDING_REDIRECT = "/"
 const APP_HOME_FALLBACK = "/app/"
-
-function buildSignInUrl(target: string) {
-  const redirectTarget = normalizeRedirectTarget(target, APP_HOME_FALLBACK)
-  return `${DEFAULT_REDIRECT}?redirectUri=${encodeURIComponent(redirectTarget)}`
-}
 
 type AuthGuardState = {
   isAuthenticated: boolean
@@ -46,7 +41,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
 
         clearCachedAuthSnapshot()
         setIsAuthenticated(false)
-        router.replace(buildSignInUrl(result.redirectPath || normalizedTargetPath))
+        router.replace(LANDING_REDIRECT)
       } catch (error) {
         console.error("[auth] Không kiểm tra được trạng thái đăng nhập:", error)
         if (!active) {
@@ -55,7 +50,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
 
         clearCachedAuthSnapshot()
         setIsAuthenticated(false)
-        router.replace(buildSignInUrl(normalizedTargetPath))
+        router.replace(LANDING_REDIRECT)
       } finally {
         if (active) {
           setIsChecking(false)
