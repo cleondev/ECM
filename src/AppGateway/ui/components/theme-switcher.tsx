@@ -5,7 +5,7 @@ import { Palette } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useTheme } from "@/hooks/use-theme"
-import type { ThemeId } from "@/hooks/use-theme"
+import type { ThemeId } from "@/lib/theme"
 
 type ThemeSwitcherProps = {
   className?: string
