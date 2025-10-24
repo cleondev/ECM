@@ -475,7 +475,10 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
   }
 
   if (params?.tagLabel) {
-    filtered = filtered.filter((file) => file.tags.includes(params.tagLabel!))
+    const normalizedTag = params.tagLabel.toLowerCase()
+    filtered = filtered.filter((file) =>
+      file.tags.some((tag) => tag.toLowerCase() === normalizedTag),
+    )
   }
 
   if (params?.folder && params.folder !== "All Files") {
@@ -490,16 +493,11 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
           comparison = a.name.localeCompare(b.name)
           break
         case "modified":
-          comparison = new Date(a.modified).getTime() - new Date(b.modified).getTime()
+          comparison = getModifiedSortValue(a.modified) - getModifiedSortValue(b.modified)
           break
-        case "size": {
-          const sizeA = Number.parseFloat(a.size)
-          const sizeB = Number.parseFloat(b.size)
-          const normalizedA = Number.isFinite(sizeA) ? sizeA : 0
-          const normalizedB = Number.isFinite(sizeB) ? sizeB : 0
-          comparison = normalizedA - normalizedB
+        case "size":
+          comparison = getNumericSize(a.size) - getNumericSize(b.size)
           break
-        }
       }
       return params.sortOrder === "desc" ? -comparison : comparison
     })
@@ -518,6 +516,45 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
     limit,
     hasMore: end < filtered.length,
   }
+}
+
+const RELATIVE_TIME_UNIT_IN_MS: Record<string, number> = {
+  minute: 60 * 1000,
+  hour: 60 * 60 * 1000,
+  day: 24 * 60 * 60 * 1000,
+  week: 7 * 24 * 60 * 60 * 1000,
+  month: 30 * 24 * 60 * 60 * 1000,
+  year: 365 * 24 * 60 * 60 * 1000,
+}
+
+function getNumericSize(value: string): number {
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function getModifiedSortValue(value: string): number {
+  const timestamp = Date.parse(value)
+  if (!Number.isNaN(timestamp)) {
+    return timestamp
+  }
+
+  const relativeMatch = value.match(/^(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago$/i)
+  if (!relativeMatch) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  const quantity = Number.parseInt(relativeMatch[1], 10)
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  const unit = relativeMatch[2].toLowerCase()
+  const multiplier = RELATIVE_TIME_UNIT_IN_MS[unit]
+  if (!multiplier) {
+    return Number.NEGATIVE_INFINITY
+  }
+
+  return Date.now() - quantity * multiplier
 }
 
 export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedResponse<FileItem>> {
