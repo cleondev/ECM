@@ -8,8 +8,6 @@ import {
   GitBranch,
   Grid3x3,
   List,
-  PanelRightClose,
-  PanelRightOpen,
   Share2,
   SlidersHorizontal,
   Upload,
@@ -63,9 +61,22 @@ export function FileToolbar({
   activeRightTab,
   onRightTabChange,
 }: FileToolbarProps) {
-  const handleRightTabChange = (value: string) => {
+  const handleRightTabChange = (value: string | undefined) => {
+    if (!value) {
+      if (isRightSidebarOpen) {
+        onToggleRightSidebar()
+      }
+      return
+    }
+
     if (value === "property" || value === "flow" || value === "form") {
-      onRightTabChange(value)
+      if (value !== activeRightTab) {
+        onRightTabChange(value)
+      }
+
+      if (!isRightSidebarOpen) {
+        onToggleRightSidebar()
+      }
     }
   }
 
@@ -77,28 +88,6 @@ export function FileToolbar({
             <Upload className="h-4 w-4" />
             Upload File
           </Button>
-
-          <ToggleGroup
-            type="single"
-            value={activeRightTab}
-            onValueChange={handleRightTabChange}
-            variant="outline"
-            className="h-10"
-            aria-label="File details sections"
-          >
-            <ToggleGroupItem value="property" className="gap-2 px-3">
-              <FileText className="h-4 w-4" />
-              <span className="text-sm font-medium">Property</span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="flow" className="gap-2 px-3">
-              <GitBranch className="h-4 w-4" />
-              <span className="text-sm font-medium">Flow</span>
-            </ToggleGroupItem>
-            <ToggleGroupItem value="form" className="gap-2 px-3">
-              <Edit3 className="h-4 w-4" />
-              <span className="text-sm font-medium">Form</span>
-            </ToggleGroupItem>
-          </ToggleGroup>
 
           <Button
             variant="outline"
@@ -120,18 +109,27 @@ export function FileToolbar({
             Share
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleRightSidebar}
-            aria-label={isRightSidebarOpen ? "Hide details panel" : "Show details panel"}
+          <ToggleGroup
+            type="single"
+            value={isRightSidebarOpen ? activeRightTab : undefined}
+            onValueChange={handleRightTabChange}
+            variant="outline"
+            className="h-10"
+            aria-label="File details sections"
           >
-            {isRightSidebarOpen ? (
-              <PanelRightClose className="h-4 w-4" />
-            ) : (
-              <PanelRightOpen className="h-4 w-4" />
-            )}
-          </Button>
+            <ToggleGroupItem value="property" className="gap-2 px-3">
+              <FileText className="h-4 w-4" />
+              <span className="text-sm font-medium">Property</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="flow" className="gap-2 px-3">
+              <GitBranch className="h-4 w-4" />
+              <span className="text-sm font-medium">Flow</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="form" className="gap-2 px-3">
+              <Edit3 className="h-4 w-4" />
+              <span className="text-sm font-medium">Form</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         <div className="flex items-center gap-2">
