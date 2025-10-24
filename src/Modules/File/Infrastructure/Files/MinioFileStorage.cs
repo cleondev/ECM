@@ -147,13 +147,9 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         {
             await _client.MakeBucketAsync(makeBucketArgs, cancellationToken);
         }
-        catch (BucketAlreadyOwnedByYouException)
+        catch (MinioException exception) when (IsBucketAlreadyOwned(exception))
         {
-            _logger.LogDebug("Bucket {Bucket} already exists.", _options.BucketName);
-        }
-        catch (BucketAlreadyExistsException)
-        {
-            _logger.LogDebug("Bucket {Bucket} already exists.", _options.BucketName);
+            _logger.LogDebug(exception, "Bucket {Bucket} already exists.", _options.BucketName);
         }
     }
 
@@ -170,14 +166,29 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         return (buffer, true);
     }
 
+    private static bool IsBucketAlreadyOwned(MinioException exception)
+    {
+        if (exception is BucketNotFoundException)
+        {
+            return false;
+        }
+
+        var message = exception.Message ?? exception.Response?.Message;
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return false;
+        }
+
+        return message.Contains("already owned", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("already exists", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static DateTimeOffset? GetLastModified(object? value)
     {
         return value switch
         {
             DateTimeOffset dto when dto != default => dto,
             DateTime dt when dt != default => new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Utc)),
-            DateTime? nullableDateTime when nullableDateTime.HasValue && nullableDateTime.Value != default =>
-                new DateTimeOffset(DateTime.SpecifyKind(nullableDateTime.Value, DateTimeKind.Utc)),
             _ => null,
         };
     }

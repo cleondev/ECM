@@ -47,6 +47,8 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 
 ### Runtime
 
+> ⚠️ **Quan trọng:** Hệ thống chạy trên .NET 9. Không được hạ cấp về .NET 8 vì sẽ làm hỏng toàn bộ quá trình build và chạy dịch vụ.
+
 - **.NET SDK 9** – dùng để build và chạy toàn bộ service .NET.
 - **Node.js ≥ 20** (kèm `npm`) – phục vụ phát triển/bundling SPA tại `src/AppGateway/ui` (Vite 5 yêu cầu Node 18 trở lên).
 - **Python ≥ 3.11** – phục vụ các thành phần OCR (`src/Ocr`).
@@ -146,11 +148,11 @@ Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings_
 
 Các module sử dụng Entity Framework Core để quản lý schema. Bộ khởi tạo hiện bao gồm module Document với migrations có sẵn tại `src/Modules/Document/Infrastructure/Migrations`.
 
-1. **Cài công cụ `dotnet-ef`** (cùng major version 8.x với EF Core trong solution):
+1. **Cài công cụ `dotnet-ef`** (cùng major version 9.x với EF Core trong solution):
 
    ```bash
-   dotnet tool install --global dotnet-ef --version 8.0.8
-   # Nếu đã cài, có thể cập nhật: dotnet tool update --global dotnet-ef --version 8.0.8
+   dotnet tool install --global dotnet-ef --version 9.0.10
+   # Nếu đã cài, có thể cập nhật: dotnet tool update --global dotnet-ef --version 9.0.10
    ```
 
 2. **Đảm bảo kết nối cơ sở dữ liệu** hoạt động (theo một trong hai cách ở trên) và cấu hình biến môi trường `ConnectionStrings__Document`. Ví dụ với môi trường local chạy docker compose:
