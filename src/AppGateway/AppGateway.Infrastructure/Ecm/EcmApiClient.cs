@@ -386,6 +386,11 @@ internal sealed class EcmApiClient(
             query["sensitivity"] = request.Sensitivity;
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Query))
+        {
+            query["q"] = request.Query;
+        }
+
         if (request.OwnerId.HasValue)
         {
             query["owner_id"] = request.OwnerId.Value.ToString();
@@ -394,6 +399,11 @@ internal sealed class EcmApiClient(
         if (!string.IsNullOrWhiteSpace(request.Department))
         {
             query["dept"] = request.Department;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Sort))
+        {
+            query["sort"] = request.Sort;
         }
 
         var uri = QueryHelpers.AddQueryString("api/ecm/documents", query);

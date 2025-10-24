@@ -20,11 +20,15 @@ public sealed class ListDocumentsRequestDto
 
     public string? Sensitivity { get; init; }
 
+    public string? Query { get; init; }
+
     public Guid? OwnerId { get; init; }
 
     public string? Department { get; init; }
 
     public Guid[]? Tags { get; init; }
+
+    public string? Sort { get; init; }
 
     public static readonly ListDocumentsRequestDto Default = new();
 }

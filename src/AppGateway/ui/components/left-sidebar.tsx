@@ -18,14 +18,14 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TagManagementDialog } from "./tag-management-dialog"
-import type { TagNode, TagUpdateData } from "@/lib/types"
+import type { SelectedTag, TagNode, TagUpdateData } from "@/lib/types"
 import { fetchTags, createTag, updateTag, deleteTag } from "@/lib/api"
 
 type LeftSidebarProps = {
   selectedFolder: string
   onFolderSelect: (folder: string) => void
-  selectedTag: string | null
-  onTagClick: (tagName: string) => void
+  selectedTag: SelectedTag | null
+  onTagClick: (tag: SelectedTag) => void
   onCollapse: () => void
 }
 
@@ -55,8 +55,8 @@ function TagTreeItem({
 }: {
   tag: TagNode
   level?: number
-  selectedTag: string | null
-  onTagClick: (tagName: string) => void
+  selectedTag: SelectedTag | null
+  onTagClick: (tag: SelectedTag) => void
   onEditTag: (tag: TagNode) => void
   onAddChildTag: (parentTag: TagNode) => void
   onDeleteTag: (tagId: string) => void
@@ -64,7 +64,7 @@ function TagTreeItem({
   const [isExpanded, setIsExpanded] = useState(true)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hasChildren = tag.children && tag.children.length > 0
-  const isSelected = selectedTag === tag.name
+  const isSelected = selectedTag?.id === tag.id
   const isNamespace = tag.kind === "namespace"
   const canSelect = !isNamespace
   const canManage = tag.kind === "label"
@@ -103,7 +103,7 @@ function TagTreeItem({
           type="button"
           onClick={() => {
             if (canSelect) {
-              onTagClick(tag.name)
+              onTagClick({ id: tag.id, name: tag.name })
             }
           }}
           className="flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:cursor-default"

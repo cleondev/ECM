@@ -92,7 +92,8 @@ export type UploadFileData = {
 
 export type FileQueryParams = {
   search?: string
-  tag?: string
+  tagId?: string
+  tagLabel?: string
   folder?: string
   sortBy?: "name" | "modified" | "size"
   sortOrder?: "asc" | "desc"
