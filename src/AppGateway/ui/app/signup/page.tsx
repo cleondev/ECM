@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { BrandLogo } from "@/components/brand-logo"
 import { signUpWithAzure, signUpWithEmail } from "@/lib/api"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -48,11 +49,14 @@ export default function SignUpPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-xl">FM</span>
-          </div>
+          <BrandLogo
+            showText={false}
+            size={48}
+            imageClassName="h-12 w-12"
+            className="mb-4 justify-center"
+          />
           <CardTitle className="text-2xl">Create your account</CardTitle>
-          <CardDescription>Get started with File Manager today</CardDescription>
+          <CardDescription>Get started with ECM today</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button className="w-full" size="lg" onClick={handleAzureSignUp} disabled={isLoading}>
