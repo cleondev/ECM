@@ -101,125 +101,127 @@ export function FileToolbar({
 
   return (
     <div className="border-b border-border bg-card">
-      <div className="flex flex-col gap-3 p-3 sm:p-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <Button onClick={onUploadClick} className="gap-2 w-full sm:w-auto justify-center">
-            <Upload className="h-4 w-4" />
-            Upload File
-          </Button>
+      <div className="flex flex-col gap-4 p-3 sm:p-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:border-none sm:bg-transparent sm:p-0">
+            <Button onClick={onUploadClick} className="gap-2 w-full sm:w-auto justify-center">
+              <Upload className="h-4 w-4" />
+              Upload File
+            </Button>
 
-          <Button
-            variant="outline"
-            className="gap-2 w-full sm:w-auto justify-center"
-            onClick={() => onDownloadClick?.()}
-            disabled={disableFileActions}
-          >
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
-
-          <Button
-            variant="outline"
-            className="gap-2 w-full sm:w-auto justify-center"
-            onClick={() => onShareClick?.()}
-            disabled={disableFileActions}
-          >
-            <Share2 className="h-4 w-4" />
-            Share
-          </Button>
-
-          <ToggleGroup
-            type="single"
-            value={tabValue}
-            onValueChange={handleRightTabChange}
-            variant="outline"
-            className="h-10 w-full sm:w-auto"
-            aria-label="File details sections"
-          >
-            <ToggleGroupItem
-              value="property"
-              className={cn(
-                "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
-                tabStyles.property,
-                disableRightSidebarTabs && "pointer-events-none opacity-60",
-              )}
-              disabled={disableRightSidebarTabs}
+            <Button
+              variant="outline"
+              className="gap-2 w-full sm:w-auto justify-center"
+              onClick={() => onDownloadClick?.()}
+              disabled={disableFileActions}
             >
-              <FileText className="h-4 w-4" />
-              <span className="text-sm font-medium">Property</span>
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="flow"
-              className={cn(
-                "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
-                tabStyles.flow,
-                disableRightSidebarTabs && "pointer-events-none opacity-60",
-              )}
-              disabled={disableRightSidebarTabs}
-            >
-              <GitBranch className="h-4 w-4" />
-              <span className="text-sm font-medium">Flow</span>
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="form"
-              className={cn(
-                "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
-                tabStyles.form,
-                disableRightSidebarTabs && "pointer-events-none opacity-60",
-              )}
-              disabled={disableRightSidebarTabs}
-            >
-              <Edit3 className="h-4 w-4" />
-              <span className="text-sm font-medium">Form</span>
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+              <Download className="h-4 w-4" />
+              Download
+            </Button>
 
-        <div className="flex flex-wrap items-center gap-2 md:justify-end">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <SlidersHorizontal className="h-4 w-4" />
+            <Button
+              variant="outline"
+              className="gap-2 w-full sm:w-auto justify-center"
+              onClick={() => onShareClick?.()}
+              disabled={disableFileActions}
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
+
+            <ToggleGroup
+              type="single"
+              value={tabValue}
+              onValueChange={handleRightTabChange}
+              variant="outline"
+              className="h-10 w-full sm:w-auto"
+              aria-label="File details sections"
+            >
+              <ToggleGroupItem
+                value="property"
+                className={cn(
+                  "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
+                  tabStyles.property,
+                  disableRightSidebarTabs && "pointer-events-none opacity-60",
+                )}
+                disabled={disableRightSidebarTabs}
+              >
+                <FileText className="h-4 w-4" />
+                <span className="text-sm font-medium">Property</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="flow"
+                className={cn(
+                  "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
+                  tabStyles.flow,
+                  disableRightSidebarTabs && "pointer-events-none opacity-60",
+                )}
+                disabled={disableRightSidebarTabs}
+              >
+                <GitBranch className="h-4 w-4" />
+                <span className="text-sm font-medium">Flow</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="form"
+                className={cn(
+                  "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
+                  tabStyles.form,
+                  disableRightSidebarTabs && "pointer-events-none opacity-60",
+                )}
+                disabled={disableRightSidebarTabs}
+              >
+                <Edit3 className="h-4 w-4" />
+                <span className="text-sm font-medium">Form</span>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:border-none sm:bg-transparent sm:p-0 md:justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {SORT_OPTIONS.map((option) => {
+                  const isActive = option.sortBy === sortBy && option.sortOrder === sortOrder
+                  return (
+                    <DropdownMenuItem
+                      key={option.id}
+                      onClick={() => onSortChange(option.sortBy, option.sortOrder)}
+                      className="flex items-center gap-2"
+                    >
+                      {isActive ? <Check className="h-4 w-4" /> : <span className="h-4 w-4" />}
+                      <span>{option.label}</span>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="flex w-full items-stretch overflow-hidden rounded-md border border-border sm:w-auto">
+              <Button
+                size="icon"
+                onClick={() => onViewModeChange("grid")}
+                aria-pressed={viewMode === "grid"}
+                data-active={viewMode === "grid"}
+                variant="ghost"
+                className="flex-1 rounded-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90 sm:flex-initial"
+              >
+                <Grid3x3 className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {SORT_OPTIONS.map((option) => {
-                const isActive = option.sortBy === sortBy && option.sortOrder === sortOrder
-                return (
-                  <DropdownMenuItem
-                    key={option.id}
-                    onClick={() => onSortChange(option.sortBy, option.sortOrder)}
-                    className="flex items-center gap-2"
-                  >
-                    {isActive ? <Check className="h-4 w-4" /> : <span className="h-4 w-4" />}
-                    <span>{option.label}</span>
-                  </DropdownMenuItem>
-                )
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <div className="flex items-center border border-border rounded-md">
-            <Button
-              size="icon"
-              onClick={() => onViewModeChange("grid")}
-              aria-pressed={viewMode === "grid"}
-              data-active={viewMode === "grid"}
-              variant="ghost"
-              className="rounded-r-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90"
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              onClick={() => onViewModeChange("list")}
-              aria-pressed={viewMode === "list"}
-              data-active={viewMode === "list"}
-              variant="ghost"
-              className="rounded-l-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90"
-            >
-              <List className="h-4 w-4" />
-            </Button>
+              <Button
+                size="icon"
+                onClick={() => onViewModeChange("list")}
+                aria-pressed={viewMode === "list"}
+                data-active={viewMode === "list"}
+                variant="ghost"
+                className="flex-1 rounded-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90 sm:flex-initial"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
