@@ -40,7 +40,6 @@ type LeftSidebarProps = {
   onFolderSelect: (folder: string) => void
   selectedTag: SelectedTag | null
   onTagClick: (tag: SelectedTag) => void
-  onCollapse: () => void
 }
 
 const folders = [
@@ -212,7 +211,7 @@ function TagTreeItem({
   )
 }
 
-export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTagClick, onCollapse }: LeftSidebarProps) {
+export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTagClick }: LeftSidebarProps) {
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagNode | null>(null)
@@ -220,6 +219,11 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | "add-child">("create")
   const [user, setUser] = useState<UserType | null>(null)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [sectionsExpanded, setSectionsExpanded] = useState({
+    tags: true,
+    folders: false,
+    system: false,
+  })
 
   useEffect(() => {
     fetchTags().then(setTagTree)
@@ -283,91 +287,153 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   }
 
   const primaryRole = useMemo(() => user?.roles?.[0] ?? "", [user?.roles])
+  const toggleSection = (section: "tags" | "folders" | "system") => {
+    setSectionsExpanded((prev) => ({ ...prev, [section]: !prev[section] }))
+  }
 
   return (
     <div className="w-full h-full border-r border-border bg-sidebar flex flex-col">
       <div className="flex-1 min-h-0 flex flex-col">
-        <div className="p-3 space-y-4">
-          <div>
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Folders</h2>
-            <div className="space-y-1">
-              {folders.map((folder) => {
-                const Icon = folder.icon
-                return (
-                  <button
-                    key={folder.name}
-                    onClick={() => onFolderSelect(folder.name)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                      selectedFolder === folder.name
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      <span>{folder.name}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{folder.count}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">System</h2>
-            <div className="space-y-1">
-              {systemFolders.map((folder) => {
-                const Icon = folder.icon
-                return (
-                  <button
-                    key={folder.name}
-                    onClick={() => onFolderSelect(folder.name)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                      selectedFolder === folder.name
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      <span>{folder.name}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{folder.count}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-0 border-t border-sidebar-border px-3 pb-3 pt-2 flex flex-col">
-          <div className="flex items-center justify-between px-2">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Tag className="h-3 w-3" />
-              Tags
-            </h2>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCreateNewTag} title="Create new tag">
-              <Plus className="h-3 w-3" />
-            </Button>
-          </div>
-          <ScrollArea className="mt-2 flex-1 -mr-2 pr-2">
-            <div className="space-y-0 pb-2">
-              {tagTree.map((tag) => (
-                <TagTreeItem
-                  key={tag.id}
-                  tag={tag}
-                  selectedTag={selectedTag}
-                  onTagClick={onTagClick}
-                  onEditTag={handleEditTag}
-                  onAddChildTag={handleAddChildTag}
-                  onDeleteTag={handleDeleteTag}
+        <div className="flex-1 min-h-0 flex flex-col gap-3 p-3">
+          <div
+            className={cn(
+              "rounded-lg border border-sidebar-border/70 bg-sidebar/60", 
+              sectionsExpanded.tags ? "flex-1 min-h-0 flex flex-col" : "",
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => toggleSection("tags")}
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-sidebar-accent/50"
+            >
+              <span className="flex items-center gap-2 text-[11px]">
+                <Tag className="h-3 w-3" />
+                Tags
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  title="Create new tag"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    handleCreateNewTag()
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    sectionsExpanded.tags ? "rotate-180" : "",
+                  )}
                 />
-              ))}
-            </div>
-          </ScrollArea>
+              </div>
+            </button>
+
+            {sectionsExpanded.tags ? (
+              <ScrollArea className="flex-1 min-h-0 px-2 pb-3 pt-2">
+                <div className="space-y-0 pr-1">
+                  {tagTree.map((tag) => (
+                    <TagTreeItem
+                      key={tag.id}
+                      tag={tag}
+                      selectedTag={selectedTag}
+                      onTagClick={onTagClick}
+                      onEditTag={handleEditTag}
+                      onAddChildTag={handleAddChildTag}
+                      onDeleteTag={handleDeleteTag}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border border-sidebar-border/70 bg-sidebar/60">
+            <button
+              type="button"
+              onClick={() => toggleSection("folders")}
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-sidebar-accent/50"
+            >
+              <span>Folders</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-muted-foreground transition-transform",
+                  sectionsExpanded.folders ? "rotate-180" : "",
+                )}
+              />
+            </button>
+
+            {sectionsExpanded.folders ? (
+              <div className="px-2 pb-2 pt-1 space-y-1">
+                {folders.map((folder) => {
+                  const Icon = folder.icon
+                  return (
+                    <button
+                      key={folder.name}
+                      onClick={() => onFolderSelect(folder.name)}
+                      className={cn(
+                        "w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors",
+                        selectedFolder === folder.name
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span>{folder.name}</span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">{folder.count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-lg border border-sidebar-border/70 bg-sidebar/60">
+            <button
+              type="button"
+              onClick={() => toggleSection("system")}
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-sidebar-accent/50"
+            >
+              <span>System</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 text-muted-foreground transition-transform",
+                  sectionsExpanded.system ? "rotate-180" : "",
+                )}
+              />
+            </button>
+
+            {sectionsExpanded.system ? (
+              <div className="px-2 pb-2 pt-1 space-y-1">
+                {systemFolders.map((folder) => {
+                  const Icon = folder.icon
+                  return (
+                    <button
+                      key={folder.name}
+                      onClick={() => onFolderSelect(folder.name)}
+                      className={cn(
+                        "w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors",
+                        selectedFolder === folder.name
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span>{folder.name}</span>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground">{folder.count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
