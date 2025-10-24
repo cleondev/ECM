@@ -1,29 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text.Json;
-
-using ECM.BuildingBlocks.Application.Abstractions.Time;
 
 using ECM.Abstractions.Files;
-using ECM.Document.Api;
-using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Commands;
-using ECM.Document.Domain.Documents;
+using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Infrastructure.Persistence;
 
-using DomainDocument = ECM.Document.Domain.Documents.Document;
-
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Api.Documents;
 
