@@ -62,6 +62,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutboxDispatcher", "src\Wor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notify", "src\Workers\Notify.Worker\Notify.csproj", "{9882E492-235A-42A3-8A64-F1077BC3A286}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ocr", "src\Workers\Ocr.Worker\Ocr.csproj", "{4E04F707-4938-4569-8C7D-715E0A930701}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Host", "src\ECM\ECM.Host\ECM.Host.csproj", "{2879C29D-7276-464A-B841-53ABD4F4C294}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.BuildingBlocks", "src\ECM\ECM.BuildingBlocks\ECM.BuildingBlocks.csproj", "{878B98EE-28B2-4B63-8464-1560A149A0FD}"
@@ -83,6 +85,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.SearchRead", "src\Modules\SearchRead\ECM.SearchRead.csproj", "{245D2AD7-E006-45F3-B895-3F5888EF0502}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.SearchIndexer", "src\Modules\SearchIndexer\ECM.SearchIndexer.csproj", "{9FF073FB-8DA7-468E-8E10-5041F653D053}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Ocr", "src\Modules\Ocr\ECM.Ocr.csproj", "{A12846B4-5457-452F-9DA0-F81B5C8C7A19}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Contracts", "src\AppGateway\AppGateway.Contracts\AppGateway.Contracts.csproj", "{52A13C99-8786-461D-A1F1-22E7CE02F0D4}"
 EndProject
@@ -233,11 +237,22 @@ Global
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
+	
+        {A12846B4-5457-452F-9DA0-F81B5C8C7A19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {A12846B4-5457-452F-9DA0-F81B5C8C7A19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {A12846B4-5457-452F-9DA0-F81B5C8C7A19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {A12846B4-5457-452F-9DA0-F81B5C8C7A19}.Release|Any CPU.Build.0 = Release|Any CPU
+        {4E04F707-4938-4569-8C7D-715E0A930701}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {4E04F707-4938-4569-8C7D-715E0A930701}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {4E04F707-4938-4569-8C7D-715E0A930701}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {4E04F707-4938-4569-8C7D-715E0A930701}.Release|Any CPU.Build.0 = Release|Any CPU
+EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+        {4E04F707-4938-4569-8C7D-715E0A930701} = {6E0E7B25-96FE-4D18-A954-4E67804C8621}
+        {A12846B4-5457-452F-9DA0-F81B5C8C7A19} = {ED699F67-46A0-40B1-8EEB-63AF8513F18D}
 		{BA15B61B-0E0A-4B11-BC65-8F81EEA605A2} = {A50F26A7-81F7-4A19-A7E9-5A6AAE3C4C23}
 		{7A90AA6D-3567-43F6-8F4F-3DC3C2E1777F} = {A50F26A7-81F7-4A19-A7E9-5A6AAE3C4C23}
 		{6E0E7B25-96FE-4D18-A954-4E67804C8621} = {A50F26A7-81F7-4A19-A7E9-5A6AAE3C4C23}
