@@ -91,6 +91,23 @@ public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
         return CreateFileResult(file);
     }
 
+    [HttpPost("files/share/{versionId:guid}")]
+    [ProducesResponseType(typeof(DocumentShareLinkDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ShareVersionAsync(
+        Guid versionId,
+        [FromBody] CreateShareLinkRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var link = await _client.CreateDocumentShareLinkAsync(versionId, request, cancellationToken);
+        if (link is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(link);
+    }
+
     [HttpGet("files/thumbnails/{versionId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

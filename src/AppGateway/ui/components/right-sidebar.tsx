@@ -32,6 +32,7 @@ type RightSidebarProps = {
   selectedFile: FileItem | null
   activeTab: string
   onTabChange: (tab: string) => void
+  onClose: () => void
 }
 
 const fileIcons = {
@@ -48,7 +49,7 @@ const statusColors = {
   draft: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
 }
 
-export function RightSidebar({ selectedFile, activeTab, onTabChange }: RightSidebarProps) {
+export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: RightSidebarProps) {
   const [editValues, setEditValues] = useState({
     name: selectedFile?.name || "",
     description: selectedFile?.description || "",
@@ -189,7 +190,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange }: RightSide
     <div className="w-full h-full border-l border-border bg-card flex flex-col">
       <div className="p-4 border-b border-border flex items-center justify-between flex-shrink-0">
         <h2 className="font-semibold text-card-foreground">File Details</h2>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -533,14 +534,6 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange }: RightSide
         </TabsContent>
       </Tabs>
 
-      <div className="p-4 border-t border-border space-y-2 flex-shrink-0">
-        <Button className="w-full" variant="default">
-          Open File
-        </Button>
-        <Button className="w-full bg-transparent" variant="outline">
-          Share
-        </Button>
-      </div>
     </div>
   )
 }

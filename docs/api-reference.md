@@ -114,6 +114,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `DELETE /versions/{versionId}` | Xóa phiên bản (theo policy). | `versionId` |
 | `POST /versions/{versionId}/promote` | Đặt phiên bản làm hiện hành. | `versionId` |
 | `GET /files/download/{versionId}` | Tải file (redirect signed URL). | `versionId` |
+| `POST /files/share/{versionId}` | Tạo link chia sẻ tạm thời. | `versionId`, body `{isPublic, expiresInMinutes}` |
 | `GET /files/preview/{versionId}` | Stream preview (PDF/image/video). | `versionId` |
 | `GET /files/thumbnails/{versionId}` | Lấy thumbnail. | `versionId`, `w`, `h`, `fit=cover|contain` |
 

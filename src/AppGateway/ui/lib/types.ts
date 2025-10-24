@@ -10,6 +10,9 @@ export type FileItem = {
   status?: "in-progress" | "completed" | "draft"
   owner: string
   description?: string
+  latestVersionId?: string
+  latestVersionNumber?: number
+  sizeBytes?: number
 }
 
 export type TagNode = {
@@ -107,4 +110,15 @@ export type PaginatedResponse<T> = {
   page: number
   limit: number
   hasMore: boolean
+}
+
+export type ShareOptions = {
+  isPublic: boolean
+  expiresInMinutes: number
+}
+
+export type ShareLink = {
+  url: string
+  expiresAtUtc: string
+  isPublic: boolean
 }
