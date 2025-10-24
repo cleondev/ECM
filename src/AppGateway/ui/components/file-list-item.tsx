@@ -3,24 +3,17 @@
 import type React from "react"
 
 import type { FileItem } from "./file-manager"
-import { FileText, ImageIcon, Video, Code, LucideComponent as FileIconComponent, MoreVertical } from "lucide-react"
+import { MoreVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { FileTypeIcon } from "./file-type-icon"
 
 type FileListItemProps = {
   file: FileItem
   isSelected: boolean
   isMultiSelected?: boolean
   onSelect: (e: React.MouseEvent) => void
-}
-
-const fileIcons = {
-  design: FileIconComponent,
-  document: FileText,
-  image: ImageIcon,
-  video: Video,
-  code: Code,
 }
 
 const statusColors = {
@@ -30,8 +23,6 @@ const statusColors = {
 }
 
 export function FileListItem({ file, isSelected, isMultiSelected, onSelect }: FileListItemProps) {
-  const Icon = fileIcons[file.type]
-
   return (
     <button
       onClick={onSelect}
@@ -42,7 +33,7 @@ export function FileListItem({ file, isSelected, isMultiSelected, onSelect }: Fi
       )}
     >
       <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <FileTypeIcon file={file} size="sm" />
       </div>
 
       <div className="flex-1 min-w-0">
