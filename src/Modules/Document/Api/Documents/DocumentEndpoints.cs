@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -153,7 +152,7 @@ public static class DocumentEndpoints
 
     private static async Task<Results<Created<DocumentResponse>, ValidationProblem>> CreateDocumentAsync(
         ClaimsPrincipal principal,
-        [FromForm] CreateDocumentRequest request,
+        CreateDocumentRequest request,
         UploadDocumentCommandHandler handler,
         IOptions<DocumentUploadDefaultsOptions> defaultsOptions,
         CancellationToken cancellationToken)
@@ -543,8 +542,8 @@ public static class DocumentEndpoints
 
         return (field, direction) switch
         {
-            ("name", "desc") or ("title", "desc") => source.OrderByDescending(document => document.Title.Value),
-            ("name", _) or ("title", _) => source.OrderBy(document => document.Title.Value),
+            ("name", "desc") or ("title", "desc") => source.OrderByDescending(document => document.Title),
+            ("name", _) or ("title", _) => source.OrderBy(document => document.Title),
             ("modified", "asc") or ("updated", "asc") or ("updated_at", "asc") => source.OrderBy(document => document.UpdatedAtUtc),
             ("modified", _) or ("updated", _) or ("updated_at", _) => source.OrderByDescending(document => document.UpdatedAtUtc),
             ("created", "desc") or ("created_at", "desc") => source.OrderByDescending(document => document.CreatedAtUtc),
