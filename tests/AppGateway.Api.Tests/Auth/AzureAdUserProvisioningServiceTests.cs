@@ -232,6 +232,12 @@ public class AzureAdUserProvisioningServiceTests
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
+            Guid versionId,
+            CreateShareLinkRequestDto request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

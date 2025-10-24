@@ -97,7 +97,7 @@ public static class ScopeUtilities
         }
 
         var lastSlashIndex = scope.LastIndexOf('/');
-        if (lastSlashIndex <= firstSlashAfterAuthority)
+        if (lastSlashIndex < firstSlashAfterAuthority)
         {
             return null;
         }

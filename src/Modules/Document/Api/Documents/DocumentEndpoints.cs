@@ -259,7 +259,8 @@ public static class DocumentEndpoints
             result.Value.CreatedAtUtc,
             result.Value.UpdatedAtUtc,
             result.Value.DocumentTypeId,
-            version);
+            version,
+            Array.Empty<DocumentTagResponse>());
 
         return TypedResults.Created($"/api/ecm/documents/{response.Id}", response);
     }
