@@ -27,10 +27,12 @@ import { useState, useEffect } from "react"
 import { fetchFlows, fetchSystemTags, fetchTags } from "@/lib/api"
 import type { Flow, SystemTag, TagNode } from "@/lib/types"
 
+type ActiveTab = "property" | "flow" | "form"
+
 type RightSidebarProps = {
   selectedFile: FileItem | null
-  activeTab: string
-  onTabChange: (tab: string) => void
+  activeTab: ActiveTab
+  onTabChange: (tab: ActiveTab) => void
   onClose: () => void
 }
 
@@ -188,19 +190,34 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
   const activeTabLabel =
     activeTab === "flow" ? "Flow" : activeTab === "form" ? "Form" : "Property"
 
+  const tabBadgeStyles: Record<ActiveTab, string> = {
+    property: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
+    flow: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    form: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
+  }
+
   return (
     <div className="w-full h-full border-l border-border bg-card flex flex-col">
       <div className="p-4 border-b border-border flex items-center justify-between flex-shrink-0">
         <div>
           <h2 className="font-semibold text-card-foreground">File Details</h2>
-          <p className="text-xs text-muted-foreground mt-1">{activeTabLabel}</p>
+          <Badge variant="outline" className={cn("text-[10px] mt-2", tabBadgeStyles[activeTab])}>
+            {activeTabLabel}
+          </Badge>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={onTabChange} className="flex-1 flex flex-col min-h-0">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => {
+          if (!value) return
+          onTabChange((value as ActiveTab) || "property")
+        }}
+        className="flex-1 flex flex-col min-h-0"
+      >
         <TabsContent value="property" className="flex-1 overflow-y-auto mt-0">
           <div className="p-4">
             <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center mb-4">

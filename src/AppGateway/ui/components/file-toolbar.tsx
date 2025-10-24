@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { cn } from "@/lib/utils"
 
 type FileToolbarProps = {
   viewMode: "grid" | "list"
@@ -30,6 +31,7 @@ type FileToolbarProps = {
   onToggleRightSidebar: () => void
   activeRightTab: "property" | "flow" | "form"
   onRightTabChange: (tab: "property" | "flow" | "form") => void
+  disableRightSidebarTabs?: boolean
 }
 
 const SORT_OPTIONS: Array<{
@@ -60,8 +62,13 @@ export function FileToolbar({
   onToggleRightSidebar,
   activeRightTab,
   onRightTabChange,
+  disableRightSidebarTabs = false,
 }: FileToolbarProps) {
   const handleRightTabChange = (value: string | undefined) => {
+    if (disableRightSidebarTabs) {
+      return
+    }
+
     if (!value) {
       if (isRightSidebarOpen) {
         onToggleRightSidebar()
@@ -81,6 +88,15 @@ export function FileToolbar({
         onToggleRightSidebar()
       }
     }
+  }
+
+  const tabValue = disableRightSidebarTabs ? undefined : isRightSidebarOpen ? activeRightTab : undefined
+
+  const tabStyles: Record<"property" | "flow" | "form", string> = {
+    property:
+      "data-[state=on]:bg-sky-500 data-[state=on]:text-white data-[state=on]:border-sky-500 data-[state=on]:shadow-sm",
+    flow: "data-[state=on]:bg-emerald-500 data-[state=on]:text-white data-[state=on]:border-emerald-500 data-[state=on]:shadow-sm",
+    form: "data-[state=on]:bg-violet-500 data-[state=on]:text-white data-[state=on]:border-violet-500 data-[state=on]:shadow-sm",
   }
 
   return (
@@ -114,21 +130,45 @@ export function FileToolbar({
 
           <ToggleGroup
             type="single"
-            value={isRightSidebarOpen ? activeRightTab : undefined}
+            value={tabValue}
             onValueChange={handleRightTabChange}
             variant="outline"
             className="h-10"
             aria-label="File details sections"
           >
-            <ToggleGroupItem value="property" className="gap-2 px-3">
+            <ToggleGroupItem
+              value="property"
+              className={cn(
+                "gap-2 px-3 transition-colors",
+                tabStyles.property,
+                disableRightSidebarTabs && "pointer-events-none opacity-60",
+              )}
+              disabled={disableRightSidebarTabs}
+            >
               <FileText className="h-4 w-4" />
               <span className="text-sm font-medium">Property</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="flow" className="gap-2 px-3">
+            <ToggleGroupItem
+              value="flow"
+              className={cn(
+                "gap-2 px-3 transition-colors",
+                tabStyles.flow,
+                disableRightSidebarTabs && "pointer-events-none opacity-60",
+              )}
+              disabled={disableRightSidebarTabs}
+            >
               <GitBranch className="h-4 w-4" />
               <span className="text-sm font-medium">Flow</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="form" className="gap-2 px-3">
+            <ToggleGroupItem
+              value="form"
+              className={cn(
+                "gap-2 px-3 transition-colors",
+                tabStyles.form,
+                disableRightSidebarTabs && "pointer-events-none opacity-60",
+              )}
+              disabled={disableRightSidebarTabs}
+            >
               <Edit3 className="h-4 w-4" />
               <span className="text-sm font-medium">Form</span>
             </ToggleGroupItem>
