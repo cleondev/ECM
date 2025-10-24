@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Mvc;
 
 namespace AppGateway.Contracts.Documents;
 
@@ -27,7 +26,6 @@ public sealed class ListDocumentsRequestDto
 
     public string? Department { get; init; }
 
-    [FromQuery(Name = "tags[]")]
     public Guid[]? Tags { get; init; }
 
     public string? Sort { get; init; }
