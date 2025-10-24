@@ -25,7 +25,7 @@ export function FileManager() {
   const [rightSidebarWidth, setRightSidebarWidth] = useState(320)
   const [activeRightTab, setActiveRightTab] = useState<"property" | "flow" | "form">("property")
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false)
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)

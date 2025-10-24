@@ -70,9 +70,12 @@ export function FileToolbar({
     }
 
     if (value === "property" || value === "flow" || value === "form") {
-      if (value !== activeRightTab) {
-        onRightTabChange(value)
+      if (value === activeRightTab) {
+        onToggleRightSidebar()
+        return
       }
+
+      onRightTabChange(value)
 
       if (!isRightSidebarOpen) {
         onToggleRightSidebar()
