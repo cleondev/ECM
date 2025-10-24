@@ -178,7 +178,13 @@ export function FileToolbar({
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button
+                variant="outline"
+                size="icon"
+                aria-pressed={!(sortBy === "name" && sortOrder === "asc")}
+                data-active={!(sortBy === "name" && sortOrder === "asc")}
+                className="transition-colors data-[active=true]:border-primary data-[active=true]:text-primary data-[active=true]:bg-primary/10 data-[active=true]:hover:bg-primary/20"
+              >
                 <SlidersHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -201,18 +207,22 @@ export function FileToolbar({
 
           <div className="flex items-center border border-border rounded-md">
             <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
               size="icon"
               onClick={() => onViewModeChange("grid")}
-              className="rounded-r-none"
+              aria-pressed={viewMode === "grid"}
+              data-active={viewMode === "grid"}
+              variant="ghost"
+              className="rounded-r-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90"
             >
               <Grid3x3 className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
               size="icon"
               onClick={() => onViewModeChange("list")}
-              className="rounded-l-none"
+              aria-pressed={viewMode === "list"}
+              data-active={viewMode === "list"}
+              variant="ghost"
+              className="rounded-l-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90"
             >
               <List className="h-4 w-4" />
             </Button>
