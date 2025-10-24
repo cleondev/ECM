@@ -310,6 +310,16 @@ internal sealed class EcmApiClient(
         return await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken);
     }
 
+    public async Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
+        Guid versionId,
+        CreateShareLinkRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, $"api/ecm/files/share/{versionId}", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<DocumentShareLinkDto>(request, cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Get, "api/ecm/tags", cancellationToken);

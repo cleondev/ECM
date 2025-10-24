@@ -32,6 +32,8 @@ public static class DocumentEndpoints
 {
     private static readonly TimeSpan DownloadLinkLifetime = TimeSpan.FromMinutes(10);
 
+    private const string ShareDurationValidationKey = "expiresInMinutes";
+
     public static RouteGroupBuilder MapDocumentEndpoints(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/ecm");
@@ -62,6 +64,10 @@ public static class DocumentEndpoints
         group.MapGet("/files/thumbnails/{versionId:guid}", GetThumbnailAsync)
              .WithName("GetDocumentThumbnail")
              .WithDescription("Returns a generated thumbnail for the requested document version.");
+
+        group.MapPost("/files/share/{versionId:guid}", ShareFileAsync)
+             .WithName("ShareDocumentVersion")
+             .WithDescription("Creates a temporary share link for the requested document version.");
 
         return group;
     }
@@ -333,6 +339,41 @@ public static class DocumentEndpoints
             fileDownloadName: file.FileName,
             enableRangeProcessing: true,
             lastModified: file.LastModifiedUtc);
+    }
+
+    private static async Task<IResult> ShareFileAsync(
+        Guid versionId,
+        ShareDocumentVersionRequest request,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
+        CancellationToken cancellationToken)
+    {
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var shareRequest = request ?? new ShareDocumentVersionRequest();
+        var normalizedMinutes = shareRequest.GetEffectiveMinutes();
+        if (normalizedMinutes < ShareDocumentVersionRequest.Minimum
+            || normalizedMinutes > ShareDocumentVersionRequest.Maximum)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                [ShareDurationValidationKey] = [$"Share duration must be between {ShareDocumentVersionRequest.Minimum} and {ShareDocumentVersionRequest.Maximum} minutes."]
+            });
+        }
+
+        var lifetime = TimeSpan.FromMinutes(normalizedMinutes);
+        var linkResult = await fileAccess.GetDownloadLinkAsync(version.StorageKey, lifetime, cancellationToken);
+        if (linkResult.IsFailure || linkResult.Value is null)
+        {
+            return MapFileErrors(linkResult.Errors);
+        }
+
+        var shareLink = new DocumentShareLinkResponse(linkResult.Value.Uri, linkResult.Value.ExpiresAtUtc, shareRequest.IsPublic);
+        return TypedResults.Ok(shareLink);
     }
 
     private static async Task<IResult> GetThumbnailAsync(

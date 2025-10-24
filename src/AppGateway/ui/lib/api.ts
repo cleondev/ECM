@@ -9,6 +9,8 @@ import type {
   User,
   UploadFileData,
   SelectedTag,
+  ShareOptions,
+  ShareLink,
 } from "./types"
 import { mockFiles, mockTagTree, mockFlowsByFile, mockSystemTags, mockUser } from "./mock-data"
 import { normalizeRedirectTarget, slugify } from "./utils"
@@ -87,6 +89,12 @@ type DocumentListResponse = {
   totalItems: number
   totalPages: number
   items: DocumentResponse[]
+}
+
+type ShareLinkResponse = {
+  url: string
+  expiresAtUtc: string
+  isPublic: boolean
 }
 
 type TagLabelResponse = {
@@ -297,6 +305,9 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     owner: document.ownerId,
     description: "",
     status: document.status?.toLowerCase() === "draft" ? "draft" : "in-progress",
+    latestVersionId: latestVersion?.id,
+    latestVersionNumber: latestVersion?.versionNo,
+    sizeBytes: latestVersion?.bytes,
   }
 }
 
@@ -845,6 +856,37 @@ export async function uploadFile(data: UploadFileData): Promise<FileItem> {
 
     return newFile
   }
+}
+
+export async function createShareLink(versionId: string, options: ShareOptions): Promise<ShareLink> {
+  try {
+    const normalizedMinutes = Number.isFinite(options.expiresInMinutes)
+      ? Math.min(10080, Math.max(1, Math.round(options.expiresInMinutes)))
+      : 1440
+
+    const payload = {
+      isPublic: options.isPublic,
+      expiresInMinutes: normalizedMinutes,
+    }
+
+    const response = await gatewayRequest<ShareLinkResponse>(`/api/documents/files/share/${versionId}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+
+    return {
+      url: response.url,
+      expiresAtUtc: response.expiresAtUtc,
+      isPublic: response.isPublic,
+    }
+  } catch (error) {
+    console.error(`[ui] Failed to create share link for version ${versionId}:`, error)
+    throw error
+  }
+}
+
+export function buildDocumentDownloadUrl(versionId: string): string {
+  return createGatewayUrl(`/api/documents/files/download/${versionId}`)
 }
 
 export async function updateUserAvatar(file: File): Promise<string> {
