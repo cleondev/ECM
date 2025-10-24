@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { LeftSidebar } from "./left-sidebar"
 import { FileGrid } from "./file-grid"
 import { RightSidebar } from "./right-sidebar"
@@ -35,7 +35,7 @@ export function FileManager() {
   const [rightSidebarWidth, setRightSidebarWidth] = useState(320)
   const [activeRightTab, setActiveRightTab] = useState<"property" | "flow" | "form">("property")
   const initialLeftSidebarCollapsed =
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
+    typeof window !== "undefined" ? window.innerWidth < 768 : true
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(initialLeftSidebarCollapsed)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
@@ -53,6 +53,8 @@ export function FileManager() {
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false)
 
   const isMobile = useIsMobile()
+  const isMobileDevice = isMobile ?? false
+  const hasSyncedDesktopSidebar = useRef(false)
 
   const isSingleSelection =
     selectedFile !== null && selectedFiles.size === 1 && selectedFiles.has(selectedFile.id)
@@ -172,8 +174,19 @@ export function FileManager() {
   }, [files, selectedFile, selectedFiles])
 
   useEffect(() => {
+    if (isMobile === undefined) {
+      return
+    }
+
     if (isMobile) {
       setIsLeftSidebarCollapsed(true)
+      hasSyncedDesktopSidebar.current = false
+      return
+    }
+
+    if (!hasSyncedDesktopSidebar.current) {
+      setIsLeftSidebarCollapsed(false)
+      hasSyncedDesktopSidebar.current = true
     }
   }, [isMobile])
 
@@ -184,17 +197,17 @@ export function FileManager() {
   }, [disableDetailsPanels, isRightSidebarOpen])
 
   useEffect(() => {
-    if (!isMobile) {
+    if (!isMobileDevice) {
       setIsLeftDrawerOpen(false)
       setIsRightDrawerOpen(false)
       return
     }
 
     setIsRightDrawerOpen(isRightSidebarOpen && !disableDetailsPanels)
-  }, [disableDetailsPanels, isMobile, isRightSidebarOpen])
+  }, [disableDetailsPanels, isMobileDevice, isRightSidebarOpen])
 
   const handleToggleLeftSidebar = () => {
-    if (isMobile) {
+    if (isMobileDevice) {
       setIsLeftDrawerOpen(true)
       return
     }
@@ -207,7 +220,7 @@ export function FileManager() {
       return
     }
 
-    if (isMobile) {
+    if (isMobileDevice) {
       setIsRightSidebarOpen((prev) => {
         const next = !prev
         setIsRightDrawerOpen(next && !disableDetailsPanels)
@@ -223,7 +236,7 @@ export function FileManager() {
     setActiveRightTab(tab)
   }
 
-  const detailsPanelOpen = isMobile ? isRightDrawerOpen : isRightSidebarOpen
+  const detailsPanelOpen = isMobileDevice ? isRightDrawerOpen : isRightSidebarOpen
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -236,11 +249,11 @@ export function FileManager() {
         }}
         isLeftSidebarCollapsed={isLeftSidebarCollapsed}
         onToggleLeftSidebar={handleToggleLeftSidebar}
-        isMobile={isMobile}
+        isMobile={isMobileDevice}
       />
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        {!isMobile && !isLeftSidebarCollapsed && (
+        {!isMobileDevice && !isLeftSidebarCollapsed && (
           <>
             <div style={{ width: leftSidebarWidth }} className="flex-shrink-0">
               <LeftSidebar
@@ -297,7 +310,7 @@ export function FileManager() {
           />
         </div>
 
-        {!isMobile && isRightSidebarOpen && (
+        {!isMobileDevice && isRightSidebarOpen && (
           <>
             <ResizableHandle
               onResize={(delta) => {
@@ -334,7 +347,7 @@ export function FileManager() {
         onReset={resetShareState}
       />
 
-      {isMobile && (
+      {isMobileDevice && (
         <>
           <Drawer open={isLeftDrawerOpen} onOpenChange={setIsLeftDrawerOpen} direction="left">
             <DrawerContent className="h-full max-h-full w-full sm:max-w-sm">
