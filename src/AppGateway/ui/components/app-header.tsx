@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { SelectedTag, TagNode } from "@/lib/types"
 import { fetchTags } from "@/lib/api"
+import { ThemeSwitcher } from "./theme-switcher"
 
 type AppHeaderProps = {
   searchQuery: string
@@ -233,6 +234,7 @@ export function AppHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeSwitcher className="max-w-[170px]" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2">
