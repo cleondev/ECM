@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Reflection;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
@@ -29,7 +28,7 @@ public sealed class CreateDocumentRequest
     [Required]
     public IFormFile? File { get; init; }
 
-    public static async ValueTask<CreateDocumentRequest?> BindAsync(HttpContext context, ParameterInfo parameter)
+    public static async ValueTask<CreateDocumentRequest?> BindAsync(HttpContext context)
     {
         if (!context.Request.HasFormContentType)
         {
