@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using ECM.Ocr.Application.Commands;
 
 namespace ECM.Ocr.Application.Events;
@@ -15,9 +17,19 @@ public sealed class OcrProcessingEventProcessor(StartOcrCommandHandler handler)
             integrationEvent.Title,
             integrationEvent.Summary,
             integrationEvent.Content,
-            integrationEvent.Metadata,
+            NormalizeMetadata(integrationEvent.Metadata),
             integrationEvent.Tags);
 
         return _handler.HandleAsync(command, cancellationToken);
+    }
+
+    private static IReadOnlyDictionary<string, string>? NormalizeMetadata(IDictionary<string, string>? metadata)
+    {
+        return metadata switch
+        {
+            null => null,
+            IReadOnlyDictionary<string, string> readOnly => readOnly,
+            _ => new ReadOnlyDictionary<string, string>(metadata)
+        };
     }
 }
