@@ -368,13 +368,15 @@ public static class DocumentEndpoints
 
     private static async Task<IResult> GetThumbnailAsync(
         Guid versionId,
-        [FromQuery(Name = "w")] int? width,
-        [FromQuery(Name = "h")] int? height,
-        [FromQuery(Name = "fit")] string? fit,
+        ThumbnailQueryParameters query,
         IDocumentVersionReadService versionReadService,
         IFileAccessGateway fileAccess,
         CancellationToken cancellationToken)
     {
+        var width = query.Width;
+        var height = query.Height;
+        var fit = query.Fit;
+
         if (width is null or <= 0 || height is null or <= 0)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
@@ -420,6 +422,48 @@ public static class DocumentEndpoints
             fileDownloadName: thumbnail.FileName,
             enableRangeProcessing: false,
             lastModified: thumbnail.LastModifiedUtc);
+    }
+
+    private sealed record ThumbnailQueryParameters(int? Width, int? Height, string? Fit)
+    {
+        public static ValueTask<ThumbnailQueryParameters?> BindAsync(HttpContext context)
+        {
+            var query = context.Request.Query;
+
+            int? ParseInt(string key)
+            {
+                if (!query.TryGetValue(key, out var values))
+                {
+                    return null;
+                }
+
+                var value = values.Count > 0 ? values[0] : null;
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return null;
+                }
+
+                return int.TryParse(value, out var parsed) ? parsed : null;
+            }
+
+            string? ParseString(string key)
+            {
+                if (!query.TryGetValue(key, out var values))
+                {
+                    return null;
+                }
+
+                var value = values.Count > 0 ? values[0] : null;
+                return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+
+            var parameters = new ThumbnailQueryParameters(
+                Width: ParseInt("w"),
+                Height: ParseInt("h"),
+                Fit: ParseString("fit"));
+
+            return ValueTask.FromResult<ThumbnailQueryParameters?>(parameters);
+        }
     }
 
     private static IResult MapFileErrors(IReadOnlyCollection<string> errors)
