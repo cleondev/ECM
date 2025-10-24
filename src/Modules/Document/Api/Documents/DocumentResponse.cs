@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ECM.Document.Api.Documents;
 
 public sealed record DocumentResponse(
@@ -12,4 +14,5 @@ public sealed record DocumentResponse(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     Guid? DocumentTypeId,
-    DocumentVersionResponse? LatestVersion);
+    DocumentVersionResponse? LatestVersion,
+    IReadOnlyCollection<DocumentTagResponse> Tags);

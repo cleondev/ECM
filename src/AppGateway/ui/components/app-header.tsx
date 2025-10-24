@@ -19,13 +19,13 @@ import type { User as UserType } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import type { TagNode } from "@/lib/types"
+import type { SelectedTag, TagNode } from "@/lib/types"
 import { fetchTags } from "@/lib/api"
 
 type AppHeaderProps = {
   searchQuery: string
   onSearchChange: (query: string) => void
-  selectedTag: string | null
+  selectedTag: SelectedTag | null
   onClearTag: () => void
   isLeftSidebarCollapsed: boolean
   onToggleLeftSidebar: () => void // Changed from onExpandLeftSidebar to onToggleLeftSidebar
@@ -54,11 +54,9 @@ export function AppHeader({
 
   useEffect(() => {
     if (isAdvancedSearchOpen && selectedTag) {
-      setAdvancedSearchTags([selectedTag])
+      setAdvancedSearchTags([selectedTag.name])
     }
   }, [isAdvancedSearchOpen, selectedTag])
-
-  const displayQuery = searchQuery.replace(/tag:[^\s]+\s*/g, "").trim()
 
   const getAllTags = (nodes: TagNode[]): TagNode[] => {
     const result: TagNode[] = []
@@ -117,21 +115,16 @@ export function AppHeader({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search files..."
-              value={displayQuery}
+              value={searchQuery}
               onChange={(e) => {
-                const newTextQuery = e.target.value
-                if (selectedTag) {
-                  onSearchChange(`tag:${selectedTag} ${newTextQuery}`.trim())
-                } else {
-                  onSearchChange(newTextQuery)
-                }
+                onSearchChange(e.target.value)
               }}
               className="pl-9 pr-24"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {selectedTag && (
                 <Badge variant="secondary" className="gap-1 pr-1">
-                  {selectedTag}
+                  {selectedTag.name}
                   <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-transparent" onClick={onClearTag}>
                     <span className="sr-only">Clear tag filter</span>×
                   </Button>

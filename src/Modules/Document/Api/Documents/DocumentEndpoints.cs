@@ -79,8 +79,19 @@ public static class DocumentEndpoints
             .AsNoTracking()
             .Include(document => document.Versions)
             .Include(document => document.Tags)
+                .ThenInclude(documentTag => documentTag.Tag)
             .Include(document => document.Metadata)
             .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.Query))
+        {
+            var term = request.Query.Trim();
+            if (term.Length > 0)
+            {
+                var likeExpression = $"%{term.Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal)}%";
+                query = query.Where(document => EF.Functions.ILike(document.Title.Value, likeExpression));
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(request.DocType))
         {
@@ -114,10 +125,10 @@ public static class DocumentEndpoints
 
         var totalItems = await query.LongCountAsync(cancellationToken);
 
-        query = query.OrderByDescending(document => document.UpdatedAtUtc);
+        var orderedQuery = ApplySorting(query, request.Sort);
 
         var skip = (page - 1) * pageSize;
-        var documents = await query
+        var documents = await orderedQuery
             .Skip(skip)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -433,6 +444,29 @@ public static class DocumentEndpoints
                 latestVersion.CreatedBy,
                 latestVersion.CreatedAtUtc);
 
+        var tags = document.Tags
+            .Select(documentTag =>
+            {
+                var tag = documentTag.Tag;
+                var path = tag?.Path ?? string.Empty;
+                var displayName = !string.IsNullOrWhiteSpace(path)
+                    ? path.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault() ?? path
+                    : tag?.Slug ?? documentTag.TagId.ToString();
+
+                return new DocumentTagResponse(
+                    documentTag.TagId,
+                    tag?.NamespaceSlug ?? string.Empty,
+                    tag?.Slug ?? string.Empty,
+                    path,
+                    tag?.IsActive ?? false,
+                    displayName,
+                    documentTag.AppliedBy,
+                    documentTag.AppliedAtUtc);
+            })
+            .OrderBy(tag => tag.NamespaceSlug)
+            .ThenBy(tag => tag.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
         return new DocumentResponse(
             document.Id.Value,
             document.Title.Value,
@@ -445,6 +479,43 @@ public static class DocumentEndpoints
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             document.TypeId,
-            versionResponse);
+            versionResponse,
+            tags);
+    }
+
+    private static IOrderedQueryable<DomainDocument> ApplySorting(IQueryable<DomainDocument> source, string? sort)
+    {
+        if (string.IsNullOrWhiteSpace(sort))
+        {
+            return source.OrderByDescending(document => document.UpdatedAtUtc);
+        }
+
+        var parts = sort.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            return source.OrderByDescending(document => document.UpdatedAtUtc);
+        }
+
+        var field = parts[0].ToLowerInvariant();
+        var direction = parts.Length > 1 ? parts[1].ToLowerInvariant() : "asc";
+
+        return (field, direction) switch
+        {
+            ("name", "desc") or ("title", "desc") => source.OrderByDescending(document => document.Title.Value),
+            ("name", _) or ("title", _) => source.OrderBy(document => document.Title.Value),
+            ("modified", "asc") or ("updated", "asc") or ("updated_at", "asc") => source.OrderBy(document => document.UpdatedAtUtc),
+            ("modified", _) or ("updated", _) or ("updated_at", _) => source.OrderByDescending(document => document.UpdatedAtUtc),
+            ("created", "desc") or ("created_at", "desc") => source.OrderByDescending(document => document.CreatedAtUtc),
+            ("created", _) or ("created_at", _) => source.OrderBy(document => document.CreatedAtUtc),
+            ("size", "desc") => source.OrderByDescending(document => document.Versions
+                .OrderByDescending(version => version.VersionNo)
+                .Select(version => (long?)version.Bytes)
+                .FirstOrDefault()),
+            ("size", _) => source.OrderBy(document => document.Versions
+                .OrderByDescending(version => version.VersionNo)
+                .Select(version => (long?)version.Bytes)
+                .FirstOrDefault()),
+            _ => source.OrderByDescending(document => document.UpdatedAtUtc),
+        };
     }
 }

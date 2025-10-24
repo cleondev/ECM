@@ -8,7 +8,7 @@ import { AppHeader } from "./app-header"
 import { FileToolbar } from "./file-toolbar"
 import { UploadDialog } from "./upload-dialog"
 import { ResizableHandle } from "./resizable-handle"
-import type { FileItem, FileQueryParams } from "@/lib/types"
+import type { FileItem, FileQueryParams, SelectedTag } from "@/lib/types"
 import { fetchFiles } from "@/lib/api"
 
 const PAGE_SIZE = 20
@@ -17,7 +17,7 @@ export function FileManager() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
   const [selectedFolder, setSelectedFolder] = useState<string>("All Files")
-  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [selectedTag, setSelectedTag] = useState<SelectedTag | null>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [searchQuery, setSearchQuery] = useState("")
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
@@ -29,10 +29,12 @@ export function FileManager() {
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [sortBy, setSortBy] = useState<"name" | "modified" | "size">("modified")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
   useEffect(() => {
     loadFiles(true)
-  }, [selectedFolder, selectedTag, searchQuery])
+  }, [selectedFolder, selectedTag, searchQuery, sortBy, sortOrder])
 
   const loadFiles = async (reset = false) => {
     if (isLoading) return
@@ -40,14 +42,15 @@ export function FileManager() {
     setIsLoading(true)
     const currentPage = reset ? 1 : page
 
-    const textQuery = searchQuery.replace(/tag:[^\s]+\s*/g, "").trim()
-
     const params: FileQueryParams = {
-      search: textQuery || undefined,
-      tag: selectedTag || undefined,
+      search: searchQuery.trim() || undefined,
+      tagId: selectedTag?.id,
+      tagLabel: selectedTag?.name,
       folder: selectedFolder !== "All Files" ? selectedFolder : undefined,
       page: currentPage,
       limit: PAGE_SIZE,
+      sortBy,
+      sortOrder,
     }
 
     try {
@@ -69,15 +72,8 @@ export function FileManager() {
     }
   }
 
-  const handleTagClick = (tagName: string) => {
-    if (selectedTag === tagName) {
-      setSelectedTag(null)
-      setSearchQuery("")
-    } else {
-      setSelectedTag(tagName)
-      const textQuery = searchQuery.replace(/tag:[^\s]+\s*/g, "").trim()
-      setSearchQuery(`tag:${tagName}${textQuery ? " " + textQuery : ""}`)
-    }
+  const handleTagClick = (tag: SelectedTag) => {
+    setSelectedTag((current) => (current?.id === tag.id ? null : tag))
   }
 
   const handleUploadComplete = () => {
@@ -92,8 +88,6 @@ export function FileManager() {
         selectedTag={selectedTag}
         onClearTag={() => {
           setSelectedTag(null)
-          const textQuery = searchQuery.replace(/tag:[^\s]+\s*/g, "").trim()
-          setSearchQuery(textQuery)
         }}
         isLeftSidebarCollapsed={isLeftSidebarCollapsed}
         onToggleLeftSidebar={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
@@ -125,6 +119,12 @@ export function FileManager() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             onUploadClick={() => setUploadDialogOpen(true)}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={(nextSortBy, nextSortOrder) => {
+              setSortBy(nextSortBy)
+              setSortOrder(nextSortOrder)
+            }}
           />
 
           <FileGrid
