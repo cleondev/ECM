@@ -101,16 +101,16 @@ export function FileToolbar({
 
   return (
     <div className="border-b border-border bg-card">
-      <div className="flex flex-wrap items-center justify-between p-4 gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={onUploadClick} className="gap-2">
+      <div className="flex flex-col gap-3 p-3 sm:p-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <Button onClick={onUploadClick} className="gap-2 w-full sm:w-auto justify-center">
             <Upload className="h-4 w-4" />
             Upload File
           </Button>
 
           <Button
             variant="outline"
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto justify-center"
             onClick={() => onDownloadClick?.()}
             disabled={disableFileActions}
           >
@@ -120,7 +120,7 @@ export function FileToolbar({
 
           <Button
             variant="outline"
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto justify-center"
             onClick={() => onShareClick?.()}
             disabled={disableFileActions}
           >
@@ -133,13 +133,13 @@ export function FileToolbar({
             value={tabValue}
             onValueChange={handleRightTabChange}
             variant="outline"
-            className="h-10"
+            className="h-10 w-full sm:w-auto"
             aria-label="File details sections"
           >
             <ToggleGroupItem
               value="property"
               className={cn(
-                "gap-2 px-3 transition-colors",
+                "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
                 tabStyles.property,
                 disableRightSidebarTabs && "pointer-events-none opacity-60",
               )}
@@ -151,7 +151,7 @@ export function FileToolbar({
             <ToggleGroupItem
               value="flow"
               className={cn(
-                "gap-2 px-3 transition-colors",
+                "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
                 tabStyles.flow,
                 disableRightSidebarTabs && "pointer-events-none opacity-60",
               )}
@@ -163,7 +163,7 @@ export function FileToolbar({
             <ToggleGroupItem
               value="form"
               className={cn(
-                "gap-2 px-3 transition-colors",
+                "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
                 tabStyles.form,
                 disableRightSidebarTabs && "pointer-events-none opacity-60",
               )}
@@ -175,7 +175,7 @@ export function FileToolbar({
           </ToggleGroup>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">

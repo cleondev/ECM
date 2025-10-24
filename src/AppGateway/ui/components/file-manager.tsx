@@ -11,6 +11,16 @@ import { ResizableHandle } from "./resizable-handle"
 import { ShareDialog } from "./share-dialog"
 import type { FileItem, FileQueryParams, SelectedTag, ShareLink, ShareOptions } from "@/lib/types"
 import { buildDocumentDownloadUrl, createShareLink, fetchFiles } from "@/lib/api"
+import { useIsMobile } from "@/components/ui/use-mobile"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import { Button } from "@/components/ui/button"
+import { X } from "lucide-react"
 
 const PAGE_SIZE = 20
 
@@ -37,6 +47,10 @@ export function FileManager() {
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
   const [sortBy, setSortBy] = useState<"name" | "modified" | "size">("modified")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+  const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false)
+  const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false)
+
+  const isMobile = useIsMobile()
 
   const isSingleSelection =
     selectedFile !== null && selectedFiles.size === 1 && selectedFiles.has(selectedFile.id)
@@ -156,10 +170,58 @@ export function FileManager() {
   }, [files, selectedFile, selectedFiles])
 
   useEffect(() => {
+    if (isMobile) {
+      setIsLeftSidebarCollapsed(true)
+    }
+  }, [isMobile])
+
+  useEffect(() => {
     if (disableDetailsPanels && isRightSidebarOpen) {
       setIsRightSidebarOpen(false)
     }
   }, [disableDetailsPanels, isRightSidebarOpen])
+
+  useEffect(() => {
+    if (!isMobile) {
+      setIsLeftDrawerOpen(false)
+      setIsRightDrawerOpen(false)
+      return
+    }
+
+    setIsRightDrawerOpen(isRightSidebarOpen && !disableDetailsPanels)
+  }, [disableDetailsPanels, isMobile, isRightSidebarOpen])
+
+  const handleToggleLeftSidebar = () => {
+    if (isMobile) {
+      setIsLeftDrawerOpen(true)
+      return
+    }
+
+    setIsLeftSidebarCollapsed((prev) => !prev)
+  }
+
+  const handleToggleRightSidebar = () => {
+    if (disableDetailsPanels) {
+      return
+    }
+
+    if (isMobile) {
+      setIsRightSidebarOpen((prev) => {
+        const next = !prev
+        setIsRightDrawerOpen(next && !disableDetailsPanels)
+        return next
+      })
+      return
+    }
+
+    setIsRightSidebarOpen((prev) => !prev)
+  }
+
+  const handleRightTabChange = (tab: "property" | "flow" | "form") => {
+    setActiveRightTab(tab)
+  }
+
+  const detailsPanelOpen = isMobile ? isRightDrawerOpen : isRightSidebarOpen
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -171,11 +233,12 @@ export function FileManager() {
           setSelectedTag(null)
         }}
         isLeftSidebarCollapsed={isLeftSidebarCollapsed}
-        onToggleLeftSidebar={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
+        onToggleLeftSidebar={handleToggleLeftSidebar}
+        isMobile={isMobile}
       />
 
-      <div className="flex flex-1 min-h-0">
-        {!isLeftSidebarCollapsed && (
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {!isMobile && !isLeftSidebarCollapsed && (
           <>
             <div style={{ width: leftSidebarWidth }} className="flex-shrink-0">
               <LeftSidebar
@@ -212,10 +275,10 @@ export function FileManager() {
               setSortOrder(nextSortOrder)
             }}
             disableFileActions={!selectedFile?.latestVersionId || !isSingleSelection}
-            isRightSidebarOpen={isRightSidebarOpen}
-            onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
+            isRightSidebarOpen={detailsPanelOpen}
+            onToggleRightSidebar={handleToggleRightSidebar}
             activeRightTab={activeRightTab}
-            onRightTabChange={setActiveRightTab}
+            onRightTabChange={handleRightTabChange}
             disableRightSidebarTabs={disableDetailsPanels}
           />
 
@@ -232,7 +295,7 @@ export function FileManager() {
           />
         </div>
 
-        {isRightSidebarOpen && (
+        {!isMobile && isRightSidebarOpen && (
           <>
             <ResizableHandle
               onResize={(delta) => {
@@ -268,6 +331,66 @@ export function FileManager() {
         error={shareError}
         onReset={resetShareState}
       />
+
+      {isMobile && (
+        <>
+          <Drawer open={isLeftDrawerOpen} onOpenChange={setIsLeftDrawerOpen} direction="left">
+            <DrawerContent className="h-full max-h-full w-full sm:max-w-sm">
+              <DrawerHeader className="flex flex-row items-center justify-between gap-2 pb-2">
+                <DrawerTitle>Danh mục &amp; thẻ</DrawerTitle>
+                <DrawerClose asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </DrawerClose>
+              </DrawerHeader>
+              <div className="flex-1 overflow-y-auto px-2 pb-4">
+                <LeftSidebar
+                  selectedFolder={selectedFolder}
+                  onFolderSelect={(folder) => {
+                    setSelectedFolder(folder)
+                    setIsLeftDrawerOpen(false)
+                  }}
+                  selectedTag={selectedTag}
+                  onTagClick={(tag) => {
+                    handleTagClick(tag)
+                    setIsLeftDrawerOpen(false)
+                  }}
+                  onCollapse={() => setIsLeftDrawerOpen(false)}
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
+
+          <Drawer
+            open={isRightDrawerOpen}
+            onOpenChange={(open) => {
+              setIsRightDrawerOpen(open)
+              if (!open) {
+                setIsRightSidebarOpen(false)
+              } else if (!disableDetailsPanels) {
+                setIsRightSidebarOpen(true)
+              }
+            }}
+            direction="right"
+          >
+            <DrawerContent className="h-full max-h-full w-full sm:max-w-md">
+              <RightSidebar
+                selectedFile={selectedFile}
+                activeTab={activeRightTab}
+                onTabChange={(tab) => {
+                  handleRightTabChange(tab)
+                  setIsRightSidebarOpen(true)
+                }}
+                onClose={() => {
+                  setIsRightDrawerOpen(false)
+                  setIsRightSidebarOpen(false)
+                }}
+              />
+            </DrawerContent>
+          </Drawer>
+        </>
+      )}
     </div>
   )
 }
