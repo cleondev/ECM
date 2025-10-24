@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
-import { checkLogin } from "@/lib/api"
-import { getCachedAuthSnapshot, clearCachedAuthSnapshot } from "@/lib/auth-state"
+import { fetchCurrentUserProfile } from "@/lib/api"
+import {
+  clearCachedAuthSnapshot,
+  getCachedAuthSnapshot,
+  updateCachedAuthSnapshot,
+} from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
 
 const LANDING_REDIRECT = "/"
@@ -27,30 +31,38 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
   useEffect(() => {
     let active = true
 
+    const redirectToLanding = () => {
+      clearCachedAuthSnapshot()
+      setIsAuthenticated(false)
+      router.replace(LANDING_REDIRECT)
+    }
+
     const verify = async () => {
       try {
-        const result = await checkLogin(normalizedTargetPath)
+        const profile = await fetchCurrentUserProfile()
         if (!active) {
           return
         }
 
-        if (result.isAuthenticated) {
+        if (profile) {
+          updateCachedAuthSnapshot({
+            isAuthenticated: true,
+            redirectPath: normalizedTargetPath,
+            user: profile,
+          })
           setIsAuthenticated(true)
           return
         }
 
-        clearCachedAuthSnapshot()
-        setIsAuthenticated(false)
-        router.replace(LANDING_REDIRECT)
+        console.warn("[auth] Không tìm thấy hồ sơ người dùng, chuyển về trang giới thiệu.")
+        redirectToLanding()
       } catch (error) {
-        console.error("[auth] Không kiểm tra được trạng thái đăng nhập:", error)
+        console.error("[auth] Không lấy được hồ sơ người dùng:", error)
         if (!active) {
           return
         }
 
-        clearCachedAuthSnapshot()
-        setIsAuthenticated(false)
-        router.replace(LANDING_REDIRECT)
+        redirectToLanding()
       } finally {
         if (active) {
           setIsChecking(false)

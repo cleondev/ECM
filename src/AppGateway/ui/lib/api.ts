@@ -336,6 +336,7 @@ export async function fetchCurrentUserProfile(): Promise<User | null> {
     const response = await gatewayFetch("/api/iam/profile")
 
     if ([401, 403, 404].includes(response.status)) {
+      clearCachedAuthSnapshot()
       return null
     }
 
@@ -346,6 +347,7 @@ export async function fetchCurrentUserProfile(): Promise<User | null> {
     const data = (await response.json()) as UserSummaryResponse
     return mapUserSummaryToUser(data)
   } catch (error) {
+    clearCachedAuthSnapshot()
     console.error("[ui] Không lấy được hồ sơ người dùng hiện tại:", error)
     throw error
   }
@@ -453,6 +455,14 @@ export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult
     redirectPath,
     loginUrl: data.loginUrl ?? null,
     user: data.profile ? mapUserSummaryToUser(data.profile) : null,
+  }
+
+  if (result.isAuthenticated && !result.user) {
+    console.warn(
+      "[auth] Thiếu hồ sơ người dùng trong phản hồi check-login, coi như chưa xác thực.",
+    )
+    result.isAuthenticated = false
+    result.redirectPath = "/"
   }
 
   if (typeof window !== "undefined") {

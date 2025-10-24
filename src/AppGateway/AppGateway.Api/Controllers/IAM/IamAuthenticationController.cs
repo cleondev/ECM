@@ -48,8 +48,9 @@ public sealed class IamAuthenticationController(
 
             if (profile is null)
             {
-                _logger.LogWarning("Authenticated principal did not resolve to a user profile.");
-                return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null));
+                _logger.LogWarning(
+                    "Authenticated principal did not resolve to a user profile. Treating as unauthenticated.");
+                return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
             }
 
             return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, profile));
