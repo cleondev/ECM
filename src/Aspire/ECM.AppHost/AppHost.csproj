@@ -14,5 +14,6 @@
     <ProjectReference Include="../../Workers/SearchIndexer.Worker/SearchIndexer.csproj" />
     <ProjectReference Include="../../Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj" />
     <ProjectReference Include="../../Workers/Notify.Worker/Notify.csproj" />
+    <ProjectReference Include="../../Workers/Ocr.Worker/Ocr.csproj" />
   </ItemGroup>
 </Project>

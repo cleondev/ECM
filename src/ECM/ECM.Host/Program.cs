@@ -7,6 +7,7 @@ using ECM.SearchIndexer.Infrastructure;
 using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
+using ECM.Ocr.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using ECM.IAM.Api.Auth;
 using Microsoft.Extensions.Configuration;
@@ -44,6 +45,7 @@ public static class Program
         builder.AddModule<WorkflowModule>();
         builder.AddModule<SignatureModule>();
         builder.AddModule<SearchReadModule>();
+        builder.AddModule<OcrModule>();
 
         builder.Services.AddSearchIndexerInfrastructure();
 
