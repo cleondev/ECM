@@ -173,7 +173,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
   }
 
   return (
-    <div className="w-full h-full border-l border-border bg-card flex flex-col">
+    <div className="w-full h-full border-l border-border bg-card flex flex-col relative z-20">
       <div className="p-4 border-b border-border flex items-center justify-between flex-shrink-0">
         <div>
           <h2 className="font-semibold text-card-foreground">File Details</h2>

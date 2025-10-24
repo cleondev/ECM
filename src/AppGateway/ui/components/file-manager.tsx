@@ -34,7 +34,9 @@ export function FileManager() {
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(320)
   const [activeRightTab, setActiveRightTab] = useState<"property" | "flow" | "form">("property")
-  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false)
+  const initialLeftSidebarCollapsed =
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(initialLeftSidebarCollapsed)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
@@ -258,7 +260,7 @@ export function FileManager() {
           </>
         )}
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <FileToolbar
             viewMode={viewMode}
             onViewModeChange={setViewMode}
