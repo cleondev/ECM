@@ -2,45 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 
-type ThemeOption = {
-  id: ThemeId
-  label: string
-  description: string
-  isDark: boolean
-}
+import {
+  DEFAULT_THEME,
+  THEME_OPTIONS,
+  THEME_STORAGE_KEY,
+  isSupportedTheme,
+} from "@/lib/theme"
 
-type ThemeId = "daybreak" | "midnight" | "forest" | "sunset"
-
-const THEME_STORAGE_KEY = "ecm-ui.theme"
-
-const THEME_OPTIONS: ThemeOption[] = [
-  {
-    id: "daybreak",
-    label: "Daybreak",
-    description: "Sáng sủa, trung tính cho môi trường văn phòng",
-    isDark: false,
-  },
-  {
-    id: "midnight",
-    label: "Midnight",
-    description: "Tông tối hiện đại giúp tập trung",
-    isDark: true,
-  },
-  {
-    id: "forest",
-    label: "Evergreen",
-    description: "Tông xanh lá dịu mắt với điểm nhấn tự nhiên",
-    isDark: false,
-  },
-  {
-    id: "sunset",
-    label: "Sunset",
-    description: "Sắc cam ấm áp tạo cảm giác năng động",
-    isDark: false,
-  },
-]
-
-const DEFAULT_THEME = THEME_OPTIONS[0]
+import type { ThemeId } from "@/lib/theme"
 
 function applyTheme(themeId: ThemeId) {
   if (typeof document === "undefined") {
@@ -57,10 +26,6 @@ function applyTheme(themeId: ThemeId) {
   } else {
     root.classList.remove("dark")
   }
-}
-
-function isSupportedTheme(themeId: string | null): themeId is ThemeId {
-  return THEME_OPTIONS.some((item) => item.id === themeId)
 }
 
 export function useTheme() {
