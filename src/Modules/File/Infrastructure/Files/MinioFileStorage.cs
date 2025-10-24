@@ -38,6 +38,11 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
 
             await _client.PutObjectAsync(putObjectArgs, cancellationToken);
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upload object {Key} to bucket {Bucket}.", storageKey, _options.BucketName);
+            throw;
+        } 
         finally
         {
             if (ownsStream)
