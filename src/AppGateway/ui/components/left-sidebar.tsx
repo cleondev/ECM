@@ -12,14 +12,28 @@ import {
   Plus,
   Edit,
   Trash,
+  Settings,
+  LogOut,
+  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TagManagementDialog } from "./tag-management-dialog"
-import type { SelectedTag, TagNode, TagUpdateData } from "@/lib/types"
-import { fetchTags, createTag, updateTag, deleteTag } from "@/lib/api"
+import type { SelectedTag, TagNode, TagUpdateData, User as UserType } from "@/lib/types"
+import { fetchTags, createTag, updateTag, deleteTag, fetchUser, signOut } from "@/lib/api"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { ThemeSwitcher } from "./theme-switcher"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 type LeftSidebarProps = {
   selectedFolder: string
@@ -204,9 +218,17 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   const [editingTag, setEditingTag] = useState<TagNode | null>(null)
   const [parentTag, setParentTag] = useState<TagNode | null>(null)
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | "add-child">("create")
+  const [user, setUser] = useState<UserType | null>(null)
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
     fetchTags().then(setTagTree)
+  }, [])
+
+  useEffect(() => {
+    fetchUser()
+      .then(setUser)
+      .catch(() => setUser(null))
   }, [])
 
   const handleEditTag = (tag: TagNode) => {
@@ -248,11 +270,81 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     setTagTree(updatedTags)
   }
 
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    try {
+      await signOut()
+      window.location.href = "/login"
+    } catch (error) {
+      console.error("[ui] Failed to sign out:", error)
+    } finally {
+      setIsSigningOut(false)
+    }
+  }
+
+  const primaryRole = useMemo(() => user?.roles?.[0] ?? "", [user?.roles])
+
   return (
     <div className="w-full h-full border-r border-border bg-sidebar flex flex-col">
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-3">
-          <div className="flex items-center justify-between mb-2 px-2">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="p-3 space-y-4">
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Folders</h2>
+            <div className="space-y-1">
+              {folders.map((folder) => {
+                const Icon = folder.icon
+                return (
+                  <button
+                    key={folder.name}
+                    onClick={() => onFolderSelect(folder.name)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
+                      selectedFolder === folder.name
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      <span>{folder.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{folder.count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">System</h2>
+            <div className="space-y-1">
+              {systemFolders.map((folder) => {
+                const Icon = folder.icon
+                return (
+                  <button
+                    key={folder.name}
+                    onClick={() => onFolderSelect(folder.name)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
+                      selectedFolder === folder.name
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      <span>{folder.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{folder.count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 border-t border-sidebar-border px-3 pb-3 pt-2 flex flex-col">
+          <div className="flex items-center justify-between px-2">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Tag className="h-3 w-3" />
               Tags
@@ -261,74 +353,81 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
               <Plus className="h-3 w-3" />
             </Button>
           </div>
-          <div className="space-y-0">
-            {tagTree.map((tag) => (
-              <TagTreeItem
-                key={tag.id}
-                tag={tag}
-                selectedTag={selectedTag}
-                onTagClick={onTagClick}
-                onEditTag={handleEditTag}
-                onAddChildTag={handleAddChildTag}
-                onDeleteTag={handleDeleteTag}
-              />
-            ))}
-          </div>
+          <ScrollArea className="mt-2 flex-1 -mr-2 pr-2">
+            <div className="space-y-0 pb-2">
+              {tagTree.map((tag) => (
+                <TagTreeItem
+                  key={tag.id}
+                  tag={tag}
+                  selectedTag={selectedTag}
+                  onTagClick={onTagClick}
+                  onEditTag={handleEditTag}
+                  onAddChildTag={handleAddChildTag}
+                  onDeleteTag={handleDeleteTag}
+                />
+              ))}
+            </div>
+          </ScrollArea>
         </div>
+      </div>
 
-        <div className="p-3 border-t border-sidebar-border">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">Folders</h2>
-          <div className="space-y-1">
-            {folders.map((folder) => {
-              const Icon = folder.icon
-              return (
-                <button
-                  key={folder.name}
-                  onClick={() => onFolderSelect(folder.name)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                    selectedFolder === folder.name
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    <span>{folder.name}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{folder.count}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+      <div className="border-t border-sidebar-border p-3 space-y-3">
+        <ThemeSwitcher className="w-full" />
 
-        <div className="p-3 border-t border-sidebar-border">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">System</h2>
-          <div className="space-y-1">
-            {systemFolders.map((folder) => {
-              const Icon = folder.icon
-              return (
-                <button
-                  key={folder.name}
-                  onClick={() => onFolderSelect(folder.name)}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
-                    selectedFolder === folder.name
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    <span>{folder.name}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{folder.count}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start gap-3 px-2 py-2">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.displayName} />
+                <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-start text-left">
+                <span className="text-sm font-medium truncate w-full">{user?.displayName || "Loading..."}</span>
+                <span className="text-xs text-muted-foreground truncate w-full">{user?.department || primaryRole}</span>
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" sideOffset={8} className="w-60">
+            <DropdownMenuLabel>
+              <div className="flex flex-col gap-1">
+                <span className="font-medium">{user?.displayName || ""}</span>
+                <span className="text-xs text-muted-foreground font-normal">{user?.email || ""}</span>
+                {user?.department && (
+                  <span className="text-xs text-muted-foreground font-normal">{user.department}</span>
+                )}
+                {primaryRole && (
+                  <span className="text-xs text-muted-foreground font-normal">{primaryRole}</span>
+                )}
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href="/profile" className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href="/settings" className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-600"
+              variant="destructive"
+              onSelect={(event) => {
+                event.preventDefault()
+                handleSignOut()
+              }}
+              disabled={isSigningOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              {isSigningOut ? "Signing out..." : "Logout"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <TagManagementDialog

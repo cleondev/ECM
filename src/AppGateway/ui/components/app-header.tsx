@@ -3,9 +3,6 @@
 import type { LucideIcon } from "lucide-react"
 import {
   Search,
-  User,
-  Settings,
-  LogOut,
   SlidersHorizontal,
   Menu,
   Bell,
@@ -19,24 +16,14 @@ import {
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
-import { fetchNotifications, fetchUser, signOut } from "@/lib/api"
-import type { NotificationItem, User as UserType } from "@/lib/types"
+import { fetchNotifications } from "@/lib/api"
+import type { NotificationItem } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { SelectedTag, TagNode } from "@/lib/types"
 import { fetchTags } from "@/lib/api"
-import { ThemeSwitcher } from "./theme-switcher"
 import { BrandLogo } from "@/components/brand-logo"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -95,19 +82,14 @@ export function AppHeader({
   onToggleLeftSidebar, // Updated prop name
   isMobile = false,
 }: AppHeaderProps) {
-  const [user, setUser] = useState<UserType | null>(null)
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
   const [tags, setTags] = useState<TagNode[]>([])
   const [advancedSearchTags, setAdvancedSearchTags] = useState<string[]>([])
-  const [isSigningOut, setIsSigningOut] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
 
   useEffect(() => {
-    fetchUser()
-      .then(setUser)
-      .catch(() => setUser(null))
     fetchTags().then(setTags)
   }, [])
 
@@ -171,21 +153,6 @@ export function AppHeader({
 
   const toggleAdvancedSearchTag = (tagName: string) => {
     setAdvancedSearchTags((prev) => (prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]))
-  }
-
-  const handleSignOut = async () => {
-    if (isSigningOut) {
-      return
-    }
-
-    setIsSigningOut(true)
-
-    try {
-      await signOut("/")
-    } catch (error) {
-      console.error("[ui] Đăng xuất thất bại:", error)
-      setIsSigningOut(false)
-    }
   }
 
   const unreadCount = notifications.filter((notification) => !notification.isRead).length
@@ -336,7 +303,6 @@ export function AppHeader({
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          <ThemeSwitcher className="max-w-[170px]" />
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -428,56 +394,6 @@ export function AppHeader({
               )}
             </PopoverContent>
           </Popover>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.displayName} />
-                  <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
-                </Avatar>
-                <div className="hidden md:flex flex-col items-start">
-                  <span className="text-sm font-medium">{user?.displayName || "Loading..."}</span>
-                  <span className="text-xs text-muted-foreground">{user?.department || ""}</span>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium">{user?.displayName}</span>
-                  <span className="text-xs text-muted-foreground font-normal">{user?.email}</span>
-                  <span className="text-xs text-muted-foreground font-normal">{user?.department}</span>
-                  <span className="text-xs text-muted-foreground font-normal">{user?.roles?.[0] ?? ''}</span>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a href="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href="/settings" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-red-600"
-                variant="destructive"
-                onSelect={(event) => {
-                  event.preventDefault()
-                  handleSignOut()
-                }}
-                disabled={isSigningOut}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                {isSigningOut ? "Signing out..." : "Logout"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </div>
