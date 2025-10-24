@@ -17,20 +17,22 @@
    ├─ File (MinIO adapter)
    ├─ Workflow
    ├─ Signature
-   └─ SearchRead
-       └─→ (bus.outbox → Redpanda)
+   ├─ SearchRead
+   └─ Ocr (Dot OCR adapter + API)
+        └─→ (bus.outbox → Redpanda)
 
 Background Workers:
    - OutboxDispatcher  → publish domain events
    - SearchIndexer     → consume → build FTS/KV/Vector
    - Notify            → consume → email/webhook
+   - Ocr              → trigger Dot OCR service, emit ocr.* events via external engine
    - OCR (Python)      → extract, label, emit ocr.* events
 ```
 
 **Principles**
 
-- Modular monolith: 5 domain modules, độc lập về code + schema.
-- PostgreSQL schemas per module (`doc`, `file`, `wf`, `sign`, `search`).
+- Modular monolith: domain modules độc lập về code + schema.
+- PostgreSQL schemas per module (`doc`, `file`, `wf`, `sign`, `search`, `ocr`).
 - RLS kiểm soát quyền đọc theo RBAC/ReBAC/ABAC.
 - Outbox pattern bảo đảm event reliable + idempotent consumers.
 - Search hybrid (FTS + pgvector + KV).
@@ -43,9 +45,9 @@ Background Workers:
 | Project / Folder | Lang              | Purpose                                                          | Key Components                                                     |
 | ---------------- | ----------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **AppGateway**   | .NET 9 + JS       | Edge Gateway (BFF, Auth, serve UI)                               | `/ui` (SPA), reverse proxy, auth, BFF endpoints                    |
-| **ECM**          | .NET 9            | Core nghiệp vụ (Document, File, Workflow, Signature, SearchRead) | Modular monolith: Domain/Application/Infrastructure/Api per module |
-| **Workers**      | .NET 9            | Background processing                                            | OutboxDispatcher, SearchIndexer, Notify                            |
-| **Ocr**          | Python            | OCR engine + labeling UI                                         | Tesseract/PaddleOCR, FastAPI, labeling tool                        |
+| **ECM**          | .NET 9            | Core nghiệp vụ (Document, File, Workflow, Signature, SearchRead, Ocr) | Modular monolith: Domain/Application/Infrastructure/Api per module |
+| **Workers**      | .NET 9            | Background processing                                            | OutboxDispatcher, SearchIndexer, Notify, Ocr                       |
+| **Ocr**          | Python            | OCR engine + labeling UI (Dot OCR service lives ngoài monolith)  | Tesseract/PaddleOCR, FastAPI, labeling tool                        |
 | **Aspire**       | .NET 9            | Orchestration / Observability                                    | AppHost + ServiceDefaults                                          |
 | **deploy**       | YAML              | Docker Compose (DEV infra)                                       | Postgres, MinIO, Redpanda                                          |
 | **docs**         | Markdown / Drawio | Documentation                                                    | Architecture, API, Data model                                      |
@@ -85,12 +87,14 @@ src/
 │    ├── File/{Domain,Application,Infrastructure,Api}
 │    ├── Workflow/{Domain,Application,Infrastructure,Api}
 │    ├── Signature/{Domain,Application,Infrastructure,Api}
-│    └── SearchRead/{Application,Infrastructure,Api}
+│    ├── SearchRead/{Application,Infrastructure,Api}
+│    └── Ocr/{Domain,Application,Infrastructure,Api}
 │
 ├── Workers/
 │   ├── OutboxDispatcher.Worker/
 │   ├── SearchIndexer.Worker/
-│   └── Notify.Worker/
+│   ├── Notify.Worker/
+│   └── Ocr.Worker/
 │
 ├── Ocr/
 │   ├── ocr-engine/
@@ -198,6 +202,7 @@ Modules ghi sự kiện vào `ops.outbox`; **Outbox Dispatcher** đọc và publ
 ### Flow ví dụ
 
 ```
+document.uploaded → ocr-worker → Dot OCR service → ocr.completed → search-indexer
 document.created → search-indexer, notify, audit
 version.created → ocr-engine → ocr.extraction.updated → search-indexer
 workflow.task.assigned → notify
@@ -228,9 +233,12 @@ signature.completed → audit
 
 ### OCR
 
-- `POST /ocr/process` (optional trigger)
-- Labeling UI endpoints (annotation CRUD)
-- Resolver promotes `ocr.extraction` and emits `ocr.extraction.updated`
+- `GET /api/ocr/samples/{sampleId}/results` → proxy kết quả OCR của sample từ Dot OCR.
+- `GET /api/ocr/samples/{sampleId}/boxes` → danh sách box/bounding box của sample.
+- `GET /api/ocr/samples/{sampleId}/boxes/{boxId}/results` → kết quả chi tiết cho một boxing.
+- `PUT /api/ocr/samples/{sampleId}/boxes/{boxId}` → cập nhật giá trị/nhãn cho box.
+- `Ocr.Worker` (Kafka consumer) lắng nghe `ecm.document.uploaded` → gọi Dot OCR service khởi chạy xử lý.
+- `src/Ocr/*` (Python) vẫn đảm nhiệm engine + labeling UI, phát hành `ocr.*` events khi hoàn tất.
 
 ---
 

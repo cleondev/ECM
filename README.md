@@ -32,8 +32,8 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   ├── ECM
   │   ├── ECM.Host/           # Modular monolith host (nạp các module domain)
   │   └── ECM.BuildingBlocks/ # Shared kernel, outbox, event abstractions
-  ├── Modules/                # Các module độc lập: IAM, Document, File, Operations, Workflow, Signature, SearchRead
-  ├── Workers                 # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
+  ├── Modules/                # Các module độc lập: IAM, Document, File, Operations, Workflow, Signature, SearchRead, Ocr
+  ├── Workers                 # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify, Ocr)
   ├── Ocr
   │   ├── ocr-engine          # Service Python cho OCR
   │   └── labeling-ui         # UI gán nhãn dữ liệu OCR
@@ -217,6 +217,7 @@ Khi mở Aspire Dashboard, bạn sẽ nhìn thấy các resource của hệ th�
 | `ecm`               | Monolith ECM.Host chạy nghiệp vụ chính | `http://localhost:8080` |
 | `app-gateway`       | BFF + reverse proxy phục vụ UI | `http://localhost:5090` |
 | `search-indexer`    | Worker cập nhật chỉ mục tìm kiếm | – (background worker, không expose HTTP) |
+| `ocr-worker`       | Worker gọi Dot OCR service | – (background worker, không expose HTTP) |
 | `outbox-dispatcher` | Worker đọc outbox và đẩy sự kiện ra Kafka | – (background worker, không expose HTTP) |
 | `notify`            | Worker gửi thông báo (email/webhook) | – (background worker, không expose HTTP) |
 
@@ -244,7 +245,101 @@ Khi mở Aspire Dashboard, bạn sẽ nhìn thấy các resource của hệ th�
 
   Lặp lại tương tự cho các worker khác trong thư mục `src/Workers`.
 
-### Cấu hình worker OutboxDispatcher & SearchIndexer
+### Cấu hình worker OutboxDispatcher, SearchIndexer & Ocr
+
+Các background worker không đọc cấu hình từ `appsettings` chung của monolith mà mong đợi biến môi trường tương ứng khi chạy độc
+lập (hoặc thông qua Aspire AppHost). Một số thiết lập quan trọng:
+
+- **OutboxDispatcher** cần kết nối PostgreSQL để đọc bảng `ops.outbox`. Worker sử dụng `ConnectionStrings__Operations`, hãy đảm
+  bảo biến này trỏ tới đúng database/schema:
+
+  ```bash
+  export ConnectionStrings__Operations="Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:ConnectionStrings__Operations = "Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
+  > ```
+
+- **SearchIndexer** nghe các sự kiện từ Kafka/Redpanda. Cấu hình được bind vào section `Kafka` của worker, tương ứng với các biến môi trường `Kafka__*`. Tối thiểu cần thiết lập `BootstrapServers`; các tham số khác (group id, client id, offset...) có thể để mặc định hoặc override khi cần:
+
+  ```bash
+  export Kafka__BootstrapServers=localhost:9092
+  # tuỳ chọn:
+  export Kafka__GroupId=search-indexer
+  export Kafka__EnableAutoCommit=true
+  export Kafka__AutoOffsetReset=Earliest
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:Kafka__BootstrapServers = "localhost:9092"
+  > ```
+
+- **Ocr.Worker** cũng sử dụng Kafka để lắng nghe `ecm.document.uploaded` và gọi Dot OCR service. Ngoài cấu hình Kafka giống bên trên, cần cấp URL dịch vụ thông qua `Ocr__Dot__BaseUrl` (và các tham số tuỳ chọn như `Ocr__Dot__ApiKey`, `Ocr__Dot__TimeoutSeconds` nếu cần):
+
+  ```bash
+  export Kafka__BootstrapServers=localhost:9092
+  export Ocr__Dot__BaseUrl=http://localhost:7075/
+  # tuỳ chọn
+  export Ocr__Dot__ApiKey=<token>
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:Kafka__BootstrapServers = "localhost:9092"
+  > $Env:Ocr__Dot__BaseUrl = "http://localhost:7075/"
+  > ```
+
+Aspire AppHost giúp orchestration các project .NET và kết nối tới hạ tầng Docker.
+
+```bash
+dotnet run --project src/Aspire/ECM.AppHost
+```
+
+Các project sẽ được khởi chạy kèm cấu hình connection string từ AppHost (`ecm` monolith, gateway, worker...). Aspire Dashboard mặc định trên `http://localhost:18888`.
+
+Khi mở Aspire Dashboard, bạn sẽ nhìn thấy các resource của hệ thống cùng URL đã được AppHost gán sẵn:
+
+| Ứng dụng (resource) | Chức năng | URL từ Aspire Dashboard |
+|---------------------|-----------|-------------------------|
+| `Aspire Dashboard`  | Quan sát trạng thái toàn bộ ứng dụng Aspire | `http://localhost:18888` |
+| `ecm`               | Monolith ECM.Host chạy nghiệp vụ chính | `http://localhost:8080` |
+| `app-gateway`       | BFF + reverse proxy phục vụ UI | `http://localhost:5090` |
+| `search-indexer`    | Worker cập nhật chỉ mục tìm kiếm | – (background worker, không expose HTTP) |
+| `ocr-worker`       | Worker gọi Dot OCR service | – (background worker, không expose HTTP) |
+| `outbox-dispatcher` | Worker đọc outbox và đẩy sự kiện ra Kafka | – (background worker, không expose HTTP) |
+| `notify`            | Worker gửi thông báo (email/webhook) | – (background worker, không expose HTTP) |
+
+### Chạy thủ công từng service
+
+- Monolith ECM:
+
+  ```bash
+  dotnet run --project src/ECM/ECM.Host/ECM.Host.csproj
+  ```
+
+- App Gateway (BFF + reverse proxy):
+
+  ```bash
+  dotnet run --project src/AppGateway/AppGateway.Api/AppGateway.Api.csproj
+  ```
+
+  Đảm bảo biến cấu hình `Services__Ecm` trỏ tới địa chỉ của monolith (ví dụ `http://localhost:8080`). Có thể đặt trong `appsettings.Development.json` hoặc thông qua biến môi trường.
+
+- Background workers (ví dụ Outbox Dispatcher):
+
+  ```bash
+  dotnet run --project src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.Worker.csproj
+  ```
+
+  Lặp lại tương tự cho các worker khác trong thư mục `src/Workers`.
+
+### Cấu hình worker OutboxDispatcher, SearchIndexer & Ocr
 
 Các background worker không đọc cấu hình từ `appsettings` chung của monolith mà mong đợi biến môi trường tương ứng khi chạy độc
 lập (hoặc thông qua Aspire AppHost). Một số thiết lập quan trọng:
@@ -325,4 +420,5 @@ dotnet test ECM.sln --filter FullyQualifiedName~Document
 
 - [ARCHITECT.md](ARCHITECT.md) – mô tả kiến trúc tổng thể và các nguyên tắc thiết kế.
 - [docs/README.md](docs/README.md) – điểm bắt đầu để khám phá tài liệu chi tiết hơn.
+- [docs/ocr-integration.md](docs/ocr-integration.md) – hướng dẫn tích hợp Dot OCR (module + worker).
 - [docs/environment-configuration.md](docs/environment-configuration.md) – hướng dẫn ánh xạ biến môi trường, Azure secrets và thiết lập DEV local.

@@ -122,6 +122,22 @@ public static class Program
             .WithReference(ecmHost)
             .WithReference(moduleDatabases["Search"]);
 
+        var ocrWorker = builder.AddProject<Projects.Ocr>("ocr-worker")
+            .WithReference(kafka)
+            .WithReference(ecmHost);
+
+        if (connectionStrings.TryGetValue("Ocr", out var ocrConnection))
+        {
+            ocrWorker = ocrWorker.WithEnvironment("ConnectionStrings__Ocr", ocrConnection);
+        }
+
+        var dotOcrConfiguration = builder.Configuration.GetSection("Ocr:Dot");
+        foreach (var setting in dotOcrConfiguration.GetChildren())
+        {
+            var key = $"Ocr__Dot__{setting.Key}";
+            ocrWorker = ocrWorker.WithEnvironment(key, setting.Value);
+        }
+
         var outboxDispatcher = builder.AddProject<Projects.OutboxDispatcher>("outbox-dispatcher")
             .WithReference(kafka)
             .WithReference(ecmHost)
