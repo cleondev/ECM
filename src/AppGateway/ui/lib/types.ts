@@ -71,6 +71,16 @@ export type User = {
   createdAtUtc?: string
 }
 
+export type NotificationItem = {
+  id: string
+  title: string
+  description?: string
+  createdAt: string
+  type: "system" | "event" | "reminder" | "task" | "alert"
+  isRead?: boolean
+  actionUrl?: string
+}
+
 export type UploadMetadata = {
   title: string
   docType: string
