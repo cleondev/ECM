@@ -45,7 +45,7 @@ export default function ECMLandingPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="landing-theme min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 lg:px-8">

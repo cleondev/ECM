@@ -1,10 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  /* Updated to sophisticated dark cosmic theme with blue/purple accents */
+.landing-theme {
+  color-scheme: dark;
   --background: oklch(0.12 0.015 250);
   --foreground: oklch(0.98 0.005 250);
   --card: oklch(0.15 0.02 250);
@@ -19,7 +17,7 @@
   --muted-foreground: oklch(0.65 0.015 250);
   --accent: oklch(0.55 0.18 280);
   --accent-foreground: oklch(0.98 0.005 250);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.48 0.19 25);
   --destructive-foreground: oklch(0.99 0.005 250);
   --border: oklch(0.25 0.025 250);
   --input: oklch(0.25 0.025 250);
@@ -40,105 +38,30 @@
   --sidebar-ring: oklch(0.65 0.2 250);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
+  .landing-theme {
     @apply bg-background text-foreground;
   }
 
-  a,
-  button {
+  .landing-theme * {
+    @apply border-border/60 outline-ring/40;
+  }
+
+  .landing-theme a,
+  .landing-theme button {
     @apply transition-all duration-300 ease-in-out;
   }
 }
 
-/* Added cosmic space theme animations and effects */
 @layer utilities {
-  /* Animated starfield background */
-  .stars-bg {
+  .landing-theme .stars-bg {
     position: relative;
     background: radial-gradient(ellipse at bottom, oklch(0.18 0.03 250) 0%, oklch(0.1 0.02 250) 100%);
     overflow: hidden;
   }
 
-  .stars-bg::before,
-  .stars-bg::after {
+  .landing-theme .stars-bg::before,
+  .landing-theme .stars-bg::after {
     content: "";
     position: absolute;
     width: 100%;
@@ -156,7 +79,7 @@
     animation: twinkle 8s ease-in-out infinite;
   }
 
-  .stars-bg::after {
+  .landing-theme .stars-bg::after {
     background-image: radial-gradient(1px 1px at 40px 60px, white, transparent),
       radial-gradient(1px 1px at 110px 90px, white, transparent),
       radial-gradient(2px 2px at 150px 30px, white, transparent);
@@ -164,13 +87,12 @@
     animation: twinkle 10s ease-in-out infinite reverse;
   }
 
-  /* Cosmic glow effect */
-  .cosmic-glow {
+  .landing-theme .cosmic-glow {
     position: relative;
     background: radial-gradient(ellipse at center, oklch(0.2 0.08 250) 0%, transparent 70%);
   }
 
-  .cosmic-glow::before {
+  .landing-theme .cosmic-glow::before {
     content: "";
     position: absolute;
     top: -50%;
@@ -182,26 +104,23 @@
     animation: pulse-glow 8s ease-in-out infinite;
   }
 
-  /* Floating animation for cards */
-  .float-animation {
+  .landing-theme .float-animation {
     animation: float 6s ease-in-out infinite;
   }
 
-  /* Gradient text effect */
-  .gradient-text {
+  .landing-theme .gradient-text {
     background: linear-gradient(135deg, oklch(0.75 0.2 250) 0%, oklch(0.65 0.22 280) 50%, oklch(0.7 0.18 220) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
-  /* Shimmer effect */
-  .shimmer {
+  .landing-theme .shimmer {
     position: relative;
     overflow: hidden;
   }
 
-  .shimmer::after {
+  .landing-theme .shimmer::after {
     content: "";
     position: absolute;
     top: 0;
@@ -255,15 +174,15 @@
     }
   }
 
-  .animate-fade-in {
+  .landing-theme .animate-fade-in {
     animation: fadeIn 1s ease-in-out;
   }
 
-  .animate-slide-up {
+  .landing-theme .animate-slide-up {
     animation: slideUp 1s ease-out;
   }
 
-  .animate-scale-in {
+  .landing-theme .animate-scale-in {
     animation: scaleIn 0.8s ease-out;
   }
 

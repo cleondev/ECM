@@ -13,11 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchCurrentUserProfile, updateCurrentUserProfile } from "@/lib/api"
 import type { User } from "@/lib/types"
+import { useTheme } from "@/hooks/use-theme"
+import type { ThemeId } from "@/hooks/use-theme"
 
 const LANDING_PAGE_ROUTE = "/"
 const APP_HOME_ROUTE = "/app/"
 
 export default function SettingsPage() {
+  const { theme, setTheme, themes } = useTheme()
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(true)
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
@@ -248,14 +251,16 @@ export default function SettingsPage() {
                     <Label>Theme</Label>
                     <p className="text-sm text-muted-foreground">Select your preferred theme</p>
                   </div>
-                  <Select defaultValue="system">
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
+                  <Select value={theme} onValueChange={(value) => setTheme(value as ThemeId)}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Chọn theme" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
+                      {themes.map((option) => (
+                        <SelectItem key={option.id} value={option.id} title={option.description}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

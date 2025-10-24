@@ -18,7 +18,7 @@ export default function LandingLayout({
   children: React.ReactNode
 }>) {
   return (
-    <div className={`dark ${GeistSans.variable} ${GeistMono.variable}`}>
+    <div className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <div className="font-sans antialiased">
         <Suspense fallback={null}>{children}</Suspense>
       </div>
