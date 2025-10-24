@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { BrandLogo } from "@/components/brand-logo"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { checkLogin } from "@/lib/api"
@@ -109,11 +110,14 @@ function SignInPageContent() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-xl">FM</span>
-          </div>
+          <BrandLogo
+            showText={false}
+            size={48}
+            imageClassName="h-12 w-12"
+            className="mb-4 justify-center"
+          />
           <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Sign in to your File Manager account</CardDescription>
+          <CardDescription>Sign in to your ECM account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button className="w-full" size="lg" onClick={handleAzureSignIn} disabled={isLoading}>
@@ -176,9 +180,12 @@ function SignInPageFallback() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-4">
-            <span className="text-muted-foreground font-bold text-xl">FM</span>
-          </div>
+          <BrandLogo
+            showText={false}
+            size={48}
+            imageClassName="h-12 w-12"
+            className="mb-4 justify-center"
+          />
           <CardTitle className="text-2xl">Loading sign-in…</CardTitle>
           <CardDescription>Please wait while we prepare your sign-in experience.</CardDescription>
         </CardHeader>

@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { BrandLogo } from "@/components/brand-logo"
 import { checkLogin } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
-import { FileText, Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react"
+import { Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react"
 
 import "./globals.css"
 
@@ -50,10 +51,13 @@ export default function ECMLandingPage() {
       <header className="border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="flex h-16 items-center justify-between animate-fade-in">
-            <div className="flex items-center gap-2">
-              <FileText className="h-6 w-6 text-primary" />
-              <span className="text-xl font-semibold text-foreground">ECM</span>
-            </div>
+            <Link href="/" className="flex items-center">
+              <BrandLogo
+                priority
+                textClassName="text-xl font-semibold text-foreground"
+                imageClassName="h-10 w-10"
+              />
+            </Link>
             <nav className="hidden md:flex items-center gap-8">
               <a
                 href="#features"

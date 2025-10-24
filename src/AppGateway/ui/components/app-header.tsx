@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { SelectedTag, TagNode } from "@/lib/types"
 import { fetchTags } from "@/lib/api"
 import { ThemeSwitcher } from "./theme-switcher"
+import { BrandLogo } from "@/components/brand-logo"
 
 type AppHeaderProps = {
   searchQuery: string
@@ -104,11 +105,12 @@ export function AppHeader({
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">FM</span>
-          </div>
-
-          {!isLeftSidebarCollapsed && <span className="font-semibold text-lg hidden md:block">File Manager</span>}
+          <BrandLogo
+            className="gap-2"
+            imageClassName="h-8 w-8"
+            textClassName="hidden md:block font-semibold text-lg"
+            showText={!isLeftSidebarCollapsed}
+          />
         </div>
 
         <div className="flex-1 max-w-2xl">

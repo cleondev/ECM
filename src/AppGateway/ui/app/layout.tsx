@@ -6,10 +6,23 @@ import { ThemeScript } from "@/components/theme-script"
 
 import "./globals.css"
 
+const appDescription =
+  "Securely store, organize, and collaborate on documents with intelligent automation and enterprise-grade security."
+
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: {
+    default: "ECM | Enterprise Content Management",
+    template: "%s | ECM",
+  },
+  description: appDescription,
+  generator: "v0.app",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/logo/logo_256x256.png", sizes: "256x256", type: "image/png" },
+    ],
+    apple: [{ url: "/logo/logo_256x256.png", sizes: "256x256" }],
+  },
 }
 
 export default function RootLayout({
