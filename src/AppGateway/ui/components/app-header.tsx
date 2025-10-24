@@ -83,6 +83,7 @@ type AppHeaderProps = {
   onClearTag: () => void
   isLeftSidebarCollapsed: boolean
   onToggleLeftSidebar: () => void // Changed from onExpandLeftSidebar to onToggleLeftSidebar
+  isMobile?: boolean
 }
 
 export function AppHeader({
@@ -92,6 +93,7 @@ export function AppHeader({
   onClearTag,
   isLeftSidebarCollapsed,
   onToggleLeftSidebar, // Updated prop name
+  isMobile = false,
 }: AppHeaderProps) {
   const [user, setUser] = useState<UserType | null>(null)
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
@@ -191,7 +193,7 @@ export function AppHeader({
 
   return (
     <div className="border-b border-border bg-card">
-      <div className="flex items-center justify-between p-4 gap-4">
+      <div className="flex flex-wrap items-center gap-3 p-4 md:gap-4">
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -207,11 +209,11 @@ export function AppHeader({
             className="gap-2"
             imageClassName="h-8 w-8"
             textClassName="hidden md:block font-semibold text-lg"
-            showText={!isLeftSidebarCollapsed}
+            showText={!isMobile && !isLeftSidebarCollapsed}
           />
         </div>
 
-        <div className="flex-1 max-w-2xl">
+        <div className="flex-1 min-w-[240px] w-full md:max-w-2xl">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -333,7 +335,7 @@ export function AppHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <ThemeSwitcher className="max-w-[170px]" />
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <PopoverTrigger asChild>
