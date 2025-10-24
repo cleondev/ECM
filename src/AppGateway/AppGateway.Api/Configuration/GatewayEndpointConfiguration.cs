@@ -83,8 +83,12 @@ public static class GatewayEndpointConfiguration
             return;
         }
 
+        var mainAppPath = Program.MainAppPath.TrimEnd('/');
+
+        app.MapFallbackToFile($"{mainAppPath}/{{*path:nonfile}}", "app/index.html").AllowAnonymous();
+        app.MapFallbackToFile(Program.MainAppPath, "app/index.html").AllowAnonymous();
+        app.MapFallbackToFile($"{Program.UiRequestPath}/{{*path:nonfile}}", "index.html").AllowAnonymous();
         app.MapFallbackToFile("index.html").AllowAnonymous();
-        app.MapFallbackToFile($"{Program.UiRequestPath}/{{*path}}", "index.html").AllowAnonymous();
     }
 
     private static void ConfigureStatusEndpoints(WebApplication app)
