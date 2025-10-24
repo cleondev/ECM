@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, FileIcon, CheckCircle2 } from "lucide-react"
+import { Upload, X, CheckCircle2 } from "lucide-react"
 import { fetchFlows, fetchTags, uploadFile } from "@/lib/api"
 import type { Flow, SelectedTag, TagNode, UploadFileData, UploadMetadata } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { FileTypeIcon } from "./file-type-icon"
 
 const defaultMetadata: UploadMetadata = {
   title: "",
@@ -173,7 +174,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                 </>
               ) : (
                 <div className="flex items-center justify-center gap-3">
-                  <FileIcon className="h-8 w-8 text-primary" />
+                  <FileTypeIcon file={{ name: file.name, type: "document" }} size="md" />
                   <div className="text-left">
                     <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>

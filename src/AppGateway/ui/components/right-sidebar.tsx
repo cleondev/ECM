@@ -3,22 +3,7 @@
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import type { FileItem } from "@/lib/types"
-import {
-  FileText,
-  ImageIcon,
-  Video,
-  Code,
-  LucideComponent as FileIconComponent,
-  Calendar,
-  User,
-  Tag,
-  FolderOpen,
-  X,
-  GitBranch,
-  Clock,
-  ChevronDown,
-  ChevronRight,
-} from "lucide-react"
+import { Calendar, ChevronDown, ChevronRight, Clock, FileText, FolderOpen, GitBranch, Tag, User, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -26,6 +11,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { useState, useEffect } from "react"
 import { fetchFlows, fetchSystemTags, fetchTags } from "@/lib/api"
 import type { Flow, SystemTag, TagNode } from "@/lib/types"
+import { FileTypeIcon } from "./file-type-icon"
 
 type ActiveTab = "property" | "flow" | "form"
 
@@ -34,14 +20,6 @@ type RightSidebarProps = {
   activeTab: ActiveTab
   onTabChange: (tab: ActiveTab) => void
   onClose: () => void
-}
-
-const fileIcons = {
-  design: FileIconComponent,
-  document: FileText,
-  image: ImageIcon,
-  video: Video,
-  code: Code,
 }
 
 const statusColors = {
@@ -173,15 +151,13 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
     return (
       <div className="w-full h-full border-l border-border bg-card flex items-center justify-center p-6">
         <div className="text-center">
-          <FileIconComponent className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+          <FileTypeIcon size="lg" className="block mx-auto mb-3" />
           <p className="text-sm font-medium text-muted-foreground">No file selected</p>
           <p className="text-xs text-muted-foreground mt-1">Select a file to view details</p>
         </div>
       </div>
     )
   }
-
-  const Icon = fileIcons[selectedFile.type]
 
   const handleBlur = (field: string, value: string) => {
     console.log("[v0] Auto-save field:", field, value)
@@ -221,7 +197,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
         <TabsContent value="property" className="flex-1 overflow-y-auto mt-0">
           <div className="p-4">
             <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center mb-4">
-              <Icon className="h-16 w-16 text-muted-foreground" />
+              <FileTypeIcon file={selectedFile} size="lg" />
             </div>
 
             <h3 className="font-semibold text-lg mb-1 text-card-foreground text-pretty">{selectedFile.name}</h3>
@@ -251,7 +227,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                 {!collapsedSections.has("information") && (
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                      <FileIconComponent className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <FileTypeIcon file={selectedFile} size="sm" className="mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Type</p>
                         <p className="text-sm font-medium text-card-foreground capitalize">{selectedFile.type}</p>

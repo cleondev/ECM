@@ -3,24 +3,17 @@
 import type React from "react"
 
 import type { FileItem } from "./file-manager"
-import { FileText, ImageIcon, Video, Code, CastleIcon as DefaultFileIcon, MoreVertical } from "lucide-react"
+import { MoreVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { FileTypeIcon } from "./file-type-icon"
 
 type FileCardProps = {
   file: FileItem
   isSelected: boolean
   isMultiSelected?: boolean
   onSelect: (e: React.MouseEvent) => void
-}
-
-const fileIcons = {
-  design: DefaultFileIcon,
-  document: FileText,
-  image: ImageIcon,
-  video: Video,
-  code: Code,
 }
 
 const statusColors = {
@@ -30,8 +23,6 @@ const statusColors = {
 }
 
 export function FileCard({ file, isSelected, isMultiSelected, onSelect }: FileCardProps) {
-  const Icon = fileIcons[file.type]
-
   return (
     <button
       onClick={onSelect}
@@ -42,7 +33,7 @@ export function FileCard({ file, isSelected, isMultiSelected, onSelect }: FileCa
       )}
     >
       <div className="aspect-video w-full rounded-t-lg bg-muted flex items-center justify-center relative overflow-hidden">
-        <Icon className="h-12 w-12 text-muted-foreground" />
+        <FileTypeIcon file={file} size="lg" />
         {file.status && (
           <Badge className={cn("absolute top-2 right-2 text-xs", statusColors[file.status])}>{file.status}</Badge>
         )}

@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono"
 
 import { ThemeScript } from "@/components/theme-script"
 
+import "file-icon-vectors/dist/file-icon-square-o.min.css"
 import "./globals.css"
 
 const appDescription =
