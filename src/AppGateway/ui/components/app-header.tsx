@@ -1,6 +1,21 @@
 "use client"
 
-import { Search, User, Settings, LogOut, SlidersHorizontal, Menu } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+import {
+  Search,
+  User,
+  Settings,
+  LogOut,
+  SlidersHorizontal,
+  Menu,
+  Bell,
+  BellRing,
+  CalendarDays,
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardList,
+  Megaphone,
+} from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,8 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
-import { fetchUser, signOut } from "@/lib/api"
-import type { User as UserType } from "@/lib/types"
+import { fetchNotifications, fetchUser, signOut } from "@/lib/api"
+import type { NotificationItem, User as UserType } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -23,6 +38,43 @@ import type { SelectedTag, TagNode } from "@/lib/types"
 import { fetchTags } from "@/lib/api"
 import { ThemeSwitcher } from "./theme-switcher"
 import { BrandLogo } from "@/components/brand-logo"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
+
+const notificationTypeConfig: Record<NotificationItem["type"], { icon: LucideIcon; label: string; className: string }> = {
+  system: { icon: Megaphone, label: "Hệ thống", className: "bg-primary/10 text-primary" },
+  event: { icon: CalendarDays, label: "Sự kiện", className: "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
+  reminder: { icon: BellRing, label: "Nhắc việc", className: "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" },
+  task: { icon: ClipboardList, label: "Nhiệm vụ", className: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" },
+  alert: { icon: AlertTriangle, label: "Cảnh báo", className: "bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400" },
+}
+
+function formatRelativeTime(isoString: string): string {
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) {
+    return isoString
+  }
+
+  const now = Date.now()
+  const diff = date.getTime() - now
+  const absDiff = Math.abs(diff)
+  const formatter = new Intl.RelativeTimeFormat("vi", { numeric: "auto" })
+
+  const units: { unit: Intl.RelativeTimeFormatUnit; ms: number }[] = [
+    { unit: "day", ms: 1000 * 60 * 60 * 24 },
+    { unit: "hour", ms: 1000 * 60 * 60 },
+    { unit: "minute", ms: 1000 * 60 },
+  ]
+
+  for (const { unit, ms } of units) {
+    if (absDiff >= ms) {
+      return formatter.format(Math.round(diff / ms), unit)
+    }
+  }
+
+  return formatter.format(Math.round(diff / 1000), "second")
+}
 
 type AppHeaderProps = {
   searchQuery: string
@@ -46,6 +98,9 @@ export function AppHeader({
   const [tags, setTags] = useState<TagNode[]>([])
   const [advancedSearchTags, setAdvancedSearchTags] = useState<string[]>([])
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
 
   useEffect(() => {
     fetchUser()
@@ -53,6 +108,46 @@ export function AppHeader({
       .catch(() => setUser(null))
     fetchTags().then(setTags)
   }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    setIsLoadingNotifications(true)
+    fetchNotifications()
+      .then((data) => {
+        if (isMounted) {
+          setNotifications(data)
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Không thể tải thông báo:", error)
+        if (isMounted) {
+          setNotifications([])
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingNotifications(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isNotificationsOpen) {
+      return
+    }
+
+    setNotifications((prev) => {
+      if (!prev.some((notification) => !notification.isRead)) {
+        return prev
+      }
+
+      return prev.map((notification) => ({ ...notification, isRead: true }))
+    })
+  }, [isNotificationsOpen])
 
   useEffect(() => {
     if (isAdvancedSearchOpen && selectedTag) {
@@ -90,6 +185,9 @@ export function AppHeader({
       setIsSigningOut(false)
     }
   }
+
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length
+  const hasNotifications = notifications.length > 0
 
   return (
     <div className="border-b border-border bg-card">
@@ -237,6 +335,97 @@ export function AppHeader({
 
         <div className="flex items-center gap-2">
           <ThemeSwitcher className="max-w-[170px]" />
+          <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-9 w-9"
+                aria-label="Thông báo"
+              >
+                <Bell className="h-5 w-5" />
+                <span className="sr-only">Xem thông báo</span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-2.5 right-2.5 block h-2 w-2 rounded-full bg-destructive" />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={8} className="w-80 p-0">
+              <div className="flex items-start justify-between px-4 py-3 border-b">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold">Thông báo</p>
+                  <p className="text-xs text-muted-foreground">
+                    {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Tất cả thông báo đã xem"}
+                  </p>
+                </div>
+              </div>
+              {isLoadingNotifications ? (
+                <div className="flex items-center justify-center px-4 py-10 text-sm text-muted-foreground">
+                  Đang tải thông báo...
+                </div>
+              ) : hasNotifications ? (
+                <ScrollArea className="max-h-96">
+                  <div className="space-y-3 px-4 py-3">
+                    {notifications.map((notification) => {
+                      const config = notificationTypeConfig[notification.type]
+                      const Icon = config.icon
+
+                      return (
+                        <div
+                          key={notification.id}
+                          className={cn(
+                            "flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors",
+                            notification.isRead
+                              ? "bg-card hover:bg-muted/70"
+                              : "bg-primary/5 border-primary/30 hover:bg-primary/10",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full",
+                              config.className,
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium leading-5">{notification.title}</p>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {formatRelativeTime(notification.createdAt)}
+                              </span>
+                            </div>
+                            {notification.description && (
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                {notification.description}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
+                                {config.label}
+                              </Badge>
+                              {notification.actionUrl ? (
+                                <a
+                                  href={notification.actionUrl}
+                                  className="text-xs font-medium text-primary hover:underline"
+                                >
+                                  Xem chi tiết
+                                </a>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  Hiện chưa có thông báo nào.
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 px-2">

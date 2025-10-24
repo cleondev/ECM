@@ -1,4 +1,4 @@
-import type { FileItem, TagNode, Flow, SystemTag, User } from "./types"
+import type { FileItem, TagNode, Flow, SystemTag, User, NotificationItem } from "./types"
 
 export const mockFiles: FileItem[] = [
   {
@@ -664,5 +664,52 @@ export const mockUser: User = {
   isActive: true,
   createdAtUtc: new Date("2023-09-18T08:30:00Z").toISOString(),
 }
+
+export const mockNotifications: NotificationItem[] = [
+  {
+    id: "notif-1",
+    title: "Tài liệu Q2 Financial Report đã được cập nhật",
+    description: "Alex Chen đã tải lên phiên bản mới của báo cáo tài chính.",
+    type: "system",
+    createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    isRead: false,
+    actionUrl: "/documents/q2-financial-report",
+  },
+  {
+    id: "notif-2",
+    title: "Cuộc họp đánh giá thiết kế bắt đầu sau 30 phút",
+    description: "Phòng Product Design tổ chức họp review sprint tuần này.",
+    type: "event",
+    createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    isRead: false,
+    actionUrl: "/calendar/design-review",
+  },
+  {
+    id: "notif-3",
+    title: "Nhắc việc hoàn tất phê duyệt hợp đồng",
+    description: "Bạn còn một bước duyệt cuối cùng cho hợp đồng đối tác ACME.",
+    type: "reminder",
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    isRead: true,
+    actionUrl: "/approvals/acme-contract",
+  },
+  {
+    id: "notif-4",
+    title: "Hệ thống cảnh báo bảo mật",
+    description: "Đăng nhập bất thường được phát hiện từ IP ở Singapore.",
+    type: "alert",
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    isRead: false,
+  },
+  {
+    id: "notif-5",
+    title: "Giao nhiệm vụ mới: Chiến dịch Q3",
+    description: "Hoàn thiện nội dung Landing Page cho chiến dịch marketing Q3.",
+    type: "task",
+    createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+    isRead: true,
+    actionUrl: "/projects/q3-campaign",
+  },
+]
 
 export const mockFlows = mockFlowsByFile.default

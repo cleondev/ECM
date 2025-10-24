@@ -11,8 +11,16 @@ import type {
   SelectedTag,
   ShareOptions,
   ShareLink,
+  NotificationItem,
 } from "./types"
-import { mockFiles, mockTagTree, mockFlowsByFile, mockSystemTags, mockUser } from "./mock-data"
+import {
+  mockFiles,
+  mockTagTree,
+  mockFlowsByFile,
+  mockSystemTags,
+  mockUser,
+  mockNotifications,
+} from "./mock-data"
 import { normalizeRedirectTarget, slugify } from "./utils"
 import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapshot } from "./auth-state"
 
@@ -740,6 +748,17 @@ export async function fetchSystemTags(fileId: string): Promise<SystemTag[]> {
   } catch (error) {
     console.warn("[ui] Failed to fetch system tags via gateway, using mock data:", error)
     return mockSystemTags
+  }
+}
+
+export async function fetchNotifications(): Promise<NotificationItem[]> {
+  try {
+    const notifications = await gatewayRequest<NotificationItem[]>("/api/notifications")
+    return notifications
+  } catch (error) {
+    console.warn("[ui] Failed to fetch notifications via gateway, using mock data:", error)
+    await delay(150)
+    return mockNotifications
   }
 }
 
