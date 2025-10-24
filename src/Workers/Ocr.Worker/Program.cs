@@ -1,13 +1,19 @@
 using System;
+
 using ECM.Ocr.Application;
 using ECM.Ocr.Infrastructure;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+
 using Ocr.Messaging;
+using Ocr.Worker;
+
 using Serilog;
+
 using ServiceDefaults;
 
-namespace Ocr.Worker;
+namespace Ocr;
 
 public static class Program
 {

@@ -3,6 +3,9 @@ using System.Text.Json;
 using ECM.Ocr.Api.Ocr.Requests;
 using ECM.Ocr.Application.Commands;
 using ECM.Ocr.Application.Queries;
+
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
