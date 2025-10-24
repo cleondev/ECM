@@ -31,10 +31,10 @@ export function ThemeSwitcher({ className }: ThemeSwitcherProps) {
       <SelectContent>
         {themes.map((option) => (
           <SelectItem key={option.id} value={option.id} title={option.description}>
-            <div className="flex items-center gap-2">
+            <span className="flex items-center gap-2">
               <span className={cn("inline-flex size-3 rounded-full", THEME_ACCENT[option.id as ThemeId])} aria-hidden="true" />
               <span>{option.label}</span>
-            </div>
+            </span>
           </SelectItem>
         ))}
       </SelectContent>
