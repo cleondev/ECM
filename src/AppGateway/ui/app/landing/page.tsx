@@ -10,7 +10,18 @@ import { BrandLogo } from "@/components/brand-logo"
 import { checkLogin } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
-import { Search, Shield, Users, Zap, Lock, Cloud, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react"
+import {
+  Search,
+  Shield,
+  Users,
+  Zap,
+  Lock,
+  Cloud,
+  BarChart3,
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+} from "lucide-react"
 
 import "./globals.css"
 
