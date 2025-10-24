@@ -8,6 +8,7 @@
     <ProjectReference Include="../Abstractions/ECM.Abstractions.csproj" />
     <ProjectReference Include="../Operations/ECM.Operations.csproj" />
     <ProjectReference Include="../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
+    <ProjectReference Include="../../Shared/Extensions/Shared.Extensions.csproj" />
     <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
