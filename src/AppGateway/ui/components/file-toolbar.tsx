@@ -90,7 +90,7 @@ export function FileToolbar({
     }
   }
 
-  const tabValue = disableRightSidebarTabs ? undefined : isRightSidebarOpen ? activeRightTab : undefined
+  const tabValue = disableRightSidebarTabs ? undefined : isRightSidebarOpen ? activeRightTab : ""
 
   const tabStyles: Record<"property" | "flow" | "form", string> = {
     property:
