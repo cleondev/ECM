@@ -60,7 +60,7 @@ public sealed class DocumentsController(IEcmApiClient client) : ControllerBase
             return Problem(title: "Failed to create document", statusCode: StatusCodes.Status400BadRequest);
         }
 
-        return CreatedAtAction(nameof(GetAsync), new { id = document.Id }, document);
+        return Created($"/api/documents/{document.Id}", document);
     }
 
     [HttpGet("files/download/{versionId:guid}")]
