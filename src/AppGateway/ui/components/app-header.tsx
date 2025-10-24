@@ -350,7 +350,7 @@ export function AppHeader({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" sideOffset={8} className="w-80 p-0">
+            <PopoverContent align="end" sideOffset={8} className="w-96 max-w-[90vw] p-0">
               <div className="flex items-start justify-between px-4 py-3 border-b">
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold">Thông báo</p>
