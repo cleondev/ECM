@@ -38,6 +38,10 @@ export function FileManager() {
   const [sortBy, setSortBy] = useState<"name" | "modified" | "size">("modified")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
 
+  const isSingleSelection =
+    selectedFile !== null && selectedFiles.size === 1 && selectedFiles.has(selectedFile.id)
+  const disableDetailsPanels = !isSingleSelection
+
   useEffect(() => {
     loadFiles(true)
   }, [selectedFolder, selectedTag, searchQuery, sortBy, sortOrder])
@@ -127,6 +131,36 @@ export function FileManager() {
     setIsGeneratingShare(false)
   }
 
+  useEffect(() => {
+    if (selectedFiles.size === 0) {
+      if (selectedFile !== null) {
+        setSelectedFile(null)
+      }
+      return
+    }
+
+    if (!selectedFile || !selectedFiles.has(selectedFile.id)) {
+      const firstSelectedId = selectedFiles.values().next().value as string | undefined
+      if (!firstSelectedId) {
+        if (selectedFile !== null) {
+          setSelectedFile(null)
+        }
+        return
+      }
+
+      const fallbackFile = files.find((file) => file.id === firstSelectedId) || null
+      if ((fallbackFile?.id || null) !== (selectedFile?.id || null)) {
+        setSelectedFile(fallbackFile)
+      }
+    }
+  }, [files, selectedFile, selectedFiles])
+
+  useEffect(() => {
+    if (disableDetailsPanels && isRightSidebarOpen) {
+      setIsRightSidebarOpen(false)
+    }
+  }, [disableDetailsPanels, isRightSidebarOpen])
+
   return (
     <div className="flex flex-col h-screen bg-background">
       <AppHeader
@@ -177,11 +211,12 @@ export function FileManager() {
               setSortBy(nextSortBy)
               setSortOrder(nextSortOrder)
             }}
-            disableFileActions={!selectedFile?.latestVersionId}
+            disableFileActions={!selectedFile?.latestVersionId || !isSingleSelection}
             isRightSidebarOpen={isRightSidebarOpen}
             onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
             activeRightTab={activeRightTab}
             onRightTabChange={setActiveRightTab}
+            disableRightSidebarTabs={disableDetailsPanels}
           />
 
           <FileGrid
