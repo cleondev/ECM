@@ -178,13 +178,7 @@ export function FileToolbar({
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                aria-pressed={!(sortBy === "name" && sortOrder === "asc")}
-                data-active={!(sortBy === "name" && sortOrder === "asc")}
-                className="transition-colors data-[active=true]:border-primary data-[active=true]:text-primary data-[active=true]:bg-primary/10 data-[active=true]:hover:bg-primary/20"
-              >
+              <Button variant="outline" size="icon">
                 <SlidersHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
