@@ -16,14 +16,13 @@ import {
   X,
   GitBranch,
   Clock,
-  Edit3,
   ChevronDown,
   ChevronRight,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { useState, useEffect } from "react"
 import { fetchFlows, fetchSystemTags, fetchTags } from "@/lib/api"
 import type { Flow, SystemTag, TagNode } from "@/lib/types"
@@ -186,40 +185,22 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
     console.log("[v0] Auto-save field:", field, value)
   }
 
+  const activeTabLabel =
+    activeTab === "flow" ? "Flow" : activeTab === "form" ? "Form" : "Property"
+
   return (
     <div className="w-full h-full border-l border-border bg-card flex flex-col">
       <div className="p-4 border-b border-border flex items-center justify-between flex-shrink-0">
-        <h2 className="font-semibold text-card-foreground">File Details</h2>
+        <div>
+          <h2 className="font-semibold text-card-foreground">File Details</h2>
+          <p className="text-xs text-muted-foreground mt-1">{activeTabLabel}</p>
+        </div>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="w-full rounded-none border-b border-border bg-transparent p-0 h-auto flex-shrink-0">
-          <TabsTrigger
-            value="property"
-            className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Property
-          </TabsTrigger>
-          <TabsTrigger
-            value="flow"
-            className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
-          >
-            <GitBranch className="h-4 w-4 mr-2" />
-            Flow
-          </TabsTrigger>
-          <TabsTrigger
-            value="form"
-            className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
-          >
-            <Edit3 className="h-4 w-4 mr-2" />
-            Form
-          </TabsTrigger>
-        </TabsList>
-
         <TabsContent value="property" className="flex-1 overflow-y-auto mt-0">
           <div className="p-4">
             <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center mb-4">

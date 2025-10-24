@@ -23,7 +23,7 @@ export function FileManager() {
   const [searchQuery, setSearchQuery] = useState("")
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(320)
-  const [activeRightTab, setActiveRightTab] = useState("property")
+  const [activeRightTab, setActiveRightTab] = useState<"property" | "flow" | "form">("property")
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
@@ -180,6 +180,8 @@ export function FileManager() {
             disableFileActions={!selectedFile?.latestVersionId}
             isRightSidebarOpen={isRightSidebarOpen}
             onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
+            activeRightTab={activeRightTab}
+            onRightTabChange={setActiveRightTab}
           />
 
           <FileGrid

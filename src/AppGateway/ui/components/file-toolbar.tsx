@@ -3,6 +3,9 @@
 import {
   Check,
   Download,
+  Edit3,
+  FileText,
+  GitBranch,
   Grid3x3,
   List,
   PanelRightClose,
@@ -13,6 +16,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 type FileToolbarProps = {
   viewMode: "grid" | "list"
@@ -26,6 +30,8 @@ type FileToolbarProps = {
   disableFileActions?: boolean
   isRightSidebarOpen: boolean
   onToggleRightSidebar: () => void
+  activeRightTab: "property" | "flow" | "form"
+  onRightTabChange: (tab: "property" | "flow" | "form") => void
 }
 
 const SORT_OPTIONS: Array<{
@@ -54,7 +60,15 @@ export function FileToolbar({
   disableFileActions = false,
   isRightSidebarOpen,
   onToggleRightSidebar,
+  activeRightTab,
+  onRightTabChange,
 }: FileToolbarProps) {
+  const handleRightTabChange = (value: string) => {
+    if (value === "property" || value === "flow" || value === "form") {
+      onRightTabChange(value)
+    }
+  }
+
   return (
     <div className="border-b border-border bg-card">
       <div className="flex flex-wrap items-center justify-between p-4 gap-4">
@@ -63,6 +77,28 @@ export function FileToolbar({
             <Upload className="h-4 w-4" />
             Upload File
           </Button>
+
+          <ToggleGroup
+            type="single"
+            value={activeRightTab}
+            onValueChange={handleRightTabChange}
+            variant="outline"
+            className="h-10"
+            aria-label="File details sections"
+          >
+            <ToggleGroupItem value="property" className="gap-2 px-3">
+              <FileText className="h-4 w-4" />
+              <span className="text-sm font-medium">Property</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="flow" className="gap-2 px-3">
+              <GitBranch className="h-4 w-4" />
+              <span className="text-sm font-medium">Flow</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="form" className="gap-2 px-3">
+              <Edit3 className="h-4 w-4" />
+              <span className="text-sm font-medium">Form</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
 
           <Button
             variant="outline"
