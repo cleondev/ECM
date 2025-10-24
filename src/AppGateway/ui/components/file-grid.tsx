@@ -39,7 +39,7 @@ function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))] sm:gap-4">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="rounded-lg border border-border p-4 space-y-3">
           <Skeleton className="aspect-video w-full rounded" />
@@ -185,7 +185,7 @@ export function FileGrid({
 
   if (viewMode === "list") {
     return (
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4" tabIndex={0}>
+      <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4" tabIndex={0}>
         <div className="space-y-1">
           {files.map((file, index) => (
             <FileListItem
@@ -207,8 +207,8 @@ export function FileGrid({
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto p-6" tabIndex={0}>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
+    <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6" tabIndex={0}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fit,minmax(260px,1fr))] sm:gap-4">
         {files.map((file, index) => (
           <FileCard
             key={file.id}
