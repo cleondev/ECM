@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Megaphone,
+  X,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import { fetchNotifications } from "@/lib/api"
 import type { NotificationItem } from "@/lib/types"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { SelectedTag, TagNode } from "@/lib/types"
@@ -180,127 +181,148 @@ export function AppHeader({
           />
         </div>
 
-        <div className="flex-1 min-w-[240px] w-full md:max-w-2xl">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search files..."
-              value={searchQuery}
-              onChange={(e) => {
-                onSearchChange(e.target.value)
-              }}
-              className="pl-9 pr-24"
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {selectedTag && (
-                <Badge variant="secondary" className="gap-1 pr-1">
-                  {selectedTag.name}
-                  <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-transparent" onClick={onClearTag}>
-                    <span className="sr-only">Clear tag filter</span>×
-                  </Button>
-                </Badge>
-              )}
-              <Dialog open={isAdvancedSearchOpen} onOpenChange={setIsAdvancedSearchOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Advanced search">
-                    <SlidersHorizontal className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
-                  <DialogHeader>
-                    <DialogTitle>Advanced Search</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="filename">File name</Label>
-                      <Input id="filename" placeholder="Enter file name..." />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="content">Contains text</Label>
-                      <Input id="content" placeholder="Search within files..." />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tags</Label>
-                      <div className="flex flex-wrap gap-2 min-h-[80px] max-h-[120px] overflow-y-auto p-3 border rounded-md">
-                        {getAllTags(tags).map((tag) => (
-                          <Badge
-                            key={tag.id}
-                            variant={advancedSearchTags.includes(tag.name) ? "default" : "outline"}
-                            className="cursor-pointer h-fit"
-                            onClick={() => toggleAdvancedSearchTag(tag.name)}
-                          >
-                            {tag.icon && <span className="mr-1">{tag.icon}</span>}
-                            {tag.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>File type</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox id="pdf" />
-                          <label htmlFor="pdf" className="text-sm">
-                            PDF
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox id="doc" />
-                          <label htmlFor="doc" className="text-sm">
-                            Document
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox id="img" />
-                          <label htmlFor="img" className="text-sm">
-                            Image
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox id="video" />
-                          <label htmlFor="video" className="text-sm">
-                            Video
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Date range</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label htmlFor="from" className="text-xs text-muted-foreground">
-                            From
-                          </Label>
-                          <Input id="from" type="date" />
-                        </div>
-                        <div>
-                          <Label htmlFor="to" className="text-xs text-muted-foreground">
-                            To
-                          </Label>
-                          <Input id="to" type="date" />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="size">File size</Label>
-                      <div className="flex items-center gap-2">
-                        <Input id="size-min" type="number" placeholder="Min (MB)" className="flex-1" />
-                        <span className="text-muted-foreground">to</span>
-                        <Input id="size-max" type="number" placeholder="Max (MB)" className="flex-1" />
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 pt-4">
-                      <Button variant="outline" onClick={() => setIsAdvancedSearchOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={() => setIsAdvancedSearchOpen(false)}>Search</Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+        <div className="flex-1 min-w-[240px] w-full md:max-w-3xl">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search files..."
+                value={searchQuery}
+                onChange={(e) => {
+                  onSearchChange(e.target.value)
+                }}
+                className="h-11 rounded-full border border-border/60 bg-background/80 pl-10 pr-28 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-0 md:text-base md:pr-36"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {selectedTag && (
+                  <Badge variant="secondary" className="gap-1 rounded-full bg-primary/10 text-primary">
+                    {selectedTag.name}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 p-0 text-primary hover:bg-transparent"
+                      onClick={onClearTag}
+                    >
+                      <span className="sr-only">Clear tag filter</span>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 md:hidden"
+                  title="Advanced search"
+                  onClick={() => setIsAdvancedSearchOpen(true)}
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              className="hidden md:inline-flex h-11 shrink-0 items-center gap-2 rounded-full border-border/60 bg-background/90 px-4 text-sm font-medium"
+              onClick={() => setIsAdvancedSearchOpen(true)}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Tìm kiếm nâng cao
+            </Button>
           </div>
         </div>
+
+        <Dialog open={isAdvancedSearchOpen} onOpenChange={setIsAdvancedSearchOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Advanced Search</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="filename">File name</Label>
+                <Input id="filename" placeholder="Enter file name..." />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="content">Contains text</Label>
+                <Input id="content" placeholder="Search within files..." />
+              </div>
+              <div className="space-y-2">
+                <Label>Tags</Label>
+                <div className="flex flex-wrap gap-2 min-h-[80px] max-h-[120px] overflow-y-auto rounded-md border p-3">
+                  {getAllTags(tags).map((tag) => (
+                    <Badge
+                      key={tag.id}
+                      variant={advancedSearchTags.includes(tag.name) ? "default" : "outline"}
+                      className="h-fit cursor-pointer"
+                      onClick={() => toggleAdvancedSearchTag(tag.name)}
+                    >
+                      {tag.icon && <span className="mr-1">{tag.icon}</span>}
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>File type</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="pdf" />
+                    <label htmlFor="pdf" className="text-sm">
+                      PDF
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="doc" />
+                    <label htmlFor="doc" className="text-sm">
+                      Document
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="img" />
+                    <label htmlFor="img" className="text-sm">
+                      Image
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="video" />
+                    <label htmlFor="video" className="text-sm">
+                      Video
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Date range</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="from" className="text-xs text-muted-foreground">
+                      From
+                    </Label>
+                    <Input id="from" type="date" />
+                  </div>
+                  <div>
+                    <Label htmlFor="to" className="text-xs text-muted-foreground">
+                      To
+                    </Label>
+                    <Input id="to" type="date" />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="size">File size</Label>
+                <div className="flex items-center gap-2">
+                  <Input id="size-min" type="number" placeholder="Min (MB)" className="flex-1" />
+                  <span className="text-muted-foreground">to</span>
+                  <Input id="size-max" type="number" placeholder="Max (MB)" className="flex-1" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsAdvancedSearchOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => setIsAdvancedSearchOpen(false)}>Search</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="flex items-center gap-2 ml-auto">
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>

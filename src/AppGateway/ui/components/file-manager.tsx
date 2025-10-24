@@ -260,7 +260,6 @@ export function FileManager() {
                 onFolderSelect={setSelectedFolder}
                 selectedTag={selectedTag}
                 onTagClick={handleTagClick}
-                onCollapse={() => setIsLeftSidebarCollapsed(true)}
               />
             </div>
 
@@ -370,7 +369,6 @@ export function FileManager() {
                     handleTagClick(tag)
                     setIsLeftDrawerOpen(false)
                   }}
-                  onCollapse={() => setIsLeftDrawerOpen(false)}
                 />
               </div>
             </DrawerContent>
