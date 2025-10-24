@@ -21,7 +21,6 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -153,7 +152,7 @@ public static class DocumentEndpoints
 
     private static async Task<Results<Created<DocumentResponse>, ValidationProblem>> CreateDocumentAsync(
         ClaimsPrincipal principal,
-        [FromForm] CreateDocumentRequest request,
+        CreateDocumentRequest request,
         UploadDocumentCommandHandler handler,
         IOptions<DocumentUploadDefaultsOptions> defaultsOptions,
         CancellationToken cancellationToken)
