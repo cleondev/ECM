@@ -34,9 +34,7 @@ export function FileManager() {
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(320)
   const [activeRightTab, setActiveRightTab] = useState<"property" | "flow" | "form">("property")
-  const initialLeftSidebarCollapsed =
-    typeof window !== "undefined" ? window.innerWidth < 768 : true
-  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(initialLeftSidebarCollapsed)
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(true)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [page, setPage] = useState(1)
@@ -180,6 +178,7 @@ export function FileManager() {
 
     if (isMobile) {
       setIsLeftSidebarCollapsed(true)
+      setIsLeftDrawerOpen(false)
       hasSyncedDesktopSidebar.current = false
       return
     }
