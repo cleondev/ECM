@@ -153,7 +153,7 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
         }
     }
 
-    private Task CreateBucketAsync(CancellationToken cancellationToken)
+    private Task<PutBucketResponse> CreateBucketAsync(CancellationToken cancellationToken)
     {
         return _client.PutBucketAsync(new PutBucketRequest
         {
