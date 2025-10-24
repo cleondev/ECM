@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,10 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
     {
         ArgumentNullException.ThrowIfNull(content);
 
+        _logger.LogDebug("Starting MinIO upload for {Key} with content type {ContentType}.", storageKey, contentType);
+
+        var stopwatch = Stopwatch.StartNew();
+
         await EnsureBucketExistsAsync(cancellationToken);
 
         var (uploadStream, ownsStream) = await PrepareStreamAsync(content, cancellationToken);
@@ -28,6 +33,13 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         try
         {
             var objectSize = uploadStream.Length - uploadStream.Position;
+
+            _logger.LogDebug(
+                "Uploading object {Key} to bucket {Bucket}. Size: {Size} bytes. Position: {Position}.",
+                storageKey,
+                _options.BucketName,
+                objectSize,
+                uploadStream.Position);
 
             var putObjectArgs = new PutObjectArgs()
                 .WithBucket(_options.BucketName)
@@ -37,6 +49,42 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
                 .WithContentType(contentType);
 
             await _client.PutObjectAsync(putObjectArgs, cancellationToken);
+
+            _logger.LogDebug(
+                "Successfully uploaded object {Key} to bucket {Bucket} in {ElapsedMilliseconds} ms.",
+                storageKey,
+                _options.BucketName,
+                stopwatch.ElapsedMilliseconds);
+        }
+        catch (MinioException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogError(
+                exception,
+                "MinIO returned an error while uploading object {Key} to bucket {Bucket} after {ElapsedMilliseconds} ms.",
+                storageKey,
+                _options.BucketName,
+                stopwatch.ElapsedMilliseconds);
+            throw;
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogError(
+                exception,
+                "Unexpected error while uploading object {Key} to bucket {Bucket} after {ElapsedMilliseconds} ms.",
+                storageKey,
+                _options.BucketName,
+                stopwatch.ElapsedMilliseconds);
+            throw;
+        }
+        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                exception,
+                "Upload of object {Key} to bucket {Bucket} was cancelled after {ElapsedMilliseconds} ms.",
+                storageKey,
+                _options.BucketName,
+                stopwatch.ElapsedMilliseconds);
+            throw;
         }
         catch (Exception ex)
         {
@@ -45,6 +93,8 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         } 
         finally
         {
+            stopwatch.Stop();
+
             if (ownsStream)
             {
                 await uploadStream.DisposeAsync();
@@ -142,6 +192,7 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
 
         if (await _client.BucketExistsAsync(bucketExistsArgs, cancellationToken))
         {
+            _logger.LogDebug("Bucket {Bucket} already exists when preparing for upload.", _options.BucketName);
             return;
         }
 
@@ -150,7 +201,9 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
 
         try
         {
+            _logger.LogInformation("Creating bucket {Bucket} for MinIO uploads.", _options.BucketName);
             await _client.MakeBucketAsync(makeBucketArgs, cancellationToken);
+            _logger.LogInformation("Successfully created bucket {Bucket} for MinIO uploads.", _options.BucketName);
         }
         catch (MinioException exception) when (IsBucketAlreadyOwned(exception))
         {
@@ -158,16 +211,19 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         }
     }
 
-    private static async Task<(Stream Stream, bool OwnsStream)> PrepareStreamAsync(Stream source, CancellationToken cancellationToken)
+    private async Task<(Stream Stream, bool OwnsStream)> PrepareStreamAsync(Stream source, CancellationToken cancellationToken)
     {
         if (source.CanSeek)
         {
+            _logger.LogDebug("Using seekable source stream for MinIO upload.");
             return (source, false);
         }
 
         var buffer = new MemoryStream();
         await source.CopyToAsync(buffer, cancellationToken);
         buffer.Position = 0;
+
+        _logger.LogDebug("Buffered non-seekable stream for MinIO upload. Buffered size: {Size} bytes.", buffer.Length);
         return (buffer, true);
     }
 

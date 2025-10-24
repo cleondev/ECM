@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import type { SelectedTag } from "@/lib/types"
 
 type FileHeaderProps = {
   viewMode: "grid" | "list"
@@ -12,7 +13,7 @@ type FileHeaderProps = {
   searchQuery: string
   onSearchChange: (query: string) => void
   fileCount: number
-  selectedTag: string | null
+  selectedTag: SelectedTag | null
   onClearTag: () => void
   isLeftSidebarCollapsed: boolean
   onExpandLeftSidebar: () => void
@@ -29,8 +30,6 @@ export function FileHeader({
   isLeftSidebarCollapsed,
   onExpandLeftSidebar,
 }: FileHeaderProps) {
-  const displayQuery = searchQuery.replace(/tag:[^\s]+\s*/g, "").trim()
-
   return (
     <div className="border-b border-border bg-card">
       <div className="flex items-center justify-between p-4 gap-4">
@@ -45,20 +44,15 @@ export function FileHeader({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search files..."
-              value={displayQuery}
+              value={searchQuery}
               onChange={(e) => {
-                const newTextQuery = e.target.value
-                if (selectedTag) {
-                  onSearchChange(`tag:${selectedTag} ${newTextQuery}`.trim())
-                } else {
-                  onSearchChange(newTextQuery)
-                }
+                onSearchChange(e.target.value)
               }}
               className="pl-9"
             />
             {selectedTag && (
               <Badge variant="secondary" className="absolute right-2 top-1/2 -translate-y-1/2 gap-1 pr-1">
-                {selectedTag}
+                {selectedTag.name}
                 <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-transparent" onClick={onClearTag}>
                   <X className="h-3 w-3" />
                 </Button>

@@ -9,6 +9,8 @@ import type {
   User,
   UploadFileData,
   SelectedTag,
+  ShareOptions,
+  ShareLink,
 } from "./types"
 import { mockFiles, mockTagTree, mockFlowsByFile, mockSystemTags, mockUser } from "./mock-data"
 import { normalizeRedirectTarget, slugify } from "./utils"
@@ -54,6 +56,17 @@ type DocumentVersionResponse = {
   createdAtUtc: string
 }
 
+type DocumentTagResponse = {
+  id: string
+  namespaceSlug: string
+  slug: string
+  path: string
+  isActive: boolean
+  displayName: string
+  appliedBy?: string | null
+  appliedAtUtc: string
+}
+
 type DocumentResponse = {
   id: string
   title: string
@@ -67,6 +80,7 @@ type DocumentResponse = {
   updatedAtUtc: string
   documentTypeId?: string | null
   latestVersion?: DocumentVersionResponse | null
+  tags: DocumentTagResponse[]
 }
 
 type DocumentListResponse = {
@@ -75,6 +89,12 @@ type DocumentListResponse = {
   totalItems: number
   totalPages: number
   items: DocumentResponse[]
+}
+
+type ShareLinkResponse = {
+  url: string
+  expiresAtUtc: string
+  isPublic: boolean
 }
 
 type TagLabelResponse = {
@@ -259,17 +279,35 @@ function formatFileSize(bytes?: number | null): string {
 
 function mapDocumentToFileItem(document: DocumentResponse): FileItem {
   const latestVersion = document.latestVersion
+  const tagNames = document.tags?.map((tag) => {
+    if (tag.displayName) {
+      return tag.displayName
+    }
+
+    if (tag.path) {
+      const segments = tag.path.split("/").filter(Boolean)
+      if (segments.length > 0) {
+        return segments[segments.length - 1]
+      }
+      return tag.path
+    }
+
+    return tag.slug || tag.id
+  }) ?? []
   return {
     id: document.id,
     name: document.title || "Untitled document",
     type: "document",
     size: formatFileSize(latestVersion?.bytes ?? null),
     modified: new Date(document.updatedAtUtc ?? document.createdAtUtc).toISOString(),
-    tags: [],
+    tags: tagNames,
     folder: "All Files",
     owner: document.ownerId,
     description: "",
     status: document.status?.toLowerCase() === "draft" ? "draft" : "in-progress",
+    latestVersionId: latestVersion?.id,
+    latestVersionNumber: latestVersion?.versionNo,
+    sizeBytes: latestVersion?.bytes,
   }
 }
 
@@ -436,8 +474,8 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
     )
   }
 
-  if (params?.tag) {
-    filtered = filtered.filter((file) => file.tags.includes(params.tag!))
+  if (params?.tagLabel) {
+    filtered = filtered.filter((file) => file.tags.includes(params.tagLabel!))
   }
 
   if (params?.folder && params.folder !== "All Files") {
@@ -494,6 +532,23 @@ export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedRes
       searchParams.set("pageSize", params.limit.toString())
     }
 
+    if (params?.search) {
+      const trimmed = params.search.trim()
+      if (trimmed) {
+        searchParams.set("q", trimmed)
+      }
+    }
+
+    if (params?.tagId) {
+      searchParams.append("tags[]", params.tagId)
+    }
+
+    if (params?.sortBy) {
+      const sortField = resolveSortField(params.sortBy)
+      const sortOrder = params.sortOrder === "asc" ? "asc" : "desc"
+      searchParams.set("sort", `${sortField}:${sortOrder}`)
+    }
+
     const query = searchParams.toString()
     const path = query ? `/api/documents?${query}` : "/api/documents"
     const response = await gatewayRequest<DocumentListResponse>(path)
@@ -509,6 +564,18 @@ export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedRes
   } catch (error) {
     console.error("[ui] Failed to fetch documents from gateway, falling back to mock data:", error)
     return filterAndPaginate(mockFiles, params)
+  }
+}
+
+function resolveSortField(sortBy: NonNullable<FileQueryParams["sortBy"]>): string {
+  switch (sortBy) {
+    case "name":
+      return "name"
+    case "size":
+      return "size"
+    case "modified":
+    default:
+      return "modified"
   }
 }
 
@@ -789,6 +856,37 @@ export async function uploadFile(data: UploadFileData): Promise<FileItem> {
 
     return newFile
   }
+}
+
+export async function createShareLink(versionId: string, options: ShareOptions): Promise<ShareLink> {
+  try {
+    const normalizedMinutes = Number.isFinite(options.expiresInMinutes)
+      ? Math.min(10080, Math.max(1, Math.round(options.expiresInMinutes)))
+      : 1440
+
+    const payload = {
+      isPublic: options.isPublic,
+      expiresInMinutes: normalizedMinutes,
+    }
+
+    const response = await gatewayRequest<ShareLinkResponse>(`/api/documents/files/share/${versionId}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+
+    return {
+      url: response.url,
+      expiresAtUtc: response.expiresAtUtc,
+      isPublic: response.isPublic,
+    }
+  } catch (error) {
+    console.error(`[ui] Failed to create share link for version ${versionId}:`, error)
+    throw error
+  }
+}
+
+export function buildDocumentDownloadUrl(versionId: string): string {
+  return createGatewayUrl(`/api/documents/files/download/${versionId}`)
 }
 
 export async function updateUserAvatar(file: File): Promise<string> {

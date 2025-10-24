@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace AppGateway.Contracts.Documents;
 
 public sealed record DocumentDto(
@@ -12,4 +14,5 @@ public sealed record DocumentDto(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     Guid? DocumentTypeId,
-    DocumentVersionDto? LatestVersion);
+    DocumentVersionDto? LatestVersion,
+    IReadOnlyCollection<DocumentTagDto> Tags);
