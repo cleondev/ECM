@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Workers.Shared.Messaging;
 
-internal static class KafkaIntegrationEventHandler
+public static class KafkaIntegrationEventHandler
 {
     public static async Task HandleMessageAsync<TMessage, TEnvelope, TProcessor>(
         TMessage message,

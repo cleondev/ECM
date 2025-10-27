@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace Workers.Shared.Messaging;
 
-internal sealed record IntegrationEventEnvelope<TPayload>(
+public sealed record IntegrationEventEnvelope<TPayload>(
     Guid EventId,
     DateTimeOffset OccurredAtUtc,
     TPayload? Data)
     where TPayload : class;
 
-internal sealed record DocumentIntegrationEventPayload(
+public sealed record DocumentIntegrationEventPayload(
     Guid DocumentId,
     string Title,
     string? Summary,
