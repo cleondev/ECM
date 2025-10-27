@@ -39,9 +39,12 @@ function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
   }
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] sm:gap-3 lg:grid-cols-[repeat(auto-fit,minmax(260px,1fr))] lg:gap-4">
+    <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-4">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="rounded-lg border border-border p-3 sm:p-4 space-y-3">
+        <div
+          key={i}
+          className="flex-[1_0_160px] sm:flex-[1_0_200px] lg:flex-[1_0_220px] xl:flex-[1_0_240px] max-w-[200px] sm:max-w-[240px] lg:max-w-[260px] xl:max-w-[280px] rounded-lg border border-border p-3 sm:p-4 space-y-3"
+        >
           <Skeleton className="aspect-video w-full rounded" />
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-3 w-1/2" />
@@ -208,7 +211,7 @@ export function FileGrid({
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6" tabIndex={0}>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] sm:gap-3 lg:grid-cols-[repeat(auto-fit,minmax(260px,1fr))] lg:gap-4">
+      <div className="flex flex-wrap gap-2 sm:gap-3 lg:gap-4">
         {files.map((file, index) => (
           <FileCard
             key={file.id}
