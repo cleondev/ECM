@@ -159,8 +159,8 @@ export function AppHeader({
 
   return (
     <div className="border-b border-border bg-card">
-      <div className="grid w-full max-w-5xl mx-auto grid-cols-1 items-center gap-3 p-4 md:grid-cols-[auto,minmax(240px,1fr),auto] md:gap-4">
-        <div className="flex items-center gap-2 justify-self-start">
+      <div className="mx-auto flex w-full max-w-5xl items-center gap-3 p-4 md:gap-4">
+        <div className="flex flex-shrink-0 items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -179,9 +179,9 @@ export function AppHeader({
           />
         </div>
 
-        <div className="flex-1 min-w-[240px] w-full md:max-w-3xl md:mx-auto">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
-            <div className="relative flex-1">
+        <div className="flex min-w-0 flex-1 justify-center md:max-w-3xl">
+          <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-center md:gap-3">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search files..."
@@ -324,7 +324,7 @@ export function AppHeader({
           </DialogContent>
         </Dialog>
 
-        <div className="flex items-center gap-3 justify-self-end">
+        <div className="ml-3 flex flex-shrink-0 items-center gap-3">
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button
