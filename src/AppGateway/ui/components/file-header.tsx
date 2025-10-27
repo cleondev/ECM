@@ -40,19 +40,19 @@ export function FileHeader({
             </Button>
           )}
 
-          <div className="flex-1 md:max-w-md">
+          <div className="flex-1 md:min-w-[520px] md:max-w-3xl">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground md:h-5 md:w-5" />
               <Input
                 placeholder="Search files..."
                 value={searchQuery}
                 onChange={(e) => {
                   onSearchChange(e.target.value)
                 }}
-                className="pl-9"
+                className="h-11 pl-9 text-sm md:h-14 md:pl-12 md:pr-14 md:text-lg"
               />
               {selectedTag && (
-                <Badge variant="secondary" className="absolute right-2 top-1/2 -translate-y-1/2 gap-1 pr-1">
+                <Badge variant="secondary" className="absolute right-2 top-1/2 -translate-y-1/2 gap-1 pr-1 text-sm md:text-base">
                   {selectedTag.name}
                   <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-transparent" onClick={onClearTag}>
                     <X className="h-3 w-3" />
