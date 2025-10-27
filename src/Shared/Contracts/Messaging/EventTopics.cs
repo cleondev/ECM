@@ -4,11 +4,17 @@ public static class EventTopics
 {
     public static class Document
     {
+        public const string Events = "document.events";
         public const string Uploaded = "ecm.document.uploaded";
     }
 
     public static class Ocr
     {
         public const string Completed = "ecm.ocr.completed";
+    }
+
+    public static class Iam
+    {
+        public const string Events = "iam.events";
     }
 }
