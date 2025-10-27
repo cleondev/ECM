@@ -158,7 +158,7 @@ export function AppHeader({
   const hasNotifications = notifications.length > 0
 
   return (
-    <div className="border-b border-border bg-card">
+    <div className="bg-card">
       <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 md:gap-4">
         <div className="flex shrink-0 items-center gap-2 justify-self-start">
           <Button
