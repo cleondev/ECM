@@ -9,5 +9,6 @@
     <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../../Modules/Ocr/ECM.Ocr.csproj" />
     <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
+    <ProjectReference Include="../Shared/Workers.Shared.csproj" />
   </ItemGroup>
 </Project>
