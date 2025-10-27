@@ -180,15 +180,15 @@ export function AppHeader({
 
         <div className="flex min-w-0 justify-center justify-self-center">
           <div className="flex w-full min-w-0 max-w-5xl flex-col gap-2 md:flex-row md:items-center md:gap-3">
-            <div className="relative flex-1 min-w-0 md:min-w-[420px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative flex-1 min-w-0 md:min-w-[520px] md:max-w-3xl">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground md:h-5 md:w-5" />
               <Input
                 placeholder="Search files..."
                 value={searchQuery}
                 onChange={(e) => {
                   onSearchChange(e.target.value)
                 }}
-                className="h-11 rounded-full border border-border/60 bg-background/80 pl-10 pr-20 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-0 md:h-12 md:text-base md:pr-24"
+                className="h-11 rounded-full border border-border/60 bg-background/80 pl-10 pr-20 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-0 md:h-14 md:pl-12 md:pr-28 md:text-lg"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {selectedTag && (
