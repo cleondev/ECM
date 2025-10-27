@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Security.Claims;
 using ECM.BuildingBlocks.Infrastructure.Caching;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -35,7 +37,11 @@ public static class ServiceDefaultsExtensions
             .AddStandardResilienceHandler();
 
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
+            .ConfigureResource(resource =>
+            {
+                resource.AddService(builder.Environment.ApplicationName);
+                resource.AddAttributes(CreateResourceAttributes(builder.Environment));
+            })
             .WithMetrics(metrics =>
             {
                 metrics.AddMeter("Microsoft.AspNetCore.Hosting");
@@ -62,6 +68,17 @@ public static class ServiceDefaultsExtensions
     public static IHostApplicationBuilder AddSerilogLogging(this IHostApplicationBuilder builder)
     {
         builder.Logging.ClearProviders();
+
+        builder.Logging.AddOpenTelemetry(options =>
+        {
+            options.IncludeScopes = true;
+            options.IncludeFormattedMessage = true;
+            options.ParseStateValues = true;
+            options.SetResourceBuilder(ResourceBuilder.CreateDefault()
+                .AddService(builder.Environment.ApplicationName)
+                .AddAttributes(CreateResourceAttributes(builder.Environment)));
+            options.AddOtlpExporter();
+        });
 
         Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
@@ -93,6 +110,11 @@ public static class ServiceDefaultsExtensions
         builder.Services.AddConfiguredCache(cacheOptions);
 
         return builder;
+    }
+
+    private static IEnumerable<KeyValuePair<string, object?>> CreateResourceAttributes(IHostEnvironment environment)
+    {
+        yield return new KeyValuePair<string, object?>("deployment.environment", environment.EnvironmentName);
     }
 }
 
