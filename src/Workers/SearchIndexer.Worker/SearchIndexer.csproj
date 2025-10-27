@@ -11,4 +11,8 @@
     <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
     <ProjectReference Include="../Shared/Workers.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\Messaging\KafkaIntegrationEventHandler.cs" Link="Messaging/KafkaIntegrationEventHandler.cs" />
+    <Compile Include="..\Shared\Messaging\IntegrationEventEnvelope.cs" Link="Messaging/IntegrationEventEnvelope.cs" />
+  </ItemGroup>
 </Project>
