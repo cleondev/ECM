@@ -6,11 +6,10 @@ using ECM.Ocr.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-using Ocr.Worker;
-
 using Serilog;
 
 using ServiceDefaults;
+
 using Workers.Shared.Messaging;
 
 namespace Ocr;

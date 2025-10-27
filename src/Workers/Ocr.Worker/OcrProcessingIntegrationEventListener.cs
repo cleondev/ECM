@@ -1,12 +1,12 @@
-using ECM.Ocr.Application.Events;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Shared.Contracts.Messaging;
 using System.Text.Json;
+
+using ECM.Ocr.Application.Events;
+
+using Shared.Contracts.Messaging;
+
 using Workers.Shared.Messaging;
 
-namespace Ocr.Worker;
+namespace Ocr;
 
 internal sealed class OcrProcessingIntegrationEventListener(
     IKafkaConsumer consumer,

@@ -21,12 +21,13 @@ public static class QueryCollectionExtensions
         }
 
         var provider = formatProvider ?? CultureInfo.InvariantCulture;
-        if (!T.TryParse(raw, provider, out value))
+        if (!T.TryParse(raw, provider, out var parsedValue))
         {
             value = default!;
             return false;
         }
 
+        value = parsedValue!;
         return true;
     }
 
