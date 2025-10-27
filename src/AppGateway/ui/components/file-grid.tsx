@@ -43,7 +43,7 @@ function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="flex-[1_0_160px] sm:flex-[1_0_200px] lg:flex-[1_0_220px] xl:flex-[1_0_240px] max-w-[200px] sm:max-w-[240px] lg:max-w-[260px] xl:max-w-[280px] rounded-lg border border-border p-3 sm:p-4 space-y-3"
+          className="flex-none shrink-0 w-[160px] sm:w-[200px] lg:w-[220px] xl:w-[240px] rounded-lg border border-border p-3 sm:p-4 space-y-3"
         >
           <Skeleton className="aspect-video w-full rounded" />
           <Skeleton className="h-4 w-3/4" />
