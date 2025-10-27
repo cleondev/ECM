@@ -159,8 +159,8 @@ export function AppHeader({
 
   return (
     <div className="border-b border-border bg-card">
-      <div className="mx-auto flex w-full max-w-5xl items-center gap-3 p-4 md:gap-4">
-        <div className="flex flex-shrink-0 items-center gap-2">
+      <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 md:gap-4">
+        <div className="flex shrink-0 items-center gap-2 justify-self-start">
           <Button
             variant="ghost"
             size="icon"
@@ -179,8 +179,8 @@ export function AppHeader({
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 justify-center md:max-w-3xl">
-          <div className="flex w-full min-w-0 flex-col gap-2 md:flex-row md:items-center md:gap-3">
+        <div className="flex min-w-0 justify-center justify-self-center">
+          <div className="flex w-full min-w-0 max-w-3xl flex-col gap-2 md:flex-row md:items-center md:gap-3">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -324,7 +324,7 @@ export function AppHeader({
           </DialogContent>
         </Dialog>
 
-        <div className="ml-3 flex flex-shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3 justify-self-end">
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button
