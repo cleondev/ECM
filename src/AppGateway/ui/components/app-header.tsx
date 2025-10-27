@@ -364,16 +364,17 @@ export function AppHeader({
                       const config = notificationTypeConfig[notification.type]
                       const Icon = config.icon
 
-                        return (
-                          <div
-                            key={notification.id}
-                            className={cn(
-                              "flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors",
-                              notification.isRead
-                                ? "bg-card hover:bg-muted/70"
-                                : "bg-primary/5 border-primary/30 hover:bg-primary/10",
-                            )}
-                          >
+                      return (
+                        <div
+                          key={notification.id}
+                          className={cn(
+                            "flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors",
+                            notification.isRead
+                              ? "bg-card hover:bg-muted/70"
+                              : "bg-primary/5 border-primary/30 hover:bg-primary/10",
+                          )}
+                        >
+                          <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", config.className)}>
                             <Icon className="h-4 w-4" />
                           </span>
                           <div className="flex-1 space-y-1">
@@ -384,7 +385,7 @@ export function AppHeader({
                               </span>
                             </div>
                             {notification.description && (
-                              <p className="text-xs text-muted-foreground leading-relaxed">
+                              <p className="text-xs leading-relaxed text-muted-foreground">
                                 {notification.description}
                               </p>
                             )}
@@ -402,13 +403,9 @@ export function AppHeader({
                               ) : null}
                             </div>
                           </div>
-                        )
-                      })}
-                    </div>
-                  </ScrollArea>
-                ) : (
-                  <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
-                    Hiện chưa có thông báo nào.
+                        </div>
+                      )
+                    })}
                   </div>
                 </ScrollArea>
               ) : (
