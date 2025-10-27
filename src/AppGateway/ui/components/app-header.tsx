@@ -339,29 +339,30 @@ export function AppHeader({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" sideOffset={8} className="w-96 max-w-[90vw] p-0">
-              <div
-                className="flex max-h-[70vh] flex-col"
-                style={{ maxHeight: "min(70vh, 24rem)" }}
-              >
-                <div className="flex items-start justify-between border-b px-4 py-3">
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-semibold">Thông báo</p>
-                    <p className="text-xs text-muted-foreground">
-                      {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Tất cả thông báo đã xem"}
-                    </p>
-                  </div>
+            <PopoverContent
+              align="end"
+              sideOffset={8}
+              className="flex min-h-0 w-96 max-w-[90vw] flex-col overflow-hidden p-0"
+              style={{ maxHeight: "min(70vh, 24rem)" }}
+            >
+              <div className="flex shrink-0 items-start justify-between border-b px-4 py-3">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-semibold">Thông báo</p>
+                  <p className="text-xs text-muted-foreground">
+                    {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Tất cả thông báo đã xem"}
+                  </p>
                 </div>
-                {isLoadingNotifications ? (
-                  <div className="flex flex-1 items-center justify-center px-4 py-10 text-sm text-muted-foreground">
-                    Đang tải thông báo...
-                  </div>
-                ) : hasNotifications ? (
-                  <ScrollArea className="flex-1 overflow-hidden">
-                    <div className="space-y-3 px-4 py-3">
-                      {notifications.map((notification) => {
-                        const config = notificationTypeConfig[notification.type]
-                        const Icon = config.icon
+              </div>
+              {isLoadingNotifications ? (
+                <div className="flex flex-1 items-center justify-center px-4 py-10 text-sm text-muted-foreground">
+                  Đang tải thông báo...
+                </div>
+              ) : hasNotifications ? (
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-3 px-4 py-3">
+                    {notifications.map((notification) => {
+                      const config = notificationTypeConfig[notification.type]
+                      const Icon = config.icon
 
                         return (
                           <div
@@ -373,39 +374,32 @@ export function AppHeader({
                                 : "bg-primary/5 border-primary/30 hover:bg-primary/10",
                             )}
                           >
-                            <span
-                              className={cn(
-                                "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full",
-                                config.className,
-                              )}
-                            >
-                              <Icon className="h-4 w-4" />
-                            </span>
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="font-medium leading-5">{notification.title}</p>
-                                <span className="whitespace-nowrap text-xs text-muted-foreground">
-                                  {formatRelativeTime(notification.createdAt)}
-                                </span>
-                              </div>
-                              {notification.description && (
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                  {notification.description}
-                                </p>
-                              )}
-                              <div className="flex flex-wrap items-center gap-2 pt-1">
-                                <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
-                                  {config.label}
-                                </Badge>
-                                {notification.actionUrl ? (
-                                  <a
-                                    href={notification.actionUrl}
-                                    className="text-xs font-medium text-primary hover:underline"
-                                  >
-                                    Xem chi tiết
-                                  </a>
-                                ) : null}
-                              </div>
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-medium leading-5">{notification.title}</p>
+                              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                                {formatRelativeTime(notification.createdAt)}
+                              </span>
+                            </div>
+                            {notification.description && (
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                {notification.description}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
+                                {config.label}
+                              </Badge>
+                              {notification.actionUrl ? (
+                                <a
+                                  href={notification.actionUrl}
+                                  className="text-xs font-medium text-primary hover:underline"
+                                >
+                                  Xem chi tiết
+                                </a>
+                              ) : null}
                             </div>
                           </div>
                         )
@@ -416,8 +410,12 @@ export function AppHeader({
                   <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
                     Hiện chưa có thông báo nào.
                   </div>
-                )}
-              </div>
+                </ScrollArea>
+              ) : (
+                <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
+                  Hiện chưa có thông báo nào.
+                </div>
+              )}
             </PopoverContent>
           </Popover>
 
