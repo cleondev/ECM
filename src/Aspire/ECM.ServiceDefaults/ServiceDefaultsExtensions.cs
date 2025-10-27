@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
+using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -28,7 +29,6 @@ public static class ServiceDefaultsExtensions
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
         builder.AddDefaultConfiguration();
-        builder.AddSerilogLogging();
         builder.AddDefaultHealthChecks();
         builder.AddCaching();
 
@@ -36,7 +36,9 @@ public static class ServiceDefaultsExtensions
         builder.Services.AddHttpClient("resilient-test")
             .AddStandardResilienceHandler();
 
-        builder.Services.AddOpenTelemetry()
+        var openTelemetryBuilder = builder.Services.AddOpenTelemetry();
+
+        openTelemetryBuilder
             .ConfigureResource(resource =>
             {
                 resource.AddService(builder.Environment.ApplicationName);
@@ -55,6 +57,8 @@ public static class ServiceDefaultsExtensions
                 });
             });
 
+        builder.AddSerilogLogging(openTelemetryBuilder);
+
         return builder;
     }
 
@@ -65,20 +69,20 @@ public static class ServiceDefaultsExtensions
         return builder;
     }
 
-    public static IHostApplicationBuilder AddSerilogLogging(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddSerilogLogging(this IHostApplicationBuilder builder, OpenTelemetryBuilder? openTelemetryBuilder = null)
     {
         builder.Logging.ClearProviders();
 
-        builder.Logging.AddOpenTelemetry(options =>
-        {
-            options.IncludeScopes = true;
-            options.IncludeFormattedMessage = true;
-            options.ParseStateValues = true;
-            options.SetResourceBuilder(ResourceBuilder.CreateDefault()
-                .AddService(builder.Environment.ApplicationName)
-                .AddAttributes(CreateResourceAttributes(builder.Environment)));
-            options.AddOtlpExporter();
-        });
+        (openTelemetryBuilder ?? builder.Services.AddOpenTelemetry())
+            .WithLogging(
+                configureBuilder: _ => { },
+                configureOptions: options =>
+                {
+                    options.IncludeScopes = true;
+                    options.IncludeFormattedMessage = true;
+                    options.ParseStateValues = true;
+                    options.AddOtlpExporter();
+                });
 
         Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
