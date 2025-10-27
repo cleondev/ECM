@@ -36,7 +36,7 @@ Giá trị có thể được thiết lập trong `appsettings.Development.json`
 - Đảm bảo đã build SPA: `cd src/AppGateway/ui && npm install && npm run build`.
 - Chạy Gateway bằng `dotnet run --project src/AppGateway/AppGateway.Api/AppGateway.Api.csproj`.
 - Kiểm tra log khởi động: Gateway sẽ thông báo đường dẫn webroot và expose `index.html`.
-- Nếu sử dụng Aspire, chắc chắn service `app-gateway` và `ecm` đều ở trạng thái `Running`.
+- Nếu sử dụng Aspire, chắc chắn service `svc-app-gateway` và `app-ecm` đều ở trạng thái `Running`.
 - Dùng endpoint health check: `curl http://localhost:8080/health` để xác nhận Gateway hoạt động.
 
 ## Tham khảo thêm
