@@ -292,7 +292,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   }
 
   return (
-    <div className="w-full h-full border-r border-border bg-sidebar flex flex-col">
+    <div className="w-full h-full border-r border-border border-t-0 bg-sidebar flex flex-col">
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0 flex flex-col gap-3 p-3">
           <div
@@ -442,13 +442,17 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-3 px-2 py-2">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.displayName} />
+            <Button
+              variant="ghost"
+              size="lg"
+              className="w-full justify-start gap-4 px-4 py-3 h-auto min-h-[4.5rem] rounded-xl border border-sidebar-border/80 bg-sidebar/60 text-left transition-colors hover:bg-sidebar-accent/50"
+            >
+              <Avatar className="h-12 w-12 border border-sidebar-border/70 bg-background/80">
+                <AvatarImage src={user?.avatar || "/default-user-icon.svg"} alt={user?.displayName} />
                 <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col items-start text-left">
-                <span className="text-sm font-medium truncate w-full">{user?.displayName || "Loading..."}</span>
+              <div className="flex flex-col items-start text-left gap-0.5">
+                <span className="text-sm font-semibold truncate w-full">{user?.displayName || "Loading..."}</span>
                 <span className="text-xs text-muted-foreground truncate w-full">{user?.department || primaryRole}</span>
               </div>
             </Button>

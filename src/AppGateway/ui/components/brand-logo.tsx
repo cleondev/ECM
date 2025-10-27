@@ -27,7 +27,6 @@ export function BrandLogo({
         priority={priority}
         className={cn("h-8 w-8", imageClassName)}
       />
-      <span className={cn("font-semibold text-lg text-foreground", textClassName)}>ECM</span>
     </span>
   )
 }

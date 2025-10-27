@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
@@ -249,6 +250,8 @@ public static class DocumentEndpoints
             result.Value.Department,
             result.Value.CreatedAtUtc,
             result.Value.UpdatedAtUtc,
+            FormatDocumentTimestamp(result.Value.CreatedAtUtc),
+            FormatDocumentTimestamp(result.Value.UpdatedAtUtc),
             result.Value.DocumentTypeId,
             version,
             []);
@@ -528,9 +531,19 @@ public static class DocumentEndpoints
             document.Department,
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
+            FormatDocumentTimestamp(document.CreatedAtUtc),
+            FormatDocumentTimestamp(document.UpdatedAtUtc),
             document.TypeId,
             versionResponse,
             tags);
+    }
+
+    private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("vi-VN");
+
+    private static string FormatDocumentTimestamp(DateTimeOffset timestamp)
+    {
+        var localized = timestamp.ToLocalTime();
+        return localized.ToString("dd/MM/yyyy HH:mm", DisplayCulture);
     }
 
     private static IOrderedQueryable<DomainDocument> ApplySorting(IQueryable<DomainDocument> source, string? sort)
