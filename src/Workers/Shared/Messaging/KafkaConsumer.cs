@@ -5,7 +5,7 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace SearchIndexer.Messaging;
+namespace Workers.Shared.Messaging;
 
 /// <summary>
 ///     Kafka implementation of <see cref="IKafkaConsumer"/> backed by Confluent's .NET client.
@@ -151,9 +151,13 @@ public sealed class KafkaConsumer : IKafkaConsumer
 
     private ConsumerConfig BuildConsumerConfig()
     {
-        var groupId = string.IsNullOrWhiteSpace(_options.GroupId)
-            ? "search-indexer"
-            : _options.GroupId!;
+        if (string.IsNullOrWhiteSpace(_options.GroupId))
+        {
+            throw new InvalidOperationException(
+                "Kafka consumer group id is not configured. Set Kafka:GroupId or the Kafka__GroupId environment variable.");
+        }
+
+        var groupId = _options.GroupId!;
 
         var clientId = !string.IsNullOrWhiteSpace(_options.ClientId)
             ? _options.ClientId!

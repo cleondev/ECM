@@ -2,7 +2,6 @@ using ECM.Ocr.Application.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Ocr.Messaging;
 using Shared.Contracts.Messaging;
 using System.Text.Json;
 using Workers.Shared.Messaging;

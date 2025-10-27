@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using ServiceDefaults;
-using SearchIndexer.Messaging;
+using Workers.Shared.Messaging;
 
 namespace SearchIndexer;
 
@@ -30,6 +30,8 @@ public static class Program
             builder.Services.Configure<KafkaConsumerOptions>(builder.Configuration.GetSection(KafkaConsumerOptions.SectionName));
             builder.Services.PostConfigure<KafkaConsumerOptions>(options =>
             {
+                options.GroupId ??= "search-indexer";
+
                 if (!string.IsNullOrWhiteSpace(options.BootstrapServers))
                 {
                     return;

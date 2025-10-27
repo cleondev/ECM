@@ -3,8 +3,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Ocr.Messaging;
+namespace Workers.Shared.Messaging;
 
+/// <summary>
+///     Placeholder Kafka consumer used in the development environment where a real broker is not available. The
+///     consumer simply keeps the subscription alive until cancellation is requested.
+/// </summary>
 public sealed class NoOpKafkaConsumer(ILogger<NoOpKafkaConsumer> logger) : IKafkaConsumer
 {
     private readonly ILogger<NoOpKafkaConsumer> _logger = logger;

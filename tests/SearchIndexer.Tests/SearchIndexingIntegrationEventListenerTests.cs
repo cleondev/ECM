@@ -10,8 +10,8 @@ using ECM.SearchIndexer.Domain.Indexing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using SearchIndexer;
-using SearchIndexer.Messaging;
 using Shared.Contracts.Messaging;
+using Workers.Shared.Messaging;
 using Xunit;
 
 namespace SearchIndexer.Tests;

@@ -6,12 +6,12 @@ using ECM.Ocr.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-using Ocr.Messaging;
 using Ocr.Worker;
 
 using Serilog;
 
 using ServiceDefaults;
+using Workers.Shared.Messaging;
 
 namespace Ocr;
 
@@ -36,6 +36,8 @@ public static class Program
             builder.Services.Configure<KafkaConsumerOptions>(builder.Configuration.GetSection(KafkaConsumerOptions.SectionName));
             builder.Services.PostConfigure<KafkaConsumerOptions>(options =>
             {
+                options.GroupId ??= "ocr-worker";
+
                 if (!string.IsNullOrWhiteSpace(options.BootstrapServers))
                 {
                     return;
