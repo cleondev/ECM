@@ -95,7 +95,7 @@ public static class GatewayEndpointConfiguration
     {
         app.MapGet("/service-status", () => Results.Json(new
         {
-            service = "app-gateway",
+            service = "svc-app-gateway",
             status = "ready",
             routes = ReverseProxyConfiguration.CreateDefaultRoutes(app.Configuration)
         })).AllowAnonymous();

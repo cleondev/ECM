@@ -202,10 +202,10 @@ Modules ghi sự kiện vào `ops.outbox`; **Outbox Dispatcher** đọc và publ
 ### Flow ví dụ
 
 ```
-document.uploaded → ocr-worker → Dot OCR service → ocr.completed → search-indexer
-document.created → search-indexer, notify, audit
-version.created → ocr-engine → ocr.extraction.updated → search-indexer
-workflow.task.assigned → notify
+document.uploaded → worker-ocr → Dot OCR service → ocr.completed → worker-search-indexer
+document.created → worker-search-indexer, worker-notify, audit
+version.created → ocr-engine → ocr.extraction.updated → worker-search-indexer
+workflow.task.assigned → worker-notify
 signature.completed → audit
 ```
 
