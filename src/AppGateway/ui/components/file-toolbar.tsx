@@ -104,30 +104,35 @@ export function FileToolbar({
       <div className="flex flex-col gap-4 p-3 sm:p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:border-none sm:bg-transparent sm:p-0">
-            <Button onClick={onUploadClick} className="gap-2 w-full sm:w-auto justify-center">
-              <Upload className="h-4 w-4" />
-              Upload File
-            </Button>
+            <div className="flex w-full flex-nowrap gap-2 sm:w-auto">
+              <Button onClick={onUploadClick} className="gap-0 sm:gap-2 flex-1 justify-center sm:flex-none sm:w-auto">
+                <Upload className="h-4 w-4" />
+                <span className="sr-only">Upload File</span>
+                <span className="hidden sm:inline">Upload File</span>
+              </Button>
 
-            <Button
-              variant="outline"
-              className="gap-2 w-full sm:w-auto justify-center"
-              onClick={() => onDownloadClick?.()}
-              disabled={disableFileActions}
-            >
-              <Download className="h-4 w-4" />
-              Download
-            </Button>
+              <Button
+                variant="outline"
+                className="gap-0 sm:gap-2 flex-1 justify-center sm:flex-none sm:w-auto"
+                onClick={() => onDownloadClick?.()}
+                disabled={disableFileActions}
+              >
+                <Download className="h-4 w-4" />
+                <span className="sr-only">Download</span>
+                <span className="hidden sm:inline">Download</span>
+              </Button>
 
-            <Button
-              variant="outline"
-              className="gap-2 w-full sm:w-auto justify-center"
-              onClick={() => onShareClick?.()}
-              disabled={disableFileActions}
-            >
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
+              <Button
+                variant="outline"
+                className="gap-0 sm:gap-2 flex-1 justify-center sm:flex-none sm:w-auto"
+                onClick={() => onShareClick?.()}
+                disabled={disableFileActions}
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="sr-only">Share</span>
+                <span className="hidden sm:inline">Share</span>
+              </Button>
+            </div>
 
             <ToggleGroup
               type="single"
@@ -177,50 +182,52 @@ export function FileToolbar({
           </div>
 
           <div className="flex flex-col gap-2 rounded-lg border border-border bg-background p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 sm:border-none sm:bg-transparent sm:p-0 md:justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <SlidersHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {SORT_OPTIONS.map((option) => {
-                  const isActive = option.sortBy === sortBy && option.sortOrder === sortOrder
-                  return (
-                    <DropdownMenuItem
-                      key={option.id}
-                      onClick={() => onSortChange(option.sortBy, option.sortOrder)}
-                      className="flex items-center gap-2"
-                    >
-                      {isActive ? <Check className="h-4 w-4" /> : <span className="h-4 w-4" />}
-                      <span>{option.label}</span>
-                    </DropdownMenuItem>
-                  )
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="flex-shrink-0">
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {SORT_OPTIONS.map((option) => {
+                    const isActive = option.sortBy === sortBy && option.sortOrder === sortOrder
+                    return (
+                      <DropdownMenuItem
+                        key={option.id}
+                        onClick={() => onSortChange(option.sortBy, option.sortOrder)}
+                        className="flex items-center gap-2"
+                      >
+                        {isActive ? <Check className="h-4 w-4" /> : <span className="h-4 w-4" />}
+                        <span>{option.label}</span>
+                      </DropdownMenuItem>
+                    )
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-            <div className="flex w-full items-stretch overflow-hidden rounded-md border border-border sm:w-auto">
-              <Button
-                size="icon"
-                onClick={() => onViewModeChange("grid")}
-                aria-pressed={viewMode === "grid"}
-                data-active={viewMode === "grid"}
-                variant="ghost"
-                className="flex-1 rounded-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90 sm:flex-initial"
-              >
-                <Grid3x3 className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                onClick={() => onViewModeChange("list")}
-                aria-pressed={viewMode === "list"}
-                data-active={viewMode === "list"}
-                variant="ghost"
-                className="flex-1 rounded-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90 sm:flex-initial"
-              >
-                <List className="h-4 w-4" />
-              </Button>
+              <div className="flex flex-1 items-stretch overflow-hidden rounded-md border border-border sm:flex-none sm:w-auto">
+                <Button
+                  size="icon"
+                  onClick={() => onViewModeChange("grid")}
+                  aria-pressed={viewMode === "grid"}
+                  data-active={viewMode === "grid"}
+                  variant="ghost"
+                  className="flex-1 rounded-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90"
+                >
+                  <Grid3x3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  onClick={() => onViewModeChange("list")}
+                  aria-pressed={viewMode === "list"}
+                  data-active={viewMode === "list"}
+                  variant="ghost"
+                  className="flex-1 rounded-none text-muted-foreground transition-colors data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:hover:bg-primary/90"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
