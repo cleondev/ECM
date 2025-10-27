@@ -4,6 +4,8 @@ using ECM.BuildingBlocks.Infrastructure.Caching;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using OpenTelemetry.Logs;
 using ServiceDefaults;
 using Xunit;
 
@@ -96,5 +98,18 @@ public class ServiceDefaultsExtensionsTests
         Assert.Equal(1, invocationCount);
         Assert.Equal("cached-value", first);
         Assert.Equal("cached-value", second);
+    }
+
+    [Fact]
+    public void AddServiceDefaults_RegistersOpenTelemetryLogging()
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.AddServiceDefaults();
+
+        using var host = builder.Build();
+
+        var providers = host.Services.GetServices<ILoggerProvider>();
+
+        Assert.Contains(providers, provider => provider is OpenTelemetryLoggerProvider);
     }
 }
