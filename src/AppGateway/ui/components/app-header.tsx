@@ -181,7 +181,7 @@ export function AppHeader({
           />
         </div>
 
-        <div className="flex-1 min-w-[240px] w-full md:max-w-3xl">
+        <div className="flex-1 min-w-[240px] w-full md:max-w-3xl md:mx-auto">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -220,12 +220,14 @@ export function AppHeader({
               </div>
             </div>
             <Button
-              variant="outline"
-              className="hidden md:inline-flex h-11 shrink-0 items-center gap-2 rounded-full border-border/60 bg-background/90 px-4 text-sm font-medium"
+              variant="ghost"
+              size="icon"
+              className="hidden md:inline-flex h-9 w-9 shrink-0 rounded-full border border-border/60 bg-background/80 p-0 shadow-sm"
               onClick={() => setIsAdvancedSearchOpen(true)}
+              title="Mở tìm kiếm nâng cao"
             >
+              <span className="sr-only">Mở tìm kiếm nâng cao</span>
               <SlidersHorizontal className="h-4 w-4" />
-              Tìm kiếm nâng cao
             </Button>
           </div>
         </div>
