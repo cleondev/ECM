@@ -39,7 +39,7 @@ function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
   }
 
   return (
-    <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+    <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="rounded-lg border border-border p-3 sm:p-4 space-y-3">
           <Skeleton className="aspect-video w-full rounded" />
@@ -207,8 +207,8 @@ export function FileGrid({
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-6" tabIndex={0}>
-      <div className="grid gap-2 sm:gap-3 lg:gap-4 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+    <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8" tabIndex={0}>
+      <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
         {files.map((file, index) => (
           <FileCard
             key={file.id}

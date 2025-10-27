@@ -86,6 +86,8 @@ type DocumentResponse = {
   department?: string | null
   createdAtUtc: string
   updatedAtUtc: string
+  createdAtFormatted?: string
+  updatedAtFormatted?: string
   documentTypeId?: string | null
   latestVersion?: DocumentVersionResponse | null
   tags: DocumentTagResponse[]
@@ -285,6 +287,32 @@ function formatFileSize(bytes?: number | null): string {
   return `${gigaBytes.toFixed(1)} GB`
 }
 
+const displayDateFormatter = new Intl.DateTimeFormat("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+})
+
+const displayTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
+  hour: "2-digit",
+  minute: "2-digit",
+})
+
+function formatDocumentTimestamp(value?: string | null): string {
+  if (!value) {
+    return "--"
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  const datePart = displayDateFormatter.format(date)
+  const timePart = displayTimeFormatter.format(date)
+  return `${datePart} ${timePart}`
+}
+
 function mapDocumentToFileItem(document: DocumentResponse): FileItem {
   const latestVersion = document.latestVersion
   const tagNames = document.tags?.map((tag) => {
@@ -302,12 +330,15 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
 
     return tag.slug || tag.id
   }) ?? []
+  const updatedAtUtc = document.updatedAtUtc ?? document.createdAtUtc
+  const displayModified = document.updatedAtFormatted || formatDocumentTimestamp(updatedAtUtc)
   return {
     id: document.id,
     name: document.title || "Untitled document",
     type: "document",
     size: formatFileSize(latestVersion?.bytes ?? null),
-    modified: new Date(document.updatedAtUtc ?? document.createdAtUtc).toISOString(),
+    modified: displayModified,
+    modifiedAtUtc: updatedAtUtc,
     tags: tagNames,
     folder: "All Files",
     owner: document.ownerId,
@@ -511,7 +542,9 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
           comparison = a.name.localeCompare(b.name)
           break
         case "modified":
-          comparison = getModifiedSortValue(a.modified) - getModifiedSortValue(b.modified)
+          comparison =
+            getModifiedSortValue(a.modifiedAtUtc ?? a.modified) -
+            getModifiedSortValue(b.modifiedAtUtc ?? b.modified)
           break
         case "size":
           comparison = getNumericSize(a.size) - getNumericSize(b.size)
@@ -550,7 +583,10 @@ function getNumericSize(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-function getModifiedSortValue(value: string): number {
+function getModifiedSortValue(value?: string): number {
+  if (!value) {
+    return Number.NEGATIVE_INFINITY
+  }
   const timestamp = Date.parse(value)
   if (!Number.isNaN(timestamp)) {
     return timestamp
