@@ -33,7 +33,11 @@ const colorOptions = [
   { name: "Fuchsia", value: "bg-fuchsia-200 dark:bg-fuchsia-900" },
 ]
 
+const DEFAULT_TAG_ICON = "📁"
+const NO_ICON_VALUE = ""
+
 const iconOptions = [
+  DEFAULT_TAG_ICON,
   "💼",
   "🎨",
   "📊",
@@ -68,18 +72,18 @@ export function TagManagementDialog({
 }: TagManagementDialogProps) {
   const [tagName, setTagName] = useState("")
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR)
-  const [tagIcon, setTagIcon] = useState("")
+  const [tagIcon, setTagIcon] = useState(DEFAULT_TAG_ICON)
   const [applyColorToChildren, setApplyColorToChildren] = useState(false)
 
   useEffect(() => {
     if (mode === "edit" && editingTag) {
       setTagName(editingTag.name)
       setTagColor(editingTag.color ?? DEFAULT_TAG_COLOR)
-      setTagIcon(editingTag.icon || "")
+      setTagIcon(editingTag.icon ?? DEFAULT_TAG_ICON)
     } else {
       setTagName("")
       setTagColor(DEFAULT_TAG_COLOR)
-      setTagIcon("")
+      setTagIcon(DEFAULT_TAG_ICON)
     }
     setApplyColorToChildren(false)
   }, [mode, editingTag, open])
@@ -111,8 +115,8 @@ export function TagManagementDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          <Label className="text-xs text-muted-foreground block">Preview</Label>
           <div className="p-4 border border-border rounded-lg bg-muted/30">
-            <Label className="text-xs text-muted-foreground mb-2 block">Preview</Label>
             <div className={cn("flex items-center gap-2 px-3 py-2 rounded-md w-fit", tagColor)}>
               {tagIcon && <span className="text-base">{tagIcon}</span>}
               <span className="text-sm font-medium text-foreground">{tagName || "Tag Name"}</span>
@@ -161,10 +165,13 @@ export function TagManagementDialog({
             <Label>Icon (Optional)</Label>
             <div className="grid grid-cols-10 gap-1">
               <button
-                onClick={() => setTagIcon("")}
+                type="button"
+                onClick={() => setTagIcon(NO_ICON_VALUE)}
                 className={cn(
                   "aspect-square rounded border flex items-center justify-center text-xs transition-colors",
-                  tagIcon === "" ? "border-foreground bg-accent font-bold" : "border-border hover:bg-accent/50",
+                  tagIcon === NO_ICON_VALUE
+                    ? "border-foreground bg-accent font-bold"
+                    : "border-border hover:bg-accent/50",
                 )}
                 title="No icon"
               >
