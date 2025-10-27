@@ -83,6 +83,9 @@ public static class Program
             .GetChildren()
             .ToDictionary(section => section.Key, section => section.Value, StringComparer.OrdinalIgnoreCase);
 
+        var moduleDatabaseResourceNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var prefixedConnectionStrings = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var moduleDatabaseName in moduleDatabaseNames)
         {
             var connectionString = builder.Configuration.GetConnectionString(moduleDatabaseName);
@@ -94,11 +97,38 @@ public static class Program
             }
 
             var databaseResourceName = BuildResourceName(DatabaseResourcePrefix, moduleDatabaseName);
-            moduleDatabases[moduleDatabaseName] = builder.AddConnectionString(databaseResourceName);
+            moduleDatabaseResourceNames[moduleDatabaseName] = databaseResourceName;
+            prefixedConnectionStrings[$"ConnectionStrings:{databaseResourceName}"] = connectionString;
         }
 
-        var kafka = builder.AddConnectionString(BuildResourceName(ServiceResourcePrefix, "kafka"));
-        var minio = builder.AddConnectionString(BuildResourceName(ServiceResourcePrefix, "minio"));
+        var kafkaResourceName = BuildResourceName(ServiceResourcePrefix, "kafka");
+        var minioResourceName = BuildResourceName(ServiceResourcePrefix, "minio");
+
+        if (!connectionStrings.TryGetValue("kafka", out var kafkaConnectionString) || string.IsNullOrWhiteSpace(kafkaConnectionString))
+        {
+            throw new InvalidOperationException("Connection string 'kafka' must be configured in the Aspire AppHost before starting the application.");
+        }
+
+        if (!connectionStrings.TryGetValue("minio", out var minioConnectionString) || string.IsNullOrWhiteSpace(minioConnectionString))
+        {
+            throw new InvalidOperationException("Connection string 'minio' must be configured in the Aspire AppHost before starting the application.");
+        }
+
+        prefixedConnectionStrings[$"ConnectionStrings:{kafkaResourceName}"] = kafkaConnectionString;
+        prefixedConnectionStrings[$"ConnectionStrings:{minioResourceName}"] = minioConnectionString;
+
+        if (prefixedConnectionStrings.Count > 0)
+        {
+            builder.Configuration.AddInMemoryCollection(prefixedConnectionStrings);
+        }
+
+        foreach (var moduleDatabase in moduleDatabaseResourceNames)
+        {
+            moduleDatabases[moduleDatabase.Key] = builder.AddConnectionString(moduleDatabase.Value);
+        }
+
+        var kafka = builder.AddConnectionString(kafkaResourceName);
+        var minio = builder.AddConnectionString(minioResourceName);
 
         var ecmUrl = builder.Configuration.GetValue<string>("Urls:Ecm") ?? "http://localhost:8080";
         var gatewayUrl = builder.Configuration.GetValue<string>("Urls:Gateway") ?? "http://localhost:5090";
