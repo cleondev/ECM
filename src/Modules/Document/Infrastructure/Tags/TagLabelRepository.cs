@@ -29,6 +29,14 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
         return tagLabel;
     }
 
+    public async Task<TagLabel> UpdateAsync(TagLabel tagLabel, CancellationToken cancellationToken = default)
+    {
+        _context.TagLabels.Update(tagLabel);
+        await EnqueueOutboxMessagesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return tagLabel;
+    }
+
     public async Task RemoveAsync(TagLabel tagLabel, CancellationToken cancellationToken = default)
     {
         _context.TagLabels.Remove(tagLabel);

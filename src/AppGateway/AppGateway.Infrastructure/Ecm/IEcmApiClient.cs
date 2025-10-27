@@ -72,6 +72,8 @@ public interface IEcmApiClient
 
     Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default);
 
+    Task<TagLabelDto?> UpdateTagAsync(Guid tagId, UpdateTagRequestDto request, CancellationToken cancellationToken = default);
+
     Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default);
 
     Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto request, CancellationToken cancellationToken = default);

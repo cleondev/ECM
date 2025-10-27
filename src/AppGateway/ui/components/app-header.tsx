@@ -364,20 +364,14 @@ export function AppHeader({
                       const config = notificationTypeConfig[notification.type]
                       const Icon = config.icon
 
-                      return (
-                        <div
-                          key={notification.id}
-                          className={cn(
-                            "flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors",
-                            notification.isRead
-                              ? "bg-card hover:bg-muted/70"
-                              : "bg-primary/5 border-primary/30 hover:bg-primary/10",
-                          )}
-                        >
-                          <span
+                        return (
+                          <div
+                            key={notification.id}
                             className={cn(
-                              "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full",
-                              config.className,
+                              "flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors",
+                              notification.isRead
+                                ? "bg-card hover:bg-muted/70"
+                                : "bg-primary/5 border-primary/30 hover:bg-primary/10",
                             )}
                           >
                             <Icon className="h-4 w-4" />
@@ -408,9 +402,13 @@ export function AppHeader({
                               ) : null}
                             </div>
                           </div>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
+                    Hiện chưa có thông báo nào.
                   </div>
                 </ScrollArea>
               ) : (

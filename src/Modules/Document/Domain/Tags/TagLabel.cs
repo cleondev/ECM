@@ -89,6 +89,24 @@ public sealed class TagLabel : IHasDomainEvents
 
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
+    public void Update(string slug, string path, Guid? updatedBy, DateTimeOffset updatedAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+        {
+            throw new ArgumentException("Slug is required.", nameof(slug));
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("Path is required.", nameof(path));
+        }
+
+        Slug = slug.Trim();
+        Path = path.Trim();
+
+        Raise(new TagLabelUpdatedDomainEvent(Id, NamespaceSlug, Path, updatedBy, updatedAtUtc));
+    }
+
     public void MarkDeleted(DateTimeOffset deletedAtUtc)
     {
         Raise(new TagLabelDeletedDomainEvent(Id, NamespaceSlug, Path, deletedAtUtc));

@@ -7,6 +7,8 @@
   <ItemGroup>
     <ProjectReference Include="../../ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj" />
     <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
+    <ProjectReference Include="../Shared/Workers.Shared.csproj" />
     <PackageReference Include="Npgsql" />
   </ItemGroup>
 </Project>

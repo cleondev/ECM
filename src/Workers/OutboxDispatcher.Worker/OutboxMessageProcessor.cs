@@ -1,6 +1,4 @@
 using System;
-using System.Globalization;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -18,7 +16,7 @@ internal sealed class OutboxMessageProcessor
 {
     // The SKIP LOCKED hint allows multiple dispatcher instances to cooperate without stepping on each other.
     private const string FetchNextSql = """
-        SELECT id, type, payload, occurred_at
+        SELECT id, aggregate, aggregate_id, type, payload, occurred_at
         FROM ops.outbox
         WHERE processed_at IS NULL
         ORDER BY occurred_at
@@ -29,14 +27,17 @@ internal sealed class OutboxMessageProcessor
     private readonly ILogger<OutboxMessageProcessor> _logger;
     private readonly NpgsqlDataSource _dataSource;
     private readonly OutboxDispatcherOptions _options;
+    private readonly OutboxMessageDispatcher _dispatcher;
 
     public OutboxMessageProcessor(
         NpgsqlDataSource dataSource,
+        OutboxMessageDispatcher dispatcher,
         IOptions<OutboxDispatcherOptions> options,
         ILogger<OutboxMessageProcessor> logger)
     {
         _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
 
         if (_options.BatchSize <= 0)
@@ -84,7 +85,7 @@ internal sealed class OutboxMessageProcessor
         return processedCount;
     }
 
-    private static async Task<OutboxMessage?> TryFetchNextMessageAsync(
+    private static async Task<PendingOutboxMessage?> TryFetchNextMessageAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
         CancellationToken cancellationToken)
@@ -101,17 +102,19 @@ internal sealed class OutboxMessageProcessor
         }
 
         var id = reader.GetInt64(0);
-        var type = reader.GetString(1);
-        var payload = reader.GetString(2);
-        var occurredAt = reader.GetFieldValue<DateTimeOffset>(3);
+        var aggregate = reader.GetString(1);
+        var aggregateId = reader.GetGuid(2);
+        var type = reader.GetString(3);
+        var payload = reader.GetString(4);
+        var occurredAt = reader.GetFieldValue<DateTimeOffset>(5);
 
-        return new OutboxMessage(id, type, payload, occurredAt);
+        return new PendingOutboxMessage(id, aggregate, aggregateId, type, payload, occurredAt);
     }
 
     private async Task<bool> HandleMessageAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
-        OutboxMessage message,
+        PendingOutboxMessage message,
         CancellationToken cancellationToken)
     {
         var attempt = 0;
@@ -123,7 +126,7 @@ internal sealed class OutboxMessageProcessor
 
             try
             {
-                await DispatchAsync(message, cancellationToken).ConfigureAwait(false);
+                await _dispatcher.DispatchAsync(message, cancellationToken).ConfigureAwait(false);
                 await MarkAsProcessedAsync(connection, transaction, message.Id, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation(
                     "Dispatched outbox message {MessageId} of type {MessageType} on attempt {Attempt}.",
@@ -159,23 +162,6 @@ internal sealed class OutboxMessageProcessor
         return false;
     }
 
-    private async Task DispatchAsync(OutboxMessage message, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        // In this stage of the project we simply log the payload to emulate publishing to Redpanda.
-        // The method still throws for malformed messages to ensure DLQ coverage.
-        _ = JsonDocument.Parse(message.Payload);
-
-        _logger.LogDebug(
-            "Publishing outbox message {MessageId} of type {MessageType}: {Payload}",
-            message.Id,
-            message.Type,
-            message.Payload);
-
-        await Task.CompletedTask;
-    }
-
     private static async Task MarkAsProcessedAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
@@ -195,7 +181,7 @@ internal sealed class OutboxMessageProcessor
     private async Task MoveToDeadLetterAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
-        OutboxMessage message,
+        PendingOutboxMessage message,
         Exception? exception,
         CancellationToken cancellationToken)
     {
@@ -240,9 +226,4 @@ internal sealed class OutboxMessageProcessor
         return rawDelay <= _options.MaxRetryDelay ? rawDelay : _options.MaxRetryDelay;
     }
 
-    private sealed record OutboxMessage(long Id, string Type, string Payload, DateTimeOffset OccurredAtUtc)
-    {
-        public override string ToString()
-            => string.Create(CultureInfo.InvariantCulture, $"#{Id} ({Type}) @ {OccurredAtUtc:o}");
-    }
 }

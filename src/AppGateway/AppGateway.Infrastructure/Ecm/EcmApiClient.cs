@@ -334,6 +334,13 @@ internal sealed class EcmApiClient(
         return await SendAsync<TagLabelDto>(request, cancellationToken);
     }
 
+    public async Task<TagLabelDto?> UpdateTagAsync(Guid tagId, UpdateTagRequestDto requestDto, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Put, $"api/ecm/tags/{tagId}", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<TagLabelDto>(request, cancellationToken);
+    }
+
     public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/tags/{tagId}", cancellationToken);
