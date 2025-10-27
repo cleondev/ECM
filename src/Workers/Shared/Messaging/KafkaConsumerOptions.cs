@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 
-namespace SearchIndexer.Messaging;
+namespace Workers.Shared.Messaging;
 
 /// <summary>
-///     Configuration options for the <see cref="KafkaConsumer"/> used by the search indexer worker.
+///     Configuration options for the <see cref="KafkaConsumer"/> used by the background workers.
 /// </summary>
 public sealed class KafkaConsumerOptions
 {
@@ -19,7 +19,7 @@ public sealed class KafkaConsumerOptions
     public string? BootstrapServers { get; set; }
 
     /// <summary>
-    ///     Gets or sets the consumer group id. Defaults to <c>search-indexer</c> when not specified.
+    ///     Gets or sets the consumer group id.
     /// </summary>
     public string? GroupId { get; set; }
 

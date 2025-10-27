@@ -1,6 +1,6 @@
 using System;
 
-namespace SearchIndexer.Messaging;
+namespace Workers.Shared.Messaging;
 
 internal static class KafkaConnectionStringParser
 {

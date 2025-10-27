@@ -3,7 +3,6 @@ using ECM.SearchIndexer.Application.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using SearchIndexer.Messaging;
 using Shared.Contracts.Messaging;
 using Workers.Shared.Messaging;
 
