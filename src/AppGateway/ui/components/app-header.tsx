@@ -175,12 +175,11 @@ export function AppHeader({
             className="gap-2"
             imageClassName="h-8 w-8"
             textClassName="hidden md:block font-semibold text-lg"
-            showText={!isMobile && !isLeftSidebarCollapsed}
           />
         </div>
 
         <div className="flex min-w-0 justify-center justify-self-center">
-          <div className="flex w-full min-w-0 max-w-3xl flex-col gap-2 md:flex-row md:items-center md:gap-3">
+          <div className="flex w-full min-w-0 max-w-5xl flex-col gap-2 md:flex-row md:items-center md:gap-3">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
