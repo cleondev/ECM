@@ -40,7 +40,7 @@ export function FileHeader({
             </Button>
           )}
 
-          <div className="flex-1 md:max-w-md">
+          <div className="flex-1 md:max-w-2xl">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -49,7 +49,7 @@ export function FileHeader({
                 onChange={(e) => {
                   onSearchChange(e.target.value)
                 }}
-                className="pl-9"
+                className="h-11 md:h-12 pl-9 md:text-base"
               />
               {selectedTag && (
                 <Badge variant="secondary" className="absolute right-2 top-1/2 -translate-y-1/2 gap-1 pr-1">
