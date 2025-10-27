@@ -20,6 +20,7 @@ public static class KafkaIntegrationEventHandler
         Func<TEnvelope, TProcessor, CancellationToken, Task> handler,
         CancellationToken cancellationToken)
         where TEnvelope : class
+        where TProcessor : notnull
     {
         var topic = topicSelector(message);
         var payload = payloadSelector(message);
