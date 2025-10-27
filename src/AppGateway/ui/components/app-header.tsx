@@ -18,17 +18,16 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
-import { fetchNotifications } from "@/lib/api"
-import type { NotificationItem } from "@/lib/types"
+import { fetchCurrentUserProfile, fetchNotifications, fetchTags } from "@/lib/api"
+import type { NotificationItem, SelectedTag, TagNode, User } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import type { SelectedTag, TagNode } from "@/lib/types"
-import { fetchTags } from "@/lib/api"
 import { BrandLogo } from "@/components/brand-logo"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const notificationTypeConfig: Record<NotificationItem["type"], { icon: LucideIcon; label: string; className: string }> = {
   system: { icon: Megaphone, label: "Hệ thống", className: "bg-primary/10 text-primary" },
@@ -89,6 +88,7 @@ export function AppHeader({
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   useEffect(() => {
     fetchTags().then(setTags)
@@ -112,6 +112,27 @@ export function AppHeader({
       .finally(() => {
         if (isMounted) {
           setIsLoadingNotifications(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    fetchCurrentUserProfile()
+      .then((profile) => {
+        if (isMounted) {
+          setCurrentUser(profile)
+        }
+      })
+      .catch((error) => {
+        console.error("[ui] Không thể tải hồ sơ người dùng:", error)
+        if (isMounted) {
+          setCurrentUser(null)
         }
       })
 
@@ -161,8 +182,8 @@ export function AppHeader({
 
   return (
     <div className="border-b border-border bg-card">
-      <div className="flex flex-wrap items-center gap-3 p-4 md:gap-4">
-        <div className="flex items-center gap-2">
+      <div className="grid w-full grid-cols-1 items-center gap-3 p-4 md:grid-cols-[auto,minmax(240px,1fr),auto] md:gap-4">
+        <div className="flex items-center gap-2 justify-self-start">
           <Button
             variant="ghost"
             size="icon"
@@ -191,7 +212,7 @@ export function AppHeader({
                 onChange={(e) => {
                   onSearchChange(e.target.value)
                 }}
-                className="h-11 rounded-full border border-border/60 bg-background/80 pl-10 pr-28 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-0 md:text-base md:pr-36"
+                className="h-11 rounded-full border border-border/60 bg-background/80 pl-10 pr-20 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:ring-0 md:text-base md:pr-24"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {selectedTag && (
@@ -326,13 +347,13 @@ export function AppHeader({
           </DialogContent>
         </Dialog>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-3 justify-self-end">
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative h-9 w-9"
+                className="relative h-11 w-11 rounded-full border border-border/60 bg-background/80 p-0 shadow-sm"
                 aria-label="Thông báo"
               >
                 <Bell className="h-5 w-5" />
@@ -418,6 +439,19 @@ export function AppHeader({
               )}
             </PopoverContent>
           </Popover>
+
+          <Button
+            variant="ghost"
+            className="h-11 w-11 rounded-full border border-border/60 bg-background/80 p-0 shadow-sm"
+            asChild
+          >
+            <a href="/profile" aria-label="Mở hồ sơ cá nhân">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={currentUser?.avatar || "/placeholder.svg"} alt={currentUser?.displayName ?? "User avatar"} />
+                <AvatarFallback>{currentUser?.displayName?.charAt(0)?.toUpperCase() ?? "U"}</AvatarFallback>
+              </Avatar>
+            </a>
+          </Button>
         </div>
       </div>
     </div>
