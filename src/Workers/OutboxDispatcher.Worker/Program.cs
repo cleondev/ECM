@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using Serilog;
 using ServiceDefaults;
+using Workers.Shared.Messaging;
 
 namespace OutboxDispatcher;
 
@@ -62,6 +63,25 @@ public static class Program
             return options;
         });
 
+        builder.Services.Configure<KafkaProducerOptions>(builder.Configuration.GetSection(KafkaProducerOptions.SectionName));
+        builder.Services.PostConfigure<KafkaProducerOptions>(options =>
+        {
+            options.ClientId ??= "outbox-dispatcher";
+
+            if (!string.IsNullOrWhiteSpace(options.BootstrapServers))
+            {
+                return;
+            }
+
+            var connectionString = builder.Configuration.GetConnectionString("kafka");
+            var bootstrapServers = KafkaConnectionStringParser.ExtractBootstrapServers(connectionString);
+
+            if (!string.IsNullOrWhiteSpace(bootstrapServers))
+            {
+                options.BootstrapServers = bootstrapServers;
+            }
+        });
+
         builder.Services.AddSingleton(sp =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
@@ -71,6 +91,8 @@ public static class Program
             return dataSourceBuilder.Build();
         });
 
+        builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
+        builder.Services.AddSingleton<OutboxMessageDispatcher>();
         builder.Services.AddSingleton<OutboxMessageProcessor>();
     }
 }
