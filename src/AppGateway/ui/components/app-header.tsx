@@ -339,8 +339,13 @@ export function AppHeader({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" sideOffset={8} className="w-96 max-w-[90vw] p-0">
-              <div className="flex items-start justify-between px-4 py-3 border-b">
+            <PopoverContent
+              align="end"
+              sideOffset={8}
+              className="flex min-h-0 w-96 max-w-[90vw] flex-col overflow-hidden p-0"
+              style={{ maxHeight: "min(70vh, 24rem)" }}
+            >
+              <div className="flex shrink-0 items-start justify-between border-b px-4 py-3">
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold">Thông báo</p>
                   <p className="text-xs text-muted-foreground">
@@ -349,11 +354,11 @@ export function AppHeader({
                 </div>
               </div>
               {isLoadingNotifications ? (
-                <div className="flex items-center justify-center px-4 py-10 text-sm text-muted-foreground">
+                <div className="flex flex-1 items-center justify-center px-4 py-10 text-sm text-muted-foreground">
                   Đang tải thông báo...
                 </div>
               ) : hasNotifications ? (
-                <ScrollArea className="max-h-96">
+                <ScrollArea className="flex-1 min-h-0">
                   <div className="space-y-3 px-4 py-3">
                     {notifications.map((notification) => {
                       const config = notificationTypeConfig[notification.type]
@@ -380,7 +385,7 @@ export function AppHeader({
                           <div className="flex-1 space-y-1">
                             <div className="flex items-start justify-between gap-2">
                               <p className="font-medium leading-5">{notification.title}</p>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              <span className="whitespace-nowrap text-xs text-muted-foreground">
                                 {formatRelativeTime(notification.createdAt)}
                               </span>
                             </div>
@@ -409,7 +414,7 @@ export function AppHeader({
                   </div>
                 </ScrollArea>
               ) : (
-                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
                   Hiện chưa có thông báo nào.
                 </div>
               )}
