@@ -1,3 +1,5 @@
+using ECM.BuildingBlocks.Domain.Events;
+
 namespace ECM.Document.Domain.Tags.Events;
 
 public sealed record TagLabelUpdatedDomainEvent(
@@ -5,4 +7,4 @@ public sealed record TagLabelUpdatedDomainEvent(
     string NamespaceSlug,
     string Path,
     Guid? UpdatedBy,
-    DateTimeOffset OccurredAtUtc);
+    DateTimeOffset OccurredAtUtc) : IDomainEvent;
