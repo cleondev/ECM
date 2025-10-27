@@ -15,5 +15,7 @@ public interface ITagLabelRepository
 
     Task<TagLabel> AddAsync(TagLabel tagLabel, CancellationToken cancellationToken = default);
 
+    Task<TagLabel> UpdateAsync(TagLabel tagLabel, CancellationToken cancellationToken = default);
+
     Task RemoveAsync(TagLabel tagLabel, CancellationToken cancellationToken = default);
 }

@@ -29,6 +29,10 @@ public static class TagEndpoints
             .WithName("CreateTag")
             .WithDescription("Create a tag label within an existing namespace.");
 
+        tagGroup.MapPut("/{tagId:guid}", UpdateTagAsync)
+            .WithName("UpdateTag")
+            .WithDescription("Update an existing tag label.");
+
         tagGroup.MapDelete("/{tagId:guid}", DeleteTagAsync)
             .WithName("DeleteTag")
             .WithDescription("Delete a tag label. Existing document assignments will be removed by cascade.");
@@ -44,6 +48,45 @@ public static class TagEndpoints
         documentTagGroup.MapDelete("/{tagId:guid}", RemoveTagAsync)
             .WithName("RemoveDocumentTag")
             .WithDescription("Remove a tag label assignment from a document.");
+    }
+
+    private static async Task<Results<Ok<TagLabelResponse>, ValidationProblem, NotFound>> UpdateTagAsync(
+        Guid tagId,
+        UpdateTagRequest request,
+        UpdateTagLabelCommandHandler handler,
+        CancellationToken cancellationToken)
+    {
+        var command = new UpdateTagLabelCommand(tagId, request.NamespaceSlug, request.Slug, request.Path, request.UpdatedBy);
+        var result = await handler.HandleAsync(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            if (UpdateTagLabelCommandHandler.IsNotFound(result))
+            {
+                return TypedResults.NotFound();
+            }
+
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["tag"] = [.. result.Errors]
+            });
+        }
+
+        if (result.Value is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var response = new TagLabelResponse(
+            result.Value.Id,
+            result.Value.NamespaceSlug,
+            result.Value.Slug,
+            result.Value.Path,
+            result.Value.IsActive,
+            result.Value.CreatedBy,
+            result.Value.CreatedAtUtc);
+
+        return TypedResults.Ok(response);
     }
 
     private static async Task<Ok<TagLabelResponse[]>> ListTagsAsync(

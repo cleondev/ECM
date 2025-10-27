@@ -268,9 +268,9 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
 
   const handleSaveTag = async (data: TagUpdateData) => {
     if (dialogMode === "edit" && editingTag) {
-      await updateTag(editingTag.id, data)
+      await updateTag(editingTag, data)
     } else if (dialogMode === "add-child" && parentTag) {
-      await createTag(data, parentTag.id)
+      await createTag(data, parentTag)
     } else {
       await createTag(data)
     }

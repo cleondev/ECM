@@ -70,6 +70,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `GET /tags/{namespace}/labels` | Danh sách label thuộc namespace. | `namespace`, `q`, `page`, `pageSize`, `parent?`, `active?` |
 | `POST /tags/{namespace}/labels` | Tạo label mới. | `namespace`, body |
 | `PATCH /tags/{namespace}/labels/{id}` | Cập nhật label. | `namespace`, `id`, body |
+| `PUT /tags/{id}` | Gateway cập nhật slug/path của label hiện có. | `id`, body `{namespaceSlug, slug, path}` |
 | `DELETE /tags/{namespace}/labels/{id}` | Xóa label. | `namespace`, `id` |
 | `GET /documents/{id}/tags` | Lấy tag của tài liệu. | `id` |
 | `POST /documents/{id}/tags` | Gán tag cho tài liệu. | `id`, body `{tag_id}` |
