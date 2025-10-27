@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -14,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -39,7 +41,11 @@ public static class ServiceDefaultsExtensions
             .AddStandardResilienceHandler();
 
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
+            .ConfigureResource(resource =>
+            {
+                resource.AddService(builder.Environment.ApplicationName);
+                resource.AddAttributes(CreateResourceAttributes(builder.Environment));
+            })
             .WithMetrics(metrics =>
             {
                 metrics.AddMeter("Microsoft.AspNetCore.Hosting");
@@ -111,6 +117,11 @@ public static class ServiceDefaultsExtensions
         builder.Services.AddConfiguredCache(cacheOptions);
 
         return builder;
+    }
+
+    private static IEnumerable<KeyValuePair<string, object?>> CreateResourceAttributes(IHostEnvironment environment)
+    {
+        yield return new KeyValuePair<string, object?>("deployment.environment", environment.EnvironmentName);
     }
 }
 
