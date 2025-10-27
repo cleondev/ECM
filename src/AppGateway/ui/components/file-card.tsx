@@ -28,6 +28,7 @@ export function FileCard({ file, isSelected, isMultiSelected, onSelect }: FileCa
       onClick={onSelect}
       className={cn(
         "group relative flex flex-col rounded-lg border bg-card text-left transition-all hover:shadow-md",
+        "w-[160px] sm:w-[220px] lg:w-[260px]",
         isSelected ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50",
         isMultiSelected && !isSelected && "border-primary/50 bg-primary/5",
       )}
