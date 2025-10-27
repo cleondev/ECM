@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
+const DEFAULT_TAG_ICON = "📁"
+
 type LeftSidebarProps = {
   selectedFolder: string
   onFolderSelect: (folder: string) => void
@@ -83,6 +85,8 @@ function TagTreeItem({
   const canManage = tag.kind === "label"
   const canAddChild = isNamespace
 
+  const displayIcon = tag.icon && tag.icon.trim() !== "" ? tag.icon : DEFAULT_TAG_ICON
+
   return (
     <div>
       <div
@@ -129,7 +133,7 @@ function TagTreeItem({
               canSelect ? "cursor-pointer" : "opacity-80",
             )}
           >
-            {tag.icon && <span className="text-xs flex-shrink-0">{tag.icon}</span>}
+            <span className="text-xs flex-shrink-0">{displayIcon}</span>
             <span className="truncate text-sm text-foreground">{tag.name}</span>
           </div>
         </button>
