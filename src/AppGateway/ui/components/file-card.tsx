@@ -27,8 +27,7 @@ export function FileCard({ file, isSelected, isMultiSelected, onSelect }: FileCa
     <button
       onClick={onSelect}
       className={cn(
-        "group relative flex flex-col rounded-lg border bg-card text-left transition-all hover:shadow-md",
-        "flex-none shrink-0 w-[160px] sm:w-[200px] lg:w-[220px] xl:w-[240px]",
+        "group relative flex h-full w-full flex-col rounded-lg border bg-card text-left transition-all hover:shadow-md",
         isSelected ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50",
         isMultiSelected && !isSelected && "border-primary/50 bg-primary/5",
       )}
@@ -42,7 +41,9 @@ export function FileCard({ file, isSelected, isMultiSelected, onSelect }: FileCa
 
       <div className="px-3 py-2.5 sm:p-3 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2">
-          <h3 className="font-medium text-[13px] sm:text-sm leading-5 line-clamp-2 text-card-foreground">{file.name}</h3>
+          <h3 className="flex-1 min-w-0 font-medium text-[13px] sm:text-sm leading-5 truncate text-card-foreground">
+            {file.name}
+          </h3>
           <Button
             variant="ghost"
             size="icon"
