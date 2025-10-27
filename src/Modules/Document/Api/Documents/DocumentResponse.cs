@@ -13,6 +13,8 @@ public sealed record DocumentResponse(
     string? Department,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
+    string CreatedAtFormatted,
+    string UpdatedAtFormatted,
     Guid? DocumentTypeId,
     DocumentVersionResponse? LatestVersion,
     IReadOnlyCollection<DocumentTagResponse> Tags);

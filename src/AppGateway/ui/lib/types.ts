@@ -4,6 +4,7 @@ export type FileItem = {
   type: "design" | "document" | "image" | "video" | "code"
   size: string
   modified: string
+  modifiedAtUtc?: string
   tags: string[]
   folder: string
   thumbnail?: string
