@@ -11,6 +11,7 @@ public static class DocumentApplicationModuleExtensions
         services.AddScoped<CreateDocumentCommandHandler>();
         services.AddScoped<UploadDocumentCommandHandler>();
         services.AddScoped<CreateTagLabelCommandHandler>();
+        services.AddScoped<UpdateTagLabelCommandHandler>();
         services.AddScoped<DeleteTagLabelCommandHandler>();
         services.AddScoped<AssignTagToDocumentCommandHandler>();
         services.AddScoped<RemoveTagFromDocumentCommandHandler>();

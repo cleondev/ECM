@@ -680,18 +680,22 @@ export async function fetchTags(): Promise<TagNode[]> {
   }
 }
 
-export async function createTag(data: TagUpdateData, parentId?: string): Promise<TagNode> {
+export async function createTag(data: TagUpdateData, parent?: TagNode | string): Promise<TagNode> {
+  const parentValue = typeof parent === "string" ? parent : parent?.id
+
   try {
     const normalizedName = data.name.trim()
     if (!normalizedName) {
       throw new Error("Tag name is required")
     }
 
-    const namespaceSlug = parentId?.startsWith("ns:")
-      ? parentId.slice(3)
-      : parentId && parentId.length > 0
-        ? parentId
-        : "user"
+    const namespaceSlug = parentValue?.startsWith("ns:")
+      ? parentValue.slice(3)
+      : parentValue && parentValue.length > 0
+        ? parentValue
+        : typeof parent === "object" && parent?.namespaceSlug
+          ? parent.namespaceSlug
+          : "user"
 
     const slug = slugify(normalizedName)
     if (!slug) {
@@ -709,7 +713,7 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
       body: JSON.stringify(payload),
     })
 
-    return {
+    const mapped: TagNode = {
       id: response.id,
       name: normalizedName,
       color: colorForKey(response.path || response.slug),
@@ -718,7 +722,10 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
       slug: response.slug,
       path: response.path,
       isActive: response.isActive,
+      icon: data.icon,
     }
+
+    return mapped
   } catch (error) {
     console.warn("[ui] Failed to create tag via gateway, using mock response:", error)
     return {
@@ -727,7 +734,12 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
       color: data.color,
       icon: data.icon,
       kind: "label",
-      namespaceSlug: parentId?.startsWith("ns:") ? parentId.slice(3) : undefined,
+      namespaceSlug:
+        typeof parent === "object"
+          ? parent.namespaceSlug
+          : parentValue?.startsWith("ns:")
+            ? parentValue.slice(3)
+            : undefined,
       slug: slugify(data.name),
       path: data.name,
       isActive: true,
@@ -735,20 +747,49 @@ export async function createTag(data: TagUpdateData, parentId?: string): Promise
   }
 }
 
-export async function updateTag(tagId: string, data: TagUpdateData): Promise<TagNode> {
+export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagNode> {
   try {
-    return await gatewayRequest<TagNode>(`/api/tags/${tagId}`, {
+    const normalizedName = data.name.trim()
+    if (!normalizedName) {
+      throw new Error("Tag name is required")
+    }
+
+    const slug = slugify(normalizedName)
+    if (!slug) {
+      throw new Error("Tag name must include alphanumeric characters")
+    }
+
+    const namespaceSlug = tag.namespaceSlug ?? "user"
+    const payload = {
+      namespaceSlug,
+      slug,
+      path: slug,
+      updatedBy: null as string | null,
+    }
+
+    const response = await gatewayRequest<TagLabelResponse>(`/api/tags/${tag.id}`, {
       method: "PUT",
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
+
+    return {
+      id: response.id,
+      name: normalizedName,
+      color: colorForKey(response.path || response.slug || response.id),
+      kind: "label",
+      namespaceSlug: response.namespaceSlug,
+      slug: response.slug,
+      path: response.path,
+      isActive: response.isActive,
+      icon: data.icon ?? tag.icon,
+    }
   } catch (error) {
     console.warn("[ui] Failed to update tag via gateway, using mock response:", error)
     return {
-      id: tagId,
+      ...tag,
       name: data.name,
       color: data.color,
       icon: data.icon,
-      kind: "label",
       slug: slugify(data.name),
       path: data.name,
     }
