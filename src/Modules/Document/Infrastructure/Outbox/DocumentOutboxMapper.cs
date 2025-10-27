@@ -36,6 +36,8 @@ internal static class DocumentOutboxMapper
         var contract = new DocumentCreatedContract(
             domainEvent.DocumentId.Value,
             domainEvent.Title,
+            domainEvent.OwnerId,
+            domainEvent.CreatedBy,
             domainEvent.OccurredAtUtc);
 
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
@@ -95,7 +97,7 @@ internal static class DocumentOutboxMapper
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
 
         return new OutboxMessage(
-            aggregate: "tag",
+            aggregate: "tag-label",
             aggregateId: domainEvent.TagId,
             type: DocumentEventNames.TagLabelCreated,
             payload: payload,
@@ -113,7 +115,7 @@ internal static class DocumentOutboxMapper
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
 
         return new OutboxMessage(
-            aggregate: "tag",
+            aggregate: "tag-label",
             aggregateId: domainEvent.TagId,
             type: DocumentEventNames.TagLabelDeleted,
             payload: payload,
