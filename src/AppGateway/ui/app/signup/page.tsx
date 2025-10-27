@@ -50,7 +50,6 @@ export default function SignUpPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <BrandLogo
-            showText={false}
             size={48}
             imageClassName="h-12 w-12"
             className="mb-4 justify-center"

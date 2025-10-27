@@ -6,7 +6,6 @@ export type BrandLogoProps = {
   className?: string
   imageClassName?: string
   textClassName?: string
-  showText?: boolean
   size?: number
   priority?: boolean
 }
@@ -15,7 +14,6 @@ export function BrandLogo({
   className,
   imageClassName,
   textClassName,
-  showText = true,
   size = 32,
   priority = false,
 }: BrandLogoProps) {
@@ -29,9 +27,7 @@ export function BrandLogo({
         priority={priority}
         className={cn("h-8 w-8", imageClassName)}
       />
-      {showText && (
-        <span className={cn("font-semibold text-lg text-foreground", textClassName)}>ECM</span>
-      )}
+      <span className={cn("font-semibold text-lg text-foreground", textClassName)}>ECM</span>
     </span>
   )
 }
