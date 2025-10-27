@@ -2,7 +2,7 @@ using System;
 
 namespace Workers.Shared.Messaging;
 
-internal static class KafkaConnectionStringParser
+public static class KafkaConnectionStringParser
 {
     public static string? ExtractBootstrapServers(string? connectionString)
     {
