@@ -1,7 +1,10 @@
+using ECM.BuildingBlocks.Infrastructure.Configuration;
 using ECM.Ocr.Application.Abstractions;
-using ECM.Ocr.Infrastructure.DotOcr;
+using ECM.Ocr.Infrastructure.Persistence;
+using EFCore.NamingConventions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace ECM.Ocr.Infrastructure;
 
@@ -9,26 +12,18 @@ public static class OcrInfrastructureModuleExtensions
 {
     public static IServiceCollection AddOcrInfrastructure(this IServiceCollection services)
     {
-        services.AddOptions<DotOcrOptions>()
-            .BindConfiguration(DotOcrOptions.SectionName)
-            .ValidateDataAnnotations()
-            .Validate(options => Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out _), "Invalid Dot OCR base URL.")
-            .ValidateOnStart();
-
-        services.AddHttpClient<DotOcrClient>((provider, client) =>
+        services.AddDbContext<OcrDbContext>((serviceProvider, options) =>
         {
-            var options = provider.GetRequiredService<IOptionsMonitor<DotOcrOptions>>().CurrentValue;
-            client.BaseAddress = new Uri(options.BaseUrl, UriKind.Absolute);
-            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds));
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            var connectionString = configuration.GetRequiredConnectionStringForModule("Ocr");
 
-            if (!string.IsNullOrWhiteSpace(options.ApiKey))
-            {
-                client.DefaultRequestHeaders.Remove("X-Api-Key");
-                client.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
-            }
+            options.UseNpgsql(
+                    connectionString,
+                    builder => builder.MigrationsAssembly(typeof(OcrDbContext).Assembly.FullName))
+                .UseSnakeCaseNamingConvention();
         });
 
-        services.AddScoped<IOcrProvider>(static provider => provider.GetRequiredService<DotOcrClient>());
+        services.AddScoped<IOcrProvider, DatabaseOcrProvider>();
 
         return services;
     }
