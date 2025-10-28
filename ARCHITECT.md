@@ -101,17 +101,15 @@ src/
 │   └── labeling-ui/
 │
 ├── Aspire/
-│   ├── ECM.AppHost/
-│   │   ├── Program.cs
-│   │   ├── appsettings.json
-│   │   └── Properties/
-│   └── ECM.ServiceDefaults/
-│       ├── Extensions/
-│       └── Observability/
+│   └── ECM.AppHost/
+│       ├── Program.cs
+│       ├── appsettings.json
+│       └── Properties/
 │
 └── Shared/
     ├── Contracts/
     ├── Messaging/
+    ├── ServiceDefaults/
     ├── Utilities/
     └── Extensions/
 ```

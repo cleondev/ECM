@@ -5,7 +5,7 @@ WORKDIR /src
 
 COPY Directory.Packages.props ./
 COPY ECM.sln ./
-COPY src/Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj src/Aspire/ECM.ServiceDefaults/
+COPY src/Shared/ServiceDefaults/ServiceDefaults.csproj src/Shared/ServiceDefaults/
 COPY src/Modules/SearchIndexer/ECM.SearchIndexer.csproj src/Modules/SearchIndexer/
 COPY src/Shared/Contracts/Shared.Contracts.csproj src/Shared/Contracts/
 COPY src/Workers/SearchIndexer.Worker/SearchIndexer.csproj src/Workers/SearchIndexer.Worker/

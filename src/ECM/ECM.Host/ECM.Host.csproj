@@ -15,7 +15,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../../Modules/Abstractions/ECM.Abstractions.csproj" />
     <ProjectReference Include="../../Modules/IAM/ECM.IAM.csproj" />
     <ProjectReference Include="../../Modules/Document/ECM.Document.csproj" />

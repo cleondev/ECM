@@ -5,7 +5,7 @@ WORKDIR /src
 
 COPY Directory.Packages.props ./
 COPY ECM.sln ./
-COPY src/Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj src/Aspire/ECM.ServiceDefaults/
+COPY src/Shared/ServiceDefaults/ServiceDefaults.csproj src/Shared/ServiceDefaults/
 COPY src/ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj src/ECM/ECM.BuildingBlocks/
 COPY src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj src/Workers/OutboxDispatcher.Worker/
 RUN dotnet restore src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj

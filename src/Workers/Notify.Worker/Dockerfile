@@ -5,7 +5,7 @@ WORKDIR /src
 
 COPY Directory.Packages.props ./
 COPY ECM.sln ./
-COPY src/Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj src/Aspire/ECM.ServiceDefaults/
+COPY src/Shared/ServiceDefaults/ServiceDefaults.csproj src/Shared/ServiceDefaults/
 COPY src/Workers/Notify.Worker/Notify.csproj src/Workers/Notify.Worker/
 RUN dotnet restore src/Workers/Notify.Worker/Notify.csproj
 
