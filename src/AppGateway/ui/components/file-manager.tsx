@@ -111,13 +111,24 @@ export function FileManager() {
     setShareError(null)
   }, [selectedFile?.id])
 
-  const handleDownloadClick = () => {
-    if (!selectedFile?.latestVersionId) {
+  const ensureSingleSelection = (file: FileItem) => {
+    setSelectedFiles(new Set([file.id]))
+    setSelectedFile(file)
+  }
+
+  const handleDownloadClick = (file?: FileItem) => {
+    const targetFile = file ?? selectedFile
+
+    if (!targetFile?.latestVersionId) {
       console.warn("[ui] Unable to download: selected file does not have a version identifier.")
       return
     }
 
-    const downloadUrl = buildDocumentDownloadUrl(selectedFile.latestVersionId)
+    if (file) {
+      ensureSingleSelection(targetFile)
+    }
+
+    const downloadUrl = buildDocumentDownloadUrl(targetFile.latestVersionId)
     window.open(downloadUrl, "_blank", "noopener,noreferrer")
   }
 
@@ -145,6 +156,21 @@ export function FileManager() {
     setShareResult(null)
     setShareError(null)
     setIsGeneratingShare(false)
+  }
+
+  const handleShareClick = (file?: FileItem) => {
+    const targetFile = file ?? selectedFile
+
+    if (!targetFile) {
+      return
+    }
+
+    if (file) {
+      ensureSingleSelection(targetFile)
+    }
+
+    resetShareState()
+    setShareDialogOpen(true)
   }
 
   useEffect(() => {
@@ -235,6 +261,24 @@ export function FileManager() {
     setActiveRightTab(tab)
   }
 
+  const handleOpenDetailsPanel = (tab: "property" | "flow" | "form", file?: FileItem) => {
+    const targetFile = file ?? selectedFile
+
+    if (!targetFile) {
+      return
+    }
+
+    ensureSingleSelection(targetFile)
+    setActiveRightTab(tab)
+
+    if (isMobileDevice) {
+      setIsRightSidebarOpen(true)
+      setIsRightDrawerOpen(true)
+    } else {
+      setIsRightSidebarOpen(true)
+    }
+  }
+
   const detailsPanelOpen = isMobileDevice ? isRightDrawerOpen : isRightSidebarOpen
 
   return (
@@ -278,10 +322,7 @@ export function FileManager() {
               onViewModeChange={setViewMode}
               onUploadClick={() => setUploadDialogOpen(true)}
               onDownloadClick={handleDownloadClick}
-              onShareClick={() => {
-                resetShareState()
-                setShareDialogOpen(true)
-              }}
+              onShareClick={handleShareClick}
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortChange={(nextSortBy, nextSortOrder) => {
@@ -306,6 +347,9 @@ export function FileManager() {
               hasMore={hasMore}
               isLoading={isLoading}
               onLoadMore={() => loadFiles(false)}
+              onDownloadFile={handleDownloadClick}
+              onShareFile={handleShareClick}
+              onOpenDetailsTab={handleOpenDetailsPanel}
             />
           </div>
         </div>
