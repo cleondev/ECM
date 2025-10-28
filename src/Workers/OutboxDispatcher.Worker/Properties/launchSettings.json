@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "OutboxDispatcher.Worker": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Kafka__BootstrapServers": "localhost:9092",
+        "ConnectionStrings__Operations": "Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
+      }
+    }
+  }
+}
