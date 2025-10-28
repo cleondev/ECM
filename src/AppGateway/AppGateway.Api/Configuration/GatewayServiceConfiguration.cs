@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -26,6 +28,24 @@ public static class GatewayServiceConfiguration
         builder.Services.AddSwaggerGen();
         builder.Services.AddGatewayInfrastructure(builder.Configuration);
         builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
+
+        var uploadLimitOptions = builder.Configuration
+            .GetSection(UploadLimitOptions.SectionName)
+            .Get<UploadLimitOptions>() ?? new UploadLimitOptions();
+
+        uploadLimitOptions.EnsureValid();
+
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.Limits.MaxRequestBodySize = uploadLimitOptions.MaxRequestBodySize;
+        });
+
+        builder.Services.Configure<FormOptions>(options =>
+        {
+            options.MultipartBodyLengthLimit = uploadLimitOptions.MultipartBodyLengthLimit;
+            options.ValueLengthLimit = int.MaxValue;
+            options.MemoryBufferThreshold = int.MaxValue;
+        });
 
         var ecmScopes = ScopeUtilities.ParseScopes(
             builder.Configuration.GetValue<string>("Services:EcmScope"));
