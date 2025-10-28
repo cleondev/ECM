@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Uppy from "@uppy/core"
 import type { UploadResult as UppyUploadResult, UppyFile } from "@uppy/core"
-import { Dashboard, useUppy } from "@uppy/react"
+import { Dashboard } from "@uppy/react"
 import XHRUpload from "@uppy/xhr-upload"
 import "@uppy/core/dist/style.css"
 import "@uppy/dashboard/dist/style.css"
@@ -69,7 +69,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const autoCloseTimeoutRef = useRef<number | null>(null)
 
-  const uppy = useUppy(() => {
+  const uppy = useMemo(() => {
     const instance = new Uppy({
       autoProceed: false,
       allowMultipleUploads: true,
@@ -90,7 +90,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     })
 
     return instance
-  })
+  }, [])
 
   const clearAutoCloseTimeout = useCallback(() => {
     if (autoCloseTimeoutRef.current !== null) {
