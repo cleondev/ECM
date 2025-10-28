@@ -338,7 +338,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
 
             {sectionsExpanded.tags ? (
               <ScrollArea className="flex-1 min-h-0 px-2 pb-3 pt-2">
-                <div className="space-y-0 pr-1">
+                <div className="space-y-0 pr-3">
                   {tagTree.map((tag) => (
                     <TagTreeItem
                       key={tag.id}
