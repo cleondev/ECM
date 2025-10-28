@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Camera, Mail, Briefcase, MapPin, Phone, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,30 +12,44 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { fetchCurrentUserProfile, updateCurrentUserProfile, updateUserAvatar } from "@/lib/api"
+import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import type { User } from "@/lib/types"
 
-const LANDING_PAGE_ROUTE = "/"
 const APP_HOME_ROUTE = "/app/"
+const PROFILE_ROUTE = "/profile/"
+const SIGN_IN_ROUTE = `/signin/?redirectUri=${encodeURIComponent(PROFILE_ROUTE)}`
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null)
+  const router = useRouter()
+  const cachedSnapshot = useMemo(() => getCachedAuthSnapshot(), [])
+  const [user, setUser] = useState<User | null>(() => cachedSnapshot?.user ?? null)
   const [isEditing, setIsEditing] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [formValues, setFormValues] = useState({ displayName: "", department: "" })
+  const [formValues, setFormValues] = useState({
+    displayName: cachedSnapshot?.user?.displayName ?? "",
+    department: cachedSnapshot?.user?.department ?? "",
+  })
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const { isAuthenticated, isChecking } = useAuthGuard(PROFILE_ROUTE)
 
   useEffect(() => {
+    if (!isAuthenticated || isChecking) {
+      return
+    }
+
     let mounted = true
 
-    fetchCurrentUserProfile()
-      .then((profile) => {
+    const loadProfile = async () => {
+      try {
+        const profile = await fetchCurrentUserProfile()
         if (!mounted) return
 
         if (!profile) {
-          window.location.href = LANDING_PAGE_ROUTE
+          router.replace(SIGN_IN_ROUTE)
           return
         }
 
@@ -43,16 +58,23 @@ export default function ProfilePage() {
           displayName: profile.displayName,
           department: profile.department ?? "",
         })
-      })
-      .catch(() => {
+      } catch (error) {
+        console.error("[ui] Không thể tải hồ sơ người dùng:", error)
         if (!mounted) return
-        window.location.href = LANDING_PAGE_ROUTE
-      })
+
+        setFeedback({
+          type: "error",
+          message: "Không thể tải hồ sơ người dùng. Vui lòng thử lại.",
+        })
+      }
+    }
+
+    loadProfile()
 
     return () => {
       mounted = false
     }
-  }, [])
+  }, [isAuthenticated, isChecking, router])
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -151,6 +173,18 @@ export default function ProfilePage() {
       return "—"
     }
   }, [user?.createdAtUtc])
+
+  if (isChecking) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-muted-foreground">Đang kiểm tra trạng thái đăng nhập…</div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   if (!user) {
     return (
