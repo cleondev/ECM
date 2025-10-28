@@ -474,6 +474,30 @@ export const mockFiles: FileItem[] = [
     owner: "Jane Smith",
     description: "Quarterly performance metrics and analysis",
   },
+  {
+    id: "41",
+    name: "Project Assets.zip",
+    type: "document",
+    size: "156.4 MB",
+    modified: "5 days ago",
+    tags: ["Archive", "Assets"],
+    folder: "Projects",
+    status: "completed",
+    owner: "John Doe",
+    description: "Compressed archive containing shared project resources",
+  },
+  {
+    id: "42",
+    name: "Executive Briefing.pptx",
+    type: "document",
+    size: "12.8 MB",
+    modified: "3 days ago",
+    tags: ["Presentation", "Management"],
+    folder: "Documents",
+    status: "in-progress",
+    owner: "Jane Smith",
+    description: "Quarterly executive summary presentation deck",
+  },
 ]
 
 export const mockTagTree: TagNode[] = [
