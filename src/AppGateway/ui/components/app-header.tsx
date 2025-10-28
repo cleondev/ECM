@@ -12,12 +12,13 @@ import {
   CheckCircle2,
   ClipboardList,
   Megaphone,
+  Eye,
   X,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { fetchNotifications, fetchTags } from "@/lib/api"
 import type { NotificationItem, SelectedTag, TagNode } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -85,8 +86,8 @@ export function AppHeader({
   const [tags, setTags] = useState<TagNode[]>([])
   const [advancedSearchTags, setAdvancedSearchTags] = useState<string[]>([])
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   useEffect(() => {
     fetchTags().then(setTags)
@@ -119,20 +120,6 @@ export function AppHeader({
   }, [])
 
   useEffect(() => {
-    if (!isNotificationsOpen) {
-      return
-    }
-
-    setNotifications((prev) => {
-      if (!prev.some((notification) => !notification.isRead)) {
-        return prev
-      }
-
-      return prev.map((notification) => ({ ...notification, isRead: true }))
-    })
-  }, [isNotificationsOpen])
-
-  useEffect(() => {
     if (isAdvancedSearchOpen && selectedTag) {
       setAdvancedSearchTags([selectedTag.name])
     }
@@ -154,8 +141,93 @@ export function AppHeader({
     setAdvancedSearchTags((prev) => (prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]))
   }
 
-  const unreadCount = notifications.filter((notification) => !notification.isRead).length
+  const markNotificationAsRead = useCallback((id: string) => {
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id ? { ...notification, isRead: true } : notification,
+      ),
+    )
+  }, [])
+
+  const markAllNotificationsAsRead = useCallback(() => {
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.isRead ? notification : { ...notification, isRead: true },
+      ),
+    )
+  }, [])
+
+  const { unreadNotifications, readNotifications, unreadCount } = useMemo(() => {
+    const unread = notifications.filter((notification) => !notification.isRead)
+    const read = notifications.filter((notification) => notification.isRead)
+
+    return {
+      unreadNotifications: unread,
+      readNotifications: read,
+      unreadCount: unread.length,
+    }
+  }, [notifications])
+
   const hasNotifications = notifications.length > 0
+
+  const renderNotification = useCallback(
+    (notification: NotificationItem) => {
+      const config = notificationTypeConfig[notification.type]
+      const Icon = config.icon
+      const isRead = Boolean(notification.isRead)
+
+      return (
+        <div
+          key={notification.id}
+          className={cn(
+            "group relative flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors",
+            isRead
+              ? "bg-card hover:bg-muted/70"
+              : "border-primary/30 bg-primary/5 hover:bg-primary/10",
+          )}
+        >
+          <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", config.className)}>
+            <Icon className="h-4 w-4" />
+          </span>
+          <div className="flex-1 space-y-1">
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-medium leading-5">{notification.title}</p>
+              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                {formatRelativeTime(notification.createdAt)}
+              </span>
+            </div>
+            {notification.description && (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {notification.description}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
+                {config.label}
+              </Badge>
+              {notification.actionUrl ? (
+                <a href={notification.actionUrl} className="text-xs font-medium text-primary hover:underline">
+                  Xem chi tiết
+                </a>
+              ) : null}
+            </div>
+          </div>
+          {!isRead && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => markNotificationAsRead(notification.id)}
+              className="mt-1 h-7 w-7 shrink-0 opacity-0 transition-opacity hover:bg-transparent hover:text-primary focus:opacity-100 group-hover:opacity-100"
+              aria-label="Đánh dấu đã đọc"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )
+    },
+    [markNotificationAsRead],
+  )
 
   return (
     <div className="bg-card">
@@ -342,70 +414,50 @@ export function AppHeader({
             <PopoverContent
               align="end"
               sideOffset={8}
-              className="flex min-h-0 w-96 max-w-[90vw] flex-col overflow-hidden p-0"
+              className="flex w-96 max-w-[90vw] flex-col overflow-hidden p-0"
               style={{ maxHeight: "min(70vh, 24rem)" }}
             >
-              <div className="flex shrink-0 items-start justify-between border-b px-4 py-3">
+              <div className="flex shrink-0 items-start justify-between gap-2 border-b px-4 py-3">
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold">Thông báo</p>
                   <p className="text-xs text-muted-foreground">
                     {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : "Tất cả thông báo đã xem"}
                   </p>
                 </div>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 shrink-0 px-2 text-xs text-primary hover:bg-primary/10"
+                    onClick={markAllNotificationsAsRead}
+                  >
+                    Đánh dấu tất cả đã đọc
+                  </Button>
+                )}
               </div>
               {isLoadingNotifications ? (
                 <div className="flex flex-1 items-center justify-center px-4 py-10 text-sm text-muted-foreground">
                   Đang tải thông báo...
                 </div>
               ) : hasNotifications ? (
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-3 px-4 py-3">
-                    {notifications.map((notification) => {
-                      const config = notificationTypeConfig[notification.type]
-                      const Icon = config.icon
-
-                      return (
-                        <div
-                          key={notification.id}
-                          className={cn(
-                            "flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors",
-                            notification.isRead
-                              ? "bg-card hover:bg-muted/70"
-                              : "bg-primary/5 border-primary/30 hover:bg-primary/10",
-                          )}
-                        >
-                          <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", config.className)}>
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-start justify-between gap-2">
-                              <p className="font-medium leading-5">{notification.title}</p>
-                              <span className="whitespace-nowrap text-xs text-muted-foreground">
-                                {formatRelativeTime(notification.createdAt)}
-                              </span>
-                            </div>
-                            {notification.description && (
-                              <p className="text-xs leading-relaxed text-muted-foreground">
-                                {notification.description}
-                              </p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-2 pt-1">
-                              <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide">
-                                {config.label}
-                              </Badge>
-                              {notification.actionUrl ? (
-                                <a
-                                  href={notification.actionUrl}
-                                  className="text-xs font-medium text-primary hover:underline"
-                                >
-                                  Xem chi tiết
-                                </a>
-                              ) : null}
-                            </div>
-                          </div>
+                <ScrollArea className="flex-1" style={{ maxHeight: "calc(min(70vh, 24rem) - 64px)" }}>
+                  <div className="space-y-5 px-4 py-3">
+                    {unreadNotifications.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">Chưa đọc</p>
+                        <div className="space-y-3">
+                          {unreadNotifications.map((notification) => renderNotification(notification))}
                         </div>
-                      )
-                    })}
+                      </div>
+                    )}
+                    {readNotifications.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">Đã đọc</p>
+                        <div className="space-y-3">
+                          {readNotifications.map((notification) => renderNotification(notification))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               ) : (
