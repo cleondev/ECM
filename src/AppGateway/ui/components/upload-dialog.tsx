@@ -103,7 +103,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     clearAutoCloseTimeout()
     setUploadResult(null)
     setSelectedFileCount(0)
-    uppy.reset()
+    uppy.cancelAll()
   }, [clearAutoCloseTimeout, uppy])
 
   const handleClose = useCallback(() => {
@@ -141,7 +141,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
         })
     } else {
       clearAutoCloseTimeout()
-      uppy.reset()
+      uppy.cancelAll()
       setSelectedFileCount(0)
     }
   }, [open, uppy, clearAutoCloseTimeout])
