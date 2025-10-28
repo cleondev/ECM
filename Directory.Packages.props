@@ -8,6 +8,7 @@
     <PackageVersion Include="Aspire.Hosting" Version="9.5.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.5.2" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.8" />
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
     <PackageVersion Include="Minio" Version="6.0.5" />
     <PackageVersion Include="Confluent.Kafka" Version="2.12.0" />
     <PackageVersion Include="EnyimMemcachedCore" Version="3.4.5" />

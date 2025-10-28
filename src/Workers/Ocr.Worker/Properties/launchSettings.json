@@ -2,7 +2,6 @@
   "profiles": {
     "Ocr.Worker": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development",
         "Kafka__BootstrapServers": "localhost:9092",
@@ -11,7 +10,11 @@
         "ECM_FileStorage__SecretAccessKey": "localhost:9092",
         "ECM_FileStorage__BucketName": "localhost:9092",
         "Ocr__Dot__BaseUrl": "http://localhost:7075/"
-      }
+      },
+      "dotnetRunMessages": true
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
     }
   }
 }
