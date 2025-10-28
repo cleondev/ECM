@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import type React from "react"
 
 import type { FileItem } from "./file-manager"
@@ -25,6 +26,7 @@ type FileCardProps = {
   onDownload?: () => void
   onShare?: () => void
   onOpenDetails?: (tab: "property" | "flow" | "form") => void
+  actionsDisabled?: boolean
 }
 
 const statusColors = {
@@ -42,12 +44,16 @@ export function FileCard({
   onDownload,
   onShare,
   onOpenDetails,
+  actionsDisabled,
 }: FileCardProps) {
+  const cardRef = useRef<HTMLButtonElement>(null)
+
   return (
     <ContextMenu onOpenChange={(open) => open && onContextMenuOpen?.()}>
       <ContextMenuTrigger asChild>
         <button
           onClick={onSelect}
+          ref={cardRef}
           className={cn(
             "group relative flex h-full w-full flex-col overflow-hidden rounded-xl border bg-card text-left transition-all hover:shadow-lg",
             isSelected ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50",
@@ -72,6 +78,12 @@ export function FileCard({
                 className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation()
+                  const event = new MouseEvent("contextmenu", {
+                    bubbles: true,
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                  })
+                  cardRef.current?.dispatchEvent(event)
                 }}
               >
                 <MoreVertical className="h-4 w-4" />
@@ -101,24 +113,24 @@ export function FileCard({
       </ContextMenuTrigger>
 
       <ContextMenuContent className="w-48" align="end">
-        <ContextMenuItem onSelect={() => onDownload?.()} disabled={!file.latestVersionId}>
+        <ContextMenuItem onSelect={() => onDownload?.()} disabled={actionsDisabled || !file.latestVersionId}>
           <Download className="h-4 w-4" />
           Download
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onShare?.()} disabled={!file.latestVersionId}>
+        <ContextMenuItem onSelect={() => onShare?.()} disabled={actionsDisabled || !file.latestVersionId}>
           <Share2 className="h-4 w-4" />
           Share
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => onOpenDetails?.("property")}> 
+        <ContextMenuItem onSelect={() => onOpenDetails?.("property")} disabled={actionsDisabled}>
           <FileText className="h-4 w-4" />
           Open Property
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onOpenDetails?.("flow")}>
+        <ContextMenuItem onSelect={() => onOpenDetails?.("flow")} disabled={actionsDisabled}>
           <GitBranch className="h-4 w-4" />
           Open Flow
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onOpenDetails?.("form")}>
+        <ContextMenuItem onSelect={() => onOpenDetails?.("form")} disabled={actionsDisabled}>
           <Edit3 className="h-4 w-4" />
           Open Form
         </ContextMenuItem>
