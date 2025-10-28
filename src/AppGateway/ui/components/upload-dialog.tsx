@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
+const DEFAULT_TAG_ICON = "📁"
+
 const defaultMetadata: UploadMetadata = {
   title: "",
   docType: "General",
@@ -319,23 +321,18 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       const isExpanded = expandedTags[tag.id] ?? true
       const isSelected = selectedTags.some((selected) => selected.id === tag.id)
       const canSelect = isSelectableTag(tag)
+      const displayIcon = tag.icon && tag.icon.trim() !== "" ? tag.icon : DEFAULT_TAG_ICON
 
       return (
         <div key={tag.id} className="space-y-1">
           <div
             className={cn(
-              "flex items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors",
-              canSelect ? "cursor-pointer" : "cursor-default opacity-80",
+              "flex items-center gap-1 rounded-md text-sm transition-colors group",
               isSelected
                 ? "bg-primary/10 text-primary border border-primary/30"
-                : "hover:bg-muted/60 border border-transparent",
+                : "hover:bg-muted/60 border border-transparent text-muted-foreground",
             )}
             style={{ paddingLeft: `${level * 12 + 8}px` }}
-            onClick={() => {
-              if (canSelect) {
-                toggleTag(tag)
-              }
-            }}
           >
             {hasChildren ? (
               <button
@@ -347,25 +344,37 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                 className="p-0.5 rounded hover:bg-muted/80 text-muted-foreground"
               >
                 {isExpanded ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
+                  <ChevronDown className="h-3 w-3" />
                 ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-3 w-3" />
                 )}
               </button>
             ) : (
-              <span className="w-4" />
+              <span className="w-3" />
             )}
 
-            <div
+            <button
+              type="button"
+              onClick={() => {
+                if (canSelect) {
+                  toggleTag(tag)
+                }
+              }}
+              disabled={!canSelect}
               className={cn(
-                "flex-1 flex items-center gap-2 rounded px-2 py-1",
+                "flex items-center gap-2 flex-1 min-w-0 rounded px-2 py-1 text-left transition",
                 tag.color ?? "bg-muted/60",
+                canSelect ? "text-foreground" : "text-muted-foreground cursor-default opacity-80",
                 isSelected ? "ring-1 ring-primary" : "",
-                canSelect ? "text-foreground" : "text-muted-foreground",
               )}
             >
+              <span className="text-xs flex-shrink-0">{displayIcon}</span>
               <span className="truncate">{tag.name}</span>
-            </div>
+            </button>
+
+            {isSelected ? (
+              <CheckCircle2 className="mr-2 h-3.5 w-3.5 text-primary" />
+            ) : null}
           </div>
 
           {hasChildren && isExpanded ? (
