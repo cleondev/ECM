@@ -41,20 +41,23 @@ export function FileHeader({
           )}
 
           <div className="flex-1 md:min-w-[520px] md:max-w-3xl">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground md:h-5 md:w-5" />
+            <div className="relative flex h-11 items-center rounded-full border border-border/60 bg-background/80 pl-4 pr-4 text-sm shadow-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 md:h-14 md:pl-5 md:pr-6 md:text-lg">
+              <Search className="mr-2 h-4 w-4 text-muted-foreground md:h-5 md:w-5" />
               <Input
                 placeholder="Search files..."
                 value={searchQuery}
                 onChange={(e) => {
                   onSearchChange(e.target.value)
                 }}
-                className="h-11 pl-9 text-sm md:h-14 md:pl-12 md:pr-14 md:text-lg"
+                className="h-full flex-1 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 focus-visible:ring-offset-0 md:text-lg"
               />
               {selectedTag && (
-                <Badge variant="secondary" className="absolute right-2 top-1/2 -translate-y-1/2 gap-1 pr-1 text-sm md:text-base">
+                <Badge
+                  variant="secondary"
+                  className="ml-2 flex items-center gap-1 rounded-full bg-primary/10 pr-1 text-sm text-primary md:text-base"
+                >
                   {selectedTag.name}
-                  <Button variant="ghost" size="icon" className="h-4 w-4 p-0 hover:bg-transparent" onClick={onClearTag}>
+                  <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-primary hover:bg-transparent" onClick={onClearTag}>
                     <X className="h-3 w-3" />
                   </Button>
                 </Badge>
