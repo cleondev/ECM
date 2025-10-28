@@ -202,3 +202,73 @@
     @apply bg-background text-foreground overflow-x-hidden;
   }
 }
+
+@layer components {
+  .uppy-Dashboard {
+    @apply text-foreground;
+  }
+
+  .uppy-Dashboard-inner {
+    @apply bg-card border border-border shadow-none rounded-xl;
+  }
+
+  .uppy-Dashboard-AddFiles {
+    @apply border-2 border-dashed border-muted-foreground/40 bg-background/80 rounded-xl;
+    min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.75rem 2.5rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .uppy-Dashboard-AddFiles.is-drag-over {
+    @apply border-primary bg-primary/5;
+  }
+
+  .uppy-Dashboard-AddFiles-title {
+    @apply text-lg font-semibold text-foreground text-center flex flex-col items-center gap-4;
+  }
+
+  .uppy-Dashboard-AddFiles-title::before {
+    content: "";
+    width: 5rem;
+    height: 5rem;
+    border-radius: 1.5rem;
+    background-image: url("/upload-illustration.svg");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+  }
+
+  .uppy-Dashboard-AddFiles-info {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .uppy-Dashboard-AddFiles-title .uppy-Dashboard-browse,
+  .uppy-Dashboard-AddFiles-info .uppy-Dashboard-browse {
+    @apply text-primary font-semibold underline decoration-primary/40 decoration-2 underline-offset-4;
+  }
+
+  .uppy-Dashboard-note {
+    @apply text-center text-sm text-muted-foreground mt-3;
+  }
+
+  .uppy-StatusBar {
+    @apply bg-secondary text-secondary-foreground rounded-b-xl border-t border-border;
+  }
+
+  .uppy-StatusBar-progress {
+    @apply bg-primary;
+  }
+
+  .uppy-StatusBar-status {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+
+  .uppy-StatusBar-actionBtn--upload,
+  .uppy-StatusBar-actionBtn--retry,
+  .uppy-StatusBar-actionBtn--cancel {
+    @apply text-sm font-medium text-primary hover:text-primary/80;
+  }
+}
