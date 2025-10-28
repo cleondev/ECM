@@ -13,5 +13,7 @@ public sealed class CreateUserRequest
 
     public bool IsActive { get; init; } = true;
 
+    public string? Password { get; init; }
+
     public IReadOnlyCollection<Guid> RoleIds { get; init; } = [];
 }

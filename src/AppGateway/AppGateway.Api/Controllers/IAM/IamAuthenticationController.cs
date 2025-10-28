@@ -1,9 +1,14 @@
+using System;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
+using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Infrastructure.Ecm;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -61,4 +66,87 @@ public sealed class IamAuthenticationController(
             return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
         }
     }
+
+    [HttpPost("password-login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(CheckLoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<IActionResult> PasswordLoginAsync([
+        FromBody] PasswordLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var resolvedRedirect = AzureLoginRedirectHelper.ResolveRedirectPath(
+            HttpContext,
+            request.RedirectUri,
+            Program.MainAppPath);
+
+        UserSummaryDto? profile;
+        try
+        {
+            var email = request.Email?.Trim() ?? string.Empty;
+            profile = await _client.AuthenticateUserAsync(
+                new AuthenticateUserRequestDto
+                {
+                    Email = email,
+                    Password = request.Password,
+                },
+                cancellationToken);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(
+                ex,
+                "Password login failed due to upstream error for {Email}.",
+                request.Email);
+            return StatusCode(StatusCodes.Status502BadGateway, new { message = "Login service is unavailable." });
+        }
+
+        if (profile is null)
+        {
+            _logger.LogWarning(
+                "Password login rejected due to invalid credentials for {Email}.",
+                request.Email?.Trim());
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Unauthorized(new { message = "Invalid email or password." });
+        }
+
+        var principal = CreateLocalUserPrincipal(profile);
+
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+        _logger.LogInformation("Password login succeeded for {Email}.", profile.Email);
+
+        return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, profile));
+    }
+
+    private static ClaimsPrincipal CreateLocalUserPrincipal(UserSummaryDto user)
+    {
+        var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+        identity.AddClaim(new Claim(ClaimTypes.Name, user.DisplayName));
+        identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+        identity.AddClaim(new Claim("preferred_username", user.Email));
+
+        if (!string.IsNullOrWhiteSpace(user.Department))
+        {
+            identity.AddClaim(new Claim("department", user.Department));
+        }
+
+        foreach (var role in user.Roles ?? Array.Empty<RoleSummaryDto>())
+        {
+            identity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
+        }
+
+        return new ClaimsPrincipal(identity);
+    }
+}
+
+public sealed class PasswordLoginRequest
+{
+    public string Email { get; init; } = string.Empty;
+
+    public string Password { get; init; } = string.Empty;
+
+    public string? RedirectUri { get; init; }
 }

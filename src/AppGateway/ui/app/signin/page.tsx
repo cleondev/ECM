@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { BrandLogo } from "@/components/brand-logo"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { checkLogin } from "@/lib/api"
+import { checkLogin, passwordLogin, PasswordLoginError } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
 
@@ -44,6 +44,7 @@ function SignInPageContent() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState("")
+  const [passwordStatus, setPasswordStatus] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const targetAfterLogin = useMemo(() => {
@@ -91,16 +92,41 @@ function SignInPageContent() {
     }
   }
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setPasswordStatus(null)
     try {
-      // Giữ nguyên logic cũ cho email
-      // Nếu bạn có logic riêng, hãy thay thế ở đây
-      // await signInWithEmail(email, password)
-      router.push(normalizeRedirectTarget(targetAfterLogin))
+      const result = await passwordLogin({
+        email,
+        password,
+        redirectUri: targetAfterLogin,
+      })
+
+      if (result.isAuthenticated) {
+        setPasswordStatus("Đăng nhập thành công, đang chuyển hướng…")
+        router.replace(normalizeRedirectTarget(result.redirectPath, targetAfterLogin))
+        return
+      }
+
+      setPasswordStatus(
+        "Không thể xác thực người dùng. Vui lòng kiểm tra lại thông tin.",
+      )
     } catch (error) {
-      console.error("[v0] Email sign in error:", error)
+      if (error instanceof PasswordLoginError) {
+        if (error.reason === "invalid") {
+          setPasswordStatus("Email hoặc password không đúng.")
+        } else if (error.reason === "unavailable") {
+          setPasswordStatus("Dịch vụ đăng nhập tạm thời không khả dụng. Vui lòng thử lại sau.")
+        } else if (error.reason === "validation") {
+          setPasswordStatus(error.message)
+        } else {
+          setPasswordStatus("Không thể hoàn thành đăng nhập. Vui lòng thử lại sau.")
+        }
+      } else {
+        console.error("[ui] Password login error:", error)
+        setPasswordStatus("Không thể hoàn thành đăng nhập. Vui lòng thử lại sau.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -135,7 +161,7 @@ function SignInPageContent() {
             </div>
           </div>
 
-          <form onSubmit={handleEmailSignIn} className="space-y-4">
+          <form onSubmit={handlePasswordSignIn} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -152,15 +178,19 @@ function SignInPageContent() {
               <Input
                 id="password"
                 type="password"
+                placeholder="Nhập password của bạn"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              Sign In
+              Sign in with email
             </Button>
           </form>
+          <p className="text-center text-xs text-muted-foreground min-h-[1.4em]">
+            {passwordStatus}
+          </p>
 
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Don't have an account? </span>

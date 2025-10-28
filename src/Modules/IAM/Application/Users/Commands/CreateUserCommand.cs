@@ -8,4 +8,5 @@ public sealed record CreateUserCommand(
     string DisplayName,
     string? Department,
     bool IsActive,
+    string? Password,
     IReadOnlyCollection<Guid> RoleIds);
