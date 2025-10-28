@@ -484,6 +484,11 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
               <TabsContent value="tags" className="flex-1 overflow-y-auto mt-4">
                 <div className="space-y-3">
+                  {selectedTags.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Selected tags: {selectedTags.map((tag) => tag.name).join(", ")}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <Label>Select Tags</Label>
                     <span className="text-xs text-muted-foreground">
@@ -505,11 +510,6 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                       </div>
                     </ScrollArea>
                   </div>
-                  {selectedTags.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Selected tags: {selectedTags.map((tag) => tag.name).join(", ")}
-                    </div>
-                  )}
                 </div>
               </TabsContent>
 
