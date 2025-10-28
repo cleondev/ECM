@@ -1,15 +1,5 @@
 import { cn } from "@/lib/utils"
 import type { FileItem } from "@/lib/types"
-import type { CSSProperties } from "react"
-import type { LucideIcon } from "lucide-react"
-import {
-  Clapperboard,
-  File as FileIcon,
-  FileCode,
-  FileText,
-  Image as ImageIcon,
-  Palette,
-} from "lucide-react"
 
 type FileSummary = Pick<FileItem, "name" | "type">
 
@@ -22,52 +12,19 @@ type FileTypeIconProps = {
 type FileVisualType = FileItem["type"] | "other"
 
 const sizeStyles: Record<NonNullable<FileTypeIconProps["size"]>, { wrapper: string; icon: string }> = {
-  sm: { wrapper: "h-8 w-8 rounded-md text-[0.625rem]", icon: "h-4 w-4" },
-  md: { wrapper: "h-10 w-10 rounded-lg text-sm", icon: "h-5 w-5" },
-  lg: { wrapper: "h-14 w-14 rounded-xl text-base", icon: "h-7 w-7" },
-  xl: { wrapper: "h-16 w-16 rounded-2xl text-lg", icon: "h-9 w-9" },
+  sm: { wrapper: "h-8 w-8", icon: "text-[2rem]" },
+  md: { wrapper: "h-10 w-10", icon: "text-[2.5rem]" },
+  lg: { wrapper: "h-14 w-14", icon: "text-[3.5rem]" },
+  xl: { wrapper: "h-16 w-16", icon: "text-[4rem]" },
 }
 
-const typeIcons: Record<FileVisualType, LucideIcon> = {
-  design: Palette,
-  document: FileText,
-  image: ImageIcon,
-  video: Clapperboard,
-  code: FileCode,
-  other: FileIcon,
-}
-
-const typeColorStyles: Record<FileVisualType, CSSProperties> = {
-  design: {
-    backgroundColor: "color-mix(in srgb, var(--color-chart-5) 16%, transparent)",
-    color: "var(--color-chart-5)",
-    borderColor: "color-mix(in srgb, var(--color-chart-5) 35%, transparent)",
-  },
-  document: {
-    backgroundColor: "color-mix(in srgb, var(--color-chart-1) 16%, transparent)",
-    color: "var(--color-chart-1)",
-    borderColor: "color-mix(in srgb, var(--color-chart-1) 35%, transparent)",
-  },
-  image: {
-    backgroundColor: "color-mix(in srgb, var(--color-chart-3) 18%, transparent)",
-    color: "var(--color-chart-3)",
-    borderColor: "color-mix(in srgb, var(--color-chart-3) 38%, transparent)",
-  },
-  video: {
-    backgroundColor: "color-mix(in srgb, var(--color-chart-4) 18%, transparent)",
-    color: "var(--color-chart-4)",
-    borderColor: "color-mix(in srgb, var(--color-chart-4) 38%, transparent)",
-  },
-  code: {
-    backgroundColor: "color-mix(in srgb, var(--color-chart-2) 18%, transparent)",
-    color: "var(--color-chart-2)",
-    borderColor: "color-mix(in srgb, var(--color-chart-2) 38%, transparent)",
-  },
-  other: {
-    backgroundColor: "var(--color-muted)",
-    color: "var(--color-muted-foreground)",
-    borderColor: "var(--color-border)",
-  },
+const typeFallbackIcons: Record<FileVisualType, string> = {
+  design: "fiv-icon-ai",
+  document: "fiv-icon-doc",
+  image: "fiv-icon-image",
+  video: "fiv-icon-mp4",
+  code: "fiv-icon-js",
+  other: "fiv-icon-blank",
 }
 
 const designExtensions = new Set([
@@ -225,28 +182,29 @@ function resolveVisualType(file?: FileSummary | null): { type: FileVisualType; e
   return { type: type as FileVisualType, extension }
 }
 
+function buildIconClass(extension: string | null, type: FileVisualType) {
+  if (!extension) {
+    return typeFallbackIcons[type]
+  }
+
+  if (!/^[a-z0-9_-]+$/i.test(extension)) {
+    return typeFallbackIcons[type]
+  }
+
+  return `fiv-icon-${extension.toLowerCase()}`
+}
+
 export function FileTypeIcon({ file, className, size = "md" }: FileTypeIconProps) {
   const { type, extension } = resolveVisualType(file)
   const { wrapper, icon } = sizeStyles[size]
-  const IconComponent = typeIcons[type]
-  const colorStyle = typeColorStyles[type]
-  const shouldShowExtension = type === "other" && extension
+  const iconClass = buildIconClass(extension, type)
 
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        "inline-flex items-center justify-center border font-semibold uppercase leading-none tracking-tight",
-        wrapper,
-        className,
-      )}
-      style={colorStyle}
+      className={cn("inline-flex items-center justify-center", wrapper, className)}
     >
-      {shouldShowExtension ? (
-        <span className="truncate">{extension?.slice(0, 4)}</span>
-      ) : (
-        <IconComponent className={cn("shrink-0", icon)} strokeWidth={1.75} />
-      )}
+      <span className={cn("fiv-sqo fiv-icon-blank", icon, iconClass)} role="presentation" />
     </span>
   )
 }
