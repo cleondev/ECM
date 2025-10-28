@@ -284,9 +284,9 @@ export function AppHeader({
                   </Badge>
                 )}
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="pointer-events-auto h-8 w-8"
+                  className="pointer-events-auto h-8 w-8 rounded-full border-border/60 bg-background/70 text-muted-foreground transition-colors hover:bg-muted/70"
                   title="Advanced search"
                   onClick={() => setIsAdvancedSearchOpen(true)}
                 >
