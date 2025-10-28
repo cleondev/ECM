@@ -446,7 +446,7 @@ export function AppHeader({
                   Đang tải thông báo...
                 </div>
               ) : hasNotifications ? (
-                <ScrollArea className="flex-1" style={{ maxHeight: "calc(min(70vh, 24rem) - 64px)" }}>
+                <ScrollArea className="flex-1 overflow-y-auto" style={{ maxHeight: "calc(min(70vh, 24rem) - 64px)" }}>
                   <div className="space-y-5 px-4 py-3">
                     {unreadNotifications.length > 0 && (
                       <div className="space-y-3">
