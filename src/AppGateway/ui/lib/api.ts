@@ -10,6 +10,7 @@ import type {
   SelectedTag,
   ShareOptions,
   ShareLink,
+  ShareInterstitial,
   NotificationItem,
 } from "./types"
 import {
@@ -113,6 +114,13 @@ type ShareLinkResponse = {
   url: string
   expiresAtUtc: string
   isPublic: boolean
+}
+
+type ShareInterstitialResponseDto = ShareInterstitial
+
+type SharePresignResponse = {
+  url: string
+  expiresAtUtc: string
 }
 
 type TagLabelResponse = {
@@ -274,6 +282,10 @@ async function gatewayRequest<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T
+}
+
+function encodeShareCode(code: string): string {
+  return encodeURIComponent(code.trim())
 }
 
 function formatFileSize(bytes?: number | null): string {
@@ -980,6 +992,69 @@ export async function createShareLink(versionId: string, options: ShareOptions):
   } catch (error) {
     console.error(`[ui] Failed to create share link for version ${versionId}:`, error)
     throw error
+  }
+}
+
+function normalizeShareInterstitial(dto: ShareInterstitialResponseDto): ShareInterstitial {
+  return {
+    ...dto,
+    file: {
+      ...dto.file,
+      extension: dto.file.extension ?? null,
+      createdAtUtc: dto.file.createdAtUtc ?? null,
+    },
+    quota: {
+      maxViews: dto.quota?.maxViews ?? null,
+      maxDownloads: dto.quota?.maxDownloads ?? null,
+      viewsUsed: dto.quota?.viewsUsed ?? 0,
+      downloadsUsed: dto.quota?.downloadsUsed ?? 0,
+    },
+  }
+}
+
+export async function fetchShareInterstitial(code: string, password?: string): Promise<ShareInterstitial> {
+  const query = password ? `?password=${encodeURIComponent(password)}` : ""
+  const dto = await gatewayRequest<ShareInterstitialResponseDto>(`/s/${encodeShareCode(code)}${query}`)
+  return normalizeShareInterstitial(dto)
+}
+
+export async function verifySharePassword(code: string, password: string): Promise<boolean> {
+  const response = await gatewayFetch(`/s/${encodeShareCode(code)}/password`, {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  })
+
+  if (response.ok) {
+    return true
+  }
+
+  if (response.status === 400 || response.status === 403) {
+    return false
+  }
+
+  if (response.status === 404) {
+    throw new Error("Share link not found")
+  }
+
+  throw new Error(`Failed to verify password (status ${response.status})`)
+}
+
+export async function requestShareDownloadLink(code: string, password?: string): Promise<SharePresignResponse> {
+  const payload = password ? { password } : {}
+  const response = await gatewayRequest<SharePresignResponse>(`/s/${encodeShareCode(code)}/presign`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+
+  return response
+}
+
+export function redirectToShareDownload(code: string, password?: string): void {
+  const query = password ? `?password=${encodeURIComponent(password)}` : ""
+  const url = createGatewayUrl(`/s/${encodeShareCode(code)}/download${query}`)
+
+  if (typeof window !== "undefined") {
+    window.location.href = url
   }
 }
 
