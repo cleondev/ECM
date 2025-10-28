@@ -159,7 +159,7 @@ export function AppHeader({
 
   return (
     <div className="bg-card">
-      <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 md:gap-4">
+      <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 md:gap-4">
         <div className="flex shrink-0 items-center gap-2 justify-self-start">
           <Button
             variant="ghost"
@@ -173,7 +173,7 @@ export function AppHeader({
 
           <BrandLogo
             className="gap-2"
-            imageClassName="h-8 w-8"
+            imageClassName="h-10 w-10"
             textClassName="hidden md:block font-semibold text-lg"
           />
         </div>
