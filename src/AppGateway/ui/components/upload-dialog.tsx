@@ -62,7 +62,7 @@ function formatFailureMessage(fileName: string, message?: string): string {
 export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDialogProps) {
   const [flows, setFlows] = useState<Flow[]>([])
   const [tags, setTags] = useState<TagNode[]>([])
-  const [selectedFlow, setSelectedFlow] = useState<string>("")
+  const [selectedFlow, setSelectedFlow] = useState<string | null>(null)
   const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([])
   const [metadata, setMetadata] = useState<UploadMetadata>(defaultMetadata)
   const [isUploading, setIsUploading] = useState(false)
@@ -111,7 +111,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   const handleClose = useCallback(() => {
     resetUploaderState()
-    setSelectedFlow("")
+    setSelectedFlow(null)
     setSelectedTags([])
     setMetadata({ ...defaultMetadata })
     setIsUploading(false)
@@ -277,7 +277,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       Sensitivity: metadata.sensitivity?.trim() || "Internal",
       Description: metadata.description?.trim() || "",
       Notes: metadata.notes?.trim() || "",
-      FlowDefinition: selectedFlow || "",
+      FlowDefinition: selectedFlow ?? "",
       OwnerId: currentUser?.id ?? "",
       CreatedBy: currentUser?.id ?? "",
       Tags: JSON.stringify(tagIds),
@@ -517,12 +517,15 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Select workflow</Label>
-                    <Select value={selectedFlow} onValueChange={setSelectedFlow}>
+                    <Select
+                      value={selectedFlow ?? undefined}
+                      onValueChange={(value) => setSelectedFlow(value === "__none__" ? null : value)}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose a workflow" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No workflow</SelectItem>
+                        <SelectItem value="__none__">No workflow</SelectItem>
                         {flows.map((flow) => (
                           <SelectItem key={flow.id} value={flow.id}>
                             {flow.name}
