@@ -91,6 +91,37 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "effective_acl_flat",
+                schema: "doc",
+                columns: table => new
+                {
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    source = table.Column<string>(type: "text", nullable: false),
+                    idempotency_key = table.Column<string>(type: "text", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_effective_acl_flat", x => new { x.document_id, x.user_id, x.idempotency_key });
+                    table.ForeignKey(
+                        name: "fk_effective_acl_flat_document_document_id",
+                        column: x => x.document_id,
+                        principalSchema: "doc",
+                        principalTable: "document",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_effective_acl_flat_users_user_id",
+                        column: x => x.user_id,
+                        principalSchema: "iam",
+                        principalTable: "users",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "tag_label",
                 schema: "doc",
                 columns: table => new
@@ -269,6 +300,13 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 column: "doc_type");
 
             migrationBuilder.CreateIndex(
+                name: "doc_document_updated_at_id_idx",
+                schema: "doc",
+                table: "document",
+                columns: new[] { "updated_at", "id" },
+                descending: new[] { true, true });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_document_created_by",
                 schema: "doc",
                 table: "document",
@@ -298,6 +336,12 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 table: "document_type",
                 column: "type_key",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "doc_effective_acl_flat_user_document_idx",
+                schema: "doc",
+                table: "effective_acl_flat",
+                columns: new[] { "user_id", "valid_to", "document_id" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_signature_request_document_id",
@@ -389,6 +433,10 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "version",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "effective_acl_flat",
                 schema: "doc");
 
             migrationBuilder.DropTable(

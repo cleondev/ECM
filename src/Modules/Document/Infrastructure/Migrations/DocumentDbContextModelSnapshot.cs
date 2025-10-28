@@ -126,6 +126,10 @@ namespace ECM.Document.Infrastructure.Migrations
                     b.HasIndex("DocType")
                         .HasDatabaseName("doc_document_type_idx");
 
+                    b.HasIndex("UpdatedAtUtc", "Id")
+                        .HasDatabaseName("doc_document_updated_at_id_idx")
+                        .IsDescending(true, true);
+
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("doc_document_owner_idx");
 
@@ -136,6 +140,45 @@ namespace ECM.Document.Infrastructure.Migrations
                         .HasDatabaseName("IX_document_type_id");
 
                     b.ToTable("document", "doc");
+                });
+
+            modelBuilder.Entity("ECM.Document.Infrastructure.Persistence.ReadModels.EffectiveAclFlatEntry", b =>
+                {
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("document_id");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source");
+
+                    b.Property<DateTimeOffset?>("ValidToUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("valid_to");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("DocumentId", "UserId", "IdempotencyKey")
+                        .HasName("pk_effective_acl_flat");
+
+                    b.HasIndex("UserId", "ValidToUtc", "DocumentId")
+                        .HasDatabaseName("doc_effective_acl_flat_user_document_idx");
+
+                    b.ToTable("effective_acl_flat", "doc");
                 });
 
             modelBuilder.Entity("ECM.Document.Domain.Documents.DocumentMetadata", b =>

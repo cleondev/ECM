@@ -16,9 +16,9 @@ public sealed class AccessRelationRepository(IamDbContext context) : IAccessRela
 {
     private readonly IamDbContext _context = context;
 
-    public async Task<IReadOnlyCollection<AccessRelation>> GetBySubjectAsync(Guid subjectId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<AccessRelation>> GetBySubjectAsync(string subjectType, Guid subjectId, CancellationToken cancellationToken = default)
         => await _context.Relations
-            .Where(relation => relation.SubjectId == subjectId)
+            .Where(relation => relation.SubjectType == subjectType && relation.SubjectId == subjectId)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
@@ -28,9 +28,10 @@ public sealed class AccessRelationRepository(IamDbContext context) : IAccessRela
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-    public async Task<AccessRelation?> GetAsync(Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default)
+    public async Task<AccessRelation?> GetAsync(string subjectType, Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default)
         => await _context.Relations.FirstOrDefaultAsync(
-            candidate => candidate.SubjectId == subjectId
+            candidate => candidate.SubjectType == subjectType
+                         && candidate.SubjectId == subjectId
                          && candidate.ObjectType == objectType
                          && candidate.ObjectId == objectId
                          && candidate.Relation == relation,

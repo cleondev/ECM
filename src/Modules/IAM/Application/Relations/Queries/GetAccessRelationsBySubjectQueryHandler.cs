@@ -12,7 +12,8 @@ public sealed class GetAccessRelationsBySubjectQueryHandler(IAccessRelationRepos
 
     public async Task<IReadOnlyCollection<AccessRelationSummaryResult>> HandleAsync(GetAccessRelationsBySubjectQuery query, CancellationToken cancellationToken = default)
     {
-        var relations = await _repository.GetBySubjectAsync(query.SubjectId, cancellationToken);
+        var normalizedSubjectType = query.SubjectType?.Trim().ToLowerInvariant() ?? string.Empty;
+        var relations = await _repository.GetBySubjectAsync(normalizedSubjectType, query.SubjectId, cancellationToken);
         return [.. relations.Select(relation => relation.ToResult())];
     }
 }

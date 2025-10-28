@@ -10,10 +10,13 @@ internal static class Mapping
         ArgumentNullException.ThrowIfNull(relation);
 
         return new AccessRelationSummaryResult(
+            relation.SubjectType,
             relation.SubjectId,
             relation.ObjectType,
             relation.ObjectId,
             relation.Relation,
-            relation.CreatedAtUtc);
+            relation.CreatedAtUtc,
+            relation.ValidFromUtc,
+            relation.ValidToUtc);
     }
 }

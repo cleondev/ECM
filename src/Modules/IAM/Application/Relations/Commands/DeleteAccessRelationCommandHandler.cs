@@ -12,7 +12,15 @@ public sealed class DeleteAccessRelationCommandHandler(IAccessRelationRepository
 
     public async Task<bool> HandleAsync(DeleteAccessRelationCommand command, CancellationToken cancellationToken = default)
     {
-        var relation = await _repository.GetAsync(command.SubjectId, command.ObjectType, command.ObjectId, command.Relation, cancellationToken);
+        var normalizedSubjectType = command.SubjectType?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        var relation = await _repository.GetAsync(
+            normalizedSubjectType,
+            command.SubjectId,
+            command.ObjectType,
+            command.ObjectId,
+            command.Relation,
+            cancellationToken);
         if (relation is null)
         {
             return false;

@@ -19,7 +19,7 @@ public class AccessRelationRepositoryTests
         await using var context = new IamDbContext(options);
         var repository = new AccessRelationRepository(context);
 
-        var relation = AccessRelation.Create(Guid.NewGuid(), "document", Guid.NewGuid(), "owner", DateTimeOffset.UtcNow);
+        var relation = AccessRelation.Create("user", Guid.NewGuid(), "document", Guid.NewGuid(), "owner", DateTimeOffset.UtcNow);
 
         await repository.AddAsync(relation, CancellationToken.None);
 
@@ -37,7 +37,7 @@ public class AccessRelationRepositoryTests
         await using var context = new IamDbContext(options);
         var repository = new AccessRelationRepository(context);
 
-        var relation = AccessRelation.Create(Guid.NewGuid(), "document", Guid.NewGuid(), "owner", DateTimeOffset.UtcNow);
+        var relation = AccessRelation.Create("user", Guid.NewGuid(), "document", Guid.NewGuid(), "owner", DateTimeOffset.UtcNow);
         await repository.AddAsync(relation, CancellationToken.None);
 
         context.OutboxMessages.RemoveRange(context.OutboxMessages);
