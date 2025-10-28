@@ -18,6 +18,9 @@ type FileGridProps = {
   hasMore: boolean
   isLoading: boolean
   onLoadMore: () => void
+  onDownloadFile: (file: FileItem) => void
+  onShareFile: (file: FileItem) => void
+  onOpenDetailsTab: (tab: "property" | "flow" | "form", file: FileItem) => void
 }
 
 function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
@@ -61,6 +64,9 @@ export function FileGrid({
   hasMore,
   isLoading,
   onLoadMore,
+  onDownloadFile,
+  onShareFile,
+  onOpenDetailsTab,
 }: FileGridProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const lastSelectedIndexRef = useRef<number>(-1)
@@ -160,6 +166,13 @@ export function FileGrid({
     }
   }
 
+  const handleFileContextMenu = (file: FileItem, index: number) => {
+    const newSelection = new Set([file.id])
+    onSelectedFilesChange(newSelection)
+    onFileSelect(file)
+    lastSelectedIndexRef.current = index
+  }
+
   if (files.length === 0 && isLoading) {
     return (
       <div
@@ -194,6 +207,10 @@ export function FileGrid({
               isSelected={selectedFile?.id === file.id}
               isMultiSelected={selectedFiles.has(file.id)}
               onSelect={(e) => handleFileClick(file, index, e)}
+              onContextMenuOpen={() => handleFileContextMenu(file, index)}
+              onDownload={() => onDownloadFile(file)}
+              onShare={() => onShareFile(file)}
+              onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
             />
           ))}
         </div>
@@ -216,6 +233,10 @@ export function FileGrid({
             isSelected={selectedFile?.id === file.id}
             isMultiSelected={selectedFiles.has(file.id)}
             onSelect={(e) => handleFileClick(file, index, e)}
+            onContextMenuOpen={() => handleFileContextMenu(file, index)}
+            onDownload={() => onDownloadFile(file)}
+            onShare={() => onShareFile(file)}
+            onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
           />
         ))}
       </div>
