@@ -1,10 +1,5 @@
-using System;
-
 using ECM.Ocr.Application;
 using ECM.Ocr.Infrastructure;
-
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 using Serilog;
 
