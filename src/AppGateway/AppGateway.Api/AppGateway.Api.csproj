@@ -6,7 +6,7 @@
     <UserSecretsId>f9990b32-99dc-4d55-9a0d-59c3f88603eb</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../AppGateway.Contracts/AppGateway.Contracts.csproj" />
     <ProjectReference Include="../AppGateway.Infrastructure/AppGateway.Infrastructure.csproj" />
   </ItemGroup>

@@ -22,8 +22,7 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 /ECM.sln                # Solution gộp tất cả project .NET
 /src
   ├── Aspire
-  │   ├── ECM.AppHost         # Điểm khởi chạy Aspire (DistributedApplication)
-  │   └── ECM.ServiceDefaults # Cấu hình chia sẻ cho mọi service .NET
+  │   └── ECM.AppHost         # Điểm khởi chạy Aspire (DistributedApplication)
   ├── AppGateway
   │   ├── AppGateway.Api/     # BFF + reverse proxy host (ASP.NET Core)
   │   ├── AppGateway.Infrastructure/
@@ -37,7 +36,12 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   ├── Ocr
   │   ├── ocr-engine          # Service Python cho OCR
   │   └── labeling-ui         # UI gán nhãn dữ liệu OCR
-  └── Shared                  # Contracts, messaging, utilities, extensions dùng chung
+  └── Shared
+      ├── Contracts/          # DTOs và message contract dùng chung
+      ├── Extensions/         # Extension method chia sẻ
+      ├── Messaging/          # Hạ tầng messaging
+      ├── ServiceDefaults/    # Cấu hình mặc định cho mọi service .NET
+      └── Utilities/          # Tiện ích dùng chung
 /tests                  # Test project (xUnit) cho shared libraries
 /deploy                 # Tập tin phục vụ khởi tạo hạ tầng DEV (Docker Compose, init scripts)
 /docs                   # Tài liệu kiến trúc, API, quy trình

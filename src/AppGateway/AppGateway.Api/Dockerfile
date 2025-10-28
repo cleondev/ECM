@@ -16,7 +16,7 @@ WORKDIR /src
 
 COPY Directory.Packages.props ./
 COPY ECM.sln ./
-COPY src/Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj src/Aspire/ECM.ServiceDefaults/
+COPY src/Shared/ServiceDefaults/ServiceDefaults.csproj src/Shared/ServiceDefaults/
 COPY src/AppGateway/AppGateway.Api/AppGateway.Api.csproj src/AppGateway/AppGateway.Api/
 COPY src/AppGateway/AppGateway.Infrastructure/AppGateway.Infrastructure.csproj src/AppGateway/AppGateway.Infrastructure/
 COPY src/AppGateway/AppGateway.Contracts/AppGateway.Contracts.csproj src/AppGateway/AppGateway.Contracts/
