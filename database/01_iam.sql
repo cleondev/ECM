@@ -4,6 +4,7 @@ CREATE TABLE iam.users (
     id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     email           citext UNIQUE NOT NULL,
     display_name    text NOT NULL,
+    password_hash   text,
     department      text,
     is_active       boolean NOT NULL DEFAULT true,
     created_at      timestamptz NOT NULL DEFAULT now()

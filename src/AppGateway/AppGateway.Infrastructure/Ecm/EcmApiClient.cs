@@ -72,6 +72,34 @@ internal sealed class EcmApiClient(
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
+    public async Task<UserSummaryDto?> AuthenticateUserAsync(
+        AuthenticateUserRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(
+            HttpMethod.Post,
+            "api/iam/auth/login",
+            cancellationToken,
+            includeAuthentication: false);
+
+        request.Content = JsonContent.Create(requestDto);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(
+                $"Authentication request failed with status {(int)response.StatusCode}: {message}");
+        }
+
+        return await response.Content.ReadFromJsonAsync<UserSummaryDto>(cancellationToken: cancellationToken);
+    }
+
     public async Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/iam/users", cancellationToken);
@@ -436,10 +464,17 @@ internal sealed class EcmApiClient(
         return uri;
     }
 
-    private async Task<HttpRequestMessage> CreateRequestAsync(HttpMethod method, string uri, CancellationToken cancellationToken)
+    private async Task<HttpRequestMessage> CreateRequestAsync(
+        HttpMethod method,
+        string uri,
+        CancellationToken cancellationToken,
+        bool includeAuthentication = true)
     {
         var request = new HttpRequestMessage(method, uri);
-        await AttachAuthenticationAsync(request, cancellationToken);
+        if (includeAuthentication)
+        {
+            await AttachAuthenticationAsync(request, cancellationToken);
+        }
 
         return request;
     }

@@ -111,6 +111,7 @@ public static class UserEndpoints
                 request.DisplayName,
                 request.Department,
                 request.IsActive,
+                request.Password,
                 request.RoleIds),
             cancellationToken);
 

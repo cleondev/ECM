@@ -25,6 +25,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasColumnName("display_name")
             .IsRequired();
 
+        builder.Property(user => user.PasswordHash)
+            .HasColumnName("password_hash");
+
         builder.Property(user => user.Department)
             .HasColumnName("department");
 

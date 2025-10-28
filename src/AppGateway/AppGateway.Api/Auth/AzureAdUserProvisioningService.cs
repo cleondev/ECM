@@ -60,6 +60,7 @@ public sealed class AzureAdUserProvisioningService(
                 DisplayName = displayName,
                 Department = department,
                 IsActive = true,
+                Password = null,
                 RoleIds = roleIds
             };
 

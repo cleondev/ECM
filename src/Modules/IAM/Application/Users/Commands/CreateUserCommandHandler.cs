@@ -13,11 +13,13 @@ namespace ECM.IAM.Application.Users.Commands;
 public sealed class CreateUserCommandHandler(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
-    ISystemClock clock)
+    ISystemClock clock,
+    IPasswordHasher passwordHasher)
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IRoleRepository _roleRepository = roleRepository;
     private readonly ISystemClock _clock = clock;
+    private readonly IPasswordHasher _passwordHasher = passwordHasher;
 
     public async Task<OperationResult<UserSummaryResult>> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken = default)
     {
@@ -27,6 +29,20 @@ public sealed class CreateUserCommandHandler(
         }
 
         User user;
+        string? passwordHash = null;
+
+        if (!string.IsNullOrEmpty(command.Password))
+        {
+            try
+            {
+                passwordHash = _passwordHasher.HashPassword(command.Password);
+            }
+            catch (ArgumentException exception)
+            {
+                return OperationResult<UserSummaryResult>.Failure(exception.Message);
+            }
+        }
+
         try
         {
             user = User.Create(
@@ -34,7 +50,8 @@ public sealed class CreateUserCommandHandler(
                 command.DisplayName,
                 _clock.UtcNow,
                 command.Department,
-                command.IsActive);
+                command.IsActive,
+                passwordHash);
         }
         catch (ArgumentException exception)
         {
