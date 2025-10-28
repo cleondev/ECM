@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "SearchIndexer.Worker": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Kafka__BootstrapServers": "localhost:9092"
+      }
+    }
+  }
+}
