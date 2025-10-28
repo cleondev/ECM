@@ -140,11 +140,14 @@ Schemas:
 
 * `iam.user_roles(user_id, role_id)` — ánh xạ người dùng ↔ vai trò (RBAC)
 
-* `iam.relations(subject_id, object_type, object_id, relation)` — quan hệ ReBAC (ai có quyền gì với đối tượng nào)
+* `iam.groups(id, name, kind, created_by, created_at)` — nhóm động (team, workflow, tạm thời)
+* `iam.group_members(group_id, user_id, role, valid_from, valid_to)` — thành viên nhóm với thời hạn hiệu lực
+* `iam.relations(subject_type, subject_id, object_type, object_id, relation, valid_from, valid_to)` — quan hệ ReBAC cho user/group với thời gian hiệu lực
 
 * `doc.document(id, title, type_id, status, sensitivity, owner_id, created_at, updated_at)`
 
 * `doc.version(id, document_id, storage_key, bytes, sha256, created_by)`
+* `doc.effective_acl_flat(document_id, user_id, valid_to, source, idempotency_key, updated_at)` — read-model phẳng để truy vấn quyền truy cập theo user
 
 * `doc.document_type(id, type_key, type_name, is_active)`
 
@@ -162,7 +165,7 @@ Schemas:
 
 * `ops.outbox / ops.outbox_deadletter / ops.audit_event / ops.notification / ops.webhook / ops.webhook_delivery / ops.retention_policy / ops.retention_candidate`
 
-RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (department).
+RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (department). Worker materialize `doc.effective_acl_flat` để phục vụ API liệt kê tài liệu nhanh và chỉ trả quyền còn hiệu lực.
 
 
 ---

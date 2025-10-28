@@ -43,10 +43,14 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
-| `GET /api/iam/relations/subjects/{subjectId}` | Liệt kê quan hệ truy cập theo subject. | `subjectId` |
+| `GET /api/iam/relations/subjects/{subjectType}/{subjectId}` | Liệt kê quan hệ truy cập theo subject. | `subjectType=user|group`, `subjectId` |
 | `GET /api/iam/relations/objects/{objectType}/{objectId}` | Liệt kê quan hệ truy cập theo object. | `objectType`, `objectId` |
-| `POST /api/iam/relations` | Tạo quan hệ truy cập mới. | Body `{subjectId, objectType, objectId, relation}` |
-| `DELETE /api/iam/relations/subjects/{subjectId}/objects/{objectType}/{objectId}` | Xóa quan hệ truy cập. | `subjectId`, `objectType`, `objectId`, query `relation` |
+| `POST /api/iam/relations` | Tạo quan hệ truy cập mới. | Body `{subjectType=user|group, subjectId, objectType, objectId, relation, validFromUtc?, validToUtc?}` |
+| `DELETE /api/iam/relations/subjects/{subjectType}/{subjectId}/objects/{objectType}/{objectId}` | Xóa quan hệ truy cập. | `subjectType=user|group`, `subjectId`, `objectType`, `objectId`, query `relation` |
+
+> **Ghi chú:**
+> * Response quan hệ trả về `validFromUtc` và `validToUtc`; tài liệu chỉ hiển thị khi `validToUtc` trống hoặc lớn hơn hiện tại.
+> * Khi grant cho nhóm, worker sẽ fan-out sang từng thành viên còn hiệu lực (dựa trên `iam.group_members`).
 
 ## 2. Share (ReBAC)
 
@@ -93,7 +97,9 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `GET /documents/{id}/history` | Lịch sử thay đổi thuộc tính. | `id`, `page`, `pageSize` |
 | `PUT /documents/{id}/folder` | Cập nhật thư mục chứa tài liệu. | `id`, body `{folder}` |
 
-> **Ghi chú:** Khi thiếu các trường metadata trong body, dịch vụ sẽ tự động suy luận tiêu đề từ tên file, ghép `doc_type`, `status`, `sensitivity` theo cấu hình `DocumentUploadDefaults` và lấy `created_by`/`owner_id` từ người dùng hiện tại (hoặc cấu hình dự phòng). Vì vậy popup upload cũ chỉ cần gửi `file` vẫn tương thích.
+> **Ghi chú:**
+> * Khi thiếu các trường metadata trong body, dịch vụ sẽ tự động suy luận tiêu đề từ tên file, ghép `doc_type`, `status`, `sensitivity` theo cấu hình `DocumentUploadDefaults` và lấy `created_by`/`owner_id` từ người dùng hiện tại (hoặc cấu hình dự phòng). Vì vậy popup upload cũ chỉ cần gửi `file` vẫn tương thích.
+> * Quyền đọc trong API `GET /documents` dựa trên read-model `doc.effective_acl_flat`: chỉ trả về tài liệu khi `valid_to` đang còn hiệu lực.
 
 ## 5. Document Types
 
