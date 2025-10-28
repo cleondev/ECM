@@ -1,5 +1,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 using ECM.BuildingBlocks.Infrastructure.Caching;
 using Microsoft.AspNetCore.Builder;
@@ -73,24 +77,27 @@ public static class ServiceDefaultsExtensions
     {
         builder.Logging.ClearProviders();
 
-        (openTelemetryBuilder ?? builder.Services.AddOpenTelemetry())
-            .WithLogging(
-                configureBuilder: _ => { },
-                configureOptions: options =>
-                {
-                    options.IncludeScopes = true;
-                    options.IncludeFormattedMessage = true;
-                    options.ParseStateValues = true;
-                    options.AddOtlpExporter();
-                });
+        var fileSinkOptions = ResolveFileSinkOptions(builder.Configuration, builder.Environment);
 
-        Log.Logger = new LoggerConfiguration()
+        var loggerConfiguration = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
             .Enrich.FromLogContext()
             .Enrich.WithProperty("Application", builder.Environment.ApplicationName)
-            .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
-            .WriteTo.Console()
-            .CreateLogger();
+            .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName);
+
+        if (!string.IsNullOrWhiteSpace(fileSinkOptions?.ServiceInstanceId))
+        {
+            loggerConfiguration = loggerConfiguration.Enrich.WithProperty("ServiceInstanceId", fileSinkOptions.ServiceInstanceId);
+        }
+
+        if (fileSinkOptions is not null)
+        {
+            loggerConfiguration = ConfigureFileSink(loggerConfiguration, fileSinkOptions);
+        }
+
+        loggerConfiguration = loggerConfiguration.WriteTo.Console();
+
+        Log.Logger = loggerConfiguration.CreateLogger();
 
         builder.Logging.AddSerilog(Log.Logger, dispose: true);
         builder.Services.AddSingleton(sp => new DiagnosticContext(Log.Logger));
@@ -121,6 +128,122 @@ public static class ServiceDefaultsExtensions
         yield return new KeyValuePair<string, object?>("deployment.environment", environment.EnvironmentName);
     }
 }
+
+file private static LoggerConfiguration ConfigureFileSink(LoggerConfiguration loggerConfiguration, FileSinkOptions options)
+{
+    var outputTemplate = options.OutputTemplate
+        ?? "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] ({Application}/{Environment}) [Trace:{TraceId}] [Corr:{CorrelationId}] [Req:{RequestId}] [User:{UserId}] {Message:lj}{NewLine}{Exception}";
+
+    return loggerConfiguration.WriteTo.File(
+        options.Path,
+        outputTemplate: outputTemplate,
+        rollingInterval: RollingInterval.Infinite,
+        shared: true,
+        retainedFileCountLimit: options.RetainedFileCountLimit,
+        fileSizeLimitBytes: options.FileSizeLimitBytes,
+        flushToDiskInterval: options.FlushToDiskInterval);
+}
+
+file private static FileSinkOptions? ResolveFileSinkOptions(IConfiguration configuration, IHostEnvironment environment)
+{
+    var section = configuration.GetSection("Serilog:File");
+
+    if (!section.Exists())
+    {
+        return null;
+    }
+
+    var enabled = section.GetValue<bool?>("Enabled") ?? true;
+
+    if (!enabled)
+    {
+        return null;
+    }
+
+    var baseDirectory = section.GetValue<string?>("Directory");
+    if (string.IsNullOrWhiteSpace(baseDirectory))
+    {
+        baseDirectory = Path.Combine(AppContext.BaseDirectory, "logs");
+    }
+
+    var serviceName = section.GetValue<string?>("ServiceName")
+        ?? configuration["Service:Name"]
+        ?? environment.ApplicationName
+        ?? Assembly.GetEntryAssembly()?.GetName().Name
+        ?? "application";
+
+    var serviceInstanceId = section.GetValue<string?>("ServiceInstanceId")
+        ?? configuration["Service:InstanceId"]
+        ?? configuration["SERVICE_INSTANCE_ID"]
+        ?? Environment.GetEnvironmentVariable("SERVICE_INSTANCE_ID")
+        ?? Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID")
+        ?? Environment.MachineName;
+
+    var postfix = section.GetValue<string?>("Postfix");
+    postfix = string.IsNullOrWhiteSpace(postfix) ? "-log.txt" : postfix!;
+
+    var dateFormat = section.GetValue<string?>("DateFormat");
+    dateFormat = string.IsNullOrWhiteSpace(dateFormat) ? "dd/MM/yyyy" : dateFormat!;
+
+    var rawFileName = $"{serviceName}:{serviceInstanceId}:{DateTime.UtcNow.ToString(dateFormat, CultureInfo.InvariantCulture)}{postfix}";
+    var normalized = rawFileName.Replace('/', Path.DirectorySeparatorChar);
+
+    var segments = normalized.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+
+    var sanitizedSegments = segments
+        .Select(segment => SanitizePathSegment(segment))
+        .ToArray();
+
+    var combinedSegments = new string[sanitizedSegments.Length + 1];
+    combinedSegments[0] = baseDirectory;
+    Array.Copy(sanitizedSegments, 0, combinedSegments, 1, sanitizedSegments.Length);
+
+    var fullPath = Path.Combine(combinedSegments);
+
+    var directory = Path.GetDirectoryName(fullPath);
+
+    if (!string.IsNullOrWhiteSpace(directory))
+    {
+        Directory.CreateDirectory(directory);
+    }
+
+    var flushSeconds = section.GetValue<int?>("FlushToDiskIntervalSeconds");
+    var retainedFiles = section.GetValue<int?>("RetainedFileCountLimit");
+    var sizeLimit = section.GetValue<long?>("FileSizeLimitBytes");
+
+    return new FileSinkOptions(
+        fullPath,
+        serviceInstanceId,
+        section.GetValue<string?>("OutputTemplate"),
+        retainedFiles,
+        sizeLimit,
+        flushSeconds.HasValue ? TimeSpan.FromSeconds(flushSeconds.Value) : null);
+}
+
+file private static string SanitizePathSegment(string segment)
+{
+    var invalidChars = Path.GetInvalidFileNameChars();
+
+    foreach (var invalidChar in invalidChars)
+    {
+        if (!OperatingSystem.IsWindows() && invalidChar == ':')
+        {
+            continue;
+        }
+
+        segment = segment.Replace(invalidChar, '_');
+    }
+
+    return segment;
+}
+
+file sealed record FileSinkOptions(
+    string Path,
+    string ServiceInstanceId,
+    string? OutputTemplate,
+    int? RetainedFileCountLimit,
+    long? FileSizeLimitBytes,
+    TimeSpan? FlushToDiskInterval);
 
 public static class ServiceDefaultsApplicationBuilderExtensions
 {
