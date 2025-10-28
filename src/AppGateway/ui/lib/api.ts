@@ -710,10 +710,10 @@ export async function createTag(data: TagUpdateData, parent?: TagNode | string):
       throw new Error("Tag name must include alphanumeric characters")
     }
     const payload = {
-      namespaceSlug,
-      slug,
-      path: slug,
-      createdBy: null as string | null,
+      NamespaceSlug: namespaceSlug,
+      Slug: slug,
+      Path: slug,
+      CreatedBy: null as string | null,
     }
 
     const response = await gatewayRequest<TagLabelResponse>("/api/tags", {
@@ -769,10 +769,10 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
 
     const namespaceSlug = tag.namespaceSlug ?? "user"
     const payload = {
-      namespaceSlug,
-      slug,
-      path: slug,
-      updatedBy: null as string | null,
+      NamespaceSlug: namespaceSlug,
+      Slug: slug,
+      Path: slug,
+      UpdatedBy: null as string | null,
     }
 
     const response = await gatewayRequest<TagLabelResponse>(`/api/tags/${tag.id}`, {
