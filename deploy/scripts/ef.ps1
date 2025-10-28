@@ -3,7 +3,7 @@ param(
   [ValidateSet("add","update","script","list","rollback","miglist","diag","scan")] [string]$Action,
 
   [Parameter(Mandatory=$false)]
-  [ValidateSet("iam","document","file","operations","operation","all")] [string]$Module,
+  [ValidateSet("iam","document","file","ocr","operations","operation","all")] [string]$Module,
 
   [string]$Name = "",
   [string]$Configuration = "Debug",
@@ -37,13 +37,14 @@ $map = @{
   "iam"        = @{ Key="iam";        Ctx = $settings.Contexts.iam.Context;        Proj = $settings.Contexts.iam.Project;        Root = "src/Modules/IAM" };
   "document"   = @{ Key="document";   Ctx = $settings.Contexts.document.Context;   Proj = $settings.Contexts.document.Project;   Root = "src/Modules/Document" };
   "file"       = @{ Key="file";       Ctx = $settings.Contexts.file.Context;       Proj = $settings.Contexts.file.Project;      Root = "src/Modules/File" };
+  "ocr"        = @{ Key="ocr";        Ctx = $settings.Contexts.ocr.Context;        Proj = $settings.Contexts.ocr.Project;        Root = "src/Modules/Ocr" };
   "operations" = @{ Key="operations"; Ctx = $operationsContext.Context;           Proj = $operationsContext.Project;           Root = "src/Modules/Operations" };
 }
 $map["operation"] = $map["operations"]
 
 function Get-Targets($module) {
-  if ($module -eq "all") { return @($map.iam, $map.document, $map.file, $map.operations) }
-  if (-not $map.ContainsKey($module)) { throw "Invalid module. Use: iam | document | file | operations | all" }
+  if ($module -eq "all") { return @($map.iam, $map.document, $map.file, $map.ocr, $map.operations) }
+  if (-not $map.ContainsKey($module)) { throw "Invalid module. Use: iam | document | file | ocr | operations | all" }
   return @($map[$module])
 }
 
@@ -53,7 +54,7 @@ switch ($Action) {
   }
 
   "add" {
-    if (-not $Module -or $Module -eq "all") { throw "'add' must target a single module. Use -Module iam|document|file|operations" }
+    if (-not $Module -or $Module -eq "all") { throw "'add' must target a single module. Use -Module iam|document|file|ocr|operations" }
     if (-not $Name) { throw "Missing -Name (migration name)" }
     $t = $map[$Module]
     dotnet ef migrations add $Name `

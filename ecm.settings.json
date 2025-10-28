@@ -16,6 +16,10 @@
     "operations": {
       "Context": "ECM.Operations.Infrastructure.Persistence.OperationsDbContext",
       "Project": "src/Modules/Operations/ECM.Operations.csproj"
+    },
+    "ocr": {
+      "Context": "ECM.Ocr.Infrastructure.Persistence.OcrDbContext",
+      "Project": "src/Modules/Ocr/ECM.Ocr.csproj"
     }
   }
 }
