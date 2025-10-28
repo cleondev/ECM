@@ -7,7 +7,6 @@ import type {
   Flow,
   SystemTag,
   User,
-  UploadFileData,
   SelectedTag,
   ShareOptions,
   ShareLink,
@@ -18,7 +17,6 @@ import {
   mockTagTree,
   mockFlowsByFile,
   mockSystemTags,
-  mockUser,
   mockNotifications,
 } from "./mock-data"
 import { normalizeRedirectTarget, slugify } from "./utils"
@@ -53,7 +51,7 @@ type CheckLoginResponse = {
   }) | null
 }
 
-type DocumentVersionResponse = {
+export type DocumentVersionResponse = {
   id: string
   versionNo: number
   storageKey: string
@@ -64,7 +62,7 @@ type DocumentVersionResponse = {
   createdAtUtc: string
 }
 
-type DocumentTagResponse = {
+export type DocumentTagResponse = {
   id: string
   namespaceSlug: string
   slug: string
@@ -75,7 +73,7 @@ type DocumentTagResponse = {
   appliedAtUtc: string
 }
 
-type DocumentResponse = {
+export type DocumentResponse = {
   id: string
   title: string
   docType: string
@@ -99,6 +97,16 @@ type DocumentListResponse = {
   totalItems: number
   totalPages: number
   items: DocumentResponse[]
+}
+
+export type DocumentUploadFailure = {
+  fileName: string
+  message: string
+}
+
+export type DocumentBatchResponse = {
+  documents: DocumentResponse[]
+  failures: DocumentUploadFailure[]
 }
 
 type ShareLinkResponse = {
@@ -945,59 +953,6 @@ export async function signOut(redirectUri?: string): Promise<void> {
     form.style.display = "none"
     document.body.appendChild(form)
     form.submit()
-  }
-}
-
-export async function uploadFile(data: UploadFileData): Promise<FileItem> {
-  try {
-    const { user } = await checkLogin()
-    if (!user) {
-      throw new Error("User must be authenticated before uploading a document")
-    }
-
-    const { metadata } = data
-    const title = (metadata.title?.trim() || data.file.name || "Untitled document").slice(0, 256)
-    const formData = new FormData()
-    formData.append("Title", title)
-    formData.append("DocType", metadata.docType?.trim() || "General")
-    formData.append("Status", metadata.status?.trim() || "Draft")
-    formData.append("OwnerId", user.id)
-    formData.append("CreatedBy", user.id)
-
-    if (metadata.department?.trim()) {
-      formData.append("Department", metadata.department.trim())
-    }
-
-    formData.append("Sensitivity", metadata.sensitivity?.trim() || "Internal")
-    formData.append("File", data.file, data.file.name)
-
-    const document = await gatewayRequest<DocumentResponse>("/api/documents", {
-      method: "POST",
-      body: formData,
-    })
-
-    await assignTagsToDocument(document.id, data.tags, user.id)
-    await startWorkflowForDocument(document.id, data.flowDefinition)
-
-    return mapDocumentToFileItem(document)
-  } catch (error) {
-    console.error("[ui] Failed to upload document via gateway, falling back to mock behaviour:", error)
-
-    await delay(SIMULATED_DELAY)
-
-    const newFile: FileItem = {
-      id: Date.now().toString(),
-      name: data.file.name,
-      type: "document",
-      size: `${(data.file.size / 1024 / 1024).toFixed(1)} MB`,
-      modified: "Just now",
-      tags: data.tags.map((tag) => tag.name),
-      folder: "All Files",
-      owner: mockUser.displayName,
-      description: data.metadata.description || "",
-    }
-
-    return newFile
   }
 }
 
