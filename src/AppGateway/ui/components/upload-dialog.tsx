@@ -1,21 +1,25 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import Uppy from "@uppy/core"
+import type { UploadResult as UppyUploadResult, UppyFile } from "@uppy/core"
+import { Dashboard, useUppy } from "@uppy/react"
+import XHRUpload from "@uppy/xhr-upload"
+import "@uppy/core/dist/style.css"
+import "@uppy/dashboard/dist/style.css"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, CheckCircle2 } from "lucide-react"
-import { fetchFlows, fetchTags, uploadFile } from "@/lib/api"
-import type { Flow, SelectedTag, TagNode, UploadFileData, UploadMetadata } from "@/lib/types"
+import { Upload, CheckCircle2, AlertTriangle } from "lucide-react"
+import { fetchFlows, fetchTags, checkLogin } from "@/lib/api"
+import type { DocumentBatchResponse } from "@/lib/api"
+import type { Flow, SelectedTag, TagNode, UploadMetadata, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { FileTypeIcon } from "./file-type-icon"
 
 const defaultMetadata: UploadMetadata = {
   title: "",
@@ -33,91 +37,249 @@ type UploadDialogProps = {
   onUploadComplete?: () => void
 }
 
+type UploadResultSummary = {
+  successCount: number
+  failureMessages: string[]
+}
+
+function isDocumentBatchResponse(value: unknown): value is DocumentBatchResponse {
+  if (!value || typeof value !== "object") {
+    return false
+  }
+
+  const candidate = value as Partial<DocumentBatchResponse>
+  return Array.isArray(candidate.documents)
+}
+
+function formatFailureMessage(fileName: string, message?: string): string {
+  const normalizedName = fileName?.trim() ? fileName : "Unknown file"
+  const normalizedMessage = message?.trim() ? message : "Upload failed"
+  return `${normalizedName}: ${normalizedMessage}`
+}
+
 export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDialogProps) {
-  const [file, setFile] = useState<File | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
   const [flows, setFlows] = useState<Flow[]>([])
   const [tags, setTags] = useState<TagNode[]>([])
   const [selectedFlow, setSelectedFlow] = useState<string>("")
   const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([])
   const [metadata, setMetadata] = useState<UploadMetadata>(defaultMetadata)
   const [isUploading, setIsUploading] = useState(false)
-  const [uploadSuccess, setUploadSuccess] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadResult, setUploadResult] = useState<UploadResultSummary | null>(null)
+  const [selectedFileCount, setSelectedFileCount] = useState(0)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const autoCloseTimeoutRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    if (open) {
-      fetchFlows("default").then(setFlows)
-      fetchTags().then(setTags)
+  const uppy = useUppy(() => {
+    const instance = new Uppy({
+      autoProceed: false,
+      allowMultipleUploads: true,
+      restrictions: {
+        maxNumberOfFiles: 20,
+      },
+    })
+
+    instance.use(XHRUpload, {
+      endpoint: "/api/documents/batch",
+      method: "POST",
+      fieldName: "Files",
+      formData: true,
+      bundle: true,
+      withCredentials: true,
+      responseType: "json",
+      limit: 3,
+    })
+
+    return instance
+  })
+
+  const clearAutoCloseTimeout = useCallback(() => {
+    if (autoCloseTimeoutRef.current !== null) {
+      window.clearTimeout(autoCloseTimeoutRef.current)
+      autoCloseTimeoutRef.current = null
     }
-  }, [open])
+  }, [])
 
-  useEffect(() => {
-    if (file && !metadata.title.trim()) {
-      const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, "")
-      setMetadata((prev) => ({ ...prev, title: nameWithoutExtension }))
-    }
-  }, [file, metadata.title])
+  const resetUploaderState = useCallback(() => {
+    clearAutoCloseTimeout()
+    setUploadResult(null)
+    setSelectedFileCount(0)
+    uppy.reset()
+  }, [clearAutoCloseTimeout, uppy])
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = () => {
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile) {
-      setFile(droppedFile)
-    }
-  }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0]
-    if (selectedFile) {
-      setFile(selectedFile)
-    }
-  }
-
-  const handleUpload = async () => {
-    if (!file) return
-
-    setIsUploading(true)
-    try {
-      const uploadData: UploadFileData = {
-        file,
-        flowDefinition: selectedFlow || undefined,
-        metadata,
-        tags: selectedTags,
-      }
-
-      await uploadFile(uploadData)
-      setUploadSuccess(true)
-
-      setTimeout(() => {
-        onUploadComplete?.()
-        handleClose()
-      }, 1500)
-    } catch (error) {
-      console.error("[v0] Upload error:", error)
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  const handleClose = () => {
-    setFile(null)
+  const handleClose = useCallback(() => {
+    resetUploaderState()
     setSelectedFlow("")
     setSelectedTags([])
     setMetadata({ ...defaultMetadata })
-    setUploadSuccess(false)
+    setIsUploading(false)
     onOpenChange(false)
+  }, [onOpenChange, resetUploaderState])
+
+  const handleDialogChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      handleClose()
+    }
   }
+
+  useEffect(() => {
+    if (open) {
+      setUploadResult(null)
+      fetchFlows("default").then(setFlows).catch((error) => {
+        console.error("[ui] Failed to load flows:", error)
+      })
+      fetchTags().then(setTags).catch((error) => {
+        console.error("[ui] Failed to load tags:", error)
+      })
+      checkLogin()
+        .then((result) => {
+          if (result.user) {
+            setCurrentUser(result.user)
+          }
+        })
+        .catch((error) => {
+          console.error("[ui] Unable to resolve current user before upload:", error)
+        })
+    } else {
+      clearAutoCloseTimeout()
+      uppy.reset()
+      setSelectedFileCount(0)
+    }
+  }, [open, uppy, clearAutoCloseTimeout])
+
+  useEffect(() => {
+    return () => {
+      clearAutoCloseTimeout()
+      uppy.close({ reason: "unmount" })
+    }
+  }, [uppy, clearAutoCloseTimeout])
+
+  const buildUploadSummary = useCallback(
+    (result: UppyUploadResult): UploadResultSummary => {
+      const failureMessages: string[] = []
+      let successCount = 0
+
+      const firstResponse = result.successful[0]?.response?.body as
+        | DocumentBatchResponse
+        | Record<string, unknown>
+        | undefined
+
+      if (isDocumentBatchResponse(firstResponse)) {
+        successCount = firstResponse.documents.length
+        if (Array.isArray(firstResponse.failures)) {
+          for (const failure of firstResponse.failures) {
+            failureMessages.push(formatFailureMessage(failure.fileName, failure.message))
+          }
+        }
+      } else if (firstResponse) {
+        successCount = 1
+      } else {
+        successCount = result.successful.length
+      }
+
+      if (Array.isArray(result.failed)) {
+        for (const failed of result.failed) {
+          const message =
+            typeof failed.error === "string"
+              ? failed.error
+              : failed.error && typeof failed.error === "object" && "message" in failed.error
+              ? String(failed.error.message)
+              : "Upload failed"
+
+          failureMessages.push(formatFailureMessage(failed.name, message))
+        }
+      }
+
+      return { successCount, failureMessages }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    const handleFileAdded = (file: UppyFile) => {
+      setSelectedFileCount(uppy.getFiles().length)
+      setUploadResult(null)
+      setMetadata((prev) => {
+        if (prev.title.trim()) {
+          return prev
+        }
+
+        const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, "")
+        return { ...prev, title: nameWithoutExtension }
+      })
+    }
+
+    const handleFileRemoved = () => {
+      setSelectedFileCount(uppy.getFiles().length)
+    }
+
+    const handleUploadStarted = () => {
+      clearAutoCloseTimeout()
+      setIsUploading(true)
+      setUploadResult(null)
+    }
+
+    const handleUploadComplete = (result: UppyUploadResult) => {
+      setIsUploading(false)
+      const summary = buildUploadSummary(result)
+      setUploadResult(summary)
+
+      if (summary.successCount > 0) {
+        onUploadComplete?.()
+      }
+
+      if (summary.successCount > 0 && summary.failureMessages.length === 0) {
+        autoCloseTimeoutRef.current = window.setTimeout(() => {
+          handleClose()
+        }, 1500)
+      }
+    }
+
+    const handleUploadError = (file: UppyFile, error: Error) => {
+      setIsUploading(false)
+      setUploadResult({ successCount: 0, failureMessages: [formatFailureMessage(file.name, error.message)] })
+    }
+
+    const handleError = (error: Error) => {
+      setIsUploading(false)
+      setUploadResult({ successCount: 0, failureMessages: [formatFailureMessage("Upload", error.message)] })
+    }
+
+    uppy.on("file-added", handleFileAdded)
+    uppy.on("file-removed", handleFileRemoved)
+    uppy.on("reset-progress", handleFileRemoved)
+    uppy.on("upload", handleUploadStarted)
+    uppy.on("complete", handleUploadComplete)
+    uppy.on("upload-error", handleUploadError)
+    uppy.on("error", handleError)
+
+    return () => {
+      uppy.off("file-added", handleFileAdded)
+      uppy.off("file-removed", handleFileRemoved)
+      uppy.off("reset-progress", handleFileRemoved)
+      uppy.off("upload", handleUploadStarted)
+      uppy.off("complete", handleUploadComplete)
+      uppy.off("upload-error", handleUploadError)
+      uppy.off("error", handleError)
+    }
+  }, [uppy, buildUploadSummary, onUploadComplete, handleClose, clearAutoCloseTimeout])
+
+  useEffect(() => {
+    const tagIds = selectedTags.map((tag) => tag.id)
+
+    uppy.setMeta({
+      Title: metadata.title?.trim() || "",
+      DocType: metadata.docType?.trim() || "General",
+      Status: metadata.status?.trim() || "Draft",
+      Department: metadata.department?.trim() || "",
+      Sensitivity: metadata.sensitivity?.trim() || "Internal",
+      Description: metadata.description?.trim() || "",
+      Notes: metadata.notes?.trim() || "",
+      FlowDefinition: selectedFlow || "",
+      OwnerId: currentUser?.id ?? "",
+      CreatedBy: currentUser?.id ?? "",
+      Tags: JSON.stringify(tagIds),
+    })
+  }, [metadata, selectedFlow, selectedTags, currentUser, uppy])
 
   const toggleTag = (tag: TagNode) => {
     setSelectedTags((prev) => {
@@ -140,58 +302,93 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     return result
   }
 
+  const handleStartUpload = () => {
+    clearAutoCloseTimeout()
+    setUploadResult(null)
+    uppy
+      .upload()
+      .catch((error) => {
+        console.error("[ui] Failed to upload documents via Uppy:", error)
+        setIsUploading(false)
+        setUploadResult({ successCount: 0, failureMessages: [formatFailureMessage("Upload", error.message)] })
+      })
+  }
+
+  const handleUploadMore = () => {
+    resetUploaderState()
+  }
+
+  const isUploadDisabled = selectedFileCount === 0 || isUploading || !currentUser
+
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="max-w-4xl h-[750px] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Upload File</DialogTitle>
+          <DialogTitle>Upload Files</DialogTitle>
         </DialogHeader>
 
-        {uploadSuccess ? (
-          <div className="flex flex-col items-center justify-center flex-1 gap-4">
-            <CheckCircle2 className="h-16 w-16 text-green-500" />
-            <p className="text-lg font-medium">File uploaded successfully!</p>
+        {uploadResult ? (
+          <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center">
+            {uploadResult.successCount > 0 ? (
+              <CheckCircle2 className="h-16 w-16 text-green-500" />
+            ) : (
+              <AlertTriangle className="h-16 w-16 text-amber-500" />
+            )}
+            <div className="space-y-2 max-w-2xl">
+              <p className="text-lg font-medium">
+                {uploadResult.successCount > 0
+                  ? `Uploaded ${uploadResult.successCount} file${uploadResult.successCount > 1 ? "s" : ""} successfully.`
+                  : "No files were uploaded."}
+              </p>
+              {uploadResult.failureMessages.length > 0 && (
+                <div className="text-left">
+                  <div className="flex items-center gap-2 text-sm text-amber-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Some files could not be processed:</span>
+                  </div>
+                  <ul className="mt-2 space-y-1 text-sm text-muted-foreground max-h-48 overflow-y-auto pr-2">
+                    {uploadResult.failureMessages.map((message, index) => (
+                      <li key={`${message}-${index}`}>{message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {uploadResult.successCount > 0 && uploadResult.failureMessages.length === 0 && (
+                <p className="text-sm text-muted-foreground">This dialog will close automatically.</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+              {uploadResult.failureMessages.length > 0 && (
+                <Button onClick={handleUploadMore} disabled={isUploading}>
+                  Upload more files
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleClose}>
+                Close
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden">
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors mb-4 ${
-                isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {!file ? (
-                <>
-                  <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                  <p className="font-medium mb-1">Drag and drop your file here</p>
-                  <p className="text-sm text-muted-foreground mb-3">or click to browse</p>
-                  <Button variant="outline" size="sm">
-                    Select File
-                  </Button>
-                </>
-              ) : (
-                <div className="flex items-center justify-center gap-3">
-                  <FileTypeIcon file={{ name: file.name, type: "document" }} size="md" />
-                  <div className="text-left">
-                    <p className="font-medium">{file.name}</p>
-                    <p className="text-sm text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setFile(null)
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} />
+            <div className="mb-4">
+              <Dashboard
+                uppy={uppy}
+                width="100%"
+                height={320}
+                hideUploadButton
+                proudlyDisplayPoweredByUppy={false}
+                showProgressDetails
+                note={
+                  currentUser
+                    ? "Drag & drop files here or use the button below to browse."
+                    : "You must be signed in to upload documents."
+                }
+              />
+              <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
+                <span>{selectedFileCount} file{selectedFileCount === 1 ? "" : "s"} selected</span>
+                {isUploading && <span>Uploading...</span>}
+              </div>
             </div>
 
             <Tabs defaultValue="tags" className="flex-1 flex flex-col overflow-hidden">
@@ -218,38 +415,43 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                           )}
                           onClick={() => toggleTag(tag)}
                         >
-                          {tag.icon && <span className="mr-1">{tag.icon}</span>}
                           {tag.name}
                         </Badge>
                       )
                     })}
+                    {tags.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No tags available.</p>
+                    )}
                   </div>
                   {selectedTags.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedTags.length} tag{selectedTags.length > 1 ? "s" : ""} selected
-                    </p>
+                    <div className="text-sm text-muted-foreground">
+                      Selected tags: {selectedTags.map((tag) => tag.name).join(", ")}
+                    </div>
                   )}
                 </div>
               </TabsContent>
 
               <TabsContent value="flow" className="flex-1 overflow-y-auto mt-4">
-                <div className="space-y-2">
-                  <Label>Select Flow (Optional)</Label>
-                  <Select value={selectedFlow} onValueChange={setSelectedFlow}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a workflow" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {flows.map((flow) => (
-                        <SelectItem key={flow.id} value={flow.id}>
-                          {flow.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Select workflow</Label>
+                    <Select value={selectedFlow} onValueChange={setSelectedFlow}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a workflow" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">No workflow</SelectItem>
+                        {flows.map((flow) => (
+                          <SelectItem key={flow.id} value={flow.id}>
+                            {flow.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   {selectedFlow && (
                     <p className="text-sm text-muted-foreground">
-                      Selected flow will be applied to the file after upload
+                      Selected flow will be applied to the files after upload.
                     </p>
                   )}
                 </div>
@@ -360,11 +562,12 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
             </Tabs>
 
             <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={handleClose} disabled={isUploading}>
                 Cancel
               </Button>
-              <Button onClick={handleUpload} disabled={!file || isUploading}>
-                {isUploading ? "Uploading..." : "Upload File"}
+              <Button onClick={handleStartUpload} disabled={isUploadDisabled} className="gap-2">
+                <Upload className="h-4 w-4" />
+                {isUploading ? "Uploading..." : "Upload Files"}
               </Button>
             </div>
           </div>

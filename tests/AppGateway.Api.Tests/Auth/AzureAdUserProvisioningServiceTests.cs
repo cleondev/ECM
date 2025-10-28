@@ -244,6 +244,12 @@ public class AzureAdUserProvisioningServiceTests
         public Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<TagLabelDto?> UpdateTagAsync(
+            Guid tagId,
+            UpdateTagRequestDto request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

@@ -97,13 +97,6 @@ export type SelectedTag = {
   name: string
 }
 
-export type UploadFileData = {
-  file: File
-  flowDefinition?: string
-  metadata: UploadMetadata
-  tags: SelectedTag[]
-}
-
 export type FileQueryParams = {
   search?: string
   tagId?: string
