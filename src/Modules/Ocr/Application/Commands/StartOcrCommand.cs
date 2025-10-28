@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace ECM.Ocr.Application.Commands;
@@ -8,4 +9,5 @@ public sealed record StartOcrCommand(
     string? Summary,
     string? Content,
     IReadOnlyDictionary<string, string>? Metadata,
-    IReadOnlyCollection<string>? Tags);
+    IReadOnlyCollection<string>? Tags,
+    Uri FileUrl);

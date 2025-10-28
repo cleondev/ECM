@@ -27,7 +27,9 @@ public sealed class StartOcrCommandHandlerTests
             "Summary",
             "Content",
             new Dictionary<string, string> { ["key"] = "value" },
-            new[] { "tag-1", "tag-2" });
+            new[] { "tag-1", "tag-2" },
+            new Uri("https://files.local/documents/123")
+        );
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
@@ -55,7 +57,8 @@ public sealed class StartOcrCommandHandlerTests
             null,
             null,
             null,
-            null);
+            null,
+            new Uri("https://files.local/documents/456"));
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
