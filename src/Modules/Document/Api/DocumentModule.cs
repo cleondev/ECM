@@ -40,17 +40,19 @@ public sealed class DocumentModule : IModule
             .ValidateOnStart();
 
         services.AddOptions<FormOptions>()
-            .Configure<DocumentUploadLimitOptions>((options, uploadLimits) =>
+            .Configure<IOptions<DocumentUploadLimitOptions>>((options, uploadLimits) =>
             {
-                options.MultipartBodyLengthLimit = uploadLimits.MultipartBodyLengthLimit;
+                var limits = uploadLimits.Value;
+
+                options.MultipartBodyLengthLimit = limits.MultipartBodyLengthLimit;
                 options.ValueLengthLimit = int.MaxValue;
                 options.MemoryBufferThreshold = int.MaxValue;
             });
 
         services.AddOptions<KestrelServerOptions>()
-            .Configure<DocumentUploadLimitOptions>((options, uploadLimits) =>
+            .Configure<IOptions<DocumentUploadLimitOptions>>((options, uploadLimits) =>
             {
-                options.Limits.MaxRequestBodySize = uploadLimits.MaxRequestBodySize;
+                options.Limits.MaxRequestBodySize = uploadLimits.Value.MaxRequestBodySize;
             });
         services.ConfigureModuleSwagger(DocumentSwagger.DocumentName, DocumentSwagger.Info);
     }
