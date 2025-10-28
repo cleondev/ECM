@@ -252,8 +252,8 @@ export function AppHeader({
 
         <div className="flex min-w-0 justify-center justify-self-center">
           <div className="flex w-full min-w-0 max-w-5xl flex-col gap-2 md:flex-row md:items-center md:gap-3">
-            <div className="relative flex-1 min-w-0 md:min-w-[520px] md:max-w-3xl">
-              <div className="relative flex h-11 items-center rounded-full border border-border/60 bg-background/80 pl-4 pr-20 text-sm shadow-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 md:h-14 md:pl-5 md:pr-28 md:text-lg">
+            <div className="relative flex-1 min-w-0 md:min-w-[600px] md:max-w-3xl">
+              <div className="relative flex h-11 items-center rounded-full border border-border/60 bg-background/80 pl-4 pr-20 text-sm shadow-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 md:h-16 md:pl-6 md:pr-36 md:text-lg">
                 <Search className="mr-2 h-4 w-4 text-muted-foreground md:h-5 md:w-5" />
                 <Input
                   placeholder="Search files..."
@@ -286,7 +286,7 @@ export function AppHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="pointer-events-auto h-8 w-8 md:hidden"
+                  className="pointer-events-auto h-8 w-8"
                   title="Advanced search"
                   onClick={() => setIsAdvancedSearchOpen(true)}
                 >
@@ -294,16 +294,6 @@ export function AppHeader({
                 </Button>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden md:inline-flex h-9 w-9 shrink-0 rounded-full border border-border/60 bg-background/80 p-0 shadow-sm"
-              onClick={() => setIsAdvancedSearchOpen(true)}
-              title="Mở tìm kiếm nâng cao"
-            >
-              <span className="sr-only">Mở tìm kiếm nâng cao</span>
-              <SlidersHorizontal className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
