@@ -12,14 +12,16 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Upload, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Upload, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react"
 import { fetchFlows, fetchTags, checkLogin } from "@/lib/api"
 import type { DocumentBatchResponse } from "@/lib/api"
 import type { Flow, SelectedTag, TagNode, UploadMetadata, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+const DEFAULT_TAG_ICON = "📁"
 
 const defaultMetadata: UploadMetadata = {
   title: "",
@@ -67,6 +69,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [uploadResult, setUploadResult] = useState<UploadResultSummary | null>(null)
   const [selectedFileCount, setSelectedFileCount] = useState(0)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({})
   const autoCloseTimeoutRef = useRef<number | null>(null)
 
   const uppy = useMemo(() => {
@@ -281,6 +284,22 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     })
   }, [metadata, selectedFlow, selectedTags, currentUser, uppy])
 
+  useEffect(() => {
+    const buildExpandedMap = (nodes: TagNode[], initial: Record<string, boolean>) => {
+      for (const node of nodes) {
+        if (!(node.id in initial)) {
+          initial[node.id] = true
+        }
+        if (node.children?.length) {
+          buildExpandedMap(node.children, initial)
+        }
+      }
+      return initial
+    }
+
+    setExpandedTags((previous) => buildExpandedMap(tags, { ...previous }))
+  }, [tags])
+
   const toggleTag = (tag: TagNode) => {
     setSelectedTags((prev) => {
       const isSelected = prev.some((selected) => selected.id === tag.id)
@@ -290,16 +309,80 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     })
   }
 
-  const getAllTags = (nodes: TagNode[]): TagNode[] => {
-    const result: TagNode[] = []
-    const traverse = (node: TagNode) => {
-      if (!node.kind || node.kind === "label") {
-        result.push(node)
-      }
-      node.children?.forEach(traverse)
-    }
-    nodes.forEach(traverse)
-    return result
+  const isSelectableTag = (tag: TagNode) => !tag.kind || tag.kind === "label"
+
+  const toggleTagExpansion = (tagId: string) => {
+    setExpandedTags((prev) => ({ ...prev, [tagId]: !prev[tagId] }))
+  }
+
+  const renderTagTree = (nodes: TagNode[], level = 0) => {
+    return nodes.map((tag) => {
+      const hasChildren = Boolean(tag.children && tag.children.length > 0)
+      const isExpanded = expandedTags[tag.id] ?? true
+      const isSelected = selectedTags.some((selected) => selected.id === tag.id)
+      const canSelect = isSelectableTag(tag)
+      const displayIcon = tag.icon && tag.icon.trim() !== "" ? tag.icon : DEFAULT_TAG_ICON
+
+      return (
+        <div key={tag.id} className="space-y-1">
+          <div
+            className={cn(
+              "flex items-center gap-1 rounded-md text-sm transition-colors group",
+              isSelected
+                ? "bg-primary/10 text-primary border border-primary/30"
+                : "hover:bg-muted/60 border border-transparent text-muted-foreground",
+            )}
+            style={{ paddingLeft: `${level * 12 + 8}px` }}
+          >
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  toggleTagExpansion(tag.id)
+                }}
+                className="p-0.5 rounded hover:bg-muted/80 text-muted-foreground"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+              </button>
+            ) : (
+              <span className="w-3" />
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (canSelect) {
+                  toggleTag(tag)
+                }
+              }}
+              disabled={!canSelect}
+              className={cn(
+                "flex items-center gap-2 flex-1 min-w-0 rounded px-2 py-1 text-left transition",
+                tag.color ?? "bg-muted/60",
+                canSelect ? "text-foreground" : "text-muted-foreground cursor-default opacity-80",
+                isSelected ? "ring-1 ring-primary" : "",
+              )}
+            >
+              <span className="text-xs flex-shrink-0">{displayIcon}</span>
+              <span className="truncate">{tag.name}</span>
+            </button>
+
+            {isSelected ? (
+              <CheckCircle2 className="mr-2 h-3.5 w-3.5 text-primary" />
+            ) : null}
+          </div>
+
+          {hasChildren && isExpanded ? (
+            <div className="space-y-1">{renderTagTree(tag.children!, level + 1)}</div>
+          ) : null}
+        </div>
+      )
+    })
   }
 
   const handleStartUpload = () => {
@@ -322,7 +405,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-4xl h-[750px] flex flex-col">
+      <DialogContent className="max-w-5xl w-full sm:w-[1040px] h-[780px] flex flex-col">
         <DialogHeader>
           <DialogTitle>Upload Files</DialogTitle>
         </DialogHeader>
@@ -375,13 +458,14 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               <Dashboard
                 uppy={uppy}
                 width="100%"
-                height={320}
+                height={340}
                 hideUploadButton
                 proudlyDisplayPoweredByUppy={false}
                 showProgressDetails
+                locale={{ strings: { dropPasteImport: "Drop files here or browse files" } }}
                 note={
                   currentUser
-                    ? "Drag & drop files here or use the button below to browse."
+                    ? "You can add up to 20 files per upload."
                     : "You must be signed in to upload documents."
                 }
               />
@@ -399,29 +483,27 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               </TabsList>
 
               <TabsContent value="tags" className="flex-1 overflow-y-auto mt-4">
-                <div className="space-y-2">
-                  <Label>Select Tags</Label>
-                  <div className="flex flex-wrap gap-2 min-h-[200px] p-3 border rounded-md">
-                    {getAllTags(tags).map((tag) => {
-                      const isSelected = selectedTags.some((selected) => selected.id === tag.id)
-                      return (
-                        <Badge
-                          key={tag.id}
-                          variant={isSelected ? "default" : "outline"}
-                          className={cn(
-                            "cursor-pointer h-fit",
-                            tag.color && !isSelected ? tag.color : undefined,
-                            isSelected ? "bg-primary text-primary-foreground border-primary" : undefined,
-                          )}
-                          onClick={() => toggleTag(tag)}
-                        >
-                          {tag.name}
-                        </Badge>
-                      )
-                    })}
-                    {tags.length === 0 && (
-                      <p className="text-sm text-muted-foreground">No tags available.</p>
-                    )}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Select Tags</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedTags.length > 0
+                        ? `${selectedTags.length} tag${selectedTags.length > 1 ? "s" : ""} selected`
+                        : "Choose tags to classify your files"}
+                    </span>
+                  </div>
+                  <div className="border rounded-lg bg-muted/30">
+                    <ScrollArea className="h-[260px]">
+                      <div className="p-2 space-y-1">
+                        {tags.length > 0 ? (
+                          renderTagTree(tags)
+                        ) : (
+                          <p className="text-sm text-muted-foreground px-2 py-6 text-center">
+                            No tags available.
+                          </p>
+                        )}
+                      </div>
+                    </ScrollArea>
                   </div>
                   {selectedTags.length > 0 && (
                     <div className="text-sm text-muted-foreground">

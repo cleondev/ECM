@@ -1,0 +1,23 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="uploadGradientOuter" x1="10" y1="30" x2="150" y2="140" gradientUnits="userSpaceOnUse">
+      <stop stop-color="var(--primary, #5B63FF)" stop-opacity="0.45" />
+      <stop offset="1" stop-color="var(--primary, #5B63FF)" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="uploadGradientMid" x1="22" y1="42" x2="138" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="var(--primary, #5B63FF)" stop-opacity="0.35" />
+      <stop offset="1" stop-color="var(--primary, #5B63FF)" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="uploadGradientInner" x1="62" y1="58" x2="98" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="var(--primary, #5B63FF)" stop-opacity="0.9" />
+      <stop offset="1" stop-color="var(--primary, #5B63FF)" stop-opacity="0.5" />
+    </linearGradient>
+  </defs>
+  <rect x="10" y="30" width="140" height="110" rx="24" fill="url(#uploadGradientOuter)" opacity="0.2" />
+  <rect x="22" y="42" width="116" height="86" rx="20" fill="url(#uploadGradientMid)" opacity="0.35" />
+  <rect x="34" y="54" width="92" height="62" rx="18" fill="var(--primary, #5B63FF)" opacity="0.14" />
+  <circle cx="80" cy="82" r="28" fill="url(#uploadGradientInner)" />
+  <path d="M80 94.5V70" stroke="var(--primary, #5B63FF)" stroke-width="6" stroke-linecap="round" />
+  <path d="M69 78L80 67L91 78" stroke="var(--primary, #5B63FF)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="52" y="110" width="56" height="8" rx="4" fill="var(--primary, #5B63FF)" opacity="0.35" />
+</svg>

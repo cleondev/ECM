@@ -20,7 +20,7 @@ const sizeStyles: Record<NonNullable<FileTypeIconProps["size"]>, { wrapper: stri
 
 const typeFallbackIcons: Record<FileVisualType, string> = {
   design: "fiv-icon-ai",
-  document: "fiv-icon-doc",
+  document: "fiv-icon-tex",
   image: "fiv-icon-image",
   video: "fiv-icon-mp4",
   code: "fiv-icon-js",
@@ -63,6 +63,7 @@ const documentExtensions = new Set([
   "xlt",
   "xltx",
   "xltm",
+  "tex",
 ])
 
 const imageExtensions = new Set([
