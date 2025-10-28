@@ -91,7 +91,7 @@ function TagTreeItem({
     <div>
       <div
         className={cn(
-          "w-full flex items-center gap-1 px-2 py-0.5 rounded-md text-sm transition-colors group",
+          "w-full flex items-center gap-1 px-2 py-0.5 rounded-md text-sm transition-colors group min-w-0",
           isSelected
             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
             : "text-sidebar-foreground hover:bg-sidebar-accent/50",
@@ -128,13 +128,20 @@ function TagTreeItem({
         >
           <div
             className={cn(
-              "flex items-center gap-1 px-1.5 py-0.5 rounded flex-1 min-w-0",
-              tag.color ?? "bg-muted/50",
-              canSelect ? "cursor-pointer" : "opacity-80",
+              "flex items-center gap-2 flex-1 min-w-0 rounded px-1.5 py-0.5 transition-colors",
+              canSelect ? "hover:bg-muted/60" : "opacity-80",
             )}
           >
+            <span
+              className={cn(
+                "h-2.5 w-2.5 rounded-full border border-border/60 flex-shrink-0",
+                tag.color ?? "bg-muted-foreground/40",
+              )}
+            />
             <span className="text-xs flex-shrink-0">{displayIcon}</span>
-            <span className="truncate text-sm text-foreground">{tag.name}</span>
+            <span className="truncate text-sm text-foreground" title={tag.name}>
+              {tag.name}
+            </span>
           </div>
         </button>
 
