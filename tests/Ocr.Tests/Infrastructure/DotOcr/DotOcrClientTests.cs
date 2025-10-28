@@ -30,15 +30,24 @@ public sealed class DotOcrClientTests
             BaseAddress = new Uri("https://dot-ocr.local/")
         };
         var client = CreateClient(httpClient);
-        var command = new StartOcrCommand(Guid.NewGuid(), "Title", null, null, null, null);
+        var command = new StartOcrCommand(
+            Guid.NewGuid(),
+            "Title",
+            null,
+            null,
+            null,
+            null,
+            new Uri("https://files.local/documents/777"));
 
         var result = await client.StartProcessingAsync(command, CancellationToken.None);
 
         Assert.Equal("sample-99", result.SampleId);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Post, request.Method);
-        Assert.Equal(new Uri("https://dot-ocr.local/api/samples"), request.Uri);
-        Assert.Contains("\"Title\"", request.Content, StringComparison.Ordinal);
+        Assert.Equal(new Uri("https://dot-ocr.local/v1/chat/completions"), request.Uri);
+        Assert.Contains("image_url", request.Content, StringComparison.Ordinal);
+        Assert.Contains("https://files.local/documents/777", request.Content, StringComparison.Ordinal);
+        Assert.Contains("layout information", request.Content, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -51,11 +60,20 @@ public sealed class DotOcrClientTests
             BaseAddress = new Uri("https://dot-ocr.local/")
         };
         var client = CreateClient(httpClient);
-        var command = new StartOcrCommand(Guid.NewGuid(), "Title", null, null, null, null);
+        var command = new StartOcrCommand(
+            Guid.NewGuid(),
+            "Title",
+            null,
+            null,
+            null,
+            null,
+            new Uri("https://files.local/documents/888"));
 
         var result = await client.StartProcessingAsync(command, CancellationToken.None);
 
         Assert.Equal(StartOcrResult.Empty, result);
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal(new Uri("https://dot-ocr.local/v1/chat/completions"), request.Uri);
     }
 
     [Fact]

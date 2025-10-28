@@ -26,17 +26,39 @@ internal sealed class DotOcrClient : IOcrProvider
         ArgumentNullException.ThrowIfNull(command);
 
         var options = _options.CurrentValue;
+        ArgumentNullException.ThrowIfNull(command.FileUrl);
+
         var payload = new
         {
-            documentId = command.DocumentId,
-            title = command.Title,
-            summary = command.Summary,
-            content = command.Content,
-            metadata = command.Metadata,
-            tags = command.Tags
+            model = options.Model,
+            temperature = options.Temperature,
+            max_tokens = options.MaxTokens,
+            messages = new object[]
+            {
+                new
+                {
+                    role = "user",
+                    content = new object[]
+                    {
+                        new
+                        {
+                            type = "image_url",
+                            image_url = new
+                            {
+                                url = command.FileUrl.ToString()
+                            }
+                        },
+                        new
+                        {
+                            type = "text",
+                            text = options.Instruction ?? string.Empty
+                        }
+                    }
+                }
+            }
         };
 
-        using var response = await _httpClient.PostAsJsonAsync(options.StartEndpoint, payload, cancellationToken)
+        using var response = await _httpClient.PostAsJsonAsync(options.ChatCompletionsEndpoint, payload, cancellationToken)
             .ConfigureAwait(false);
 
         await EnsureSuccessAsync(response, "trigger OCR processing", cancellationToken).ConfigureAwait(false);

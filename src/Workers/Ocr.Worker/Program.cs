@@ -1,5 +1,9 @@
+using ECM.Document.Infrastructure;
+using ECM.File.Application;
+using ECM.File.Infrastructure;
 using ECM.Ocr.Application;
 using ECM.Ocr.Infrastructure;
+using ECM.Ocr.Infrastructure.DotOcr;
 
 using Serilog;
 
@@ -27,6 +31,17 @@ public static class Program
 
             builder.Services.AddOcrApplication();
             builder.Services.AddOcrInfrastructure();
+            builder.Services.AddDocumentInfrastructure();
+            builder.Services.AddFileApplication();
+            builder.Services.AddFileInfrastructure();
+            builder.Services.PostConfigure<DotOcrOptions>(options =>
+            {
+                options.ChatCompletionsEndpoint = "v1/chat/completions";
+                options.Model = "dotsocr-model";
+                options.Temperature = 0;
+                options.MaxTokens = 2048;
+                options.Instruction = "Please output the layout information from the PDF image, including each layout element's bbox, its category, and the corresponding text content within the bbox.\n\n1. Bbox format: [x1, y1, x2, y2]\n\n2. Layout Categories: ['Caption', 'Footnote', 'Formula', 'List-item', 'Page-footer', 'Page-header', 'Picture', 'Section-header', 'Table', 'Text', 'Title'].\n\n3. Text Extraction & Formatting Rules:\n    - Picture: omit text.\n    - Formula: use LaTeX.\n    - Table: use HTML.\n    - All others: use Markdown.\n\n4. Output original text only, no translation.\n5. Return a single JSON object.";
+            });
             builder.Services.Configure<KafkaConsumerOptions>(builder.Configuration.GetSection(KafkaConsumerOptions.SectionName));
             builder.Services.PostConfigure<KafkaConsumerOptions>(options =>
             {
