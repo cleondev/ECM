@@ -3,17 +3,20 @@ using System;
 using ECM.IAM.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace ECM.IAM.Infrastructure.Migrations
+namespace ECM.IAM.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(IamDbContext))]
-    partial class IamDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251029033013_updateDbAddGroup")]
+    partial class updateDbAddGroup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -105,8 +108,7 @@ namespace ECM.IAM.Infrastructure.Migrations
                 {
                     b.Property<string>("SubjectType")
                         .HasColumnType("text")
-                        .HasColumnName("subject_type")
-                        .HasDefaultValue("user");
+                        .HasColumnName("subject_type");
 
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid")
