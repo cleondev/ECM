@@ -39,7 +39,7 @@ public static class UserProfileEndpoints
     private static async Task<Results<Ok<UserResponse>, NotFound>> GetProfileAsync(
         ClaimsPrincipal principal,
         GetUserByEmailQueryHandler handler,
-        ILogger<UserProfileEndpoints> logger,
+        ILogger<LoggerCategory> logger,
         CancellationToken cancellationToken)
     {
         logger.LogInformation(
@@ -73,7 +73,7 @@ public static class UserProfileEndpoints
         UpdateUserProfileRequest request,
         ClaimsPrincipal principal,
         UpdateUserProfileCommandHandler handler,
-        ILogger<UserProfileEndpoints> logger,
+        ILogger<LoggerCategory> logger,
         CancellationToken cancellationToken)
     {
         logger.LogInformation(
@@ -211,4 +211,8 @@ public static class UserProfileEndpoints
 
     private static bool IsLikelyEmail(string value)
         => value.Contains('@');
+
+    private sealed class LoggerCategory
+    {
+    }
 }
