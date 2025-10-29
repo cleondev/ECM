@@ -54,12 +54,19 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("ParentGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_group_id");
+
                     b.HasKey("Id")
                         .HasName("pk_groups");
 
                     b.HasIndex("Name")
                         .IsUnique()
                         .HasDatabaseName("ix_groups_name");
+
+                    b.HasIndex("ParentGroupId")
+                        .HasDatabaseName("ix_groups_parent_group_id");
 
                     b.ToTable("groups", "iam");
                 });
@@ -281,6 +288,15 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                         {
                             t.ExcludeFromMigrations();
                         });
+                });
+
+            modelBuilder.Entity("ECM.IAM.Domain.Groups.Group", b =>
+                {
+                    b.HasOne("ECM.IAM.Domain.Groups.Group", null)
+                        .WithMany()
+                        .HasForeignKey("ParentGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_groups_parent_group");
                 });
 
             modelBuilder.Entity("ECM.IAM.Domain.Groups.GroupMember", b =>

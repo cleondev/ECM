@@ -22,7 +22,8 @@ internal static class Mapping
                 member.GroupId,
                 member.Group?.Name ?? string.Empty,
                 member.Group is not null ? member.Group.Kind : GroupKind.Temporary,
-                member.Role))
+                member.Role,
+                member.Group?.ParentGroupId))
             .ToArray();
 
         return new UserSummaryResult(

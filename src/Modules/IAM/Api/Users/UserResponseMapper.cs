@@ -16,7 +16,7 @@ internal static class UserResponseMapper
             .ToArray();
 
         var groups = summary.Groups
-            .Select(group => new GroupResponse(group.Id, group.Name, group.Kind.ToNormalizedString(), group.Role))
+            .Select(group => new GroupResponse(group.Id, group.Name, group.Kind.ToNormalizedString(), group.Role, group.ParentGroupId))
             .ToArray();
 
         return new UserResponse(

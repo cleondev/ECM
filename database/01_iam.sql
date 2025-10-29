@@ -25,6 +25,7 @@ CREATE TABLE iam.groups (
     id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
     name        text UNIQUE NOT NULL,
     kind        text NOT NULL DEFAULT 'normal',
+    parent_group_id uuid REFERENCES iam.groups(id) ON DELETE RESTRICT,
     created_by  uuid REFERENCES iam.users(id),
     created_at  timestamptz NOT NULL DEFAULT now()
 );
@@ -34,6 +35,9 @@ VALUES
     ('11111111-1111-1111-1111-111111111111', 'guest', 'system', now()),
     ('22222222-2222-2222-2222-222222222222', 'system', 'system', now())
 ON CONFLICT (name) DO NOTHING;
+
+CREATE INDEX ix_groups_parent_group_id
+    ON iam.groups (parent_group_id);
 
 CREATE TABLE iam.group_members (
     group_id    uuid NOT NULL REFERENCES iam.groups(id) ON DELETE CASCADE,

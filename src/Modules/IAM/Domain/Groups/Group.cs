@@ -12,7 +12,7 @@ public sealed class Group
         Members = new List<GroupMember>();
     }
 
-    private Group(Guid id, string name, GroupKind kind, Guid? createdBy, DateTimeOffset createdAtUtc)
+    private Group(Guid id, string name, GroupKind kind, Guid? parentGroupId, Guid? createdBy, DateTimeOffset createdAtUtc)
         : this()
     {
         Id = id;
@@ -20,6 +20,7 @@ public sealed class Group
         Kind = kind;
         CreatedBy = createdBy;
         CreatedAtUtc = createdAtUtc;
+        SetParent(parentGroupId);
     }
 
     public Guid Id { get; private set; }
@@ -28,13 +29,15 @@ public sealed class Group
 
     public GroupKind Kind { get; private set; }
 
+    public Guid? ParentGroupId { get; private set; }
+
     public Guid? CreatedBy { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public ICollection<GroupMember> Members { get; }
 
-    public static Group Create(string name, GroupKind kind, Guid? createdBy, DateTimeOffset createdAtUtc)
+    public static Group Create(string name, GroupKind kind, Guid? createdBy, DateTimeOffset createdAtUtc, Guid? parentGroupId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -42,11 +45,11 @@ public sealed class Group
         }
 
         var normalizedName = name.Trim();
-        return new Group(Guid.NewGuid(), normalizedName, kind, createdBy, createdAtUtc);
+        return new Group(Guid.NewGuid(), normalizedName, kind, parentGroupId, createdBy, createdAtUtc);
     }
 
-    public static Group Create(string name, string? kind, Guid? createdBy, DateTimeOffset createdAtUtc)
-        => Create(name, GroupKindExtensions.FromString(kind), createdBy, createdAtUtc);
+    public static Group Create(string name, string? kind, Guid? createdBy, DateTimeOffset createdAtUtc, Guid? parentGroupId = null)
+        => Create(name, GroupKindExtensions.FromString(kind), createdBy, createdAtUtc, parentGroupId);
 
     public static Group CreateSystemGroup(string name, DateTimeOffset createdAtUtc)
     {
@@ -60,7 +63,7 @@ public sealed class Group
             ? knownId
             : Guid.NewGuid();
 
-        return new Group(id, normalizedName, GroupKind.System, createdBy: null, createdAtUtc);
+        return new Group(id, normalizedName, GroupKind.System, parentGroupId: null, createdBy: null, createdAtUtc);
     }
 
     public void Rename(string name)
@@ -71,5 +74,20 @@ public sealed class Group
         }
 
         Name = name.Trim();
+    }
+
+    public void SetParent(Guid? parentGroupId)
+    {
+        if (parentGroupId == Guid.Empty)
+        {
+            parentGroupId = null;
+        }
+
+        if (parentGroupId.HasValue && parentGroupId.Value == Id)
+        {
+            throw new InvalidOperationException("A group cannot be its own parent.");
+        }
+
+        ParentGroupId = parentGroupId;
     }
 }

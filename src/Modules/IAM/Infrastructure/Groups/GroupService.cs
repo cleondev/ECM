@@ -54,9 +54,11 @@ public sealed class GroupService(
 
         foreach (var assignment in normalizedAssignments)
         {
+            var desiredParentGroupId = assignment.ParentGroupId;
+
             if (!existingGroups.TryGetValue(assignment.Name, out var group))
             {
-                group = Group.Create(assignment.Name, assignment.Kind, createdBy: null, _clock.UtcNow);
+                group = Group.Create(assignment.Name, assignment.Kind, createdBy: null, _clock.UtcNow, desiredParentGroupId);
                 await _context.Groups.AddAsync(group, cancellationToken);
                 existingGroups[assignment.Name] = group;
                 _logger.LogInformation(
@@ -64,6 +66,11 @@ public sealed class GroupService(
                     assignment.Name,
                     assignment.Kind.ToNormalizedString(),
                     user.Id);
+            }
+
+            if (group.ParentGroupId != desiredParentGroupId)
+            {
+                group.SetParent(desiredParentGroupId);
             }
 
             var isMember = await _context.GroupMembers.AnyAsync(

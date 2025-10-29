@@ -28,6 +28,9 @@ public sealed class GroupConfiguration : IEntityTypeConfiguration<Group>
             .HasDefaultValue(GroupKind.Temporary.ToNormalizedString())
             .IsRequired();
 
+        builder.Property(group => group.ParentGroupId)
+            .HasColumnName("parent_group_id");
+
         builder.Property(group => group.CreatedBy)
             .HasColumnName("created_by");
 
@@ -35,6 +38,12 @@ public sealed class GroupConfiguration : IEntityTypeConfiguration<Group>
             .HasColumnName("created_at")
             .HasColumnType("timestamptz")
             .HasDefaultValueSql("now()");
+
+        builder.HasOne<Group>()
+            .WithMany()
+            .HasForeignKey(group => group.ParentGroupId)
+            .HasConstraintName("fk_groups_parent_group")
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(group => group.Members)
             .WithOne(member => member.Group)
