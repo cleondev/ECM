@@ -22,21 +22,36 @@ type RightSidebarProps = {
   onClose: () => void
 }
 
-const statusColors = {
+const statusColors: Record<NonNullable<FileItem['status']>, string> = {
   "in-progress": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
   completed: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
   draft: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
 }
 
+type EditableFileState = {
+  name: string
+  description: string
+  owner: string
+  folder: string
+  tags: string
+  status: NonNullable<FileItem['status']>
+}
+
+const DEFAULT_FILE_STATUS: NonNullable<FileItem['status']> = "draft"
+
+function createEditableState(file: FileItem | null): EditableFileState {
+  return {
+    name: file?.name ?? "",
+    description: file?.description ?? "",
+    owner: file?.owner ?? "",
+    folder: file?.folder ?? "",
+    tags: file ? file.tags.join(", ") : "",
+    status: file?.status ?? DEFAULT_FILE_STATUS,
+  }
+}
+
 export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: RightSidebarProps) {
-  const [editValues, setEditValues] = useState({
-    name: selectedFile?.name || "",
-    description: selectedFile?.description || "",
-    owner: selectedFile?.owner || "",
-    folder: selectedFile?.folder || "",
-    tags: selectedFile?.tags.join(", ") || "",
-    status: selectedFile?.status || "draft",
-  })
+  const [editValues, setEditValues] = useState<EditableFileState>(() => createEditableState(selectedFile))
 
   const [flows, setFlows] = useState<Flow[]>([])
   const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
@@ -53,14 +68,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
 
   useEffect(() => {
     if (selectedFile) {
-      setEditValues({
-        name: selectedFile.name,
-        description: selectedFile.description || "",
-        owner: selectedFile.owner,
-        folder: selectedFile.folder,
-        tags: selectedFile.tags.join(", "),
-        status: selectedFile.status || "draft",
-      })
+      setEditValues(createEditableState(selectedFile))
       fetchFlows(selectedFile.id).then((data) => {
         const sortedFlows = data.sort((a, b) => {
           const timeA = parseTimeAgo(a.lastUpdated)
@@ -493,8 +501,9 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                   id="status"
                   value={editValues.status}
                   onChange={(e) => {
-                    setEditValues({ ...editValues, status: e.target.value })
-                    handleBlur("status", e.target.value)
+                    const nextStatus = e.target.value as NonNullable<FileItem['status']>
+                    setEditValues({ ...editValues, status: nextStatus })
+                    handleBlur("status", nextStatus)
                   }}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
                 >

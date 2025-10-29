@@ -31,6 +31,13 @@ import {
 
 const DEFAULT_TAG_ICON = "📁"
 
+type CoreMeta = Record<string, unknown>
+type CoreResponse = Record<string, unknown>
+
+type ManagedUploadResult = UppyUploadResult<CoreMeta, CoreResponse>
+type ManagedUppyFile = UppyFile<CoreMeta, CoreResponse>
+type ManagedUppy = Uppy<CoreMeta, CoreResponse>
+
 const createDefaultMetadata = (): UploadMetadata => ({
   title: "",
   docType: "General",
@@ -83,8 +90,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({})
   const autoCloseTimeoutRef = useRef<number | null>(null)
 
-  const uppy = useMemo(() => {
-    const instance = new Uppy({
+  const uppy = useMemo<ManagedUppy>(() => {
+    const instance = new Uppy<CoreMeta, CoreResponse>({
       autoProceed: false,
       allowMultipleUploads: true,
       restrictions: {
@@ -169,7 +176,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   useEffect(() => {
     return () => {
       clearAutoCloseTimeout()
-      uppy.close({ reason: "unmount" })
+      uppy.cancelAll()
+      uppy.destroy()
     }
   }, [uppy, clearAutoCloseTimeout])
 
@@ -221,46 +229,57 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   const selectedGroupCount = metadata.groupIds?.length ?? 0
 
-  const buildUploadSummary = useCallback(
-    (result: UppyUploadResult): UploadResultSummary => {
-      const failureMessages: string[] = []
-      let successCount = 0
+    const buildUploadSummary = useCallback(
+      (result: ManagedUploadResult): UploadResultSummary => {
+        const failureMessages: string[] = []
+        let successCount = 0
 
-      const firstResponse = result.successful[0]?.response?.body as
-        | DocumentBatchResponse
-        | Record<string, unknown>
-        | undefined
+        const successfulFiles = Array.isArray(result.successful) ? result.successful : []
+        const failedFiles = Array.isArray(result.failed) ? result.failed : []
 
-      if (isDocumentBatchResponse(firstResponse)) {
-        successCount = firstResponse.documents.length
-        if (Array.isArray(firstResponse.failures)) {
-          for (const failure of firstResponse.failures) {
-            failureMessages.push(formatFailureMessage(failure.fileName, failure.message))
+        const firstResponse = successfulFiles[0]?.response?.body as
+          | DocumentBatchResponse
+          | Record<string, unknown>
+          | undefined
+
+        if (isDocumentBatchResponse(firstResponse)) {
+          successCount = firstResponse.documents.length
+          if (Array.isArray(firstResponse.failures)) {
+            for (const failure of firstResponse.failures) {
+              failureMessages.push(formatFailureMessage(failure.fileName, failure.message))
+            }
           }
+        } else if (firstResponse) {
+          successCount = 1
+        } else {
+          successCount = successfulFiles.length
         }
-      } else if (firstResponse) {
-        successCount = 1
-      } else {
-        successCount = result.successful.length
-      }
 
-      if (Array.isArray(result.failed)) {
-        for (const failed of result.failed) {
-          const message =
-            typeof failed.error === "string"
-              ? failed.error
-              : failed.error && typeof failed.error === "object" && "message" in failed.error
-              ? String(failed.error.message)
-              : "Upload failed"
+        const resolveErrorMessage = (error: unknown): string => {
+          if (typeof error === "string") {
+            return error
+          }
 
-          failureMessages.push(formatFailureMessage(failed.name, message))
+          if (error && typeof error === "object" && "message" in error) {
+            const candidate = (error as { message?: unknown }).message
+            if (typeof candidate === "string") {
+              return candidate
+            }
+          }
+
+          return "Upload failed"
         }
-      }
 
-      return { successCount, failureMessages }
-    },
-    [],
-  )
+        for (const failed of failedFiles) {
+          const message = resolveErrorMessage(failed.error)
+          const fileName = failed.name ?? "Unknown file"
+          failureMessages.push(formatFailureMessage(fileName, message))
+        }
+
+        return { successCount, failureMessages }
+      },
+      [],
+    )
 
   const toggleGroupSelection = useCallback((groupId: string) => {
     setMetadata((prev) => {
@@ -300,7 +319,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   }, [])
 
   useEffect(() => {
-    const handleFileAdded = (file: UppyFile) => {
+    const handleFileAdded = (file: ManagedUppyFile) => {
       setSelectedFileCount(uppy.getFiles().length)
       setUploadResult(null)
       setMetadata((prev) => {
@@ -308,7 +327,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
           return prev
         }
 
-        const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, "")
+        const rawName = file.name ?? ""
+        const nameWithoutExtension = rawName.replace(/\.[^/.]+$/, "")
         return { ...prev, title: nameWithoutExtension }
       })
     }
@@ -323,7 +343,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       setUploadResult(null)
     }
 
-    const handleUploadComplete = (result: UppyUploadResult) => {
+    const handleUploadComplete = (result: ManagedUploadResult) => {
       setIsUploading(false)
       const summary = buildUploadSummary(result)
       setUploadResult(summary)
@@ -339,9 +359,10 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       }
     }
 
-    const handleUploadError = (file: UppyFile, error: Error) => {
+    const handleUploadError = (file: ManagedUppyFile | undefined, error: Error) => {
       setIsUploading(false)
-      setUploadResult({ successCount: 0, failureMessages: [formatFailureMessage(file.name, error.message)] })
+      const fileName = file?.name ?? "Upload"
+      setUploadResult({ successCount: 0, failureMessages: [formatFailureMessage(fileName, error.message)] })
     }
 
     const handleError = (error: Error) => {
@@ -351,7 +372,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
     uppy.on("file-added", handleFileAdded)
     uppy.on("file-removed", handleFileRemoved)
-    uppy.on("reset-progress", handleFileRemoved)
+    uppy.on("cancel-all", handleFileRemoved)
     uppy.on("upload", handleUploadStarted)
     uppy.on("complete", handleUploadComplete)
     uppy.on("upload-error", handleUploadError)
@@ -360,7 +381,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     return () => {
       uppy.off("file-added", handleFileAdded)
       uppy.off("file-removed", handleFileRemoved)
-      uppy.off("reset-progress", handleFileRemoved)
+      uppy.off("cancel-all", handleFileRemoved)
       uppy.off("upload", handleUploadStarted)
       uppy.off("complete", handleUploadComplete)
       uppy.off("upload-error", handleUploadError)
@@ -566,7 +587,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                 hideUploadButton
                 proudlyDisplayPoweredByUppy={false}
                 showProgressDetails
-                locale={{ strings: { dropPasteImport: "Drop files here or browse files" } }}
+                locale={{ strings: { dropPasteFiles: "Drop files here or browse files" } }}
                 note={
                   currentUser
                     ? "You can add up to 20 files per upload."

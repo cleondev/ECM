@@ -69,6 +69,8 @@ export default function ShareDownloadPage() {
     return true
   }, [share])
 
+  const [codeResolved, setCodeResolved] = useState(() => typeof window !== "undefined")
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return () => {}
@@ -76,6 +78,7 @@ export default function ShareDownloadPage() {
 
     function handleLocationChange() {
       setCode(extractShareCodeFromLocation(window.location))
+      setCodeResolved(true)
     }
 
     window.addEventListener("popstate", handleLocationChange)
@@ -88,6 +91,10 @@ export default function ShareDownloadPage() {
   }, [])
 
   useEffect(() => {
+    if (!codeResolved) {
+      return
+    }
+
     let cancelled = false
 
     async function loadShare(initialPassword?: string) {
@@ -135,7 +142,7 @@ export default function ShareDownloadPage() {
     return () => {
       cancelled = true
     }
-  }, [code])
+  }, [code, codeResolved])
 
   async function refreshShare(withPassword?: string) {
     if (!code) {
@@ -196,8 +203,13 @@ export default function ShareDownloadPage() {
 
     try {
       const pass = share.requiresPassword ? accessPassword : undefined
-      const url = await requestShareDownloadLink(code, pass)
-      window.location.href = url
+      const download = await requestShareDownloadLink(code, pass)
+
+      if (!download?.url) {
+        throw new Error("Missing download URL from gateway response")
+      }
+
+      window.location.href = download.url
     } catch (err) {
       console.error("[ui] Failed to download shared file", err)
       setDownloadError("Không thể tải xuống tệp. Vui lòng thử lại sau.")
