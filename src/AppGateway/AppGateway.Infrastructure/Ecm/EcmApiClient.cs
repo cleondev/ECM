@@ -9,6 +9,7 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -215,6 +216,19 @@ internal sealed class EcmApiClient(
         if (requestDto.GroupId.HasValue)
         {
             form.Add(new StringContent(requestDto.GroupId.Value.ToString()), nameof(requestDto.GroupId));
+        }
+
+        if (requestDto.GroupIds is { Count: > 0 })
+        {
+            var normalizedGroupIds = requestDto.GroupIds
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToArray();
+
+            if (normalizedGroupIds.Length > 0)
+            {
+                form.Add(new StringContent(JsonSerializer.Serialize(normalizedGroupIds)), nameof(requestDto.GroupIds));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(requestDto.Sensitivity))
@@ -454,6 +468,19 @@ internal sealed class EcmApiClient(
         }
 
         var uri = QueryHelpers.AddQueryString("api/ecm/documents", query);
+
+        if (request.GroupIds is { Length: > 0 })
+        {
+            var normalizedGroupIds = request.GroupIds
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToArray();
+
+            foreach (var groupId in normalizedGroupIds)
+            {
+                uri = QueryHelpers.AddQueryString(uri, "group_ids", groupId.ToString());
+            }
+        }
 
         if (request.Tags is { Length: > 0 })
         {

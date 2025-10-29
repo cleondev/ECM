@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,8 @@ public sealed class CreateDocumentUpload
     public Guid CreatedBy { get; init; }
 
     public Guid? GroupId { get; init; }
+
+    public IReadOnlyCollection<Guid> GroupIds { get; init; } = Array.Empty<Guid>();
 
     public string? Sensitivity { get; init; }
 

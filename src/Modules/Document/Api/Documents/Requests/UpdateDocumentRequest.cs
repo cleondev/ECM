@@ -11,4 +11,6 @@ public sealed class UpdateDocumentRequest
     public string? Sensitivity { get; init; }
 
     public Guid? GroupId { get; init; }
+
+    public Guid[]? GroupIds { get; init; }
 }

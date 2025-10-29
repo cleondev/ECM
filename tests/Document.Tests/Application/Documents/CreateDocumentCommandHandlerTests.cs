@@ -35,6 +35,7 @@ public class CreateDocumentCommandHandlerTests
             ownerId,
             createdBy,
             _groups.GuestGroupId,
+            new[] { _groups.GuestGroupId },
             "  Confidential  ",
             documentTypeId);
 
@@ -49,6 +50,7 @@ public class CreateDocumentCommandHandlerTests
         Assert.Equal(ownerId, summary.OwnerId);
         Assert.Equal(createdBy, summary.CreatedBy);
         Assert.Equal(_groups.GuestGroupId, summary.GroupId);
+        Assert.Equal(new[] { _groups.GuestGroupId }, summary.GroupIds);
         Assert.Equal(now, summary.CreatedAtUtc);
         Assert.Equal(now, summary.UpdatedAtUtc);
         Assert.Equal(documentTypeId, summary.DocumentTypeId);
@@ -74,6 +76,7 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
+            Array.Empty<Guid>(),
             null,
             null);
 
@@ -99,6 +102,7 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
+            Array.Empty<Guid>(),
             null,
             null);
 

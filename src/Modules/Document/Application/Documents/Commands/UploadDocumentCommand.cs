@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace ECM.Document.Application.Documents.Commands;
@@ -10,6 +11,7 @@ public sealed record UploadDocumentCommand(
     Guid OwnerId,
     Guid CreatedBy,
     Guid? GroupId,
+    IReadOnlyCollection<Guid> GroupIds,
     string? Sensitivity,
     Guid? DocumentTypeId,
     string FileName,

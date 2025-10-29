@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace ECM.Document.Application.Documents.Commands;
 
 public sealed record CreateDocumentCommand(
@@ -7,5 +10,6 @@ public sealed record CreateDocumentCommand(
     Guid OwnerId,
     Guid CreatedBy,
     Guid? GroupId,
+    IReadOnlyCollection<Guid> GroupIds,
     string? Sensitivity,
     Guid? DocumentTypeId);

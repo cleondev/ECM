@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Versions;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
@@ -20,6 +21,7 @@ internal static class Mapping
             document.OwnerId,
             document.CreatedBy,
             document.GroupId,
+            ToGroupIds(document.GroupId),
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             document.TypeId);
@@ -39,6 +41,7 @@ internal static class Mapping
             document.OwnerId,
             document.CreatedBy,
             document.GroupId,
+            ToGroupIds(document.GroupId),
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             document.TypeId,
@@ -58,5 +61,15 @@ internal static class Mapping
             version.Sha256,
             version.CreatedBy,
             version.CreatedAtUtc);
+    }
+
+    private static IReadOnlyCollection<Guid> ToGroupIds(Guid? groupId)
+    {
+        if (groupId.HasValue && groupId.Value != Guid.Empty)
+        {
+            return new[] { groupId.Value };
+        }
+
+        return Array.Empty<Guid>();
     }
 }
