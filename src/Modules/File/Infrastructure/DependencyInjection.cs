@@ -4,8 +4,10 @@ using Amazon.Runtime;
 using Amazon.S3;
 using ECM.BuildingBlocks.Infrastructure.Configuration;
 using ECM.File.Application.Files;
+using ECM.File.Application.Shares;
 using ECM.File.Infrastructure.Files;
 using ECM.File.Infrastructure.Persistence;
+using ECM.File.Infrastructure.Shares;
 using Microsoft.Extensions.Options;
 using Minio;
 
@@ -24,6 +26,10 @@ public static class FileInfrastructureModuleExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<ShareLinkOptions>()
+            .BindConfiguration(ShareLinkOptions.SectionName)
+            .ValidateOnStart();
+
         services.AddDbContext<FileDbContext>((serviceProvider, options) =>
         {
             var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -34,6 +40,8 @@ public static class FileInfrastructureModuleExtensions
         });
 
         services.AddScoped<IFileRepository, EfFileRepository>();
+        services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
+        services.AddSingleton<ISharePasswordHasher, Argon2SharePasswordHasher>();
         services.AddScoped<IFileStorage>(serviceProvider =>
         {
             var options = serviceProvider.GetRequiredService<IOptions<FileStorageOptions>>().Value;

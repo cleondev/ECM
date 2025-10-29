@@ -92,6 +92,8 @@ Tùy bối cảnh mà lựa chọn chạy hạ tầng nền tảng trực tiếp
     export FileStorage__ServiceUrl="http://<minio-host>:9000"
     export FileStorage__AccessKeyId=<minio-access-key>
     export FileStorage__SecretAccessKey=<minio-secret>
+    export Shares__PublicBaseUrl="https://ecm.company"
+    export Shares__DefaultPresignLifetime="00:10:00"
     export Kafka__BootstrapServers=<redpanda-host>:9092
     ```
 
@@ -426,3 +428,4 @@ dotnet test ECM.sln --filter FullyQualifiedName~Document
 - [docs/README.md](docs/README.md) – điểm bắt đầu để khám phá tài liệu chi tiết hơn.
 - [docs/ocr-integration.md](docs/ocr-integration.md) – hướng dẫn tích hợp Dot OCR (module + worker).
 - [docs/environment-configuration.md](docs/environment-configuration.md) – hướng dẫn ánh xạ biến môi trường, Azure secrets và thiết lập DEV local.
+- [docs/share-links.md](docs/share-links.md) – kiến trúc và quy trình cho tính năng chia sẻ tài liệu qua link rút gọn.

@@ -127,3 +127,34 @@ export type ShareLink = {
   expiresAtUtc: string
   isPublic: boolean
 }
+
+export type ShareSubjectType = "public" | "user" | "group"
+
+export type ShareLinkStatus = "Draft" | "Active" | "Expired" | "Revoked"
+
+export type ShareQuota = {
+  maxViews?: number | null
+  maxDownloads?: number | null
+  viewsUsed: number
+  downloadsUsed: number
+}
+
+export type ShareFileDescriptor = {
+  name: string
+  extension?: string | null
+  contentType: string
+  sizeBytes: number
+  createdAtUtc?: string | null
+}
+
+export type ShareInterstitial = {
+  shareId: string
+  code: string
+  subjectType: ShareSubjectType
+  status: ShareLinkStatus
+  requiresPassword: boolean
+  passwordValid: boolean
+  canDownload: boolean
+  file: ShareFileDescriptor
+  quota: ShareQuota
+}
