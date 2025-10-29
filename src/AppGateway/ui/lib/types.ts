@@ -67,10 +67,17 @@ export type User = {
   displayName: string
   email: string
   avatar?: string
-  department?: string | null
   roles: string[]
   isActive?: boolean
   createdAtUtc?: string
+  primaryGroupId?: string | null
+  groupIds?: string[]
+}
+
+export type Group = {
+  id: string
+  name: string
+  description?: string | null
 }
 
 export type NotificationItem = {
@@ -87,7 +94,8 @@ export type UploadMetadata = {
   title: string
   docType: string
   status: string
-  department?: string
+  primaryGroupId?: string | null
+  groupIds?: string[]
   sensitivity: string
   description?: string
   notes?: string

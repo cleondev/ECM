@@ -12,12 +12,14 @@ import type {
   ShareLink,
   ShareInterstitial,
   NotificationItem,
+  Group,
 } from "./types"
 import {
   mockFiles,
   mockTagTree,
   mockFlowsByFile,
   mockSystemTags,
+  mockGroups,
   mockNotifications,
 } from "./mock-data"
 import { normalizeRedirectTarget, slugify } from "./utils"
@@ -40,6 +42,8 @@ type UserSummaryResponse = {
   isActive?: boolean
   createdAtUtc?: string
   roles?: RoleSummaryResponse[]
+  primaryGroupId?: string | null
+  groupIds?: string[]
 }
 
 type CheckLoginResponse = {
@@ -131,6 +135,12 @@ type TagLabelResponse = {
   isActive: boolean
   createdBy?: string | null
   createdAtUtc: string
+}
+
+type GroupSummaryResponse = {
+  id: string
+  name: string
+  description?: string | null
 }
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
@@ -292,6 +302,14 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
   return result
 }
 
+function mapGroupSummaryToGroup(data: GroupSummaryResponse): Group {
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description ?? null,
+  }
+}
+
 function normalizeMockTagTree(nodes: TagNode[]): TagNode[] {
   return nodes.map((node) => {
     const children = node.children ? normalizeMockTagTree(node.children) : undefined
@@ -429,14 +447,24 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
 }
 
 function mapUserSummaryToUser(profile: UserSummaryResponse): User {
+  const uniqueGroupIds = Array.from(new Set(profile.groupIds ?? []))
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+  const primaryGroupId = profile.primaryGroupId?.trim() || uniqueGroupIds[0] || null
+
+  if (primaryGroupId && !uniqueGroupIds.includes(primaryGroupId)) {
+    uniqueGroupIds.unshift(primaryGroupId)
+  }
+
   return {
     id: profile.id,
     displayName: profile.displayName,
     email: profile.email,
-    department: profile.department ?? null,
     roles: profile.roles?.map((role) => role.name) ?? [],
     isActive: profile.isActive,
     createdAtUtc: profile.createdAtUtc,
+    primaryGroupId,
+    groupIds: uniqueGroupIds,
   }
 }
 
@@ -487,21 +515,33 @@ export async function fetchCurrentUserProfile(): Promise<User | null> {
 
 export type UpdateUserProfileInput = {
   displayName: string
-  department?: string | null
+  primaryGroupId?: string | null
+  groupIds?: string[]
 }
 
 export async function updateCurrentUserProfile({
   displayName,
-  department,
+  primaryGroupId,
+  groupIds,
 }: UpdateUserProfileInput): Promise<User> {
   const trimmedName = displayName.trim()
   if (!trimmedName) {
     throw new Error("Display name is required")
   }
 
+  const normalizedGroupIds = Array.from(new Set(groupIds ?? []))
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value))
+  const normalizedPrimaryGroupId = primaryGroupId?.trim() || normalizedGroupIds[0] || null
+
+  if (normalizedPrimaryGroupId && !normalizedGroupIds.includes(normalizedPrimaryGroupId)) {
+    normalizedGroupIds.unshift(normalizedPrimaryGroupId)
+  }
+
   const payload = {
     displayName: trimmedName,
-    department: department?.trim() ? department.trim() : null,
+    primaryGroupId: normalizedPrimaryGroupId,
+    groupIds: normalizedGroupIds,
   }
 
   const response = await gatewayFetch("/api/iam/profile", {
@@ -865,6 +905,21 @@ export async function fetchTags(): Promise<TagNode[]> {
   } catch (error) {
     console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
     return normalizeMockTagTree(mockTagTree)
+  }
+}
+
+export async function fetchGroups(): Promise<Group[]> {
+  try {
+    const response = await gatewayRequest<GroupSummaryResponse[]>("/api/iam/groups")
+    if (!response?.length) {
+      return mockGroups
+    }
+
+    return response.map(mapGroupSummaryToGroup)
+  } catch (error) {
+    console.warn("[ui] Failed to fetch groups from gateway, using mock data:", error)
+    await delay(120)
+    return mockGroups
   }
 }
 

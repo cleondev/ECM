@@ -4,7 +4,18 @@ import type React from "react"
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Camera, Mail, Briefcase, MapPin, Phone, Calendar } from "lucide-react"
+import {
+  ArrowLeft,
+  Camera,
+  Mail,
+  Briefcase,
+  MapPin,
+  Phone,
+  Calendar,
+  Users,
+  ChevronDown,
+  Check,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,13 +24,29 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
-import { fetchCurrentUserProfile, updateCurrentUserProfile, updateUserAvatar } from "@/lib/api"
+import { fetchCurrentUserProfile, updateCurrentUserProfile, updateUserAvatar, fetchGroups } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
-import type { User } from "@/lib/types"
+import type { Group, User } from "@/lib/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import { cn } from "@/lib/utils"
 
 const APP_HOME_ROUTE = "/app/"
 const PROFILE_ROUTE = "/profile/"
 const SIGN_IN_ROUTE = `/signin/?redirectUri=${encodeURIComponent(PROFILE_ROUTE)}`
+
+type ProfileFormState = {
+  displayName: string
+  primaryGroupId: string | null
+  groupIds: string[]
+}
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -28,10 +55,22 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [formValues, setFormValues] = useState({
-    displayName: cachedSnapshot?.user?.displayName ?? "",
-    department: cachedSnapshot?.user?.department ?? "",
+  const cachedUser = cachedSnapshot?.user ?? null
+  const initialGroups = useMemo(() => {
+    const base = Array.from(new Set(cachedUser?.groupIds ?? []))
+    const primaryGroupId = cachedUser?.primaryGroupId ?? base[0] ?? null
+    if (primaryGroupId && !base.includes(primaryGroupId)) {
+      base.unshift(primaryGroupId)
+    }
+    return { list: base, primary: cachedUser?.primaryGroupId ?? base[0] ?? null }
+  }, [cachedUser?.groupIds, cachedUser?.primaryGroupId])
+  const [formValues, setFormValues] = useState<ProfileFormState>({
+    displayName: cachedUser?.displayName ?? "",
+    primaryGroupId: initialGroups.primary,
+    groupIds: initialGroups.list,
   })
+  const [groups, setGroups] = useState<Group[]>([])
+  const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const { isAuthenticated, isChecking } = useAuthGuard(PROFILE_ROUTE)
@@ -48,6 +87,25 @@ export default function ProfilePage() {
       cachedSnapshot?.user?.id ?? "(none)",
     )
   }, [cachedSnapshot?.user?.id])
+
+  useEffect(() => {
+    let active = true
+
+    fetchGroups()
+      .then((data) => {
+        if (!active) return
+        setGroups(data)
+      })
+      .catch((error) => {
+        console.error("[profile] Không thể tải danh sách group:", error)
+        if (!active) return
+        setGroups([])
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated || isChecking) {
@@ -77,7 +135,18 @@ export default function ProfilePage() {
         setUser(profile)
         setFormValues({
           displayName: profile.displayName,
-          department: profile.department ?? "",
+          primaryGroupId: profile.primaryGroupId ?? profile.groupIds?.[0] ?? null,
+          groupIds: Array.from(
+            new Set(
+              (() => {
+                const base = profile.groupIds ?? []
+                if (profile.primaryGroupId && !base.includes(profile.primaryGroupId)) {
+                  return [profile.primaryGroupId, ...base]
+                }
+                return base
+              })(),
+            ),
+          ),
         })
       } catch (error) {
         console.error("[ui] Không thể tải hồ sơ người dùng:", error)
@@ -118,17 +187,84 @@ export default function ProfilePage() {
     }
   }
 
-  const handleInputChange = (field: "displayName" | "department") =>
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value
-      setFormValues((prev) => ({ ...prev, [field]: value }))
+  const handleDisplayNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
+    setFormValues((prev) => ({ ...prev, displayName: value }))
+  }
+
+  const toggleGroupSelection = (groupId: string) => {
+    setFormValues((prev) => {
+      const nextGroupIds = new Set(prev.groupIds ?? [])
+      if (nextGroupIds.has(groupId)) {
+        nextGroupIds.delete(groupId)
+      } else {
+        nextGroupIds.add(groupId)
+      }
+
+      const normalized = Array.from(nextGroupIds)
+      const nextPrimary = prev.primaryGroupId && normalized.includes(prev.primaryGroupId)
+        ? prev.primaryGroupId
+        : normalized[0] ?? null
+
+      return {
+        ...prev,
+        groupIds: normalized,
+        primaryGroupId: nextPrimary,
+      }
+    })
+  }
+
+  const handlePrimaryGroupChange = (groupId: string | null) => {
+    setFormValues((prev) => {
+      const nextGroupIds = new Set(prev.groupIds ?? [])
+      if (groupId) {
+        nextGroupIds.add(groupId)
+      }
+
+      return {
+        ...prev,
+        primaryGroupId: groupId,
+        groupIds: Array.from(nextGroupIds),
+      }
+    })
+  }
+
+  const primaryGroupName = useMemo(() => {
+    if (!formValues.primaryGroupId) {
+      return ""
     }
+
+    return groups.find((group) => group.id === formValues.primaryGroupId)?.name ?? ""
+  }, [formValues.primaryGroupId, groups])
+
+  const selectedGroupNames = useMemo(() => {
+    if (!formValues.groupIds.length) {
+      return [] as string[]
+    }
+
+    return formValues.groupIds
+      .map((groupId) => groups.find((group) => group.id === groupId)?.name)
+      .filter((name): name is string => Boolean(name))
+  }, [formValues.groupIds, groups])
+
+  const selectedGroupCount = formValues.groupIds.length
 
   const handleCancelEdit = () => {
     if (user) {
       setFormValues({
         displayName: user.displayName,
-        department: user.department ?? "",
+        primaryGroupId: user.primaryGroupId ?? user.groupIds?.[0] ?? null,
+        groupIds: Array.from(
+          new Set(
+            (() => {
+              const base = user.groupIds ?? []
+              if (user.primaryGroupId && !base.includes(user.primaryGroupId)) {
+                return [user.primaryGroupId, ...base]
+              }
+              return base
+            })(),
+          ),
+        ),
       })
     }
     setIsEditing(false)
@@ -144,13 +280,20 @@ export default function ProfilePage() {
     try {
       const updated = await updateCurrentUserProfile({
         displayName: formValues.displayName,
-        department: formValues.department,
+        primaryGroupId: formValues.primaryGroupId,
+        groupIds: formValues.groupIds,
       })
 
       setUser(updated)
+      const normalizedGroups = Array.from(new Set(updated.groupIds ?? []))
+      const primaryGroupId = updated.primaryGroupId ?? normalizedGroups[0] ?? null
+      if (primaryGroupId && !normalizedGroups.includes(primaryGroupId)) {
+        normalizedGroups.unshift(primaryGroupId)
+      }
       setFormValues({
         displayName: updated.displayName,
-        department: updated.department ?? "",
+        primaryGroupId,
+        groupIds: normalizedGroups,
       })
       setIsEditing(false)
       setFeedback({ type: "success", message: "Hồ sơ của bạn đã được cập nhật." })
@@ -166,14 +309,25 @@ export default function ProfilePage() {
     if (!user) return false
     const normalizedName = formValues.displayName.trim()
     const currentName = user.displayName.trim()
-    const normalizedDepartment = formValues.department.trim()
-    const currentDepartment = (user.department ?? "").trim()
+    const normalizedPrimary = formValues.primaryGroupId ?? null
+    const currentPrimary = user.primaryGroupId ?? null
 
-    return (
-      normalizedName !== currentName ||
-      normalizedDepartment !== currentDepartment
-    )
-  }, [formValues.displayName, formValues.department, user])
+    const normalizeGroupList = (list?: string[]) => Array.from(new Set(list ?? [])).sort()
+    const formGroupList = normalizeGroupList(formValues.groupIds)
+    const userGroupList = normalizeGroupList(user.groupIds)
+
+    const groupsChanged =
+      formGroupList.length !== userGroupList.length ||
+      formGroupList.some((id, index) => id !== userGroupList[index])
+
+    return normalizedName !== currentName || normalizedPrimary !== currentPrimary || groupsChanged
+  }, [formValues.displayName, formValues.groupIds, formValues.primaryGroupId, user])
+
+  useEffect(() => {
+    if (!isEditing) {
+      setGroupPickerOpen(false)
+    }
+  }, [isEditing])
 
   const joinedDate = useMemo(() => {
     if (!user?.createdAtUtc) {
@@ -262,6 +416,9 @@ export default function ProfilePage() {
               <div className="flex-1">
                 <h2 className="text-2xl font-bold">{user.displayName}</h2>
                 <p className="text-muted-foreground">{user.roles[0] ?? "Member"}</p>
+                {primaryGroupName && (
+                  <p className="text-xs text-muted-foreground">Primary group: {primaryGroupName}</p>
+                )}
               </div>
               <Button
                 variant={isEditing ? "outline" : "default"}
@@ -298,7 +455,7 @@ export default function ProfilePage() {
                 <Input
                   id="name"
                   value={formValues.displayName}
-                  onChange={handleInputChange("displayName")}
+                  onChange={handleDisplayNameChange}
                   disabled={!isEditing}
                 />
               </div>
@@ -320,16 +477,104 @@ export default function ProfilePage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="primary-group">Primary group</Label>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="department"
-                    value={formValues.department}
-                    onChange={handleInputChange("department")}
-                    disabled={!isEditing}
-                  />
+                  <Select
+                    value={formValues.primaryGroupId ?? undefined}
+                    onValueChange={(value) => handlePrimaryGroupChange(value === "__none__" ? null : value)}
+                    disabled={!isEditing || groups.length === 0}
+                  >
+                    <SelectTrigger id="primary-group" className="w-full">
+                      <SelectValue
+                        placeholder={groups.length ? "Select primary group" : "No groups available"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No primary group</SelectItem>
+                      {groups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {groups.length === 0
+                    ? "No groups available"
+                    : primaryGroupName
+                      ? `Current primary group: ${primaryGroupName}`
+                      : "Select a primary group"}
+                </p>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Groups</Label>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Popover
+                    open={isGroupPickerOpen && isEditing}
+                    onOpenChange={(open) => {
+                      if (!isEditing) return
+                      setGroupPickerOpen(open)
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "justify-between flex-1",
+                          selectedGroupCount === 0 && "text-muted-foreground",
+                        )}
+                        disabled={!isEditing || groups.length === 0}
+                      >
+                        {selectedGroupCount > 0
+                          ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
+                          : "Select groups"}
+                        <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[280px]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search groups..." />
+                        <CommandEmpty>No groups found.</CommandEmpty>
+                        <CommandGroup>
+                          {groups.map((group) => {
+                            const isSelected = formValues.groupIds.includes(group.id)
+                            return (
+                              <CommandItem
+                                key={group.id}
+                                value={group.id}
+                                onSelect={() => {
+                                  toggleGroupSelection(group.id)
+                                  setGroupPickerOpen(true)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100" : "opacity-0",
+                                  )}
+                                />
+                                <span className="flex-1">{group.name}</span>
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedGroupNames.length > 0
+                    ? selectedGroupNames.join(", ")
+                    : selectedGroupCount > 0
+                      ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
+                      : "Assign groups to keep files organized"}
+                </p>
               </div>
 
               <div className="grid gap-2">

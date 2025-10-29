@@ -1,4 +1,4 @@
-import type { FileItem, TagNode, Flow, SystemTag, User, NotificationItem } from "./types"
+import type { FileItem, TagNode, Flow, SystemTag, User, NotificationItem, Group } from "./types"
 
 export const mockFiles: FileItem[] = [
   {
@@ -699,15 +699,39 @@ export const mockSystemTags: SystemTag[] = [
   { name: "Folder", value: "Projects", editable: true },
 ]
 
+export const mockGroups: Group[] = [
+  {
+    id: "group-product-design",
+    name: "Product Design",
+    description: "Designers working on product experiences",
+  },
+  {
+    id: "group-design-ops",
+    name: "Design Ops",
+    description: "Operations and tooling for design teams",
+  },
+  {
+    id: "group-marketing",
+    name: "Marketing",
+    description: "Growth and marketing initiatives",
+  },
+  {
+    id: "group-customer-success",
+    name: "Customer Success",
+    description: "Customer onboarding and retention",
+  },
+]
+
 export const mockUser: User = {
   id: "user-1",
   displayName: "John Doe",
   email: "john.doe@company.com",
   avatar: "/diverse-user-avatars.png",
-  department: "Product Design",
   roles: ["Senior Designer"],
   isActive: true,
   createdAtUtc: new Date("2023-09-18T08:30:00Z").toISOString(),
+  primaryGroupId: "group-product-design",
+  groupIds: ["group-product-design", "group-design-ops"],
 }
 
 export const mockNotifications: NotificationItem[] = [
