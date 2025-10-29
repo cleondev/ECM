@@ -78,7 +78,7 @@ public sealed class GroupService(
             dedupedAssignments.Add(assignment);
         }
 
-        normalizedAssignments = dedupedAssignments.ToArray();
+        normalizedAssignments = dedupedAssignments;
 
         var targetGroupIds = normalizedAssignments
             .Where(assignment => assignment.GroupId.HasValue)
