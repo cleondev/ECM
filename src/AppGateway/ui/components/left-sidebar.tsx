@@ -165,7 +165,7 @@ function TagTreeItem({
                     onEditTag(tag)
                     setIsPopoverOpen(false)
                   }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-md rounded hover:bg-accent"
                 >
                   <Edit className="h-3 w-3" />
                   Edit Tag
@@ -178,7 +178,7 @@ function TagTreeItem({
                     onAddChildTag(tag)
                     setIsPopoverOpen(false)
                   }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-md rounded hover:bg-accent"
                 >
                   <Plus className="h-3 w-3" />
                   Add Tag
@@ -191,7 +191,7 @@ function TagTreeItem({
                     onDeleteTag(tag.id)
                     setIsPopoverOpen(false)
                   }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-destructive"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-md rounded hover:bg-accent text-destructive"
                 >
                   <Trash className="h-3 w-3" />
                   Delete Tag
