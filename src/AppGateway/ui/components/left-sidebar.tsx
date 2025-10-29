@@ -303,7 +303,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   }
 
   return (
-    <div className="w-full h-full border-r border-border border-t-0 bg-sidebar flex flex-col">
+    <div className="w-full h-full border-r border-sidebar-border border-t-0 bg-sidebar text-sidebar-foreground flex flex-col">
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex-1 min-h-0 flex flex-col gap-3 p-3">
           <div
