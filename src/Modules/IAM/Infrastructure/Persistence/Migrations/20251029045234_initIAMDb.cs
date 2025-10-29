@@ -21,7 +21,7 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "text", nullable: false),
-                    kind = table.Column<string>(type: "text", nullable: false, defaultValue: "normal"),
+                    kind = table.Column<string>(type: "text", nullable: false, defaultValue: "temporary"),
                     created_by = table.Column<Guid>(type: "uuid", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
                 },

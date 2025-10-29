@@ -43,7 +43,7 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("text")
-                        .HasDefaultValue("normal")
+                        .HasDefaultValue("temporary")
                         .HasColumnName("kind");
 
                     b.Property<string>("Name")

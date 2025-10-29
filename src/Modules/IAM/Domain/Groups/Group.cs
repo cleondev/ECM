@@ -8,11 +8,11 @@ public sealed class Group
     private Group()
     {
         Name = null!;
-        Kind = GroupKinds.Normal;
+        Kind = GroupKind.Temporary;
         Members = new List<GroupMember>();
     }
 
-    private Group(Guid id, string name, string kind, Guid? createdBy, DateTimeOffset createdAtUtc)
+    private Group(Guid id, string name, GroupKind kind, Guid? createdBy, DateTimeOffset createdAtUtc)
         : this()
     {
         Id = id;
@@ -26,7 +26,7 @@ public sealed class Group
 
     public string Name { get; private set; }
 
-    public string Kind { get; private set; }
+    public GroupKind Kind { get; private set; }
 
     public Guid? CreatedBy { get; private set; }
 
@@ -34,7 +34,7 @@ public sealed class Group
 
     public ICollection<GroupMember> Members { get; }
 
-    public static Group Create(string name, string? kind, Guid? createdBy, DateTimeOffset createdAtUtc)
+    public static Group Create(string name, GroupKind kind, Guid? createdBy, DateTimeOffset createdAtUtc)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -42,11 +42,25 @@ public sealed class Group
         }
 
         var normalizedName = name.Trim();
-        var normalizedKind = string.IsNullOrWhiteSpace(kind)
-            ? "normal"
-            : kind.Trim();
+        return new Group(Guid.NewGuid(), normalizedName, kind, createdBy, createdAtUtc);
+    }
 
-        return new Group(Guid.NewGuid(), normalizedName, normalizedKind, createdBy, createdAtUtc);
+    public static Group Create(string name, string? kind, Guid? createdBy, DateTimeOffset createdAtUtc)
+        => Create(name, GroupKindExtensions.FromString(kind), createdBy, createdAtUtc);
+
+    public static Group CreateSystemGroup(string name, DateTimeOffset createdAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Group name is required.", nameof(name));
+        }
+
+        var normalizedName = name.Trim();
+        var id = GroupDefaults.TryGetIdForName(normalizedName, out var knownId)
+            ? knownId
+            : Guid.NewGuid();
+
+        return new Group(id, normalizedName, GroupKind.System, createdBy: null, createdAtUtc);
     }
 
     public void Rename(string name)
