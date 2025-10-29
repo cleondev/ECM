@@ -83,7 +83,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var claimedUserId = GetUserObjectId(User);
+        var claimedUserId = await ResolveUserIdAsync(User, cancellationToken);
         var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId;
         var ownerId = NormalizeGuid(request.OwnerId) ?? createdBy;
 
@@ -403,24 +403,39 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return "Untitled document";
     }
 
-    private static Guid? GetUserObjectId(ClaimsPrincipal? principal)
+    private async Task<Guid?> ResolveUserIdAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)
     {
         if (principal is null)
         {
             return null;
         }
 
-        foreach (var claimType in new[] { "oid", ClaimTypes.NameIdentifier, ClaimTypes.Upn, "sub" })
+        var upn = ResolveUserPrincipalName(principal);
+        if (string.IsNullOrWhiteSpace(upn))
         {
-            var claim = principal.FindFirst(claimType);
-            if (claim is null)
-            {
-                continue;
-            }
+            return null;
+        }
 
-            if (Guid.TryParse(claim.Value, out var userId))
+        try
+        {
+            var user = await _client.GetUserByEmailAsync(upn, cancellationToken);
+            return user?.Id;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Failed to resolve user id from UPN {Upn}", upn);
+            return null;
+        }
+    }
+
+    private static string? ResolveUserPrincipalName(ClaimsPrincipal principal)
+    {
+        foreach (var claimType in new[] { ClaimTypes.Upn, "preferred_username", ClaimTypes.Email })
+        {
+            var value = principal.FindFirst(claimType)?.Value;
+            if (!string.IsNullOrWhiteSpace(value))
             {
-                return userId;
+                return value.Trim();
             }
         }
 

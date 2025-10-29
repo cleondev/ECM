@@ -1,9 +1,11 @@
 using ECM.Abstractions;
+using ECM.Abstractions.Users;
 using ECM.IAM.Api.Auth;
 using ECM.IAM.Api.Relations;
 using ECM.IAM.Api.Roles;
 using ECM.IAM.Api.Users;
 using ECM.IAM.Application;
+using ECM.IAM.Application.Users;
 using ECM.IAM.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,7 @@ public sealed class IamModule : IModule
         services.ConfigureModuleSwagger(IamSwagger.DocumentName, IamSwagger.Info);
         services.AddOptions<IamProvisioningOptions>().BindConfiguration(IamProvisioningOptions.SectionName);
         services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
+        services.AddScoped<IUserLookupService, UserLookupService>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
