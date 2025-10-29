@@ -4,11 +4,13 @@
       "commandName": "Project",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development",
-        "Kafka__BootstrapServers": "localhost:9092",
-        "ECM_Kafka__BootstrapServers": "localhost:9092",
-        "ECM_FileStorage__ServiceUrl": "localhost:9092",
-        "ECM_FileStorage__SecretAccessKey": "localhost:9092",
-        "ECM_FileStorage__BucketName": "localhost:9092",
+        "Kafka__BootstrapServers": "172.20.1.22:9092",
+        "ECM_FileStorage__BucketName": "ecm-files",
+        "ECM_FileStorage__ServiceUrl": "http://172.20.1.10:9000",
+        "ECM_FileStorage__AccessKeyId": "minio",
+        "ECM_FileStorage__SecretAccessKey": "admin123",
+        "ECM_FileStorage__Region": "vn-1",
+        "ECM_FileStorage__ForcePathStyle": "true",
         "Ocr__Dot__BaseUrl": "http://localhost:7075/"
       },
       "dotnetRunMessages": true
