@@ -2,6 +2,7 @@ using System;
 using System.Security.Claims;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
