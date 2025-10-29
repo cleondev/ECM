@@ -22,6 +22,12 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `POST /api/iam/users/{id}/roles` | Gán thêm một vai trò cho người dùng. | `id`, body `{roleId}` |
 | `DELETE /api/iam/users/{id}/roles/{roleId}` | Hủy gán vai trò khỏi người dùng. | `id`, `roleId` |
 
+### Authentication
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `POST /api/iam/auth/login` | Đăng nhập tài khoản nội bộ bằng email + password, trả về hồ sơ người dùng khi thành công. | Body `{email, password}` |
+
 ### Profile
 
 | Method & Path | Mô tả | Tham số chính |

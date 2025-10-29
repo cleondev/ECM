@@ -431,6 +431,42 @@ export type CheckLoginResult = {
   user: User | null
 }
 
+function mapCheckLoginResponse(
+  data: CheckLoginResponse,
+  normalizedRedirect: string,
+): CheckLoginResult {
+  const redirectPath = normalizeRedirectTarget(data.redirectPath, normalizedRedirect)
+
+  const result: CheckLoginResult = {
+    isAuthenticated: Boolean(data.isAuthenticated),
+    redirectPath,
+    loginUrl: data.loginUrl ?? null,
+    user: data.profile ? mapUserSummaryToUser(data.profile) : null,
+  }
+
+  if (result.isAuthenticated && !result.user) {
+    console.warn(
+      "[auth] Thiếu hồ sơ người dùng trong phản hồi check-login, coi như chưa xác thực.",
+    )
+    result.isAuthenticated = false
+    result.redirectPath = "/"
+  }
+
+  if (typeof window !== "undefined") {
+    if (result.isAuthenticated) {
+      updateCachedAuthSnapshot({
+        isAuthenticated: true,
+        redirectPath: result.redirectPath,
+        user: result.user,
+      })
+    } else {
+      clearCachedAuthSnapshot()
+    }
+  }
+
+  return result
+}
+
 async function assignTagsToDocument(documentId: string, tags: SelectedTag[], userId: string) {
   if (!tags.length) {
     return
@@ -487,36 +523,87 @@ export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult
   }
 
   const data = (await response.json()) as CheckLoginResponse
-  const redirectPath = normalizeRedirectTarget(data.redirectPath, normalizedRedirect)
+  return mapCheckLoginResponse(data, normalizedRedirect)
+}
 
-  const result = {
-    isAuthenticated: Boolean(data.isAuthenticated),
-    redirectPath,
-    loginUrl: data.loginUrl ?? null,
-    user: data.profile ? mapUserSummaryToUser(data.profile) : null,
+export class PasswordLoginError extends Error {
+  readonly reason: "invalid" | "unavailable" | "validation" | "unknown"
+  readonly status?: number
+
+  constructor(
+    message: string,
+    reason: "invalid" | "unavailable" | "validation" | "unknown",
+    status?: number,
+  ) {
+    super(message)
+    this.name = "PasswordLoginError"
+    this.reason = reason
+    this.status = status
+  }
+}
+
+type PasswordLoginRequest = {
+  email: string
+  password: string
+  redirectUri?: string
+}
+
+export async function passwordLogin({
+  email,
+  password,
+  redirectUri,
+}: PasswordLoginRequest): Promise<CheckLoginResult> {
+  const normalizedRedirect = normalizeRedirectTarget(redirectUri, "/app/")
+  const payload = {
+    email,
+    password,
+    redirectUri: normalizedRedirect,
   }
 
-  if (result.isAuthenticated && !result.user) {
-    console.warn(
-      "[auth] Thiếu hồ sơ người dùng trong phản hồi check-login, coi như chưa xác thực.",
+  const response = await gatewayFetch(`/api/iam/password-login`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+
+  if (response.status === 401) {
+    throw new PasswordLoginError("Invalid email or password.", "invalid", response.status)
+  }
+
+  if (response.status === 502) {
+    throw new PasswordLoginError(
+      "Login service is temporarily unavailable.",
+      "unavailable",
+      response.status,
     )
-    result.isAuthenticated = false
-    result.redirectPath = "/"
   }
 
-  if (typeof window !== "undefined") {
-    if (result.isAuthenticated) {
-      updateCachedAuthSnapshot({
-        isAuthenticated: true,
-        redirectPath,
-        user: result.user,
-      })
-    } else {
-      clearCachedAuthSnapshot()
-    }
+  if (response.status === 400) {
+    const problem = (await response.json().catch(() => null)) as {
+      errors?: Record<string, string[]>
+      title?: string
+      detail?: string
+    } | null
+
+    const message =
+      problem?.errors && Object.values(problem.errors).length > 0
+        ? Object.values(problem.errors)
+            .flat()
+            .join(" \n")
+        : problem?.detail || problem?.title || "Invalid login request."
+
+    throw new PasswordLoginError(message, "validation", response.status)
   }
 
-  return result
+  if (!response.ok) {
+    throw new PasswordLoginError(
+      `Password login request failed (${response.status})`,
+      "unknown",
+      response.status,
+    )
+  }
+
+  const data = (await response.json()) as CheckLoginResponse
+  return mapCheckLoginResponse(data, normalizedRedirect)
 }
 
 function filterAndPaginate(files: FileItem[], params?: FileQueryParams): PaginatedResponse<FileItem> {

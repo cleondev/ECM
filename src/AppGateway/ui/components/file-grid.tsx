@@ -72,6 +72,7 @@ export function FileGrid({
   const lastSelectedIndexRef = useRef<number>(-1)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+  const areActionsDisabled = selectedFiles.size > 1
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasMore || isLoading) return
@@ -167,6 +168,12 @@ export function FileGrid({
   }
 
   const handleFileContextMenu = (file: FileItem, index: number) => {
+    if (selectedFiles.size > 1 && selectedFiles.has(file.id)) {
+      onFileSelect(file)
+      lastSelectedIndexRef.current = index
+      return
+    }
+
     const newSelection = new Set([file.id])
     onSelectedFilesChange(newSelection)
     onFileSelect(file)
@@ -211,6 +218,7 @@ export function FileGrid({
               onDownload={() => onDownloadFile(file)}
               onShare={() => onShareFile(file)}
               onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
+              actionsDisabled={areActionsDisabled}
             />
           ))}
         </div>
@@ -237,6 +245,7 @@ export function FileGrid({
             onDownload={() => onDownloadFile(file)}
             onShare={() => onShareFile(file)}
             onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
+            actionsDisabled={areActionsDisabled}
           />
         ))}
       </div>

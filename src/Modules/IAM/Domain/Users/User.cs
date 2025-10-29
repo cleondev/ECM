@@ -22,7 +22,8 @@ public sealed class User : IHasDomainEvents
         string displayName,
         string? department,
         bool isActive,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc,
+        string? passwordHash)
         : this()
     {
         Id = id;
@@ -31,6 +32,7 @@ public sealed class User : IHasDomainEvents
         Department = department;
         IsActive = isActive;
         CreatedAtUtc = createdAtUtc;
+        PasswordHash = passwordHash;
     }
 
     public Guid Id { get; private set; }
@@ -45,6 +47,8 @@ public sealed class User : IHasDomainEvents
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
+    public string? PasswordHash { get; private set; }
+
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -56,7 +60,8 @@ public sealed class User : IHasDomainEvents
         string displayName,
         DateTimeOffset createdAtUtc,
         string? department = null,
-        bool isActive = true)
+        bool isActive = true,
+        string? passwordHash = null)
     {
         if (string.IsNullOrWhiteSpace(email))
         {
@@ -74,7 +79,8 @@ public sealed class User : IHasDomainEvents
             displayName.Trim(),
             string.IsNullOrWhiteSpace(department) ? null : department.Trim(),
             isActive,
-            createdAtUtc);
+            createdAtUtc,
+            string.IsNullOrWhiteSpace(passwordHash) ? null : passwordHash);
 
         user.Raise(new UserCreatedDomainEvent(
             user.Id,
@@ -125,6 +131,11 @@ public sealed class User : IHasDomainEvents
     public void UpdateDepartment(string? department)
     {
         Department = string.IsNullOrWhiteSpace(department) ? null : department.Trim();
+    }
+
+    public void SetPasswordHash(string? passwordHash)
+    {
+        PasswordHash = string.IsNullOrWhiteSpace(passwordHash) ? null : passwordHash;
     }
 
     public void Activate() => IsActive = true;

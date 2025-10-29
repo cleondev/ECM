@@ -26,6 +26,7 @@ public sealed class IamModule : IModule
     {
         endpoints.MapUserEndpoints();
         endpoints.MapUserProfileEndpoints();
+        endpoints.MapAuthenticationEndpoints();
         endpoints.MapRoleEndpoints();
         endpoints.MapRelationEndpoints();
     }

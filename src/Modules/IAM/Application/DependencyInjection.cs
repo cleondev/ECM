@@ -14,6 +14,7 @@ public static class IamApplicationModuleExtensions
         services.AddScoped<GetUsersQueryHandler>();
         services.AddScoped<GetUserByIdQueryHandler>();
         services.AddScoped<GetUserByEmailQueryHandler>();
+        services.AddScoped<AuthenticateUserQueryHandler>();
         services.AddScoped<CreateUserCommandHandler>();
         services.AddScoped<UpdateUserCommandHandler>();
         services.AddScoped<UpdateUserProfileCommandHandler>();
