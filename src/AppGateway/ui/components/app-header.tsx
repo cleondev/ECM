@@ -230,7 +230,7 @@ export function AppHeader({
   )
 
   return (
-    <div className="bg-card">
+    <div className="app-header-surface bg-sidebar text-sidebar-foreground border-b border-sidebar-border/70 shadow-sm">
       <div className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 md:gap-4">
         <div className="flex shrink-0 items-center gap-2 justify-self-start">
           <Button
