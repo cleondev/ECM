@@ -179,6 +179,11 @@ public class AzureAdUserProvisioningServiceTests
         public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<UserSummaryDto?> AuthenticateUserAsync(
+            AuthenticateUserRequestDto request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto request, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

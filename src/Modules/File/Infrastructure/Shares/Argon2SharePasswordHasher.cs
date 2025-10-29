@@ -16,7 +16,7 @@ public sealed class Argon2SharePasswordHasher : ISharePasswordHasher
 
         var config = new Argon2Config
         {
-            Type = Argon2Type.Id,
+            Type = Argon2Type.DataIndependentAddressing,
             TimeCost = 4,
             MemoryCost = 1 << 16,
             Lanes = 2,
