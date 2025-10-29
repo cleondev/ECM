@@ -34,7 +34,7 @@ public sealed class CreateAccessRelationCommandHandler(
         try
         {
             relation = AccessRelation.Create(
-                command.SubjectType,
+                normalizedSubjectType,
                 command.SubjectId,
                 command.ObjectType,
                 command.ObjectId,
