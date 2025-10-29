@@ -93,7 +93,7 @@ public sealed class ShareLinkEntityConfiguration : IEntityTypeConfiguration<Shar
 
         builder.Property(link => link.AllowedIps)
             .HasColumnName("allowed_ips")
-            .HasColumnType("cidr[]")
+            .HasColumnType("text[]")
             .HasConversion(
                 value => value,
                 value => value ?? Array.Empty<string>());

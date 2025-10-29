@@ -35,8 +35,7 @@ public sealed class ShareAccessEventEntityConfiguration : IEntityTypeConfigurati
             .IsRequired();
 
         builder.Property(evt => evt.RemoteIp)
-            .HasColumnName("remote_ip")
-            .HasColumnType("inet");
+            .HasColumnName("remote_ip");
 
         builder.Property(evt => evt.UserAgent)
             .HasColumnName("user_agent");
