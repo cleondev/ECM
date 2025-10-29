@@ -134,7 +134,7 @@ Schemas:
 
 ### Core Tables
 
-* `iam.users(id, email, display_name, department, is_active, created_at)` — người dùng hệ thống
+* `iam.users(id, email, display_name, is_active, created_at)` — người dùng hệ thống; quyền đơn vị nội bộ được suy ra từ thành viên nhóm `iam.group_members`
 
 * `iam.roles(id, name)` — vai trò định nghĩa sẵn (Admin, Editor, Viewer, …)
 

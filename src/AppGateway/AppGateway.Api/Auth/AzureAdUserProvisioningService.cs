@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Infrastructure.IAM;
@@ -52,13 +53,14 @@ public sealed class AzureAdUserProvisioningService(
 
             var displayName = GetDisplayName(principal, email);
             var department = GetDepartment(principal);
+            var groups = BuildGroupAssignments(department);
             var roleIds = await ResolveDefaultRoleIdsAsync(cancellationToken);
 
             var request = new CreateUserRequestDto
             {
                 Email = email,
                 DisplayName = displayName,
-                Department = department,
+                Groups = groups,
                 IsActive = true,
                 Password = null,
                 RoleIds = roleIds
@@ -130,6 +132,23 @@ public sealed class AzureAdUserProvisioningService(
     {
         var value = principal.FindFirst("department")?.Value;
         return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static IReadOnlyCollection<GroupAssignmentDto> BuildGroupAssignments(string? department)
+    {
+        if (string.IsNullOrWhiteSpace(department))
+        {
+            return Array.Empty<GroupAssignmentDto>();
+        }
+
+        return new[]
+        {
+            new GroupAssignmentDto
+            {
+                Name = department.Trim(),
+                Kind = "unit",
+            }
+        };
     }
 
     private static string? GetEmail(ClaimsPrincipal principal)

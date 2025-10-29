@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.IAM.Api;
+using ECM.IAM.Api.Groups;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Users.Commands;
 using ECM.IAM.Application.Users.Queries;
 using Microsoft.AspNetCore.Builder;
@@ -104,16 +106,16 @@ public static class UserProfileEndpoints
         }
 
         logger.LogDebug(
-            "Resolved email {Email} for profile update. Incoming display name length: {DisplayNameLength}; department provided: {HasDepartment}",
+            "Resolved email {Email} for profile update. Incoming display name length: {DisplayNameLength}; group assignments provided: {GroupCount}",
             email,
             request.DisplayName?.Length ?? 0,
-            string.IsNullOrWhiteSpace(request.Department) ? "no" : "yes");
+            request.Groups?.Count ?? 0);
 
         var result = await handler.HandleAsync(
             new UpdateUserProfileCommand(
                 email,
                 request.DisplayName ?? string.Empty,
-                request.Department),
+                MapAssignments(request.Groups)),
             cancellationToken);
 
         if (result.IsFailure)
@@ -154,8 +156,21 @@ public static class UserProfileEndpoints
                 logger.LogTrace(
                     "Discarded candidate email value of length {Length} because it did not pass normalization.",
                     candidate.Length);
-            }
+}
+
+    private static IReadOnlyCollection<GroupAssignment> MapAssignments(IReadOnlyCollection<GroupAssignmentRequest>? groups)
+    {
+        if (groups is null || groups.Count == 0)
+        {
+            return Array.Empty<GroupAssignment>();
         }
+
+        return groups
+            .Where(group => group is not null)
+            .Select(group => group.ToAssignment())
+            .ToArray();
+    }
+}
 
         logger.LogWarning("Failed to resolve email address from known claim types.");
         return null;

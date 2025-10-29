@@ -39,18 +39,13 @@ public sealed class GroupService(
             .Select(group => group.First())
             .ToArray();
 
-        if (normalizedAssignments.Length == 0)
-        {
-            user.SetDepartment(null);
-            await _context.SaveChangesAsync(cancellationToken);
-            return;
-        }
-
         var targetNames = normalizedAssignments.Select(assignment => assignment.Name).ToArray();
 
-        var existingGroups = await _context.Groups
-            .Where(group => targetNames.Contains(group.Name))
-            .ToDictionaryAsync(group => group.Name, Comparer, cancellationToken);
+        var existingGroups = targetNames.Length == 0
+            ? new Dictionary<string, Group>(Comparer)
+            : await _context.Groups
+                .Where(group => targetNames.Contains(group.Name))
+                .ToDictionaryAsync(group => group.Name, Comparer, cancellationToken);
 
         foreach (var assignment in normalizedAssignments)
         {
@@ -109,8 +104,6 @@ public sealed class GroupService(
                     membership.Group.Name);
             }
         }
-
-        user.SetDepartment(unitTargets.FirstOrDefault());
 
         await _context.SaveChangesAsync(cancellationToken);
 

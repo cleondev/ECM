@@ -9,7 +9,6 @@ public sealed record UserSummaryDto(
     Guid Id,
     string Email,
     string DisplayName,
-    string? Department,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
     IReadOnlyCollection<RoleSummaryDto> Roles,

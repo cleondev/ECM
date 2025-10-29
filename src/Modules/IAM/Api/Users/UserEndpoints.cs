@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.IAM.Api.Groups;
 using ECM.IAM.Api.Roles;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Users;
 using ECM.IAM.Api;
 using ECM.IAM.Application.Users.Commands;
@@ -109,7 +111,7 @@ public static class UserEndpoints
             new CreateUserCommand(
                 request.Email,
                 request.DisplayName,
-                request.Department,
+                MapAssignments(request.Groups),
                 request.IsActive,
                 request.Password,
                 request.RoleIds),
@@ -137,7 +139,7 @@ public static class UserEndpoints
             new UpdateUserCommand(
                 id,
                 request.DisplayName,
-                request.Department,
+                MapAssignments(request.Groups),
                 request.IsActive),
             cancellationToken);
 
@@ -207,5 +209,18 @@ public static class UserEndpoints
         }
 
         return TypedResults.Ok(UserResponseMapper.Map(result.Value!));
+    }
+
+    private static IReadOnlyCollection<GroupAssignment> MapAssignments(IReadOnlyCollection<GroupAssignmentRequest>? groups)
+    {
+        if (groups is null || groups.Count == 0)
+        {
+            return Array.Empty<GroupAssignment>();
+        }
+
+        return groups
+            .Where(group => group is not null)
+            .Select(group => group.ToAssignment())
+            .ToArray();
     }
 }

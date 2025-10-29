@@ -1,13 +1,11 @@
 using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users;
-using TestFixtures;
 using Xunit;
 
 namespace IAM.Test.Domain.Users;
 
 public class UserTests
 {
-    private readonly DefaultGroupFixture _groups = new();
 
     [Fact]
     public void Create_WithValidValues_TrimsStringsAndSetsDefaults()
@@ -19,10 +17,10 @@ public class UserTests
         Assert.NotEqual(Guid.Empty, user.Id);
         Assert.Equal("alice@example.com", user.Email);
         Assert.Equal("Alice Smith", user.DisplayName);
-        Assert.Null(user.Department);
         Assert.False(user.IsActive);
         Assert.Equal(createdAt, user.CreatedAtUtc);
         Assert.Empty(user.Roles);
+        Assert.Empty(user.Groups);
     }
 
     [Theory]
@@ -72,9 +70,6 @@ public class UserTests
         Assert.Equal("displayName", exception.ParamName);
     }
 
-    [Fact]
-    public void UpdateDepartment_TrimsValueOrClearsWhenWhitespace()
-    {
     [Fact]
     public void ActivateAndDeactivate_ToggleState()
     {

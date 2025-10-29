@@ -30,7 +30,6 @@ internal static class Mapping
             user.Id,
             user.Email,
             user.DisplayName,
-            user.Department,
             user.IsActive,
             user.CreatedAtUtc,
             roles,

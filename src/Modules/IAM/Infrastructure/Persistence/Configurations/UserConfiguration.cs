@@ -28,9 +28,6 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.PasswordHash)
             .HasColumnName("password_hash");
 
-        builder.Property(user => user.Department)
-            .HasColumnName("department");
-
         builder.Property(user => user.IsActive)
             .HasColumnName("is_active")
             .HasDefaultValue(true);

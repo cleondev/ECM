@@ -42,8 +42,6 @@ public sealed class User : IHasDomainEvents
 
     public string DisplayName { get; private set; }
 
-    public string? Department { get; private set; }
-
     public bool IsActive { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
@@ -87,7 +85,6 @@ public sealed class User : IHasDomainEvents
             user.Id,
             user.Email,
             user.DisplayName,
-            user.Department,
             user.IsActive,
             createdAtUtc));
 
@@ -139,11 +136,6 @@ public sealed class User : IHasDomainEvents
     public void Deactivate() => IsActive = false;
 
     public void ClearDomainEvents() => _domainEvents.Clear();
-
-    internal void SetDepartment(string? department)
-    {
-        Department = string.IsNullOrWhiteSpace(department) ? null : department.Trim();
-    }
 
     internal void SyncGroups(IEnumerable<GroupMember> memberships)
     {
