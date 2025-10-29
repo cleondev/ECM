@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using ServiceDefaults.Authentication;
 
 namespace AppGateway.Api.Configuration;
 
@@ -50,8 +51,13 @@ public static class GatewayServiceConfiguration
         var ecmScopes = ScopeUtilities.ParseScopes(
             builder.Configuration.GetValue<string>("Services:EcmScope"));
 
-        builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
+        var azureAdSection = builder.Configuration.GetSection("AzureAd");
+        var azureInstance = azureAdSection["Instance"];
+        var azureTenantId = azureAdSection["TenantId"];
+
+        builder.Services.PostConfigure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
         {
+            options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority, azureTenantId, azureInstance);
             options.ResponseType = OpenIdConnectResponseType.Code;
             options.UsePkce = true;
             options.ResponseMode = OpenIdConnectResponseMode.FormPost;
@@ -88,6 +94,10 @@ public static class GatewayServiceConfiguration
 
     private static void ConfigureAuthentication(WebApplicationBuilder builder)
     {
+        var azureAdSection = builder.Configuration.GetSection("AzureAd");
+        var azureInstance = azureAdSection["Instance"];
+        var azureTenantId = azureAdSection["TenantId"];
+
         var authenticationBuilder = builder.Services.AddAuthentication(options =>
         {
             options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -104,6 +114,23 @@ public static class GatewayServiceConfiguration
         authenticationBuilder.AddMicrosoftIdentityWebApi(
             builder.Configuration.GetSection("AzureAd"),
             jwtBearerScheme: JwtBearerDefaults.AuthenticationScheme);
+
+        builder.Services.PostConfigure<MicrosoftIdentityOptions>(
+            OpenIdConnectDefaults.AuthenticationScheme,
+            options => options.Authority = AuthorityUtilities.EnsureV2Authority(
+                options.Authority,
+                options.TenantId,
+                options.Instance));
+
+        builder.Services.PostConfigure<JwtBearerOptions>(
+            JwtBearerDefaults.AuthenticationScheme,
+            options =>
+            {
+                options.Authority = AuthorityUtilities.EnsureV2Authority(
+                    options.Authority,
+                    azureTenantId,
+                    azureInstance);
+            });
 
         authenticationBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
             ApiKeyAuthenticationHandler.AuthenticationScheme,
