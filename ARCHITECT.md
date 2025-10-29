@@ -134,13 +134,13 @@ Schemas:
 
 ### Core Tables
 
-* `iam.users(id, email, display_name, is_active, created_at)` — người dùng hệ thống; quyền đơn vị nội bộ được suy ra từ thành viên nhóm `iam.group_members`
+* `iam.users(id, email, display_name, primary_group_id, is_active, created_at)` — người dùng hệ thống; `primary_group_id` trỏ tới **unit group** chính (thay cho `department`), quyền đơn vị nội bộ được suy ra từ thành viên nhóm `iam.group_members`
 
 * `iam.roles(id, name)` — vai trò định nghĩa sẵn (Admin, Editor, Viewer, …)
 
 * `iam.user_roles(user_id, role_id)` — ánh xạ người dùng ↔ vai trò (RBAC)
 
-* `iam.groups(id, name, kind, created_by, created_at)` — nhóm động (team, workflow, tạm thời); migrations seed sẵn hai group hệ thống `guest` và `system` để gán quyền mặc định.
+* `iam.groups(id, name, kind, created_by, created_at)` — nhóm động (team, workflow, tạm thời); `kind` nhận các giá trị `system|unit|temporary`. Migrations seed sẵn hai group hệ thống `guest` và `system` để gán quyền mặc định, đồng thời hỗ trợ tạo **unit group** tương ứng với dữ liệu department cũ.
 * `iam.group_members(group_id, user_id, role, valid_from, valid_to)` — thành viên nhóm với thời hạn hiệu lực; user mới được provisioning tự động gia nhập `guest` và `system` thông qua `DefaultGroupAssignmentService`.
 * `iam.relations(subject_type, subject_id, object_type, object_id, relation, valid_from, valid_to)` — quan hệ ReBAC cho user/group với thời gian hiệu lực
 
@@ -229,7 +229,7 @@ signature.completed → audit
 
 ### Search (hybrid)
 
-- `GET /search?q=&mode=hybrid&filters=group_id:11111111-1111-1111-1111-111111111111,doc_type:Contract`
+- `GET /search?q=&mode=hybrid&filters=group_ids:11111111-1111-1111-1111-111111111111|22222222-2222-2222-2222-222222222222,doc_type:Contract`
   - Combines FTS rank + cosine similarity from `search.embedding` + KV filters.
 
 ### OCR

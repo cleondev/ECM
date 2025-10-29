@@ -204,6 +204,13 @@ Module IAM đi kèm hai group hệ thống để phục vụ việc khởi tạo
 
 Khi tạo user qua API hoặc cơ chế provisioning, dịch vụ IAM tự động đảm bảo cả hai group tồn tại (sẽ tạo nếu thiếu) và gán user vào đó. Nếu tổ chức cần workflow riêng, có thể thay đổi membership sau khi người dùng đã được tạo.
 
+> ✅ **Thay đổi chính:** Trường `department` đã bị loại bỏ. Thay vào đó, IAM dùng **unit group** (`kind = unit`) làm đơn vị tổ chức chính. Mỗi user có thể:
+>
+> * Chỉ định `primary_group_id` (unit group chính) – phục vụ các policy phụ thuộc đơn vị.
+> * Gán thêm `group_ids[]` cho các nhóm tạm thời/project/workflow.
+>
+> Khi nâng cấp hệ thống, chạy migration `RemoveDepartmentFromUsers` (xem [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)) để chuyển đổi dữ liệu `department` cũ thành unit group tương ứng và thêm quan hệ thành viên. Sau khi hoàn tất, các API lọc theo đơn vị sử dụng `group_id` hoặc `group_ids` (ví dụ `GET /documents?group_ids=<uuid1>,<uuid2>`).
+
 ## Làm việc với solution .NET
 
 ### Khôi phục và build
@@ -438,3 +445,4 @@ dotnet test ECM.sln --filter FullyQualifiedName~Document
 - [docs/ocr-integration.md](docs/ocr-integration.md) – hướng dẫn tích hợp Dot OCR (module + worker).
 - [docs/environment-configuration.md](docs/environment-configuration.md) – hướng dẫn ánh xạ biến môi trường, Azure secrets và thiết lập DEV local.
 - [docs/share-links.md](docs/share-links.md) – kiến trúc và quy trình cho tính năng chia sẻ tài liệu qua link rút gọn.
+- [docs/changelog.md](docs/changelog.md) – tổng hợp thay đổi ảnh hưởng tới client team (breaking change, hợp đồng API).

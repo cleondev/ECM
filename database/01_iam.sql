@@ -1,18 +1,23 @@
 CREATE SCHEMA IF NOT EXISTS iam;
 
 CREATE TABLE iam.users (
-    id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    email           citext UNIQUE NOT NULL,
-    display_name    text NOT NULL,
-    password_hash   text,
-    is_active       boolean NOT NULL DEFAULT true,
-    created_at      timestamptz NOT NULL DEFAULT now()
+    id               uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email            citext NOT NULL,
+    display_name     text NOT NULL,
+    primary_group_id uuid,
+    password_hash    text,
+    is_active        boolean NOT NULL DEFAULT true,
+    created_at       timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX ix_users_email ON iam.users (email);
 
 CREATE TABLE iam.roles (
     id      uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name    text UNIQUE NOT NULL
+    name    text NOT NULL
 );
+
+CREATE UNIQUE INDEX ix_roles_name ON iam.roles (name);
 
 CREATE TABLE iam.user_roles (
     user_id     uuid NOT NULL REFERENCES iam.users(id) ON DELETE CASCADE,
@@ -21,13 +26,16 @@ CREATE TABLE iam.user_roles (
 );
 
 CREATE TABLE iam.groups (
-    id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name        text UNIQUE NOT NULL,
-    kind        text NOT NULL DEFAULT 'normal',
+    id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name            text NOT NULL,
+    kind            text NOT NULL DEFAULT 'temporary',
     parent_group_id uuid REFERENCES iam.groups(id) ON DELETE RESTRICT,
-    created_by  uuid REFERENCES iam.users(id),
-    created_at  timestamptz NOT NULL DEFAULT now()
+    created_by      uuid REFERENCES iam.users(id),
+    created_at      timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX ix_groups_name
+    ON iam.groups (name);
 
 INSERT INTO iam.groups (id, name, kind, created_at)
 VALUES
