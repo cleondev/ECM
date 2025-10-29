@@ -52,7 +52,7 @@ internal sealed class SearchIndexingIntegrationEventListener(
                     data.Title,
                     data.Summary,
                     data.Content,
-                    data.Metadata,
+                    DocumentIntegrationEventMetadataMapper.ToMetadataDictionary(data),
                     data.Tags);
 
                 return processor.HandleDocumentUploadedAsync(integrationEvent, token);
@@ -81,7 +81,7 @@ internal sealed class SearchIndexingIntegrationEventListener(
                     data.Title,
                     data.Summary,
                     data.Content,
-                    data.Metadata,
+                    DocumentIntegrationEventMetadataMapper.ToMetadataDictionary(data),
                     data.Tags);
 
                 return processor.HandleOcrCompletedAsync(integrationEvent, token);

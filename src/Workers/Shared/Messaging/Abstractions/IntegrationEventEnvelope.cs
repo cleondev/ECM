@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace Workers.Shared.Messaging;
 
@@ -14,5 +15,6 @@ public sealed record DocumentIntegrationEventPayload(
     string Title,
     string? Summary,
     string? Content,
-    IDictionary<string, string>? Metadata,
-    IReadOnlyCollection<string>? Tags);
+    JsonElement? Metadata,
+    IReadOnlyCollection<string>? Tags,
+    IReadOnlyCollection<Guid>? GroupIds);

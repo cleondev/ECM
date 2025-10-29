@@ -15,7 +15,7 @@ public class SearchQueryHandlerTests
     {
         var provider = new FakeSearchReadProvider();
         var handler = new SearchQueryHandler(provider);
-        var query = new SearchQuery("document", "hr", 10);
+        var query = new SearchQuery("document", "grp-hr", 10);
         var expectedResults = new[]
         {
             new SearchResult(Guid.NewGuid(), "Employee contract", 0.93),
