@@ -47,6 +47,12 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
+        var formCollection = Request.HasFormContentType ? Request.Form : null;
+        var parsedGroupIds = formCollection is null
+            ? Array.Empty<Guid>()
+            : ParseGroupIds(formCollection);
+        var normalizedGroupIds = NormalizeGroupSelection(NormalizeGuid(request.GroupId), parsedGroupIds, out var normalizedGroupId);
+
         var upload = new CreateDocumentUpload
         {
             Title = request.Title,
@@ -54,7 +60,8 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             Status = request.Status,
             OwnerId = request.OwnerId,
             CreatedBy = request.CreatedBy,
-            GroupId = request.GroupId,
+            GroupId = normalizedGroupId,
+            GroupIds = normalizedGroupIds,
             Sensitivity = request.Sensitivity,
             DocumentTypeId = request.DocumentTypeId,
             FileName = string.IsNullOrWhiteSpace(request.File.FileName) ? "upload.bin" : request.File.FileName,
@@ -103,6 +110,8 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var normalizedStatus = NormalizeString(request.Status, "Draft");
         var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
         var normalizedGroupId = NormalizeGuid(request.GroupId);
+        var normalizedGroupIds = NormalizeGroupSelection(normalizedGroupId, request.GroupIds, out var resolvedGroupId);
+        normalizedGroupId = resolvedGroupId;
         var documentTypeId = request.DocumentTypeId;
         var flowDefinition = NormalizeOptional(request.FlowDefinition);
         var tagIds = request.TagIds.Count == 0
@@ -140,6 +149,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
                 OwnerId = ownerId.Value,
                 CreatedBy = createdBy.Value,
                 GroupId = normalizedGroupId,
+                GroupIds = normalizedGroupIds,
                 Sensitivity = normalizedSensitivity,
                 DocumentTypeId = documentTypeId,
                 FileName = string.IsNullOrWhiteSpace(file.FileName) ? "upload.bin" : file.FileName,
@@ -403,6 +413,140 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return "Untitled document";
     }
 
+    private static IReadOnlyList<Guid> ParseGroupIds(IFormCollection? form)
+    {
+        if (form is null)
+        {
+            return Array.Empty<Guid>();
+        }
+
+        return ParseGuidList(form, "GroupIds", "groupIds", "group_ids", "GroupIds[]", "groupIds[]", "group_ids[]");
+    }
+
+    private static IReadOnlyList<Guid> ParseGuidList(IFormCollection form, params string[] fieldNames)
+    {
+        foreach (var field in fieldNames)
+        {
+            if (!form.TryGetValue(field, out var values) || values.Count == 0)
+            {
+                continue;
+            }
+
+            var parsed = ParseGuidValues(values);
+            if (parsed.Count > 0)
+            {
+                return parsed;
+            }
+        }
+
+        return Array.Empty<Guid>();
+    }
+
+    private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)
+    {
+        var buffer = new List<Guid>();
+        var seen = new HashSet<Guid>();
+
+        void Add(Guid value)
+        {
+            if (value == Guid.Empty)
+            {
+                return;
+            }
+
+            if (seen.Add(value))
+            {
+                buffer.Add(value);
+            }
+        }
+
+        if (values.Count > 1)
+        {
+            foreach (var value in values)
+            {
+                if (Guid.TryParse(value, out var guid))
+                {
+                    Add(guid);
+                }
+            }
+
+            return buffer;
+        }
+
+        var raw = values[0];
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return buffer;
+        }
+
+        if (raw.TrimStart().StartsWith("[", StringComparison.Ordinal))
+        {
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<string[]>(raw);
+                if (parsed is not null)
+                {
+                    foreach (var candidate in parsed)
+                    {
+                        if (Guid.TryParse(candidate, out var guid))
+                        {
+                            Add(guid);
+                        }
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // fall through to delimiter parsing
+            }
+        }
+
+        if (buffer.Count > 0)
+        {
+            return buffer;
+        }
+
+        foreach (var segment in raw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Guid.TryParse(segment, out var guid))
+            {
+                Add(guid);
+            }
+        }
+
+        return buffer;
+    }
+
+    private static IReadOnlyList<Guid> NormalizeGroupSelection(Guid? groupId, IReadOnlyCollection<Guid> groupIds, out Guid? primaryGroupId)
+    {
+        var buffer = new List<Guid>();
+        var seen = new HashSet<Guid>();
+
+        if (groupId.HasValue && groupId.Value != Guid.Empty && seen.Add(groupId.Value))
+        {
+            buffer.Add(groupId.Value);
+        }
+
+        if (groupIds is not null)
+        {
+            foreach (var id in groupIds)
+            {
+                if (id == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (seen.Add(id))
+                {
+                    buffer.Add(id);
+                }
+            }
+        }
+
+        primaryGroupId = buffer.Count > 0 ? buffer[0] : (Guid?)null;
+        return buffer;
+    }
+
     private async Task<Guid?> ResolveUserIdAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)
     {
         if (principal is null)
@@ -465,6 +609,8 @@ public sealed class CreateDocumentForm
 
     public Guid? GroupId { get; init; }
 
+    public IReadOnlyCollection<Guid> GroupIds { get; init; } = Array.Empty<Guid>();
+
     [StringLength(64)]
     public string? Sensitivity { get; init; }
 
@@ -487,6 +633,8 @@ public sealed class CreateDocumentsForm
     public Guid? CreatedBy { get; init; }
 
     public Guid? GroupId { get; init; }
+
+    public IReadOnlyList<Guid> GroupIds { get; init; } = Array.Empty<Guid>();
 
     public string? Sensitivity { get; init; }
 
@@ -515,6 +663,7 @@ public sealed class CreateDocumentsForm
             OwnerId = GetGuid(form, nameof(OwnerId)),
             CreatedBy = GetGuid(form, nameof(CreatedBy)),
             GroupId = GetGuid(form, nameof(GroupId)),
+            GroupIds = GetGuidList(form, nameof(GroupIds)),
             Sensitivity = GetString(form, nameof(Sensitivity)),
             DocumentTypeId = GetGuid(form, nameof(DocumentTypeId)),
             FlowDefinition = GetString(form, nameof(FlowDefinition)),
@@ -554,58 +703,21 @@ public sealed class CreateDocumentsForm
 
     private static IReadOnlyList<Guid> GetGuidList(IFormCollection form, string propertyName)
     {
-        if (!form.TryGetValue(propertyName, out var values) || values.Count == 0)
+        foreach (var field in EnumerateFieldNames(propertyName))
         {
-            var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-            if (!form.TryGetValue(camelCase, out values) || values.Count == 0)
+            if (!form.TryGetValue(field, out var values) || values.Count == 0)
             {
-                return Array.Empty<Guid>();
+                continue;
+            }
+
+            var parsed = ParseGuidValues(values);
+            if (parsed.Count > 0)
+            {
+                return parsed;
             }
         }
 
-        if (values.Count > 1)
-        {
-            return values
-                .Select(value => Guid.TryParse(value, out var guid) ? guid : (Guid?)null)
-                .Where(guid => guid.HasValue)
-                .Select(guid => guid!.Value)
-                .ToArray();
-        }
-
-        var raw = values[0];
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return Array.Empty<Guid>();
-        }
-
-        if (raw.TrimStart().StartsWith("[", StringComparison.Ordinal))
-        {
-            try
-            {
-                var parsed = JsonSerializer.Deserialize<string[]>(raw);
-                if (parsed is null)
-                {
-                    return Array.Empty<Guid>();
-                }
-
-                return parsed
-                    .Select(value => Guid.TryParse(value, out var guid) ? guid : (Guid?)null)
-                    .Where(guid => guid.HasValue)
-                    .Select(guid => guid!.Value)
-                    .ToArray();
-            }
-            catch (JsonException)
-            {
-                // ignore and fall back to delimiter parsing
-            }
-        }
-
-        return raw
-            .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(value => Guid.TryParse(value, out var guid) ? guid : (Guid?)null)
-            .Where(guid => guid.HasValue)
-            .Select(guid => guid!.Value)
-            .ToArray();
+        return Array.Empty<Guid>();
     }
 
     private static IReadOnlyList<IFormFile> GetFiles(IFormCollection form)
@@ -628,5 +740,100 @@ public sealed class CreateDocumentsForm
         }
 
         return form.Files.ToList();
+    }
+
+    private static IEnumerable<string> EnumerateFieldNames(string propertyName)
+    {
+        yield return propertyName;
+        yield return char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
+
+        if (propertyName.Equals("GroupIds", StringComparison.Ordinal))
+        {
+            yield return "group_ids";
+            yield return "GroupIds[]";
+            yield return "groupIds[]";
+            yield return "group_ids[]";
+        }
+
+        if (propertyName.Equals("Tags", StringComparison.OrdinalIgnoreCase))
+        {
+            yield return "Tags[]";
+            yield return "tags[]";
+        }
+    }
+
+    private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)
+    {
+        var buffer = new List<Guid>();
+        var seen = new HashSet<Guid>();
+
+        void Add(Guid value)
+        {
+            if (value == Guid.Empty)
+            {
+                return;
+            }
+
+            if (seen.Add(value))
+            {
+                buffer.Add(value);
+            }
+        }
+
+        if (values.Count > 1)
+        {
+            foreach (var value in values)
+            {
+                if (Guid.TryParse(value, out var guid))
+                {
+                    Add(guid);
+                }
+            }
+
+            return buffer;
+        }
+
+        var raw = values[0];
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return buffer;
+        }
+
+        if (raw.TrimStart().StartsWith("[", StringComparison.Ordinal))
+        {
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<string[]>(raw);
+                if (parsed is not null)
+                {
+                    foreach (var candidate in parsed)
+                    {
+                        if (Guid.TryParse(candidate, out var guid))
+                        {
+                            Add(guid);
+                        }
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // fall through to delimiter parsing
+            }
+        }
+
+        if (buffer.Count > 0)
+        {
+            return buffer;
+        }
+
+        foreach (var segment in raw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Guid.TryParse(segment, out var guid))
+            {
+                Add(guid);
+            }
+        }
+
+        return buffer;
     }
 }

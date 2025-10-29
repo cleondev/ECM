@@ -39,6 +39,7 @@ public class UploadDocumentCommandHandlerTests
             _groups.GuestGroupId,
             _groups.SystemGroupId,
             _groups.GuestGroupId,
+            new[] { _groups.GuestGroupId },
             "Internal",
             Guid.NewGuid(),
             "file.pdf",
@@ -55,6 +56,7 @@ public class UploadDocumentCommandHandlerTests
         Assert.Equal("storage-key", result.Value!.LatestVersion!.StorageKey);
         Assert.Equal("application/pdf", result.Value.LatestVersion.MimeType);
         Assert.Equal(1, result.Value.LatestVersion.VersionNo);
+        Assert.Equal(new[] { _groups.GuestGroupId }, result.Value.GroupIds);
     }
 
     [Fact]
@@ -77,6 +79,7 @@ public class UploadDocumentCommandHandlerTests
             _groups.GuestGroupId,
             _groups.SystemGroupId,
             null,
+            Array.Empty<Guid>(),
             null,
             null,
             "file.pdf",
@@ -110,6 +113,7 @@ public class UploadDocumentCommandHandlerTests
             _groups.GuestGroupId,
             _groups.SystemGroupId,
             _groups.GuestGroupId,
+            new[] { _groups.GuestGroupId },
             "Internal",
             Guid.NewGuid(),
             "file.pdf",
@@ -142,6 +146,7 @@ public class UploadDocumentCommandHandlerTests
             _groups.GuestGroupId,
             _groups.SystemGroupId,
             _groups.GuestGroupId,
+            new[] { _groups.GuestGroupId },
             "Internal",
             Guid.NewGuid(),
             "file.pdf",
@@ -177,6 +182,7 @@ public class UploadDocumentCommandHandlerTests
             _groups.GuestGroupId,
             _groups.SystemGroupId,
             _groups.GuestGroupId,
+            new[] { _groups.GuestGroupId },
             "Internal",
             Guid.NewGuid(),
             "file.pdf",

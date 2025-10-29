@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace ECM.Document.Application.Documents.Summaries;
 
 public sealed record DocumentSummaryResult(
@@ -9,6 +12,7 @@ public sealed record DocumentSummaryResult(
     Guid OwnerId,
     Guid CreatedBy,
     Guid? GroupId,
+    IReadOnlyCollection<Guid> GroupIds,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     Guid? DocumentTypeId);

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace ECM.Document.Api.Documents.Options;
 
@@ -13,6 +14,8 @@ public sealed class DocumentUploadDefaultsOptions
     public string Sensitivity { get; set; } = "Internal";
 
     public Guid? GroupId { get; set; }
+
+    public IReadOnlyCollection<Guid> GroupIds { get; set; } = Array.Empty<Guid>();
 
     public Guid? OwnerId { get; set; }
 

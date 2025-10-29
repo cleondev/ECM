@@ -11,6 +11,7 @@ public sealed record DocumentResponse(
     Guid OwnerId,
     Guid CreatedBy,
     Guid? GroupId,
+    IReadOnlyCollection<Guid> GroupIds,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     string CreatedAtFormatted,

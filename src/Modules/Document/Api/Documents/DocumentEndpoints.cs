@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -161,6 +162,21 @@ public static class DocumentEndpoints
             query = query.Where(document => document.GroupId == groupId);
         }
 
+        if (request.GroupIds is { Length: > 0 })
+        {
+            var filterGroups = request.GroupIds
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToArray();
+
+            if (filterGroups.Length > 0)
+            {
+                query = query.Where(document =>
+                    document.GroupId.HasValue && filterGroups.Contains(document.GroupId.Value)
+                );
+            }
+        }
+
         if (request.Tags is { Length: > 0 })
         {
             query = query.Where(document =>
@@ -240,7 +256,28 @@ public static class DocumentEndpoints
         var status = string.IsNullOrWhiteSpace(request.Status)
             ? (string.IsNullOrWhiteSpace(defaults.Status) ? "draft" : defaults.Status.Trim())
             : request.Status.Trim();
-        var groupId = NormalizeGuid(request.GroupId) ?? NormalizeGuid(defaults.GroupId);
+
+        var requestGroupIds = NormalizeGroupIds(request.GroupIds);
+        var defaultGroupIds = NormalizeGroupIds(defaults.GroupIds);
+
+        var groupId = NormalizeGuid(request.GroupId);
+        if (groupId is null && requestGroupIds.Length > 0)
+        {
+            groupId = requestGroupIds[0];
+        }
+
+        if (groupId is null)
+        {
+            groupId = NormalizeGuid(defaults.GroupId);
+        }
+
+        var effectiveGroupIds = requestGroupIds.Length > 0 ? requestGroupIds : defaultGroupIds;
+        if (groupId is null && effectiveGroupIds.Length > 0)
+        {
+            groupId = effectiveGroupIds[0];
+        }
+
+        var normalizedGroupIds = EnsurePrimaryGroup(groupId, effectiveGroupIds);
         var sensitivity = string.IsNullOrWhiteSpace(request.Sensitivity)
             ? (
                 string.IsNullOrWhiteSpace(defaults.Sensitivity)
@@ -264,6 +301,7 @@ public static class DocumentEndpoints
             ownerId.Value,
             createdBy.Value,
             groupId,
+            normalizedGroupIds,
             sensitivity,
             documentTypeId,
             request.File.FileName,
@@ -304,6 +342,7 @@ public static class DocumentEndpoints
             result.Value.OwnerId,
             result.Value.CreatedBy,
             result.Value.GroupId,
+            result.Value.GroupIds,
             result.Value.CreatedAtUtc,
             result.Value.UpdatedAtUtc,
             FormatDocumentTimestamp(result.Value.CreatedAtUtc),
@@ -629,6 +668,8 @@ public static class DocumentEndpoints
             .ThenBy(tag => tag.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+        var groupIds = EnsurePrimaryGroup(document.GroupId, Array.Empty<Guid>());
+
         return new DocumentResponse(
             document.Id.Value,
             document.Title.Value,
@@ -638,6 +679,7 @@ public static class DocumentEndpoints
             document.OwnerId,
             document.CreatedBy,
             document.GroupId,
+            groupIds,
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             FormatDocumentTimestamp(document.CreatedAtUtc),
@@ -646,6 +688,63 @@ public static class DocumentEndpoints
             versionResponse,
             tags
         );
+    }
+
+    private static Guid[] NormalizeGroupIds(IEnumerable<Guid>? groupIds)
+    {
+        if (groupIds is null)
+        {
+            return Array.Empty<Guid>();
+        }
+
+        var buffer = new List<Guid>();
+        var seen = new HashSet<Guid>();
+
+        foreach (var id in groupIds)
+        {
+            if (id == Guid.Empty)
+            {
+                continue;
+            }
+
+            if (seen.Add(id))
+            {
+                buffer.Add(id);
+            }
+        }
+
+        return buffer.ToArray();
+    }
+
+    private static Guid[] EnsurePrimaryGroup(Guid? primaryGroupId, IReadOnlyList<Guid> groupIds)
+    {
+        if (groupIds is null)
+        {
+            return primaryGroupId is { } fallback && fallback != Guid.Empty ? new[] { fallback } : Array.Empty<Guid>();
+        }
+
+        var buffer = new List<Guid>(groupIds.Count + 1);
+        var seen = new HashSet<Guid>();
+
+        if (primaryGroupId is { } primary && primary != Guid.Empty && seen.Add(primary))
+        {
+            buffer.Add(primary);
+        }
+
+        foreach (var id in groupIds)
+        {
+            if (id == Guid.Empty)
+            {
+                continue;
+            }
+
+            if (seen.Add(id))
+            {
+                buffer.Add(id);
+            }
+        }
+
+        return buffer.ToArray();
     }
 
     private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("vi-VN");

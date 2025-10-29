@@ -26,6 +26,8 @@ public sealed class ListDocumentsRequestDto
 
     public Guid? GroupId { get; init; }
 
+    public Guid[]? GroupIds { get; init; }
+
     public Guid[]? Tags { get; init; }
 
     public string? Sort { get; init; }
