@@ -7,6 +7,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 > * Các tham số phân trang thống nhất: `page` (mặc định `1`) và `pageSize` (mặc định `24`).
 > * Các API liệt kê hỗ trợ tham số `sort` theo cú pháp `field:asc,field2:desc` trừ khi ghi chú khác.
 > * Tham số `q` là tìm kiếm toàn văn trên tên hoặc tiêu đề đối tượng tương ứng.
+> * Lọc theo nhóm sử dụng `group_id` (một nhóm) hoặc `group_ids` (nhiều nhóm). Các giá trị là **UUID của group** do module IAM quản lý, thay thế hoàn toàn cho trường `department` cũ.
 
 ## 1. IAM
 
@@ -23,6 +24,9 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `DELETE /api/iam/users/{id}/roles/{roleId}` | Hủy gán vai trò khỏi người dùng. | `id`, `roleId` |
 
 > **Lưu ý:** Các group hệ thống `guest` và `system` sẽ được tạo tự động nếu chưa tồn tại, và mọi user mới đều được gán vào cả hai group này ngay sau khi provisioning thành công.
+>
+> * `primaryGroupId` đại diện cho **unit group** chính của người dùng. Khi chưa truyền tham số này, IAM sẽ giữ nguyên giá trị cũ hoặc để trống.
+> * `groupIds[]` cho phép gán bổ sung các nhóm khác (ví dụ project, workflow). Các tenant trước đây dùng `department` phải tạo group tương ứng rồi map người dùng sang `groupIds`/`primaryGroupId`.
 
 ### Authentication
 
@@ -95,8 +99,8 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
-| `GET /documents` | Liệt kê tài liệu theo bộ lọc. | `q`, `page`, `pageSize`, `sort`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `tags[]` |
-| `POST /documents` | Tạo tài liệu mới. | Body `{title?, doc_type?, status?, owner_id?, created_by?, group_id?, sensitivity?, type_id?, file}` |
+| `GET /documents` | Liệt kê tài liệu theo bộ lọc. | `q`, `page`, `pageSize`, `sort`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `group_ids[]`, `tags[]` |
+| `POST /documents` | Tạo tài liệu mới. | Body `{title?, doc_type?, status?, owner_id?, created_by?, group_id?, group_ids[]?, sensitivity?, type_id?, file}` |
 | `GET /documents/{id}` | Chi tiết tài liệu (owner, badges, version). | `id` |
 | `PATCH /documents/{id}` | Cập nhật thông tin cơ bản. | `id`, body |
 | `DELETE /documents/{id}` | Xóa mềm (mặc định) hoặc xóa hẳn khi `hard=true`. | `id`, query `hard?` |
@@ -108,6 +112,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 > **Ghi chú:**
 > * Khi thiếu các trường metadata trong body, dịch vụ sẽ tự động suy luận tiêu đề từ tên file, ghép `doc_type`, `status`, `sensitivity` theo cấu hình `DocumentUploadDefaults` và lấy `created_by`/`owner_id` từ người dùng hiện tại (hoặc cấu hình dự phòng). Vì vậy popup upload cũ chỉ cần gửi `file` vẫn tương thích.
 > * Quyền đọc trong API `GET /documents` dựa trên read-model `doc.effective_acl_flat`: chỉ trả về tài liệu khi `valid_to` đang còn hiệu lực.
+> * Để lọc nhiều đơn vị, có thể truyền `group_ids` dạng chuỗi phân tách bằng dấu phẩy (`GET /documents?group_ids=1111...,2222...`) hoặc lặp `group_ids[]=uuid`.
 
 ## 5. Document Types
 
@@ -169,9 +174,11 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
-| `GET /search` | Tìm kiếm tài liệu. | `q`, `mode=fts|vector|hybrid`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `tags[]`, `page`, `pageSize`, `sort` |
+| `GET /search` | Tìm kiếm tài liệu. | `q`, `mode=fts|vector|hybrid`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `group_ids[]`, `tags[]`, `page`, `pageSize`, `sort` |
 | `GET /search/suggest` | Autocomplete gợi ý. | `q`, `limit?` |
-| `GET /search/facets` | Thống kê facet. | `q`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `tags[]` |
+| `GET /search/facets` | Thống kê facet. | `q`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `group_ids[]`, `tags[]` |
+
+> **Ví dụ:** `GET /search?q=contract&group_ids[]=11111111-1111-1111-1111-111111111111&group_ids[]=33333333-3333-3333-3333-333333333333`
 
 ## 10. OCR
 

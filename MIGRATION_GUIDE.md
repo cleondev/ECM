@@ -91,3 +91,50 @@ ef-miglist-all
 - Dùng `-Configuration Release` khi cần build Release.
 - Sửa `ecm.settings.json` nếu thay đổi cấu trúc dự án.
 - Script IAM (`database/01_iam.sql`) seed sẵn hai group hệ thống `guest` và `system`. Khi migrate trên môi trường mới hãy giữ nguyên các bản ghi này để user mới có quyền mặc định.
+
+## Chuyển đổi `department` sang unit group
+
+Migration `20251101050000_RemoveDepartmentFromUsers` và `20251102060000_AddPrimaryGroupToUsers` xử lý toàn bộ quá trình chuyển đổi:
+
+1. **Tạo script idempotent** (khuyến nghị chạy trong CI/CD):
+
+   ```powershell
+   .\ecm.ps1 ef script iam -Idempotent -From 20251029045234_initIAMDb -To 20251102060000_AddPrimaryGroupToUsers > deploy/artifacts/ef-iam.sql
+   ```
+
+   File SQL tạo ra bao gồm các bước:
+   - Sinh unit group (`kind = 'unit'`) từ giá trị `department` còn dữ liệu.
+   - Gán `group_members` tương ứng.
+   - Bỏ cột `department`, bổ sung `primary_group_id`.
+
+2. **Áp dụng migration** trên môi trường cần nâng cấp:
+
+   ```powershell
+   .\ecm.ps1 ef update iam
+   ```
+
+   Hoặc chạy trực tiếp từ root repo:
+
+   ```bash
+   dotnet ef database update \
+     --project src/Modules/IAM/ECM.IAM.csproj \
+     --startup-project src/ECM/ECM.Host/ECM.Host.csproj \
+     --context ECM.IAM.Infrastructure.Persistence.IamDbContext
+   ```
+
+3. **Xác minh dữ liệu** sau khi migrate:
+
+   ```sql
+   -- Liệt kê unit group vừa tạo
+   SELECT id, name, kind FROM iam.groups WHERE kind = 'unit';
+
+   -- Kiểm tra người dùng đã có primary_group_id và membership tương ứng
+   SELECT u.email, u.primary_group_id, gm.group_id
+   FROM iam.users u
+   LEFT JOIN iam.group_members gm ON gm.user_id = u.id AND gm.group_id = u.primary_group_id
+   ORDER BY u.email;
+   ```
+
+4. **Cập nhật client/API**: mọi truy vấn trước đây sử dụng `department` phải chuyển sang `group_id` hoặc `group_ids`. Ví dụ: `GET /documents?group_ids=<uuid>`.
+
+Các môi trường đã bỏ cột `department` nhưng chưa tạo unit group có thể chạy lại script SQL forward (bước 1) vì logic `INSERT ... ON CONFLICT` đảm bảo idempotent.
