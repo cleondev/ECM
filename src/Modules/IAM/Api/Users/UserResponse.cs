@@ -2,6 +2,7 @@ namespace ECM.IAM.Api.Users;
 
 using System;
 using System.Collections.Generic;
+using ECM.IAM.Api.Groups;
 using ECM.IAM.Api.Roles;
 
 public sealed record UserResponse(
@@ -11,4 +12,5 @@ public sealed record UserResponse(
     string? Department,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
-    IReadOnlyCollection<RoleResponse> Roles);
+    IReadOnlyCollection<RoleResponse> Roles,
+    IReadOnlyCollection<GroupResponse> Groups);

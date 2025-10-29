@@ -7,6 +7,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Roles;
 using ECM.IAM.Application.Users;
 using ECM.IAM.Domain.Roles;
@@ -31,12 +32,14 @@ public sealed class IamProvisioningOptions
 public sealed class AzureAdUserProvisioningService(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
+    IGroupService groupService,
     ISystemClock clock,
     IOptions<IamProvisioningOptions> options,
     ILogger<AzureAdUserProvisioningService> logger) : IUserProvisioningService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IRoleRepository _roleRepository = roleRepository;
+    private readonly IGroupService _groupService = groupService;
     private readonly ISystemClock _clock = clock;
     private readonly IOptions<IamProvisioningOptions> _options = options;
     private readonly ILogger<AzureAdUserProvisioningService> _logger = logger;
@@ -58,16 +61,19 @@ public sealed class AzureAdUserProvisioningService(
         try
         {
             var existing = await _userRepository.GetByEmailAsync(email, cancellationToken);
+            var department = GetDepartment(principal);
+            var assignments = BuildDefaultAssignments(department);
+
             if (existing is not null)
             {
+                await _groupService.EnsureUserGroupsAsync(existing, assignments, cancellationToken);
                 return;
             }
 
             var displayName = GetDisplayName(principal, email);
-            var department = GetDepartment(principal);
             var roles = await ResolveDefaultRolesAsync(cancellationToken);
 
-            var user = User.Create(email, displayName, _clock.UtcNow, department, isActive: true);
+            var user = User.Create(email, displayName, _clock.UtcNow, isActive: true);
 
             if (roles.Count > 0)
             {
@@ -78,6 +84,8 @@ public sealed class AzureAdUserProvisioningService(
             }
 
             await _userRepository.AddAsync(user, cancellationToken);
+
+            await _groupService.EnsureUserGroupsAsync(user, assignments, cancellationToken);
 
             var roleDescription = roles.Count > 0
                 ? string.Join(", ", roles.Select(role => role.Name))
@@ -148,4 +156,20 @@ public sealed class AzureAdUserProvisioningService(
            ?? principal.FindFirst("preferred_username")?.Value
            ?? principal.FindFirst("emails")?.Value
            ?? principal.FindFirst(ClaimTypes.Upn)?.Value;
+
+    private static IReadOnlyCollection<GroupAssignment> BuildDefaultAssignments(string? department)
+    {
+        var assignments = new List<GroupAssignment>
+        {
+            GroupAssignment.System(),
+            GroupAssignment.Guest(),
+        };
+
+        if (!string.IsNullOrWhiteSpace(department))
+        {
+            assignments.Add(GroupAssignment.Unit(department));
+        }
+
+        return assignments;
+    }
 }

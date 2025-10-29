@@ -34,5 +34,10 @@ public sealed class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMem
 
         builder.HasIndex(member => new { member.GroupId, member.ValidFromUtc, member.ValidToUtc })
             .HasDatabaseName("iam_group_members_group_validity_idx");
+
+        builder.HasOne(member => member.User)
+            .WithMany(user => user.Groups)
+            .HasForeignKey(member => member.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

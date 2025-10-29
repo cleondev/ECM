@@ -46,5 +46,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Navigation(user => user.Roles)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Navigation(user => user.Groups)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

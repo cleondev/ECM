@@ -2,6 +2,7 @@ namespace ECM.IAM.Application.Users;
 
 using System;
 using System.Collections.Generic;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Roles;
 
 public sealed record UserSummaryResult(
@@ -11,4 +12,5 @@ public sealed record UserSummaryResult(
     string? Department,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
-    IReadOnlyCollection<RoleSummaryResult> Roles);
+    IReadOnlyCollection<RoleSummaryResult> Roles,
+    IReadOnlyCollection<GroupSummaryResult> Groups);

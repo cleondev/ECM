@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Roles;
 using ECM.IAM.Domain.Users;
 
@@ -15,6 +16,14 @@ internal static class Mapping
             .Select(link => link.ToResult())
             .ToArray();
 
+        var groups = user.Groups
+            .Select(member => new GroupSummaryResult(
+                member.GroupId,
+                member.Group?.Name ?? string.Empty,
+                member.Group?.Kind ?? "normal",
+                member.Role))
+            .ToArray();
+
         return new UserSummaryResult(
             user.Id,
             user.Email,
@@ -22,6 +31,7 @@ internal static class Mapping
             user.Department,
             user.IsActive,
             user.CreatedAtUtc,
-            roles);
+            roles,
+            groups);
     }
 }

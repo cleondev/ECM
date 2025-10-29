@@ -1,6 +1,8 @@
 namespace ECM.IAM.Domain.Users;
 
+using System.Collections.Generic;
 using System.Linq;
+using ECM.IAM.Domain.Groups;
 using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users.Events;
 using ECM.BuildingBlocks.Domain.Events;
@@ -9,6 +11,7 @@ public sealed class User : IHasDomainEvents
 {
     private readonly List<UserRole> _roles = [];
     private readonly List<IDomainEvent> _domainEvents = [];
+    private readonly List<GroupMember> _groups = [];
 
     private User()
     {
@@ -20,7 +23,6 @@ public sealed class User : IHasDomainEvents
         Guid id,
         string email,
         string displayName,
-        string? department,
         bool isActive,
         DateTimeOffset createdAtUtc,
         string? passwordHash)
@@ -29,7 +31,6 @@ public sealed class User : IHasDomainEvents
         Id = id;
         Email = email;
         DisplayName = displayName;
-        Department = department;
         IsActive = isActive;
         CreatedAtUtc = createdAtUtc;
         PasswordHash = passwordHash;
@@ -51,6 +52,8 @@ public sealed class User : IHasDomainEvents
 
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
+    public IReadOnlyCollection<GroupMember> Groups => _groups.AsReadOnly();
+
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     public bool HasRole(Guid roleId) => _roles.Any(link => link.RoleId == roleId);
@@ -59,7 +62,6 @@ public sealed class User : IHasDomainEvents
         string email,
         string displayName,
         DateTimeOffset createdAtUtc,
-        string? department = null,
         bool isActive = true,
         string? passwordHash = null)
     {
@@ -77,7 +79,6 @@ public sealed class User : IHasDomainEvents
             Guid.NewGuid(),
             email.Trim(),
             displayName.Trim(),
-            string.IsNullOrWhiteSpace(department) ? null : department.Trim(),
             isActive,
             createdAtUtc,
             string.IsNullOrWhiteSpace(passwordHash) ? null : passwordHash);
@@ -128,11 +129,6 @@ public sealed class User : IHasDomainEvents
         DisplayName = displayName.Trim();
     }
 
-    public void UpdateDepartment(string? department)
-    {
-        Department = string.IsNullOrWhiteSpace(department) ? null : department.Trim();
-    }
-
     public void SetPasswordHash(string? passwordHash)
     {
         PasswordHash = string.IsNullOrWhiteSpace(passwordHash) ? null : passwordHash;
@@ -143,6 +139,19 @@ public sealed class User : IHasDomainEvents
     public void Deactivate() => IsActive = false;
 
     public void ClearDomainEvents() => _domainEvents.Clear();
+
+    internal void SetDepartment(string? department)
+    {
+        Department = string.IsNullOrWhiteSpace(department) ? null : department.Trim();
+    }
+
+    internal void SyncGroups(IEnumerable<GroupMember> memberships)
+    {
+        ArgumentNullException.ThrowIfNull(memberships);
+
+        _groups.Clear();
+        _groups.AddRange(memberships);
+    }
 
     private void Raise(IDomainEvent domainEvent)
     {

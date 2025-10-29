@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Roles;
 using ECM.IAM.Application.Users;
 using ECM.IAM.Domain.Users;
@@ -13,11 +15,13 @@ namespace ECM.IAM.Application.Users.Commands;
 public sealed class CreateUserCommandHandler(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
+    IGroupService groupService,
     ISystemClock clock,
     IPasswordHasher passwordHasher)
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IRoleRepository _roleRepository = roleRepository;
+    private readonly IGroupService _groupService = groupService;
     private readonly ISystemClock _clock = clock;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
 
@@ -49,7 +53,6 @@ public sealed class CreateUserCommandHandler(
                 command.Email,
                 command.DisplayName,
                 _clock.UtcNow,
-                command.Department,
                 command.IsActive,
                 passwordHash);
         }
@@ -74,6 +77,28 @@ public sealed class CreateUserCommandHandler(
 
         await _userRepository.AddAsync(user, cancellationToken);
 
+        var groups = BuildGroupAssignments(command.Department);
+        if (groups.Count > 0)
+        {
+            await _groupService.EnsureUserGroupsAsync(user, groups, cancellationToken);
+        }
+
         return OperationResult<UserSummaryResult>.Success(user.ToResult());
+    }
+
+    private static IReadOnlyCollection<GroupAssignment> BuildGroupAssignments(string? department)
+    {
+        var assignments = new List<GroupAssignment>
+        {
+            GroupAssignment.System(),
+            GroupAssignment.Guest(),
+        };
+
+        if (!string.IsNullOrWhiteSpace(department))
+        {
+            assignments.Add(GroupAssignment.Unit(department));
+        }
+
+        return assignments;
     }
 }
