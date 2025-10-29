@@ -385,18 +385,33 @@ function mapUserSummaryToUser(profile: UserSummaryResponse): User {
 
 export async function fetchCurrentUserProfile(): Promise<User | null> {
   try {
+    console.debug("[ui] Bắt đầu gọi /api/iam/profile để lấy hồ sơ người dùng hiện tại.")
     const response = await gatewayFetch("/api/iam/profile")
 
+    console.debug(
+      "[ui] Nhận phản hồi từ /api/iam/profile với mã trạng thái:",
+      response.status,
+    )
+
     if ([401, 403, 404].includes(response.status)) {
+      console.warn(
+        "[ui] Hồ sơ người dùng trả về trạng thái yêu cầu đăng nhập/không tìm thấy (status = %d).",
+        response.status,
+      )
       clearCachedAuthSnapshot()
       return null
     }
 
     if (!response.ok) {
+      console.error(
+        "[ui] Yêu cầu /api/iam/profile thất bại với trạng thái bất thường:",
+        response.status,
+      )
       throw new Error(`Failed to fetch current user profile (${response.status})`)
     }
 
     const data = (await response.json()) as UserSummaryResponse
+    console.debug("[ui] Hồ sơ người dùng hiện tại đã được tải thành công với id:", data.id)
     return mapUserSummaryToUser(data)
   } catch (error) {
     clearCachedAuthSnapshot()

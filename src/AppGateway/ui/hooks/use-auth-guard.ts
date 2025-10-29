@@ -38,6 +38,10 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
     }
 
     const verify = async () => {
+      console.debug(
+        "[auth] Bắt đầu xác thực quyền truy cập cho đường dẫn:",
+        normalizedTargetPath,
+      )
       try {
         const profile = await fetchCurrentUserProfile()
         if (!active) {
@@ -45,6 +49,11 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
         }
 
         if (profile) {
+          console.debug(
+            "[auth] Đã xác nhận người dùng với id %s, tiếp tục truy cập:",
+            profile.id,
+            normalizedTargetPath,
+          )
           updateCachedAuthSnapshot({
             isAuthenticated: true,
             redirectPath: normalizedTargetPath,
@@ -54,7 +63,9 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
           return
         }
 
-        console.warn("[auth] Không tìm thấy hồ sơ người dùng, chuyển về trang giới thiệu.")
+        console.warn(
+          "[auth] Không tìm thấy hồ sơ người dùng sau khi gọi API, chuyển về trang giới thiệu.",
+        )
         redirectToLanding()
       } catch (error) {
         console.error("[auth] Không lấy được hồ sơ người dùng:", error)
@@ -62,9 +73,11 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
           return
         }
 
+        console.warn("[auth] Chuyển hướng về trang giới thiệu do lỗi xác thực.")
         redirectToLanding()
       } finally {
         if (active) {
+          console.debug("[auth] Hoàn tất kiểm tra xác thực cho:", normalizedTargetPath)
           setIsChecking(false)
         }
       }
