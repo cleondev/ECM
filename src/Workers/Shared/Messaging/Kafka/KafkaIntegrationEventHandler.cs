@@ -1,11 +1,9 @@
-using System;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Workers.Shared.Messaging;
+namespace Workers.Shared.Messaging.Kafka;
 
 public static class KafkaIntegrationEventHandler
 {

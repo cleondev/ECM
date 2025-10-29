@@ -5,6 +5,7 @@ using ECM.Ocr.Application.Events;
 using Shared.Contracts.Messaging;
 
 using Workers.Shared.Messaging;
+using Workers.Shared.Messaging.Kafka;
 
 namespace Ocr;
 

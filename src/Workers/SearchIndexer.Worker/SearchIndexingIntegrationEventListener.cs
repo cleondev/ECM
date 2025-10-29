@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shared.Contracts.Messaging;
 using Workers.Shared.Messaging;
+using Workers.Shared.Messaging.Kafka;
 
 namespace SearchIndexer;
 
