@@ -6,13 +6,48 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ECM.IAM.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitIamDb : Migration
+    public partial class initIAMDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
                 name: "iam");
+
+            migrationBuilder.CreateTable(
+                name: "groups",
+                schema: "iam",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    kind = table.Column<string>(type: "text", nullable: false, defaultValue: "normal"),
+                    created_by = table.Column<Guid>(type: "uuid", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_groups", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "relations",
+                schema: "iam",
+                columns: table => new
+                {
+                    subject_type = table.Column<string>(type: "text", nullable: false),
+                    subject_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    object_type = table.Column<string>(type: "text", nullable: false),
+                    object_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    relation = table.Column<string>(type: "text", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    valid_from = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_relations", x => new { x.subject_type, x.subject_id, x.object_type, x.object_id, x.relation });
+                });
 
             migrationBuilder.CreateTable(
                 name: "roles",
@@ -37,7 +72,8 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                     display_name = table.Column<string>(type: "text", nullable: false),
                     department = table.Column<string>(type: "text", nullable: true),
                     is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    password_hash = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -45,44 +81,26 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "groups",
+                name: "group_members",
                 schema: "iam",
                 columns: table => new
                 {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    name = table.Column<string>(type: "text", nullable: false),
-                    kind = table.Column<string>(type: "text", nullable: false, defaultValue: "normal"),
-                    created_by = table.Column<Guid>(type: "uuid", nullable: true),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_groups", x => x.id);
-                    table.ForeignKey(
-                        name: "fk_groups_users_created_by",
-                        column: x => x.created_by,
-                        principalSchema: "iam",
-                        principalTable: "users",
-                        principalColumn: "id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "relations",
-                schema: "iam",
-                columns: table => new
-                {
-                    subject_type = table.Column<string>(type: "text", nullable: false, defaultValue: "user"),
-                    subject_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    object_type = table.Column<string>(type: "text", nullable: false),
-                    object_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    relation = table.Column<string>(type: "text", nullable: false),
+                    group_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    role = table.Column<string>(type: "text", nullable: false, defaultValue: "member"),
                     valid_from = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
-                    valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
-                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                    valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_relations", x => new { x.subject_type, x.subject_id, x.object_type, x.object_id, x.relation });
+                    table.PrimaryKey("pk_group_members", x => new { x.group_id, x.user_id });
+                    table.ForeignKey(
+                        name: "fk_group_members_groups_group_id",
+                        column: x => x.group_id,
+                        principalSchema: "iam",
+                        principalTable: "groups",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -112,36 +130,6 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "group_members",
-                schema: "iam",
-                columns: table => new
-                {
-                    group_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    role = table.Column<string>(type: "text", nullable: false, defaultValue: "member"),
-                    valid_from = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
-                    valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_group_members", x => new { x.group_id, x.user_id });
-                    table.ForeignKey(
-                        name: "fk_group_members_groups_group_id",
-                        column: x => x.group_id,
-                        principalSchema: "iam",
-                        principalTable: "groups",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "fk_group_members_users_user_id",
-                        column: x => x.user_id,
-                        principalSchema: "iam",
-                        principalTable: "users",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "iam_group_members_active_user_idx",
                 schema: "iam",
@@ -156,6 +144,13 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 columns: new[] { "group_id", "valid_from", "valid_to" });
 
             migrationBuilder.CreateIndex(
+                name: "ix_groups_name",
+                schema: "iam",
+                table: "groups",
+                column: "name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "iam_relations_object_idx",
                 schema: "iam",
                 table: "relations",
@@ -166,13 +161,6 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 schema: "iam",
                 table: "relations",
                 columns: new[] { "object_type", "relation", "subject_type", "subject_id", "object_id" });
-
-            migrationBuilder.CreateIndex(
-                name: "ix_groups_name",
-                schema: "iam",
-                table: "groups",
-                column: "name",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_roles_name",
