@@ -2,7 +2,6 @@ using ECM.Document.Api.Tags.Requests;
 using ECM.Document.Api.Tags.Responses;
 using ECM.Document.Application.Tags.Commands;
 using ECM.Document.Infrastructure.Persistence;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -19,42 +18,59 @@ public static class TagEndpoints
         tagGroup.WithTags("Tags");
         tagGroup.WithGroupName(DocumentSwagger.DocumentName);
 
-        tagGroup.MapGet("/", ListTagsAsync)
+        tagGroup
+            .MapGet("/", ListTagsAsync)
             .WithName("ListTags")
             .WithDescription("Retrieve all tag labels grouped by namespace.");
 
-        tagGroup.MapPost("/", CreateTagAsync)
+        tagGroup
+            .MapPost("/", CreateTagAsync)
             .WithName("CreateTag")
             .WithDescription("Create a tag label within an existing namespace.");
 
-        tagGroup.MapPut("/{tagId:guid}", UpdateTagAsync)
+        tagGroup
+            .MapPut("/{tagId:guid}", UpdateTagAsync)
             .WithName("UpdateTag")
             .WithDescription("Update an existing tag label.");
 
-        tagGroup.MapDelete("/{tagId:guid}", DeleteTagAsync)
+        tagGroup
+            .MapDelete("/{tagId:guid}", DeleteTagAsync)
             .WithName("DeleteTag")
-            .WithDescription("Delete a tag label. Existing document assignments will be removed by cascade.");
+            .WithDescription(
+                "Delete a tag label. Existing document assignments will be removed by cascade."
+            );
 
         var documentTagGroup = builder.MapGroup("/api/ecm/documents/{documentId:guid}/tags");
         documentTagGroup.WithTags("Document Tags");
         documentTagGroup.WithGroupName(DocumentSwagger.DocumentName);
 
-        documentTagGroup.MapPost("/", AssignTagAsync)
+        documentTagGroup
+            .MapPost("/", AssignTagAsync)
             .WithName("AssignDocumentTag")
             .WithDescription("Assign a tag label to a document.");
 
-        documentTagGroup.MapDelete("/{tagId:guid}", RemoveTagAsync)
+        documentTagGroup
+            .MapDelete("/{tagId:guid}", RemoveTagAsync)
             .WithName("RemoveDocumentTag")
             .WithDescription("Remove a tag label assignment from a document.");
     }
 
-    private static async Task<Results<Ok<TagLabelResponse>, ValidationProblem, NotFound>> UpdateTagAsync(
+    private static async Task<
+        Results<Ok<TagLabelResponse>, ValidationProblem, NotFound>
+    > UpdateTagAsync(
         Guid tagId,
         UpdateTagRequest request,
         UpdateTagLabelCommandHandler handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var command = new UpdateTagLabelCommand(tagId, request.NamespaceSlug, request.Slug, request.Path, request.UpdatedBy);
+        var command = new UpdateTagLabelCommand(
+            tagId,
+            request.NamespaceSlug,
+            request.Slug,
+            request.Path,
+            request.UpdatedBy
+        );
         var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure)
@@ -64,10 +80,9 @@ public static class TagEndpoints
                 return TypedResults.NotFound();
             }
 
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["tag"] = [.. result.Errors]
-            });
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["tag"] = [.. result.Errors] }
+            );
         }
 
         if (result.Value is null)
@@ -82,17 +97,19 @@ public static class TagEndpoints
             result.Value.Path,
             result.Value.IsActive,
             result.Value.CreatedBy,
-            result.Value.CreatedAtUtc);
+            result.Value.CreatedAtUtc
+        );
 
         return TypedResults.Ok(response);
     }
 
     private static async Task<Ok<TagLabelResponse[]>> ListTagsAsync(
         DocumentDbContext context,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var tags = await context.TagLabels
-            .AsNoTracking()
+        var tags = await context
+            .TagLabels.AsNoTracking()
             .OrderBy(label => label.NamespaceSlug)
             .ThenBy(label => label.Path)
             .Select(label => new TagLabelResponse(
@@ -102,7 +119,8 @@ public static class TagEndpoints
                 label.Path,
                 label.IsActive,
                 label.CreatedBy,
-                label.CreatedAtUtc))
+                label.CreatedAtUtc
+            ))
             .ToArrayAsync(cancellationToken);
 
         return TypedResults.Ok(tags);
@@ -111,17 +129,22 @@ public static class TagEndpoints
     private static async Task<Results<Created<TagLabelResponse>, ValidationProblem>> CreateTagAsync(
         CreateTagRequest request,
         CreateTagLabelCommandHandler handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
-        var command = new CreateTagLabelCommand(request.NamespaceSlug, request.Slug, request.Path, request.CreatedBy);
+        var command = new CreateTagLabelCommand(
+            request.NamespaceSlug,
+            request.Slug,
+            request.Path,
+            request.CreatedBy
+        );
         var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
         {
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["tag"] = [.. result.Errors]
-            });
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["tag"] = [.. result.Errors] }
+            );
         }
 
         var response = new TagLabelResponse(
@@ -131,7 +154,8 @@ public static class TagEndpoints
             result.Value.Path,
             result.Value.IsActive,
             result.Value.CreatedBy,
-            result.Value.CreatedAtUtc);
+            result.Value.CreatedAtUtc
+        );
 
         return TypedResults.Created($"/api/ecm/tags/{response.Id}", response);
     }
@@ -139,16 +163,16 @@ public static class TagEndpoints
     private static async Task<Results<NoContent, ValidationProblem>> DeleteTagAsync(
         Guid tagId,
         DeleteTagLabelCommandHandler handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var command = new DeleteTagLabelCommand(tagId);
         var result = await handler.HandleAsync(command, cancellationToken);
         if (result.IsFailure)
         {
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["tag"] = [.. result.Errors]
-            });
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["tag"] = [.. result.Errors] }
+            );
         }
 
         return TypedResults.NoContent();
@@ -158,17 +182,17 @@ public static class TagEndpoints
         Guid documentId,
         AssignTagRequest request,
         AssignTagToDocumentCommandHandler handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var command = new AssignTagToDocumentCommand(documentId, request.TagId, request.AppliedBy);
         var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure)
         {
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["tag"] = [.. result.Errors]
-            });
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["tag"] = [.. result.Errors] }
+            );
         }
 
         return TypedResults.NoContent();
@@ -178,17 +202,17 @@ public static class TagEndpoints
         Guid documentId,
         Guid tagId,
         RemoveTagFromDocumentCommandHandler handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var command = new RemoveTagFromDocumentCommand(documentId, tagId);
         var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure)
         {
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["tag"] = [.. result.Errors]
-            });
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["tag"] = [.. result.Errors] }
+            );
         }
 
         return TypedResults.NoContent();
