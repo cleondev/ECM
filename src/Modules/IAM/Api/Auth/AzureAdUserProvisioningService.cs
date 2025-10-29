@@ -61,8 +61,16 @@ public sealed class AzureAdUserProvisioningService(
         try
         {
             var existing = await _userRepository.GetByEmailAsync(email, cancellationToken);
-            var department = GetDepartment(principal);
-            var assignments = BuildDefaultAssignments(department);
+            var unitIdentifier = GetUnitIdentifier(principal);
+            if (!string.IsNullOrWhiteSpace(unitIdentifier))
+            {
+                _logger.LogInformation(
+                    "Resolved unit identifier {UnitIdentifier} for user {Email} during provisioning.",
+                    unitIdentifier,
+                    email);
+            }
+
+            var assignments = BuildDefaultAssignments(unitIdentifier);
 
             if (existing is not null)
             {
@@ -145,7 +153,7 @@ public sealed class AzureAdUserProvisioningService(
            ?? principal.Identity?.Name
            ?? fallback;
 
-    private static string? GetDepartment(ClaimsPrincipal principal)
+    private static string? GetUnitIdentifier(ClaimsPrincipal principal)
     {
         var value = principal.FindFirst("department")?.Value;
         return string.IsNullOrWhiteSpace(value) ? null : value;
@@ -157,7 +165,7 @@ public sealed class AzureAdUserProvisioningService(
            ?? principal.FindFirst("emails")?.Value
            ?? principal.FindFirst(ClaimTypes.Upn)?.Value;
 
-    private static IReadOnlyCollection<GroupAssignment> BuildDefaultAssignments(string? department)
+    private static IReadOnlyCollection<GroupAssignment> BuildDefaultAssignments(string? unitIdentifier)
     {
         var assignments = new List<GroupAssignment>
         {
@@ -165,9 +173,9 @@ public sealed class AzureAdUserProvisioningService(
             GroupAssignment.Guest(),
         };
 
-        if (!string.IsNullOrWhiteSpace(department))
+        if (!string.IsNullOrWhiteSpace(unitIdentifier))
         {
-            assignments.Add(GroupAssignment.Unit(department));
+            assignments.Add(GroupAssignment.Unit(unitIdentifier));
         }
 
         return assignments;

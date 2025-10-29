@@ -4,7 +4,9 @@ using System;
 
 public sealed class GroupAssignmentDto
 {
-    public string Name { get; init; } = string.Empty;
+    public Guid? GroupId { get; init; }
+
+    public string? Identifier { get; init; }
 
     public string? Kind { get; init; }
 
