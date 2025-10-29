@@ -13,6 +13,7 @@ export type FileItem = {
   description?: string
   latestVersionId?: string
   latestVersionNumber?: number
+  latestVersionStorageKey?: string
   sizeBytes?: number
 }
 
