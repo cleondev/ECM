@@ -354,6 +354,7 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     status: document.status?.toLowerCase() === "draft" ? "draft" : "in-progress",
     latestVersionId: latestVersion?.id,
     latestVersionNumber: latestVersion?.versionNo,
+    latestVersionStorageKey: latestVersion?.storageKey,
     sizeBytes: latestVersion?.bytes,
   }
 }

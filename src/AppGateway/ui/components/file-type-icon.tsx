@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 import type { FileItem } from "@/lib/types"
 
-type FileSummary = Pick<FileItem, "name" | "type">
+type FileSummary = Pick<FileItem, "name" | "type" | "latestVersionStorageKey">
 
 type FileTypeIconProps = {
   file?: FileSummary | null
@@ -197,7 +197,16 @@ function resolveVisualType(file?: FileSummary | null): { type: FileVisualType; e
     return { type: "other", extension: null }
   }
 
-  const extension = extractExtension(file.name)
+  const sources: Array<string | undefined> = [file.latestVersionStorageKey, file.name]
+  let extension: string | null = null
+
+  for (const candidate of sources) {
+    extension = extractExtension(candidate)
+    if (extension) {
+      break
+    }
+  }
+
   const typeFromExtension = extension ? mapExtensionToType(extension) : undefined
   const type = typeFromExtension ?? file.type ?? "document"
 
