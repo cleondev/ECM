@@ -134,8 +134,8 @@ function TagTreeItem({
           >
             <span
               className={cn(
-                "h-2.5 w-2.5 rounded-full border border-border/60 flex-shrink-0",
-                tag.color ?? "bg-muted-foreground/40",
+                "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
+                tag.color ? ["leftbar-tag-indicator--custom", tag.color] : null,
               )}
             />
             <span className="text-xs flex-shrink-0">{displayIcon}</span>

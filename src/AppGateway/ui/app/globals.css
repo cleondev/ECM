@@ -44,24 +44,24 @@
 :root[data-theme="midnight"],
 :root.dark {
   color-scheme: dark;
-  --background: oklch(0.12 0 0);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.15 0 0);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.15 0 0);
-  --popover-foreground: oklch(0.95 0 0);
+  --background: oklch(0.18 0.015 265);
+  --foreground: oklch(0.96 0.01 260);
+  --card: oklch(0.22 0.015 265);
+  --card-foreground: oklch(0.96 0.01 260);
+  --popover: oklch(0.22 0.015 265);
+  --popover-foreground: oklch(0.96 0.01 260);
   --primary: oklch(0.6 0.18 264);
   --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.2 0 0);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.2 0.01 264);
-  --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.55 0.18 264);
+  --secondary: oklch(0.26 0.012 265);
+  --secondary-foreground: oklch(0.96 0.01 260);
+  --muted: oklch(0.26 0.012 265);
+  --muted-foreground: oklch(0.78 0.015 265);
+  --accent: oklch(0.58 0.17 264);
   --accent-foreground: oklch(0.98 0 0);
   --destructive: oklch(0.5 0.2 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.22 0 0);
-  --input: oklch(0.22 0 0);
+  --border: oklch(0.32 0.01 265);
+  --input: oklch(0.32 0.01 265);
   --ring: oklch(0.6 0.18 264);
   --chart-1: oklch(0.6 0.18 264);
   --chart-2: oklch(0.65 0.15 200);
@@ -69,13 +69,13 @@
   --chart-4: oklch(0.7 0.18 60);
   --chart-5: oklch(0.5 0.2 320);
   --radius: 0.5rem;
-  --sidebar: oklch(0.1 0.02 264);
-  --sidebar-foreground: oklch(0.96 0.01 264);
+  --sidebar: oklch(0.24 0.025 265);
+  --sidebar-foreground: oklch(0.97 0.008 265);
   --sidebar-primary: oklch(0.6 0.18 264);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.16 0.03 264);
-  --sidebar-accent-foreground: oklch(0.96 0.01 264);
-  --sidebar-border: oklch(0.18 0.015 264);
+  --sidebar-accent: oklch(0.3 0.03 265);
+  --sidebar-accent-foreground: oklch(0.96 0.01 260);
+  --sidebar-border: oklch(0.34 0.01 265);
   --sidebar-ring: oklch(0.6 0.18 264);
 }
 
@@ -204,6 +204,27 @@
 }
 
 @layer components {
+  .app-header-surface {
+    background-color: var(--color-sidebar);
+    background-image: linear-gradient(
+      120deg,
+      color-mix(in oklch, var(--color-sidebar) 88%, var(--color-background) 12%) 0%,
+      color-mix(in oklch, var(--color-sidebar) 72%, var(--color-background) 28%) 100%
+    );
+    backdrop-filter: blur(12px);
+  }
+
+  .leftbar-tag-indicator {
+    background-color: color-mix(in oklch, var(--color-primary) 85%, transparent);
+    border-color: color-mix(in oklch, var(--color-primary) 55%, transparent);
+    box-shadow: 0 0 0.45rem color-mix(in oklch, var(--color-primary) 35%, transparent);
+  }
+
+  .leftbar-tag-indicator--custom {
+    box-shadow: none;
+    border-color: transparent;
+  }
+
   .uppy-Dashboard {
     @apply text-foreground;
   }
