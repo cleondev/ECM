@@ -8,12 +8,15 @@ using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
 using ECM.Document.Domain.Documents;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
+using TestFixtures;
 using Xunit;
 
 namespace Document.Tests.Application.Documents;
 
 public class CreateDocumentCommandHandlerTests
 {
+    private readonly DefaultGroupFixture _groups = new();
+
     [Fact]
     public async Task HandleAsync_WithValidRequest_PersistsDocumentAndReturnsSummary()
     {
@@ -22,8 +25,8 @@ public class CreateDocumentCommandHandlerTests
         var clock = new FixedClock(now);
         var handler = new CreateDocumentCommandHandler(repository, clock);
 
-        var ownerId = Guid.NewGuid();
-        var createdBy = Guid.NewGuid();
+        var ownerId = _groups.GuestGroupId;
+        var createdBy = _groups.SystemGroupId;
         var documentTypeId = Guid.NewGuid();
         var command = new CreateDocumentCommand(
             "  Employee Handbook  ",
@@ -31,7 +34,7 @@ public class CreateDocumentCommandHandlerTests
             "  Draft  ",
             ownerId,
             createdBy,
-            "  People Operations  ",
+            $"  {_groups.GuestGroupName.ToUpperInvariant()} Enablement  ",
             "  Confidential  ",
             documentTypeId);
 
@@ -45,7 +48,7 @@ public class CreateDocumentCommandHandlerTests
         Assert.Equal("Confidential", summary.Sensitivity);
         Assert.Equal(ownerId, summary.OwnerId);
         Assert.Equal(createdBy, summary.CreatedBy);
-        Assert.Equal("People Operations", summary.Department);
+        Assert.Equal("guest Enablement", summary.Department);
         Assert.Equal(now, summary.CreatedAtUtc);
         Assert.Equal(now, summary.UpdatedAtUtc);
         Assert.Equal(documentTypeId, summary.DocumentTypeId);

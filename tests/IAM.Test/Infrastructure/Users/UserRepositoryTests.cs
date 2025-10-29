@@ -4,12 +4,15 @@ using ECM.IAM.Infrastructure.Persistence;
 using ECM.IAM.Infrastructure.Users;
 using Microsoft.EntityFrameworkCore;
 using Shared.Contracts.IAM;
+using TestFixtures;
 using Xunit;
 
 namespace IAM.Test.Infrastructure.Users;
 
 public class UserRepositoryTests
 {
+    private readonly DefaultGroupFixture _groups = new();
+
     [Fact]
     public async Task AddAsync_PersistsOutboxMessageForUserCreated()
     {
@@ -20,7 +23,7 @@ public class UserRepositoryTests
         await using var context = new IamDbContext(options);
         var repository = new UserRepository(context);
 
-        var user = User.Create("alice@example.com", "Alice", DateTimeOffset.UtcNow);
+        var user = User.Create("alice@example.com", "Alice", DateTimeOffset.UtcNow, _groups.GuestGroupName);
 
         await repository.AddAsync(user, CancellationToken.None);
 
@@ -42,7 +45,7 @@ public class UserRepositoryTests
         var role = Role.Create("Reviewer");
         context.Roles.Add(role);
 
-        var user = User.Create("bob@example.com", "Bob", DateTimeOffset.UtcNow);
+        var user = User.Create("bob@example.com", "Bob", DateTimeOffset.UtcNow, _groups.SystemGroupName);
         await repository.AddAsync(user, CancellationToken.None);
 
         context.OutboxMessages.RemoveRange(context.OutboxMessages);

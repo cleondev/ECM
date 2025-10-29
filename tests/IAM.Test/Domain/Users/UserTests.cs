@@ -1,17 +1,25 @@
 using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users;
+using TestFixtures;
 using Xunit;
 
 namespace IAM.Test.Domain.Users;
 
 public class UserTests
 {
+    private readonly DefaultGroupFixture _groups = new();
+
     [Fact]
     public void Create_WithValidValues_TrimsStringsAndSetsDefaults()
     {
         var createdAt = DateTimeOffset.UtcNow;
 
-        var user = User.Create("  alice@example.com  ", "  Alice Smith  ", createdAt, "  Sales  ", isActive: false);
+        var user = User.Create(
+            "  alice@example.com  ",
+            "  Alice Smith  ",
+            createdAt,
+            $"  {_groups.GuestGroupName}  ",
+            isActive: false);
 
         Assert.NotEqual(Guid.Empty, user.Id);
         Assert.Equal("alice@example.com", user.Email);
@@ -80,7 +88,7 @@ public class UserTests
     [Fact]
     public void UpdateDepartment_TrimsValueOrClearsWhenWhitespace()
     {
-        var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow, "Initial");
+        var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow, _groups.SystemGroupName);
 
         user.UpdateDepartment("  Marketing  ");
         Assert.Equal("Marketing", user.Department);

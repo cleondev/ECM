@@ -29,6 +29,12 @@ CREATE TABLE iam.groups (
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 
+INSERT INTO iam.groups (id, name, kind, created_at)
+VALUES
+    ('11111111-1111-1111-1111-111111111111', 'guest', 'system', now()),
+    ('22222222-2222-2222-2222-222222222222', 'system', 'system', now())
+ON CONFLICT (name) DO NOTHING;
+
 CREATE TABLE iam.group_members (
     group_id    uuid NOT NULL REFERENCES iam.groups(id) ON DELETE CASCADE,
     user_id     uuid NOT NULL REFERENCES iam.users(id) ON DELETE CASCADE,

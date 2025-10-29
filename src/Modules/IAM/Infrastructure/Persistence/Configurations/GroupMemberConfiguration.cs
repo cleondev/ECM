@@ -20,7 +20,7 @@ public sealed class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMem
 
         builder.Property(member => member.Role)
             .HasColumnName("role")
-            .HasDefaultValue("member")
+            .HasDefaultValue(GroupMemberRoles.Member)
             .IsRequired();
 
         builder.Property(member => member.ValidFromUtc)

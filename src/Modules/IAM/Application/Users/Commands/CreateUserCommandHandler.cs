@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Roles;
 using ECM.IAM.Application.Users;
 using ECM.IAM.Domain.Users;
@@ -14,12 +15,14 @@ public sealed class CreateUserCommandHandler(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
     ISystemClock clock,
-    IPasswordHasher passwordHasher)
+    IPasswordHasher passwordHasher,
+    IDefaultGroupAssignmentService defaultGroupAssignmentService)
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IRoleRepository _roleRepository = roleRepository;
     private readonly ISystemClock _clock = clock;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly IDefaultGroupAssignmentService _defaultGroupAssignmentService = defaultGroupAssignmentService;
 
     public async Task<OperationResult<UserSummaryResult>> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken = default)
     {
@@ -73,6 +76,8 @@ public sealed class CreateUserCommandHandler(
         }
 
         await _userRepository.AddAsync(user, cancellationToken);
+
+        await _defaultGroupAssignmentService.AssignAsync(user, cancellationToken);
 
         return OperationResult<UserSummaryResult>.Success(user.ToResult());
     }

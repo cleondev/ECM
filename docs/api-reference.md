@@ -17,10 +17,12 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `GET /api/iam/users` | Liệt kê người dùng trong module IAM. | – |
 | `GET /api/iam/users/{id}` | Chi tiết người dùng theo ID. | `id` |
 | `GET /api/iam/users/by-email` | Tìm người dùng theo email. | Query `email` |
-| `POST /api/iam/users` | Tạo người dùng mới và gán vai trò mặc định. | Body `{email, displayName, department?, isActive?, roleIds[]}` |
+| `POST /api/iam/users` | Tạo người dùng mới, tự động gán group hệ thống (`guest`, `system`) và gán thêm vai trò tùy chọn. | Body `{email, displayName, department?, isActive?, roleIds[]}` |
 | `PUT /api/iam/users/{id}` | Cập nhật hồ sơ cơ bản hoặc trạng thái hoạt động. | `id`, body `{displayName, department?, isActive?}` |
 | `POST /api/iam/users/{id}/roles` | Gán thêm một vai trò cho người dùng. | `id`, body `{roleId}` |
 | `DELETE /api/iam/users/{id}/roles/{roleId}` | Hủy gán vai trò khỏi người dùng. | `id`, `roleId` |
+
+> **Lưu ý:** Các group hệ thống `guest` và `system` sẽ được tạo tự động nếu chưa tồn tại, và mọi user mới đều được gán vào cả hai group này ngay sau khi provisioning thành công.
 
 ### Authentication
 

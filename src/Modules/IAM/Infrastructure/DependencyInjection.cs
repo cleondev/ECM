@@ -1,9 +1,11 @@
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.BuildingBlocks.Infrastructure.Configuration;
 using ECM.BuildingBlocks.Infrastructure.Time;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Relations;
 using ECM.IAM.Application.Roles;
 using ECM.IAM.Application.Users;
+using ECM.IAM.Infrastructure.Groups;
 using ECM.IAM.Infrastructure.Persistence;
 using ECM.IAM.Infrastructure.Relations;
 using ECM.IAM.Infrastructure.Roles;
@@ -37,6 +39,7 @@ public static class IamInfrastructureModuleExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IAccessRelationRepository, AccessRelationRepository>();
+        services.AddScoped<IDefaultGroupAssignmentService, DefaultGroupAssignmentService>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
         return services;

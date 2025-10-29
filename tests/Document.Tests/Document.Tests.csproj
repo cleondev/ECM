@@ -17,4 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Document\ECM.Document.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\TestFixtures\DefaultGroupFixture.cs" Link="TestFixtures/DefaultGroupFixture.cs" />
+  </ItemGroup>
 </Project>
