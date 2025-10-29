@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Linq;
 using ECM.File.Application.Shares;
 using ECM.File.Domain.Shares;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;

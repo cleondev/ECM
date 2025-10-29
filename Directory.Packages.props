@@ -10,6 +10,7 @@
     <PackageVersion Include="AWSSDK.S3" Version="4.0.8" />
     <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1" />
     <PackageVersion Include="Minio" Version="6.0.5" />
+    <PackageVersion Include="Isopoh.Cryptography.Argon2" Version="2.0.0" />
     <PackageVersion Include="Confluent.Kafka" Version="2.12.0" />
     <PackageVersion Include="EnyimMemcachedCore" Version="3.4.5" />
     <PackageVersion Include="FluentAssertions" Version="8.8.0" />
