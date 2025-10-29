@@ -96,7 +96,7 @@ public static class DocumentEndpoints
                 pageSize,
                 0,
                 0,
-                Array.Empty<DocumentResponse>()
+                []
             );
             return TypedResults.Ok(emptyResponse);
         }

@@ -110,7 +110,10 @@ public static class UserProfileEndpoints
             string.IsNullOrWhiteSpace(request.Department) ? "no" : "yes");
 
         var result = await handler.HandleAsync(
-            new UpdateUserProfileCommand(email, request.DisplayName, request.Department),
+            new UpdateUserProfileCommand(
+                email,
+                request.DisplayName ?? string.Empty,
+                request.Department),
             cancellationToken);
 
         if (result.IsFailure)
@@ -135,7 +138,7 @@ public static class UserProfileEndpoints
     {
         logger.LogDebug(
             "Attempting to resolve email for principal. Available claim types: {ClaimTypes}",
-            principal.Claims.Select(claim => claim.Type).Distinct().ToArray());
+            [.. principal.Claims.Select(claim => claim.Type).Distinct()]);
 
         foreach (var candidate in GetPotentialEmailValues(principal))
         {
