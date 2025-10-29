@@ -1,4 +1,4 @@
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Responses;
 
 public sealed record DocumentVersionResponse(
     Guid Id,

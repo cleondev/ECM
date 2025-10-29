@@ -1,6 +1,6 @@
 using System;
 
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Options;
 
 public sealed class DocumentUploadLimitOptions
 {

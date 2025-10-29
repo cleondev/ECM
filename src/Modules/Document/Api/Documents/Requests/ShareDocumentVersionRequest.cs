@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Requests;
 
 public sealed class ShareDocumentVersionRequest
 {

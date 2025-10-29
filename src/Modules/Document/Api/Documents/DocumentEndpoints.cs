@@ -4,6 +4,10 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 
 using ECM.Abstractions.Files;
+using ECM.Document.Api.Documents.Extensions;
+using ECM.Document.Api.Documents.Options;
+using ECM.Document.Api.Documents.Requests;
+using ECM.Document.Api.Documents.Responses;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Infrastructure.Persistence;

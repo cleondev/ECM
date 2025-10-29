@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Requests;
 
 public sealed class UpsertDocumentMetadataRequest
 {

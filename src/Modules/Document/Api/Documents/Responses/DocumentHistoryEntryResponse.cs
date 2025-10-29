@@ -1,6 +1,6 @@
 using System;
 
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Responses;
 
 public sealed record DocumentHistoryEntryResponse(
     Guid Id,
