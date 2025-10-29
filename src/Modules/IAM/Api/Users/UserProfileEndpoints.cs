@@ -40,7 +40,7 @@ public static class UserProfileEndpoints
         HttpContext httpContext,
         ClaimsPrincipal principal,
         GetUserByEmailQueryHandler handler,
-        ILogger<UserProfileEndpoints> logger,
+        ILogger<LoggerScope> logger,
         CancellationToken cancellationToken)
     {
         logger.LogInformation(
@@ -81,7 +81,7 @@ public static class UserProfileEndpoints
         HttpContext httpContext,
         ClaimsPrincipal principal,
         UpdateUserProfileCommandHandler handler,
-        ILogger<UserProfileEndpoints> logger,
+        ILogger<LoggerScope> logger,
         CancellationToken cancellationToken)
     {
         logger.LogInformation(
@@ -225,4 +225,8 @@ public static class UserProfileEndpoints
 
     private static bool IsLikelyEmail(string value)
         => value.Contains('@');
+
+    private sealed class LoggerScope
+    {
+    }
 }
