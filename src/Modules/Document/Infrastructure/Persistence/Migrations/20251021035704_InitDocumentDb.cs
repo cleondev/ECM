@@ -72,7 +72,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     status = table.Column<string>(type: "text", nullable: false),
                     sensitivity = table.Column<string>(type: "text", nullable: false, defaultValue: "Internal"),
                     owner_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    department = table.Column<string>(type: "text", nullable: true),
+                    group_id = table.Column<Guid>(type: "uuid", nullable: true),
                     created_by = table.Column<Guid>(type: "uuid", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),

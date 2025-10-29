@@ -19,7 +19,7 @@ public sealed class CreateDocumentRequest
 
     public Guid? CreatedBy { get; init; }
 
-    public string? Department { get; init; }
+    public Guid? GroupId { get; init; }
 
     public string? Sensitivity { get; init; }
 
@@ -44,7 +44,7 @@ public sealed class CreateDocumentRequest
             Status = GetString(form, nameof(Status)),
             OwnerId = GetGuid(form, nameof(OwnerId)),
             CreatedBy = GetGuid(form, nameof(CreatedBy)),
-            Department = GetString(form, nameof(Department)),
+            GroupId = GetGuid(form, nameof(GroupId)),
             Sensitivity = GetString(form, nameof(Sensitivity)),
             DocumentTypeId = GetGuid(form, nameof(DocumentTypeId)),
             File = GetFile(form, nameof(File))

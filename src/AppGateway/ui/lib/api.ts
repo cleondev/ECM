@@ -85,7 +85,7 @@ export type DocumentResponse = {
   sensitivity: string
   ownerId: string
   createdBy: string
-  department?: string | null
+  groupId?: string | null
   createdAtUtc: string
   updatedAtUtc: string
   createdAtFormatted?: string

@@ -165,7 +165,7 @@ Schemas:
 
 * `ops.outbox / ops.outbox_deadletter / ops.audit_event / ops.notification / ops.webhook / ops.webhook_delivery / ops.retention_policy / ops.retention_candidate`
 
-RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (department). Worker materialize `doc.effective_acl_flat` để phục vụ API liệt kê tài liệu nhanh và chỉ trả quyền còn hiệu lực.
+RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (group). Worker materialize `doc.effective_acl_flat` để phục vụ API liệt kê tài liệu nhanh và chỉ trả quyền còn hiệu lực.
 
 
 ---
@@ -229,7 +229,7 @@ signature.completed → audit
 
 ### Search (hybrid)
 
-- `GET /search?q=&mode=hybrid&filters=department:Credit,doc_type:Contract`
+- `GET /search?q=&mode=hybrid&filters=group_id:11111111-1111-1111-1111-111111111111,doc_type:Contract`
   - Combines FTS rank + cosine similarity from `search.embedding` + KV filters.
 
 ### OCR
@@ -264,8 +264,8 @@ open http://localhost:8080   # Gateway
 
 ## 9) Security & RLS
 
-- API layer sets:  
-  `SET LOCAL app.user_id = '<uuid>'; SET LOCAL app.user_department = '<text>';`
+- API layer sets:
+  `SET LOCAL app.user_id = '<uuid>'; SET LOCAL app.user_group_id = '<uuid>';`
 - `authz.fn_can_read(doc_row)` enforces combined RBAC/ReBAC/ABAC at DB layer.
 - OCR service account can write `ocr.annotation`, resolver writes `ocr.extraction`, but **cannot** mutate user metadata directly.
 

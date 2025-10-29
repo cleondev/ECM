@@ -17,7 +17,7 @@ public sealed class CreateDocumentUpload
 
     public Guid CreatedBy { get; init; }
 
-    public string? Department { get; init; }
+    public Guid? GroupId { get; init; }
 
     public string? Sensitivity { get; init; }
 

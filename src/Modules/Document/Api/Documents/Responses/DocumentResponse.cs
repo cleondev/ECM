@@ -10,7 +10,7 @@ public sealed record DocumentResponse(
     string Sensitivity,
     Guid OwnerId,
     Guid CreatedBy,
-    string? Department,
+    Guid? GroupId,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     string CreatedAtFormatted,

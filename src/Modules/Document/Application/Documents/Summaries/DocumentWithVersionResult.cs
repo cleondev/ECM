@@ -8,7 +8,7 @@ public sealed record DocumentWithVersionResult(
     string Sensitivity,
     Guid OwnerId,
     Guid CreatedBy,
-    string? Department,
+    Guid? GroupId,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     Guid? DocumentTypeId,

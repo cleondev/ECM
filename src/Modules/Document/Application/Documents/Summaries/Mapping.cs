@@ -19,7 +19,7 @@ internal static class Mapping
             document.Sensitivity,
             document.OwnerId,
             document.CreatedBy,
-            document.Department,
+            document.GroupId,
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             document.TypeId);
@@ -38,7 +38,7 @@ internal static class Mapping
             document.Sensitivity,
             document.OwnerId,
             document.CreatedBy,
-            document.Department,
+            document.GroupId,
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             document.TypeId,

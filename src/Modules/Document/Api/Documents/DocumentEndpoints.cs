@@ -155,9 +155,10 @@ public static class DocumentEndpoints
             query = query.Where(document => document.OwnerId == request.OwnerId.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Department))
+        if (request.GroupId.HasValue)
         {
-            query = query.Where(document => document.Department == request.Department);
+            var groupId = request.GroupId.Value;
+            query = query.Where(document => document.GroupId == groupId);
         }
 
         if (request.Tags is { Length: > 0 })
@@ -239,9 +240,7 @@ public static class DocumentEndpoints
         var status = string.IsNullOrWhiteSpace(request.Status)
             ? (string.IsNullOrWhiteSpace(defaults.Status) ? "draft" : defaults.Status.Trim())
             : request.Status.Trim();
-        var department = string.IsNullOrWhiteSpace(request.Department)
-            ? defaults.Department?.Trim()
-            : request.Department?.Trim();
+        var groupId = NormalizeGuid(request.GroupId) ?? NormalizeGuid(defaults.GroupId);
         var sensitivity = string.IsNullOrWhiteSpace(request.Sensitivity)
             ? (
                 string.IsNullOrWhiteSpace(defaults.Sensitivity)
@@ -264,7 +263,7 @@ public static class DocumentEndpoints
             status,
             ownerId.Value,
             createdBy.Value,
-            department,
+            groupId,
             sensitivity,
             documentTypeId,
             request.File.FileName,
@@ -304,7 +303,7 @@ public static class DocumentEndpoints
             result.Value.Sensitivity,
             result.Value.OwnerId,
             result.Value.CreatedBy,
-            result.Value.Department,
+            result.Value.GroupId,
             result.Value.CreatedAtUtc,
             result.Value.UpdatedAtUtc,
             FormatDocumentTimestamp(result.Value.CreatedAtUtc),
@@ -638,7 +637,7 @@ public static class DocumentEndpoints
             document.Sensitivity,
             document.OwnerId,
             document.CreatedBy,
-            document.Department,
+            document.GroupId,
             document.CreatedAtUtc,
             document.UpdatedAtUtc,
             FormatDocumentTimestamp(document.CreatedAtUtc),

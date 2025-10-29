@@ -8,7 +8,7 @@ public sealed record DocumentSummaryResult(
     string Sensitivity,
     Guid OwnerId,
     Guid CreatedBy,
-    string? Department,
+    Guid? GroupId,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     Guid? DocumentTypeId);
