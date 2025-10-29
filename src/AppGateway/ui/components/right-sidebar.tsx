@@ -149,7 +149,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
 
   if (!selectedFile) {
     return (
-      <div className="w-full h-full border-l border-border bg-card flex items-center justify-center p-6">
+      <div className="w-full h-full border-l border-sidebar-border bg-sidebar text-sidebar-foreground flex items-center justify-center p-6">
         <div className="text-center">
           <FileTypeIcon size="lg" className="block mx-auto mb-3" />
           <p className="text-sm font-medium text-muted-foreground">No file selected</p>
@@ -173,10 +173,10 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
   }
 
   return (
-    <div className="w-full h-full border-l border-border bg-card flex flex-col relative z-20">
-      <div className="p-4 border-b border-border flex items-center justify-between flex-shrink-0">
+    <div className="w-full h-full border-l border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col relative z-20">
+      <div className="p-4 border-b border-sidebar-border/80 flex items-center justify-between flex-shrink-0">
         <div>
-          <h2 className="font-semibold text-card-foreground">File Details</h2>
+          <h2 className="font-semibold text-sidebar-foreground">File Details</h2>
           <Badge variant="outline" className={cn("text-[10px] mt-2", tabBadgeStyles[activeTab])}>
             {activeTabLabel}
           </Badge>
@@ -200,7 +200,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
               <FileTypeIcon file={selectedFile} size="lg" />
             </div>
 
-            <h3 className="font-semibold text-lg mb-1 text-card-foreground text-pretty">{selectedFile.name}</h3>
+            <h3 className="font-semibold text-lg mb-1 text-sidebar-foreground text-pretty">{selectedFile.name}</h3>
             {selectedFile.description && (
               <p className="text-sm text-muted-foreground mb-4 text-pretty">{selectedFile.description}</p>
             )}
@@ -230,7 +230,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                       <FileTypeIcon file={selectedFile} size="sm" className="mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Type</p>
-                        <p className="text-sm font-medium text-card-foreground capitalize">{selectedFile.type}</p>
+                        <p className="text-sm font-medium text-sidebar-foreground/90 capitalize">{selectedFile.type}</p>
                       </div>
                     </div>
 
@@ -238,7 +238,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                       <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Size</p>
-                        <p className="text-sm font-medium text-card-foreground">{selectedFile.size}</p>
+                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.size}</p>
                       </div>
                     </div>
 
@@ -246,7 +246,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                       <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Modified</p>
-                        <p className="text-sm font-medium text-card-foreground">{selectedFile.modified}</p>
+                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.modified}</p>
                       </div>
                     </div>
 
@@ -254,7 +254,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                       <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Owner</p>
-                        <p className="text-sm font-medium text-card-foreground">{selectedFile.owner}</p>
+                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.owner}</p>
                       </div>
                     </div>
 
@@ -262,7 +262,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                       <FolderOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-muted-foreground">Folder</p>
-                        <p className="text-sm font-medium text-card-foreground">{selectedFile.folder}</p>
+                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.folder}</p>
                       </div>
                     </div>
                   </div>
@@ -357,7 +357,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                       </button>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h5 className="text-sm font-semibold text-card-foreground">{flow.name}</h5>
+                          <h5 className="text-sm font-semibold text-sidebar-foreground">{flow.name}</h5>
                           <Badge className={cn("text-xs", getStatusBadge(flow.status))}>{flow.status}</Badge>
                         </div>
                         {isCollapsed && (
@@ -384,7 +384,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                                 {!isLast && <div className="w-px h-full bg-border mt-2" />}
                               </div>
                               <div className={cn("flex-1", !isLast && "pb-3")}>
-                                <p className="text-sm font-medium text-card-foreground">{step.title}</p>
+                                <p className="text-sm font-medium text-sidebar-foreground/90">{step.title}</p>
                                 <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
                                 <p className="text-xs text-muted-foreground mt-1">{step.timestamp}</p>
                                 <p className="text-xs text-muted-foreground">by {step.user}</p>
