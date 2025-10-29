@@ -6,10 +6,7 @@ internal static class ShareLinkMapper
 {
     public static ShareLinkDto ToDto(ShareLink shareLink, ShareLinkOptions options)
     {
-        var baseUrl = options.PublicBaseUrl;
-        var url = string.IsNullOrWhiteSpace(baseUrl)
-            ? $"/s/{shareLink.Code}"
-            : CombineUrl(baseUrl!, shareLink.Code);
+        var url = BuildShareUrl(options.PublicBaseUrl, shareLink.Code);
 
         return new ShareLinkDto(
             shareLink.Id,
@@ -36,9 +33,16 @@ internal static class ShareLinkMapper
             shareLink.RevokedAt);
     }
 
-    private static string CombineUrl(string baseUrl, string code)
+    private static string BuildShareUrl(string? baseUrl, string code)
     {
+        var encodedCode = Uri.EscapeDataString(code);
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            return $"/s/?code={encodedCode}";
+        }
+
         var trimmed = baseUrl.TrimEnd('/');
-        return $"{trimmed}/s/{code}";
+        return $"{trimmed}/s/?code={encodedCode}";
     }
 }

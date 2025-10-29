@@ -1073,13 +1073,52 @@ export async function createShareLink(versionId: string, options: ShareOptions):
     })
 
     return {
-      url: response.url,
+      url: normalizeShareLinkUrl(response.url),
       expiresAtUtc: response.expiresAtUtc,
       isPublic: response.isPublic,
     }
   } catch (error) {
     console.error(`[ui] Failed to create share link for version ${versionId}:`, error)
     throw error
+  }
+}
+
+function normalizeShareLinkUrl(url: string): string {
+  if (!url) {
+    return url
+  }
+
+  try {
+    const origin = typeof window === "undefined" ? "http://localhost" : window.location.origin
+    const parsed = new URL(url, origin)
+
+    const queryCode = parsed.searchParams.get("code")
+    const pathSegments = parsed.pathname.split("/").filter(Boolean)
+    const pathCode = !queryCode && pathSegments.length >= 2 && pathSegments[0] === "s" ? pathSegments[1] : null
+    const code = queryCode ?? pathCode
+
+    if (!code) {
+      return url
+    }
+
+    parsed.pathname = "/s/"
+    parsed.search = `code=${encodeURIComponent(code)}`
+    parsed.hash = ""
+
+    if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
+      return `${parsed.pathname}?${parsed.searchParams.toString()}`
+    }
+
+    return parsed.toString()
+  } catch (error) {
+    console.warn("[ui] Failed to normalize share link URL", error)
+
+    const fallbackMatch = url.match(/\/s\/([^/?#]+)/)
+    if (fallbackMatch?.[1]) {
+      return `/s/?code=${encodeURIComponent(fallbackMatch[1])}`
+    }
+
+    return url
   }
 }
 
