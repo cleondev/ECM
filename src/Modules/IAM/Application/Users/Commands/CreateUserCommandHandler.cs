@@ -17,13 +17,15 @@ public sealed class CreateUserCommandHandler(
     IRoleRepository roleRepository,
     IGroupService groupService,
     ISystemClock clock,
-    IPasswordHasher passwordHasher)
+    IPasswordHasher passwordHasher,
+    IDefaultGroupAssignmentService defaultGroupAssignmentService)
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IRoleRepository _roleRepository = roleRepository;
     private readonly IGroupService _groupService = groupService;
     private readonly ISystemClock _clock = clock;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
+    private readonly IDefaultGroupAssignmentService _defaultGroupAssignmentService = defaultGroupAssignmentService;
 
     public async Task<OperationResult<UserSummaryResult>> HandleAsync(CreateUserCommand command, CancellationToken cancellationToken = default)
     {

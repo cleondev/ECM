@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using SearchIndexer;
 using Shared.Contracts.Messaging;
+using TestFixtures;
 using Workers.Shared.Messaging;
 using Xunit;
 
@@ -19,6 +20,7 @@ namespace SearchIndexer.Tests;
 public class SearchIndexingIntegrationEventListenerTests
 {
     private static readonly JsonSerializerOptions CachedWebOptions = new(JsonSerializerDefaults.Web);
+    private readonly DefaultGroupFixture _groups = new();
 
     [Fact]
     public async Task HandleDocumentUploadedAsync_DeserializesAndDispatchesEvent()
@@ -31,8 +33,8 @@ public class SearchIndexingIntegrationEventListenerTests
             provider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<SearchIndexingIntegrationEventListener>.Instance);
 
-        var documentId = Guid.NewGuid();
-        string[] tags = ["hr", "employee"];
+        var documentId = _groups.GuestGroupId;
+        string[] tags = [_groups.GuestGroupName, "employee"];
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -43,7 +45,7 @@ public class SearchIndexingIntegrationEventListenerTests
                 title = "Onboarding Checklist",
                 summary = "Steps for new hires",
                 content = "Detailed onboarding plan",
-                metadata = new Dictionary<string, string> { { "department", "hr" } },
+                metadata = new Dictionary<string, string> { { "department", _groups.GuestGroupName } },
                 tags
             }
         }, CachedWebOptions);
@@ -59,6 +61,8 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Basic, scheduler.LastRecord.IndexingType);
+        Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var groups));
+        Assert.Equal("grp-hr", groups);
     }
 
     [Fact]
@@ -72,8 +76,8 @@ public class SearchIndexingIntegrationEventListenerTests
             provider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<SearchIndexingIntegrationEventListener>.Instance);
 
-        var documentId = Guid.NewGuid();
-        string[] tags = ["legal"];
+        var documentId = _groups.SystemGroupId;
+        string[] tags = ["legal", _groups.SystemGroupName];
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -84,7 +88,11 @@ public class SearchIndexingIntegrationEventListenerTests
                 title = "Signed Contract",
                 summary = "Customer contract",
                 content = "OCR extracted body",
-                metadata = new Dictionary<string, string> { { "source", "ocr" } },
+                metadata = new
+                {
+                    groupIds = new[] { "grp-legal", "grp-shared" },
+                    source = "ocr"
+                },
                 tags
             }
         }, CachedWebOptions);
@@ -100,6 +108,8 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Advanced, scheduler.LastRecord.IndexingType);
+        Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var ocrGroups));
+        Assert.Equal("grp-legal,grp-shared", ocrGroups);
     }
 
     private static ServiceProvider BuildServiceProvider(IIndexingJobScheduler scheduler)

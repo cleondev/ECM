@@ -10,12 +10,15 @@ using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Domain.Documents;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
+using TestFixtures;
 using Xunit;
 
 namespace Document.Tests.Application.Documents;
 
 public class UploadDocumentCommandHandlerTests
 {
+    private readonly DefaultGroupFixture _groups = new();
+
     [Fact]
     public async Task CreateAsync_WhenUploadSucceeds_PersistsDocumentAndReturnsSummary()
     {
@@ -33,9 +36,9 @@ public class UploadDocumentCommandHandlerTests
             "Document",
             "Policy",
             "Draft",
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "Operations",
+            _groups.GuestGroupId,
+            _groups.SystemGroupId,
+            _groups.GuestGroupName,
             "Internal",
             Guid.NewGuid(),
             "file.pdf",
@@ -71,8 +74,8 @@ public class UploadDocumentCommandHandlerTests
             "Document",
             "Policy",
             "Draft",
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            _groups.GuestGroupId,
+            _groups.SystemGroupId,
             null,
             null,
             null,
@@ -104,9 +107,9 @@ public class UploadDocumentCommandHandlerTests
             "Document",
             "Policy",
             "Draft",
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "Operations",
+            _groups.GuestGroupId,
+            _groups.SystemGroupId,
+            _groups.GuestGroupName,
             "Internal",
             Guid.NewGuid(),
             "file.pdf",
@@ -136,9 +139,9 @@ public class UploadDocumentCommandHandlerTests
             "   ",
             "Policy",
             "Draft",
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "Operations",
+            _groups.GuestGroupId,
+            _groups.SystemGroupId,
+            _groups.GuestGroupName,
             "Internal",
             Guid.NewGuid(),
             "file.pdf",
@@ -171,9 +174,9 @@ public class UploadDocumentCommandHandlerTests
             "Document",
             "Policy",
             "Draft",
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "Operations",
+            _groups.GuestGroupId,
+            _groups.SystemGroupId,
+            _groups.GuestGroupName,
             "Internal",
             Guid.NewGuid(),
             "file.pdf",

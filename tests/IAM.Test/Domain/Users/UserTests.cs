@@ -1,11 +1,14 @@
 using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users;
+using TestFixtures;
 using Xunit;
 
 namespace IAM.Test.Domain.Users;
 
 public class UserTests
 {
+    private readonly DefaultGroupFixture _groups = new();
+
     [Fact]
     public void Create_WithValidValues_TrimsStringsAndSetsDefaults()
     {

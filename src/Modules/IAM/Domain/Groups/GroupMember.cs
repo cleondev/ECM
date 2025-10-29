@@ -7,7 +7,17 @@ public sealed class GroupMember
 {
     private GroupMember()
     {
-        Role = "member";
+        Role = GroupMemberRoles.Member;
+    }
+
+    private GroupMember(Guid groupId, Guid userId, string role, DateTimeOffset validFromUtc, DateTimeOffset? validToUtc)
+        : this()
+    {
+        GroupId = groupId;
+        UserId = userId;
+        Role = role;
+        ValidFromUtc = validFromUtc;
+        ValidToUtc = validToUtc;
     }
 
     private GroupMember(Guid groupId, Guid userId, string role, DateTimeOffset validFromUtc)

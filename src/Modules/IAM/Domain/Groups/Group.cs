@@ -8,7 +8,7 @@ public sealed class Group
     private Group()
     {
         Name = null!;
-        Kind = "normal";
+        Kind = GroupKinds.Normal;
         Members = new List<GroupMember>();
     }
 
