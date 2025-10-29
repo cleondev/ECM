@@ -37,22 +37,43 @@ export default function ProfilePage() {
   const { isAuthenticated, isChecking } = useAuthGuard(PROFILE_ROUTE)
 
   useEffect(() => {
+    const locationSnapshot =
+      typeof window === "undefined"
+        ? "(window unavailable)"
+        : `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+    console.debug(
+      "[profile] Trang profile được mount tại location=%s với cachedUser=%s",
+      locationSnapshot,
+      cachedSnapshot?.user?.id ?? "(none)",
+    )
+  }, [cachedSnapshot?.user?.id])
+
+  useEffect(() => {
     if (!isAuthenticated || isChecking) {
+      console.debug(
+        "[profile] Bỏ qua việc tải hồ sơ vì isAuthenticated=%s, isChecking=%s",
+        isAuthenticated,
+        isChecking,
+      )
       return
     }
 
     let mounted = true
 
     const loadProfile = async () => {
+      console.debug("[profile] Bắt đầu tải hồ sơ người dùng trong trang profile.")
       try {
         const profile = await fetchCurrentUserProfile()
         if (!mounted) return
 
         if (!profile) {
+          console.warn("[profile] API trả về null, chuyển hướng tới trang đăng nhập.")
           router.replace(SIGN_IN_ROUTE)
           return
         }
 
+        console.debug("[profile] Nhận được hồ sơ người dùng với id:", profile.id)
         setUser(profile)
         setFormValues({
           displayName: profile.displayName,
@@ -62,6 +83,7 @@ export default function ProfilePage() {
         console.error("[ui] Không thể tải hồ sơ người dùng:", error)
         if (!mounted) return
 
+        console.warn("[profile] Giữ nguyên trạng thái hiện tại do lỗi khi tải hồ sơ.")
         setFeedback({
           type: "error",
           message: "Không thể tải hồ sơ người dùng. Vui lòng thử lại.",
