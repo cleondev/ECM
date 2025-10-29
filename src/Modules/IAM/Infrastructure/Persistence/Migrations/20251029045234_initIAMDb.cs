@@ -22,12 +22,20 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     name = table.Column<string>(type: "text", nullable: false),
                     kind = table.Column<string>(type: "text", nullable: false, defaultValue: "temporary"),
+                    parent_group_id = table.Column<Guid>(type: "uuid", nullable: true),
                     created_by = table.Column<Guid>(type: "uuid", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_groups", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_groups_parent_group",
+                        column: x => x.parent_group_id,
+                        principalSchema: "iam",
+                        principalTable: "groups",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -142,6 +150,12 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 table: "groups",
                 column: "name",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_groups_parent_group_id",
+                schema: "iam",
+                table: "groups",
+                column: "parent_group_id");
 
             migrationBuilder.CreateIndex(
                 name: "iam_relations_object_idx",

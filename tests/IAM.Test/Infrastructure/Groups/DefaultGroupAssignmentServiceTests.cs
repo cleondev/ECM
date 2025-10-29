@@ -41,6 +41,13 @@ public class DefaultGroupAssignmentServiceTests
 
         Assert.Equal(new[] { _groups.GuestGroupName, _groups.SystemGroupName }, groupNames);
 
+        var parentGroupIds = await context.Groups
+            .OrderBy(group => group.Name)
+            .Select(group => group.ParentGroupId)
+            .ToListAsync();
+
+        Assert.All(parentGroupIds, Assert.Null);
+
         var assignedGroupNames = await context.GroupMembers
             .Include(member => member.Group)
             .Where(member => member.UserId == user.Id)
