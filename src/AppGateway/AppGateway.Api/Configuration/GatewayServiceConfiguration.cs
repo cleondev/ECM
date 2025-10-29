@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using ServiceDefaults.Authentication;
 
 namespace AppGateway.Api.Configuration;
 
@@ -52,6 +53,7 @@ public static class GatewayServiceConfiguration
 
         builder.Services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
         {
+            options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority);
             options.ResponseType = OpenIdConnectResponseType.Code;
             options.UsePkce = true;
             options.ResponseMode = OpenIdConnectResponseMode.FormPost;
@@ -104,6 +106,14 @@ public static class GatewayServiceConfiguration
         authenticationBuilder.AddMicrosoftIdentityWebApi(
             builder.Configuration.GetSection("AzureAd"),
             jwtBearerScheme: JwtBearerDefaults.AuthenticationScheme);
+
+        builder.Services.Configure<MicrosoftIdentityOptions>(
+            OpenIdConnectDefaults.AuthenticationScheme,
+            options => options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority));
+
+        builder.Services.Configure<JwtBearerOptions>(
+            JwtBearerDefaults.AuthenticationScheme,
+            options => options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority));
 
         authenticationBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
             ApiKeyAuthenticationHandler.AuthenticationScheme,
