@@ -509,7 +509,28 @@ export const mockTagTree: TagNode[] = [
     children: [
       { id: "1-1", name: "UI", color: "bg-purple-200 dark:bg-purple-900", icon: "🎨" },
       { id: "1-2", name: "Dashboard", color: "bg-indigo-200 dark:bg-indigo-900", icon: "📊" },
-      { id: "1-3", name: "Development", color: "bg-teal-200 dark:bg-teal-900", icon: "💻" },
+      {
+        id: "1-3",
+        name: "Development",
+        color: "bg-teal-200 dark:bg-teal-900",
+        icon: "💻",
+        children: [
+          {
+            id: "1-3-1",
+            name: "Frontend",
+            color: "bg-sky-200 dark:bg-sky-900",
+            icon: "🧩",
+            children: [
+              {
+                id: "1-3-1-1",
+                name: "Very Long Tag Name Example",
+                color: "bg-emerald-200 dark:bg-emerald-900",
+                icon: "🧪",
+              },
+            ],
+          },
+        ],
+      },
     ],
   },
   {
