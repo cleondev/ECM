@@ -24,6 +24,7 @@ CREATE TABLE doc.document (
 CREATE INDEX doc_document_type_idx ON doc.document (doc_type);
 CREATE INDEX doc_document_status_idx ON doc.document (status);
 CREATE INDEX doc_document_owner_idx ON doc.document (owner_id);
+CREATE INDEX doc_document_updated_at_id_idx ON doc.document (updated_at DESC, id DESC);
 CREATE INDEX doc_document_title_fts ON doc.document USING GIN (to_tsvector('simple', coalesce(title, '')));
 
 CREATE TABLE doc.version (
@@ -101,3 +102,16 @@ CREATE TABLE doc.signature_result (
     received_at     timestamptz NOT NULL DEFAULT now(),
     raw_response    jsonb NOT NULL DEFAULT '{}'::jsonb
 );
+
+CREATE TABLE doc.effective_acl_flat (
+    document_id     uuid NOT NULL REFERENCES doc.document(id) ON DELETE CASCADE,
+    user_id         uuid NOT NULL REFERENCES iam.users(id) ON DELETE CASCADE,
+    valid_to        timestamptz,
+    source          text NOT NULL,
+    idempotency_key text NOT NULL,
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (document_id, user_id, idempotency_key)
+);
+
+CREATE INDEX doc_effective_acl_flat_user_document_idx
+    ON doc.effective_acl_flat (user_id, valid_to, document_id);

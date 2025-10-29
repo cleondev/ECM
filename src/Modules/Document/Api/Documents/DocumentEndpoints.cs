@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -65,6 +66,7 @@ public static class DocumentEndpoints
     }
 
     private static async Task<Ok<DocumentListResponse>> ListDocumentsAsync(
+        ClaimsPrincipal principal,
         [AsParameters] ListDocumentsRequest request,
         DocumentDbContext context,
         CancellationToken cancellationToken)
@@ -73,6 +75,13 @@ public static class DocumentEndpoints
         var pageSize = request.PageSize <= 0 ? 24 : request.PageSize;
         pageSize = pageSize > 200 ? 200 : pageSize;
 
+        var userId = principal.GetUserObjectId();
+        if (userId is null)
+        {
+            var emptyResponse = new DocumentListResponse(page, pageSize, 0, 0, Array.Empty<DocumentResponse>());
+            return TypedResults.Ok(emptyResponse);
+        }
+
         var query = context.Documents
             .AsNoTracking()
             .Include(document => document.Versions)
@@ -80,6 +89,14 @@ public static class DocumentEndpoints
                 .ThenInclude(documentTag => documentTag.Tag)
             .Include(document => document.Metadata)
             .AsQueryable();
+
+        var now = DateTimeOffset.UtcNow;
+        var authorizedDocuments = context.EffectiveAclEntries
+            .AsNoTracking()
+            .Where(entry => entry.UserId == userId.Value && (entry.ValidToUtc == null || entry.ValidToUtc >= now))
+            .Select(entry => entry.DocumentId);
+
+        query = query.Where(document => authorizedDocuments.Contains(document.Id.Value));
 
         if (!string.IsNullOrWhiteSpace(request.Query))
         {

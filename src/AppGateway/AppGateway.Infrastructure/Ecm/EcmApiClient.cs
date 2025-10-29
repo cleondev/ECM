@@ -161,9 +161,10 @@ internal sealed class EcmApiClient(
         return await SendAsync(request, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsBySubjectAsync(Guid subjectId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsBySubjectAsync(string subjectType, Guid subjectId, CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Get, $"api/iam/relations/subjects/{subjectId}", cancellationToken);
+        var escapedSubjectType = Uri.EscapeDataString(subjectType);
+        using var request = await CreateRequestAsync(HttpMethod.Get, $"api/iam/relations/subjects/{escapedSubjectType}/{subjectId}", cancellationToken);
         var response = await SendAsync<IReadOnlyCollection<AccessRelationDto>>(request, cancellationToken);
         return response ?? [];
     }
@@ -182,9 +183,10 @@ internal sealed class EcmApiClient(
         return await SendAsync<AccessRelationDto>(request, cancellationToken);
     }
 
-    public async Task<bool> DeleteRelationAsync(Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteRelationAsync(string subjectType, Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default)
     {
-        var uri = $"api/iam/relations/subjects/{subjectId}/objects/{Uri.EscapeDataString(objectType)}/{objectId}?relation={Uri.EscapeDataString(relation)}";
+        var escapedSubjectType = Uri.EscapeDataString(subjectType);
+        var uri = $"api/iam/relations/subjects/{escapedSubjectType}/{subjectId}/objects/{Uri.EscapeDataString(objectType)}/{objectId}?relation={Uri.EscapeDataString(relation)}";
         using var request = await CreateRequestAsync(HttpMethod.Delete, uri, cancellationToken);
         return await SendAsync(request, cancellationToken);
     }

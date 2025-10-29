@@ -101,6 +101,10 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
         builder.HasIndex(document => document.TypeId)
             .HasDatabaseName("IX_document_type_id");
 
+        builder.HasIndex(document => new { document.UpdatedAtUtc, document.Id })
+            .HasDatabaseName("doc_document_updated_at_id_idx")
+            .IsDescending(true, true);
+
         builder.Navigation(document => document.Versions)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 

@@ -17,7 +17,15 @@ public sealed class CreateAccessRelationCommandHandler(
 
     public async Task<OperationResult<AccessRelationSummaryResult>> HandleAsync(CreateAccessRelationCommand command, CancellationToken cancellationToken = default)
     {
-        if (await _repository.GetAsync(command.SubjectId, command.ObjectType, command.ObjectId, command.Relation, cancellationToken) is not null)
+        var normalizedSubjectType = command.SubjectType?.Trim().ToLowerInvariant() ?? string.Empty;
+
+        if (await _repository.GetAsync(
+                normalizedSubjectType,
+                command.SubjectId,
+                command.ObjectType,
+                command.ObjectId,
+                command.Relation,
+                cancellationToken) is not null)
         {
             return OperationResult<AccessRelationSummaryResult>.Failure("The relation already exists.");
         }
@@ -26,11 +34,14 @@ public sealed class CreateAccessRelationCommandHandler(
         try
         {
             relation = AccessRelation.Create(
+                command.SubjectType,
                 command.SubjectId,
                 command.ObjectType,
                 command.ObjectId,
                 command.Relation,
-                _clock.UtcNow);
+                _clock.UtcNow,
+                command.ValidFromUtc,
+                command.ValidToUtc);
         }
         catch (ArgumentException exception)
         {

@@ -12,6 +12,7 @@ public sealed class AccessRelationConfiguration : IEntityTypeConfiguration<Acces
 
         builder.HasKey(relation => new
         {
+            relation.SubjectType,
             relation.SubjectId,
             relation.ObjectType,
             relation.ObjectId,
@@ -20,6 +21,10 @@ public sealed class AccessRelationConfiguration : IEntityTypeConfiguration<Acces
 
         builder.Property(relation => relation.SubjectId)
             .HasColumnName("subject_id");
+
+        builder.Property(relation => relation.SubjectType)
+            .HasColumnName("subject_type")
+            .IsRequired();
 
         builder.Property(relation => relation.ObjectType)
             .HasColumnName("object_type")
@@ -37,7 +42,26 @@ public sealed class AccessRelationConfiguration : IEntityTypeConfiguration<Acces
             .HasColumnType("timestamptz")
             .HasDefaultValueSql("now()");
 
+        builder.Property(relation => relation.ValidFromUtc)
+            .HasColumnName("valid_from")
+            .HasColumnType("timestamptz")
+            .HasDefaultValueSql("now()");
+
+        builder.Property(relation => relation.ValidToUtc)
+            .HasColumnName("valid_to")
+            .HasColumnType("timestamptz");
+
         builder.HasIndex(relation => new { relation.ObjectType, relation.ObjectId })
             .HasDatabaseName("iam_relations_object_idx");
+
+        builder.HasIndex(relation => new
+            {
+                relation.ObjectType,
+                relation.Relation,
+                relation.SubjectType,
+                relation.SubjectId,
+                relation.ObjectId
+            })
+            .HasDatabaseName("iam_relations_object_subject_idx");
     }
 }

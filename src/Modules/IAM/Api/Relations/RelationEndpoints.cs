@@ -23,7 +23,7 @@ public static class RelationEndpoints
         group.WithGroupName(IamSwagger.DocumentName);
         group.RequireAuthorization();
 
-        group.MapGet("/subjects/{subjectId:guid}", GetBySubjectAsync)
+        group.MapGet("/subjects/{subjectType}/{subjectId:guid}", GetBySubjectAsync)
             .WithName("GetRelationsBySubject")
             .WithSummary("List relations for a subject");
 
@@ -35,7 +35,7 @@ public static class RelationEndpoints
             .WithName("CreateRelation")
             .WithSummary("Create a relation");
 
-        group.MapDelete("/subjects/{subjectId:guid}/objects/{objectType}/{objectId:guid}", DeleteRelationAsync)
+        group.MapDelete("/subjects/{subjectType}/{subjectId:guid}/objects/{objectType}/{objectId:guid}", DeleteRelationAsync)
             .WithName("DeleteRelation")
             .WithSummary("Delete a relation");
 
@@ -43,11 +43,12 @@ public static class RelationEndpoints
     }
 
     private static async Task<Ok<IReadOnlyCollection<AccessRelationResponse>>> GetBySubjectAsync(
+        string subjectType,
         Guid subjectId,
         GetAccessRelationsBySubjectQueryHandler handler,
         CancellationToken cancellationToken)
     {
-        var relations = await handler.HandleAsync(new GetAccessRelationsBySubjectQuery(subjectId), cancellationToken);
+        var relations = await handler.HandleAsync(new GetAccessRelationsBySubjectQuery(subjectType, subjectId), cancellationToken);
         var response = relations.Select(MapToResponse).ToArray();
         return TypedResults.Ok<IReadOnlyCollection<AccessRelationResponse>>(response);
     }
@@ -70,10 +71,13 @@ public static class RelationEndpoints
     {
         var result = await handler.HandleAsync(
             new CreateAccessRelationCommand(
+                request.SubjectType,
                 request.SubjectId,
                 request.ObjectType,
                 request.ObjectId,
-                request.Relation),
+                request.Relation,
+                request.ValidFromUtc,
+                request.ValidToUtc),
             cancellationToken);
 
         if (result.IsFailure || result.Value is null)
@@ -89,6 +93,7 @@ public static class RelationEndpoints
     }
 
     private static async Task<Results<NoContent, NotFound>> DeleteRelationAsync(
+        string subjectType,
         Guid subjectId,
         string objectType,
         Guid objectId,
@@ -97,7 +102,7 @@ public static class RelationEndpoints
         CancellationToken cancellationToken)
     {
         var deleted = await handler.HandleAsync(
-            new DeleteAccessRelationCommand(subjectId, objectType, objectId, relation),
+            new DeleteAccessRelationCommand(subjectType, subjectId, objectType, objectId, relation),
             cancellationToken);
 
         if (!deleted)
@@ -110,9 +115,12 @@ public static class RelationEndpoints
 
     private static AccessRelationResponse MapToResponse(AccessRelationSummaryResult summary)
         => new(
+            summary.SubjectType,
             summary.SubjectId,
             summary.ObjectType,
             summary.ObjectId,
             summary.Relation,
-            summary.CreatedAtUtc);
+            summary.CreatedAtUtc,
+            summary.ValidFromUtc,
+            summary.ValidToUtc);
 }

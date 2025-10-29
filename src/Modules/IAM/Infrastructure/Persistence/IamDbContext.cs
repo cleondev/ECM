@@ -1,6 +1,7 @@
 using ECM.IAM.Domain.Relations;
 using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users;
+using ECM.IAM.Domain.Groups;
 using ECM.Operations.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,10 @@ public sealed class IamDbContext(DbContextOptions<IamDbContext> options) : DbCon
     public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     public DbSet<AccessRelation> Relations => Set<AccessRelation>();
+
+    public DbSet<Group> Groups => Set<Group>();
+
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 

@@ -89,17 +89,20 @@ internal static class IamOutboxMapper
     private static OutboxMessage Map(AccessRelationCreatedDomainEvent domainEvent)
     {
         var contract = new AccessRelationCreatedContract(
+            domainEvent.SubjectType,
             domainEvent.SubjectId,
             domainEvent.ObjectType,
             domainEvent.ObjectId,
             domainEvent.Relation,
+            domainEvent.ValidFromUtc,
+            domainEvent.ValidToUtc,
             domainEvent.OccurredAtUtc);
 
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
 
         return new OutboxMessage(
             aggregate: "access-relation",
-            aggregateId: CreateDeterministicGuid(domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
+            aggregateId: CreateDeterministicGuid(domainEvent.SubjectType, domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
             type: IamEventNames.AccessRelationCreated,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
@@ -108,25 +111,27 @@ internal static class IamOutboxMapper
     private static OutboxMessage Map(AccessRelationDeletedDomainEvent domainEvent)
     {
         var contract = new AccessRelationDeletedContract(
+            domainEvent.SubjectType,
             domainEvent.SubjectId,
             domainEvent.ObjectType,
             domainEvent.ObjectId,
             domainEvent.Relation,
+            domainEvent.ValidToUtc,
             domainEvent.OccurredAtUtc);
 
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
 
         return new OutboxMessage(
             aggregate: "access-relation",
-            aggregateId: CreateDeterministicGuid(domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
+            aggregateId: CreateDeterministicGuid(domainEvent.SubjectType, domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
             type: IamEventNames.AccessRelationDeleted,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
-    private static Guid CreateDeterministicGuid(Guid subjectId, string objectType, Guid objectId, string relation)
+    private static Guid CreateDeterministicGuid(string subjectType, Guid subjectId, string objectType, Guid objectId, string relation)
     {
-        var composite = $"{subjectId:N}:{objectType}:{objectId:N}:{relation}".ToLowerInvariant();
+        var composite = $"{subjectType}:{subjectId:N}:{objectType}:{objectId:N}:{relation}".ToLowerInvariant();
         var bytes = System.Text.Encoding.UTF8.GetBytes(composite);
         var hash = System.Security.Cryptography.SHA256.HashData(bytes);
         Span<byte> guidBytes = stackalloc byte[16];

@@ -25,6 +25,11 @@ namespace ECM.IAM.Infrastructure.Migrations
 
             modelBuilder.Entity("ECM.IAM.Domain.Relations.AccessRelation", b =>
                 {
+                    b.Property<string>("SubjectType")
+                        .HasColumnType("text")
+                        .HasColumnName("subject_type")
+                        .HasDefaultValue("user");
+
                     b.Property<Guid>("SubjectId")
                         .HasColumnType("uuid")
                         .HasColumnName("subject_id");
@@ -47,11 +52,24 @@ namespace ECM.IAM.Infrastructure.Migrations
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
 
-                    b.HasKey("SubjectId", "ObjectType", "ObjectId", "Relation")
+                    b.Property<DateTimeOffset>("ValidFromUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("valid_from")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTimeOffset?>("ValidToUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("valid_to");
+
+                    b.HasKey("SubjectType", "SubjectId", "ObjectType", "ObjectId", "Relation")
                         .HasName("pk_relations");
 
                     b.HasIndex("ObjectType", "ObjectId")
                         .HasDatabaseName("iam_relations_object_idx");
+
+                    b.HasIndex("ObjectType", "Relation", "SubjectType", "SubjectId", "ObjectId")
+                        .HasDatabaseName("iam_relations_object_subject_idx");
 
                     b.ToTable("relations", "iam");
                 });
@@ -75,6 +93,44 @@ namespace ECM.IAM.Infrastructure.Migrations
                         .HasDatabaseName("ix_roles_name");
 
                     b.ToTable("roles", "iam");
+                });
+
+            modelBuilder.Entity("ECM.IAM.Domain.Groups.Group", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("normal")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_groups");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_groups_name");
+
+                    b.ToTable("groups", "iam");
                 });
 
             modelBuilder.Entity("ECM.IAM.Domain.Users.User", b =>
@@ -117,6 +173,46 @@ namespace ECM.IAM.Infrastructure.Migrations
                         .HasDatabaseName("ix_users_email");
 
                     b.ToTable("users", "iam");
+                });
+
+            modelBuilder.Entity("ECM.IAM.Domain.Groups.GroupMember", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("member")
+                        .HasColumnName("role");
+
+                    b.Property<DateTimeOffset>("ValidFromUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("valid_from")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTimeOffset?>("ValidToUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("valid_to");
+
+                    b.HasKey("GroupId", "UserId")
+                        .HasName("pk_group_members");
+
+                    b.HasIndex("GroupId", "ValidFromUtc", "ValidToUtc")
+                        .HasDatabaseName("iam_group_members_group_validity_idx");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("iam_group_members_active_user_idx")
+                        .HasFilter("valid_to IS NULL OR valid_to >= now()");
+
+                    b.ToTable("group_members", "iam");
                 });
 
             modelBuilder.Entity("ECM.IAM.Domain.Users.UserRole", b =>
@@ -204,6 +300,30 @@ namespace ECM.IAM.Infrastructure.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ECM.IAM.Domain.Groups.GroupMember", b =>
+                {
+                    b.HasOne("ECM.IAM.Domain.Groups.Group", "Group")
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_group_members_groups_group_id");
+
+                    b.HasOne("ECM.IAM.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_group_members_users_user_id");
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("ECM.IAM.Domain.Groups.Group", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("ECM.IAM.Domain.Roles.Role", b =>
