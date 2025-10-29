@@ -8,7 +8,7 @@
 - API `GET /documents`, `GET /search`, `POST /documents` hỗ trợ `group_id` và `group_ids[]` thay cho `department`.
 - IAM provisioning yêu cầu truyền `primaryGroupId`/`groupIds[]` nếu hệ thống cần gán đơn vị ngay khi tạo user.
 - Đã cập nhật tài liệu (`README.md`, `ARCHITECT.md`, `docs/api-reference.md`, `MIGRATION_GUIDE.md`) để phản ánh thay đổi.
-- SQL artifact `deploy/artifacts/ef-iam.sql` giúp chuyển đổi dữ liệu `department` hiện hữu sang unit group; thao tác idempotent.
+- Quy trình migration trong `MIGRATION_GUIDE.md` kèm SQL idempotent giúp chuyển đổi dữ liệu `department` hiện hữu sang unit group.
 
 **Hành động đề xuất cho client team:**
 
