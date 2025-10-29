@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 
 using ECM.Abstractions.Files;
+using ECM.Abstractions.Users;
 using ECM.Document.Api.Documents.Extensions;
 using ECM.Document.Api.Documents.Options;
 using ECM.Document.Api.Documents.Requests;
@@ -81,6 +82,7 @@ public static class DocumentEndpoints
         ClaimsPrincipal principal,
         [AsParameters] ListDocumentsRequest request,
         DocumentDbContext context,
+        IUserLookupService userLookupService,
         CancellationToken cancellationToken
     )
     {
@@ -88,7 +90,7 @@ public static class DocumentEndpoints
         var pageSize = request.PageSize <= 0 ? 24 : request.PageSize;
         pageSize = pageSize > 200 ? 200 : pageSize;
 
-        var userId = principal.GetUserObjectId();
+        var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
         if (userId is null)
         {
             var emptyResponse = new DocumentListResponse(
@@ -187,6 +189,7 @@ public static class DocumentEndpoints
         CreateDocumentRequest request,
         UploadDocumentCommandHandler handler,
         IOptions<DocumentUploadDefaultsOptions> defaultsOptions,
+        IUserLookupService userLookupService,
         CancellationToken cancellationToken
     )
     {
@@ -198,7 +201,7 @@ public static class DocumentEndpoints
         }
 
         var defaults = defaultsOptions.Value ?? new DocumentUploadDefaultsOptions();
-        var claimedUserId = principal.GetUserObjectId();
+        var claimedUserId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
 
         var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId ?? defaults.CreatedBy;
         var ownerId = NormalizeGuid(request.OwnerId) ?? createdBy ?? defaults.OwnerId;
