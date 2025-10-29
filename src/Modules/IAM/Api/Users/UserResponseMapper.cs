@@ -3,6 +3,7 @@ using System.Linq;
 using ECM.IAM.Api.Groups;
 using ECM.IAM.Api.Roles;
 using ECM.IAM.Application.Users;
+using ECM.IAM.Domain.Groups;
 
 namespace ECM.IAM.Api.Users;
 
@@ -15,7 +16,7 @@ internal static class UserResponseMapper
             .ToArray();
 
         var groups = summary.Groups
-            .Select(group => new GroupResponse(group.Id, group.Name, group.Kind, group.Role))
+            .Select(group => new GroupResponse(group.Id, group.Name, group.Kind.ToNormalizedString(), group.Role))
             .ToArray();
 
         return new UserResponse(

@@ -22,7 +22,10 @@ public sealed class GroupConfiguration : IEntityTypeConfiguration<Group>
 
         builder.Property(group => group.Kind)
             .HasColumnName("kind")
-            .HasDefaultValue("normal")
+            .HasConversion(
+                kind => kind.ToNormalizedString(),
+                value => GroupKindExtensions.FromString(value))
+            .HasDefaultValue(GroupKind.Temporary.ToNormalizedString())
             .IsRequired();
 
         builder.Property(group => group.CreatedBy)

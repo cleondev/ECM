@@ -3,6 +3,7 @@ using System.Linq;
 using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Roles;
 using ECM.IAM.Domain.Users;
+using ECM.IAM.Domain.Groups;
 
 namespace ECM.IAM.Application.Users;
 
@@ -20,7 +21,7 @@ internal static class Mapping
             .Select(member => new GroupSummaryResult(
                 member.GroupId,
                 member.Group?.Name ?? string.Empty,
-                member.Group?.Kind ?? "normal",
+                member.Group is not null ? member.Group.Kind : GroupKind.Temporary,
                 member.Role))
             .ToArray();
 

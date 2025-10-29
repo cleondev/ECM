@@ -59,7 +59,11 @@ public sealed class GroupService(
                 group = Group.Create(assignment.Name, assignment.Kind, createdBy: null, _clock.UtcNow);
                 await _context.Groups.AddAsync(group, cancellationToken);
                 existingGroups[assignment.Name] = group;
-                _logger.LogInformation("Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.", assignment.Name, assignment.Kind, user.Id);
+                _logger.LogInformation(
+                    "Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.",
+                    assignment.Name,
+                    assignment.Kind.ToNormalizedString(),
+                    user.Id);
             }
 
             var isMember = await _context.GroupMembers.AnyAsync(
@@ -83,11 +87,11 @@ public sealed class GroupService(
             .ToListAsync(cancellationToken);
 
         var unitTargets = normalizedAssignments
-            .Where(assignment => string.Equals(assignment.Kind, "unit", StringComparison.OrdinalIgnoreCase))
+            .Where(assignment => assignment.Kind == GroupKind.Unit)
             .Select(assignment => assignment.Name)
             .ToHashSet(Comparer);
 
-        foreach (var membership in activeMemberships.Where(member => member.Group.Kind == "unit"))
+        foreach (var membership in activeMemberships.Where(member => member.Group is not null && member.Group.Kind == GroupKind.Unit))
         {
             if (!unitTargets.Contains(membership.Group.Name))
             {
