@@ -32,7 +32,7 @@ public static class SearchEndpoints
 
     private static async Task<Ok<IReadOnlyCollection<SearchResult>>> SearchAsync([AsParameters] SearchRequest request, SearchQueryHandler handler, CancellationToken cancellationToken)
     {
-        var query = new SearchQuery(request.Term, request.Department, request.Limit);
+        var query = new SearchQuery(request.Term, request.GroupId, request.Limit);
         var results = await handler.HandleAsync(query, cancellationToken);
         return TypedResults.Ok(results);
     }
@@ -46,7 +46,7 @@ public static class SearchEndpoints
 
     private static async Task<Ok<SearchFacetsResult>> FacetsAsync([AsParameters] SearchFacetsRequest request, SearchFacetsQueryHandler handler, CancellationToken cancellationToken)
     {
-        var query = new SearchFacetsQuery(request.Term, request.Department);
+        var query = new SearchFacetsQuery(request.Term, request.GroupId);
         var facets = await handler.HandleAsync(query, cancellationToken);
         return TypedResults.Ok(facets);
     }

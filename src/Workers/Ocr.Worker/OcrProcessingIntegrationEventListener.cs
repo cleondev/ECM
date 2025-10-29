@@ -48,7 +48,7 @@ internal sealed class OcrProcessingIntegrationEventListener(
                     data.Title,
                     data.Summary,
                     data.Content,
-                    data.Metadata,
+                    DocumentIntegrationEventMetadataMapper.ToMetadataDictionary(data),
                     data.Tags);
 
                 return processor.HandleDocumentUploadedAsync(integrationEvent, token);

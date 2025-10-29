@@ -76,8 +76,8 @@ internal sealed class IndexStoreSearchReadProvider(ISearchIndexReader reader) : 
 
         foreach (var record in filtered)
         {
-            if (!string.IsNullOrWhiteSpace(query.Department)
-                && (!record.Metadata.TryGetValue("department", out var dept) || !dept.Equals(query.Department, StringComparison.OrdinalIgnoreCase)))
+            if (!string.IsNullOrWhiteSpace(query.GroupId)
+                && !MetadataContainsValue(record.Metadata, "groupIds", query.GroupId))
             {
                 continue;
             }
@@ -89,6 +89,16 @@ internal sealed class IndexStoreSearchReadProvider(ISearchIndexReader reader) : 
             {
                 if (string.IsNullOrWhiteSpace(value))
                 {
+                    continue;
+                }
+
+                if (string.Equals(key, "groupIds", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var group in SplitMetadataValues(value))
+                    {
+                        AddFacetValue(facets, $"metadata:{key}", group);
+                    }
+
                     continue;
                 }
 
@@ -138,6 +148,30 @@ internal sealed class IndexStoreSearchReadProvider(ISearchIndexReader reader) : 
         }
 
         return score;
+    }
+
+    private static bool MetadataContainsValue(
+        IDictionary<string, string> metadata,
+        string key,
+        string value)
+    {
+        if (!metadata.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw))
+        {
+            return false;
+        }
+
+        return SplitMetadataValues(raw)
+            .Any(item => item.Equals(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static IEnumerable<string> SplitMetadataValues(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return Array.Empty<string>();
+        }
+
+        return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private static void AddFacetValue(

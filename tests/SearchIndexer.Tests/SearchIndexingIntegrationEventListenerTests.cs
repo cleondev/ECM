@@ -43,7 +43,10 @@ public class SearchIndexingIntegrationEventListenerTests
                 title = "Onboarding Checklist",
                 summary = "Steps for new hires",
                 content = "Detailed onboarding plan",
-                metadata = new Dictionary<string, string> { { "department", "hr" } },
+                metadata = new
+                {
+                    groupIds = new[] { "grp-hr" }
+                },
                 tags
             }
         }, CachedWebOptions);
@@ -59,6 +62,8 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Basic, scheduler.LastRecord.IndexingType);
+        Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var groups));
+        Assert.Equal("grp-hr", groups);
     }
 
     [Fact]
@@ -84,7 +89,11 @@ public class SearchIndexingIntegrationEventListenerTests
                 title = "Signed Contract",
                 summary = "Customer contract",
                 content = "OCR extracted body",
-                metadata = new Dictionary<string, string> { { "source", "ocr" } },
+                metadata = new
+                {
+                    groupIds = new[] { "grp-legal", "grp-shared" },
+                    source = "ocr"
+                },
                 tags
             }
         }, CachedWebOptions);
@@ -100,6 +109,8 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Advanced, scheduler.LastRecord.IndexingType);
+        Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var ocrGroups));
+        Assert.Equal("grp-legal,grp-shared", ocrGroups);
     }
 
     private static ServiceProvider BuildServiceProvider(IIndexingJobScheduler scheduler)
