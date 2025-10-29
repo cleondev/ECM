@@ -21,8 +21,8 @@ import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TagManagementDialog } from "./tag-management-dialog"
-import type { SelectedTag, TagNode, TagUpdateData, User as UserType } from "@/lib/types"
-import { fetchTags, createTag, updateTag, deleteTag, fetchUser, signOut } from "@/lib/api"
+import type { SelectedTag, TagNode, TagUpdateData, User as UserType, Group } from "@/lib/types"
+import { fetchTags, createTag, updateTag, deleteTag, fetchUser, signOut, fetchGroups } from "@/lib/api"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ThemeSwitcher } from "./theme-switcher"
 import {
@@ -230,6 +230,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   const [parentTag, setParentTag] = useState<TagNode | null>(null)
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | "add-child">("create")
   const [user, setUser] = useState<UserType | null>(null)
+  const [groups, setGroups] = useState<Group[]>([])
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [sectionsExpanded, setSectionsExpanded] = useState({
     tags: true,
@@ -245,6 +246,25 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     fetchUser()
       .then(setUser)
       .catch(() => setUser(null))
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    fetchGroups()
+      .then((data) => {
+        if (!active) return
+        setGroups(data)
+      })
+      .catch((error) => {
+        console.error("[sidebar] Failed to load groups:", error)
+        if (!active) return
+        setGroups([])
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const handleEditTag = (tag: TagNode) => {
@@ -299,6 +319,24 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   }
 
   const primaryRole = useMemo(() => user?.roles?.[0] ?? "", [user?.roles])
+  const primaryGroupName = useMemo(() => {
+    if (!user?.primaryGroupId) {
+      return ""
+    }
+
+    return groups.find((group) => group.id === user.primaryGroupId)?.name ?? ""
+  }, [groups, user?.primaryGroupId])
+
+  const secondaryGroupNames = useMemo(() => {
+    if (!user?.groupIds?.length) {
+      return [] as string[]
+    }
+
+    return user.groupIds
+      .filter((groupId) => groupId !== user.primaryGroupId)
+      .map((groupId) => groups.find((group) => group.id === groupId)?.name)
+      .filter((name): name is string => Boolean(name))
+  }, [groups, user?.groupIds, user?.primaryGroupId])
   const toggleSection = (section: "tags" | "folders" | "system") => {
     setSectionsExpanded((prev) => ({ ...prev, [section]: !prev[section] }))
   }
@@ -465,7 +503,9 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
               </Avatar>
               <div className="flex flex-col items-start text-left gap-0.5">
                 <span className="text-sm font-semibold truncate w-full">{user?.displayName || "Loading..."}</span>
-                <span className="text-xs text-muted-foreground truncate w-full">{user?.department || primaryRole}</span>
+                <span className="text-xs text-muted-foreground truncate w-full">
+                  {primaryGroupName || primaryRole || ""}
+                </span>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -474,11 +514,16 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
               <div className="flex flex-col gap-1">
                 <span className="font-medium">{user?.displayName || ""}</span>
                 <span className="text-xs text-muted-foreground font-normal">{user?.email || ""}</span>
-                {user?.department && (
-                  <span className="text-xs text-muted-foreground font-normal">{user.department}</span>
+                {primaryGroupName && (
+                  <span className="text-xs text-muted-foreground font-normal">Primary group: {primaryGroupName}</span>
+                )}
+                {secondaryGroupNames.length > 0 && (
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Also in: {secondaryGroupNames.join(", ")}
+                  </span>
                 )}
                 {primaryRole && (
-                  <span className="text-xs text-muted-foreground font-normal">{primaryRole}</span>
+                  <span className="text-xs text-muted-foreground font-normal">Role: {primaryRole}</span>
                 )}
               </div>
             </DropdownMenuLabel>

@@ -12,26 +12,35 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react"
-import { fetchFlows, fetchTags, checkLogin } from "@/lib/api"
+import { Upload, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight, Check } from "lucide-react"
+import { fetchFlows, fetchTags, checkLogin, fetchGroups } from "@/lib/api"
 import type { DocumentBatchResponse } from "@/lib/api"
-import type { Flow, SelectedTag, TagNode, UploadMetadata, User } from "@/lib/types"
+import type { Flow, Group, SelectedTag, TagNode, UploadMetadata, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 
 const DEFAULT_TAG_ICON = "📁"
 
-const defaultMetadata: UploadMetadata = {
+const createDefaultMetadata = (): UploadMetadata => ({
   title: "",
   docType: "General",
   status: "Draft",
-  department: "",
+  primaryGroupId: null,
+  groupIds: [],
   sensitivity: "Internal",
   description: "",
   notes: "",
-}
+})
 
 type UploadDialogProps = {
   open: boolean
@@ -64,11 +73,13 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [tags, setTags] = useState<TagNode[]>([])
   const [selectedFlow, setSelectedFlow] = useState<string | null>(null)
   const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([])
-  const [metadata, setMetadata] = useState<UploadMetadata>(defaultMetadata)
+  const [metadata, setMetadata] = useState<UploadMetadata>(() => createDefaultMetadata())
   const [isUploading, setIsUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<UploadResultSummary | null>(null)
   const [selectedFileCount, setSelectedFileCount] = useState(0)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [groups, setGroups] = useState<Group[]>([])
+  const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({})
   const autoCloseTimeoutRef = useRef<number | null>(null)
 
@@ -113,7 +124,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     resetUploaderState()
     setSelectedFlow(null)
     setSelectedTags([])
-    setMetadata({ ...defaultMetadata })
+    setMetadata(createDefaultMetadata())
     setIsUploading(false)
     onOpenChange(false)
   }, [onOpenChange, resetUploaderState])
@@ -133,6 +144,12 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       fetchTags().then(setTags).catch((error) => {
         console.error("[ui] Failed to load tags:", error)
       })
+      fetchGroups()
+        .then(setGroups)
+        .catch((error) => {
+          console.error("[ui] Failed to load groups:", error)
+          setGroups([])
+        })
       checkLogin()
         .then((result) => {
           if (result.user) {
@@ -155,6 +172,54 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       uppy.close({ reason: "unmount" })
     }
   }, [uppy, clearAutoCloseTimeout])
+
+  useEffect(() => {
+    if (!currentUser) {
+      return
+    }
+
+    setMetadata((prev) => {
+      const hasSelection = (prev.groupIds?.length ?? 0) > 0 || Boolean(prev.primaryGroupId)
+      if (hasSelection) {
+        return prev
+      }
+
+      const nextPrimary = currentUser.primaryGroupId ?? null
+      const nextGroupIds = Array.from(new Set(currentUser.groupIds ?? []))
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value))
+
+      if (nextPrimary && !nextGroupIds.includes(nextPrimary)) {
+        nextGroupIds.unshift(nextPrimary)
+      }
+
+      return {
+        ...prev,
+        primaryGroupId: nextPrimary,
+        groupIds: nextGroupIds,
+      }
+    })
+  }, [currentUser])
+
+  const primaryGroupName = useMemo(() => {
+    if (!metadata.primaryGroupId) {
+      return ""
+    }
+
+    return groups.find((group) => group.id === metadata.primaryGroupId)?.name ?? ""
+  }, [groups, metadata.primaryGroupId])
+
+  const selectedGroupNames = useMemo(() => {
+    if (!metadata.groupIds?.length) {
+      return [] as string[]
+    }
+
+    return metadata.groupIds
+      .map((groupId) => groups.find((group) => group.id === groupId)?.name)
+      .filter((name): name is string => Boolean(name))
+  }, [groups, metadata.groupIds])
+
+  const selectedGroupCount = metadata.groupIds?.length ?? 0
 
   const buildUploadSummary = useCallback(
     (result: UppyUploadResult): UploadResultSummary => {
@@ -196,6 +261,43 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     },
     [],
   )
+
+  const toggleGroupSelection = useCallback((groupId: string) => {
+    setMetadata((prev) => {
+      const nextGroupIds = new Set(prev.groupIds ?? [])
+      if (nextGroupIds.has(groupId)) {
+        nextGroupIds.delete(groupId)
+      } else {
+        nextGroupIds.add(groupId)
+      }
+
+      const normalized = Array.from(nextGroupIds)
+      const nextPrimary = prev.primaryGroupId && normalized.includes(prev.primaryGroupId)
+        ? prev.primaryGroupId
+        : normalized[0] ?? null
+
+      return {
+        ...prev,
+        groupIds: normalized,
+        primaryGroupId: nextPrimary,
+      }
+    })
+  }, [])
+
+  const handlePrimaryGroupChange = useCallback((value: string | null) => {
+    setMetadata((prev) => {
+      const nextGroupIds = new Set(prev.groupIds ?? [])
+      if (value) {
+        nextGroupIds.add(value)
+      }
+
+      return {
+        ...prev,
+        primaryGroupId: value,
+        groupIds: Array.from(nextGroupIds),
+      }
+    })
+  }, [])
 
   useEffect(() => {
     const handleFileAdded = (file: UppyFile) => {
@@ -273,7 +375,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       Title: metadata.title?.trim() || "",
       DocType: metadata.docType?.trim() || "General",
       Status: metadata.status?.trim() || "Draft",
-      Department: metadata.department?.trim() || "",
+      PrimaryGroupId: metadata.primaryGroupId || "",
+      GroupIds: JSON.stringify(metadata.groupIds ?? []),
       Sensitivity: metadata.sensitivity?.trim() || "Internal",
       Description: metadata.description?.trim() || "",
       Notes: metadata.notes?.trim() || "",
@@ -559,14 +662,97 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="department">Department</Label>
-                      <Input
-                        id="department"
-                        placeholder="Enter department"
-                        value={metadata.department}
-                        onChange={(e) => setMetadata((prev) => ({ ...prev, department: e.target.value }))}
-                      />
+                      <Label>Primary group</Label>
+                      <Select
+                        value={metadata.primaryGroupId ?? undefined}
+                        onValueChange={(value) =>
+                          handlePrimaryGroupChange(value === "__none__" ? null : value)
+                        }
+                        disabled={groups.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              groups.length ? "Select primary group" : "No groups available"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">No primary group</SelectItem>
+                          {groups.map((group) => (
+                            <SelectItem key={group.id} value={group.id}>
+                              {group.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {groups.length === 0
+                          ? "No groups available"
+                          : primaryGroupName
+                            ? `Current primary group: ${primaryGroupName}`
+                            : "Select a primary group"}
+                      </p>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Groups</Label>
+                    <Popover open={isGroupPickerOpen} onOpenChange={setGroupPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between",
+                            ((metadata.groupIds?.length ?? 0) === 0) && "text-muted-foreground",
+                          )}
+                          disabled={groups.length === 0}
+                        >
+                          {selectedGroupCount > 0
+                            ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
+                            : "Select groups"}
+                          <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[280px]" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search groups..." />
+                          <CommandEmpty>No groups found.</CommandEmpty>
+                          <CommandGroup>
+                            {groups.map((group) => {
+                              const isSelected = metadata.groupIds?.includes(group.id)
+                              return (
+                                <CommandItem
+                                  key={group.id}
+                                  value={group.id}
+                                  onSelect={() => {
+                                    toggleGroupSelection(group.id)
+                                    setGroupPickerOpen(true)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      isSelected ? "opacity-100" : "opacity-0",
+                                    )}
+                                  />
+                                  <span className="flex-1">{group.name}</span>
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedGroupNames.length > 0
+                        ? selectedGroupNames.join(", ")
+                        : selectedGroupCount > 0
+                          ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
+                          : "Selected groups will inherit access for uploaded files."}
+                    </p>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-3">

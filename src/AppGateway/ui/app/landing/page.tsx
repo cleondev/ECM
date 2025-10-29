@@ -287,7 +287,7 @@ export default function ECMLandingPage() {
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
               <div className="animate-slide-up space-y-6 sm:space-y-8">
                 <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground text-balance">
-                  Built for <span className="gradient-text">every department</span>
+                  Built for <span className="gradient-text">every group</span>
                 </h2>
                 <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed">
                   From HR to legal, finance to operations—ECM adapts to your team's unique workflows and

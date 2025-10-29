@@ -2,7 +2,18 @@
 
 import type React from "react"
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeft, Bell, Lock, Palette, Globe, Shield, Database, User as UserIcon } from "lucide-react"
+import {
+  ArrowLeft,
+  Bell,
+  Lock,
+  Palette,
+  Globe,
+  Shield,
+  Database,
+  User as UserIcon,
+  ChevronDown,
+  Check,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,13 +22,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { fetchCurrentUserProfile, updateCurrentUserProfile } from "@/lib/api"
-import type { User } from "@/lib/types"
+import { fetchCurrentUserProfile, updateCurrentUserProfile, fetchGroups } from "@/lib/api"
+import type { Group, User } from "@/lib/types"
 import { useTheme } from "@/hooks/use-theme"
 import type { ThemeId } from "@/hooks/use-theme"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import { cn } from "@/lib/utils"
 
 const LANDING_PAGE_ROUTE = "/"
 const APP_HOME_ROUTE = "/app/"
+
+type ProfileFormState = {
+  displayName: string
+  primaryGroupId: string | null
+  groupIds: string[]
+}
 
 export default function SettingsPage() {
   const { theme, setTheme, themes } = useTheme()
@@ -25,7 +51,13 @@ export default function SettingsPage() {
   const [pushNotifications, setPushNotifications] = useState(true)
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
   const [profile, setProfile] = useState<User | null>(null)
-  const [formValues, setFormValues] = useState({ displayName: "", department: "" })
+  const [formValues, setFormValues] = useState<ProfileFormState>({
+    displayName: "",
+    primaryGroupId: null,
+    groupIds: [],
+  })
+  const [groups, setGroups] = useState<Group[]>([])
+  const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
@@ -42,9 +74,15 @@ export default function SettingsPage() {
         }
 
         setProfile(data)
+        const normalizedGroups = Array.from(new Set(data.groupIds ?? []))
+        const primaryGroupId = data.primaryGroupId ?? normalizedGroups[0] ?? null
+        if (primaryGroupId && !normalizedGroups.includes(primaryGroupId)) {
+          normalizedGroups.unshift(primaryGroupId)
+        }
         setFormValues({
           displayName: data.displayName,
-          department: data.department ?? "",
+          primaryGroupId,
+          groupIds: normalizedGroups,
         })
       })
       .catch(() => {
@@ -57,20 +95,101 @@ export default function SettingsPage() {
     }
   }, [])
 
-  const handleInputChange = (field: "displayName" | "department") =>
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value
-      setFormValues((prev) => ({ ...prev, [field]: value }))
+  useEffect(() => {
+    let active = true
+
+    fetchGroups()
+      .then((data) => {
+        if (!active) return
+        setGroups(data)
+      })
+      .catch((error) => {
+        console.error("[ui] Failed to load groups for settings page:", error)
+        if (!active) return
+        setGroups([])
+      })
+
+    return () => {
+      active = false
     }
+  }, [])
+
+  const handleDisplayNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
+    setFormValues((prev) => ({ ...prev, displayName: value }))
+  }
 
   const handleReset = () => {
     if (!profile) return
+    const normalizedGroups = Array.from(new Set(profile.groupIds ?? []))
+    const primaryGroupId = profile.primaryGroupId ?? normalizedGroups[0] ?? null
+    if (primaryGroupId && !normalizedGroups.includes(primaryGroupId)) {
+      normalizedGroups.unshift(primaryGroupId)
+    }
     setFormValues({
       displayName: profile.displayName,
-      department: profile.department ?? "",
+      primaryGroupId,
+      groupIds: normalizedGroups,
     })
     setFeedback(null)
   }
+
+  const toggleGroupSelection = (groupId: string) => {
+    setFormValues((prev) => {
+      const nextGroupIds = new Set(prev.groupIds ?? [])
+      if (nextGroupIds.has(groupId)) {
+        nextGroupIds.delete(groupId)
+      } else {
+        nextGroupIds.add(groupId)
+      }
+
+      const normalized = Array.from(nextGroupIds)
+      const nextPrimary = prev.primaryGroupId && normalized.includes(prev.primaryGroupId)
+        ? prev.primaryGroupId
+        : normalized[0] ?? null
+
+      return {
+        ...prev,
+        groupIds: normalized,
+        primaryGroupId: nextPrimary,
+      }
+    })
+  }
+
+  const handlePrimaryGroupChange = (groupId: string | null) => {
+    setFormValues((prev) => {
+      const nextGroupIds = new Set(prev.groupIds ?? [])
+      if (groupId) {
+        nextGroupIds.add(groupId)
+      }
+
+      return {
+        ...prev,
+        primaryGroupId: groupId,
+        groupIds: Array.from(nextGroupIds),
+      }
+    })
+  }
+
+  const primaryGroupName = useMemo(() => {
+    if (!formValues.primaryGroupId) {
+      return ""
+    }
+
+    return groups.find((group) => group.id === formValues.primaryGroupId)?.name ?? ""
+  }, [formValues.primaryGroupId, groups])
+
+  const selectedGroupNames = useMemo(() => {
+    if (!formValues.groupIds.length) {
+      return [] as string[]
+    }
+
+    return formValues.groupIds
+      .map((groupId) => groups.find((group) => group.id === groupId)?.name)
+      .filter((name): name is string => Boolean(name))
+  }, [formValues.groupIds, groups])
+
+  const selectedGroupCount = formValues.groupIds.length
 
   const handleSave = async () => {
     if (!profile) return
@@ -81,13 +200,20 @@ export default function SettingsPage() {
     try {
       const updated = await updateCurrentUserProfile({
         displayName: formValues.displayName,
-        department: formValues.department,
+        primaryGroupId: formValues.primaryGroupId,
+        groupIds: formValues.groupIds,
       })
 
       setProfile(updated)
+      const normalizedGroups = Array.from(new Set(updated.groupIds ?? []))
+      const primaryGroupId = updated.primaryGroupId ?? normalizedGroups[0] ?? null
+      if (primaryGroupId && !normalizedGroups.includes(primaryGroupId)) {
+        normalizedGroups.unshift(primaryGroupId)
+      }
       setFormValues({
         displayName: updated.displayName,
-        department: updated.department ?? "",
+        primaryGroupId,
+        groupIds: normalizedGroups,
       })
       setFeedback({ type: "success", message: "Đã lưu thay đổi hồ sơ." })
     } catch (error) {
@@ -102,14 +228,19 @@ export default function SettingsPage() {
     if (!profile) return false
     const normalizedName = formValues.displayName.trim()
     const currentName = profile.displayName.trim()
-    const normalizedDepartment = formValues.department.trim()
-    const currentDepartment = (profile.department ?? "").trim()
+    const normalizedPrimary = formValues.primaryGroupId ?? null
+    const currentPrimary = profile.primaryGroupId ?? null
 
-    return (
-      normalizedName !== currentName ||
-      normalizedDepartment !== currentDepartment
-    )
-  }, [formValues.displayName, formValues.department, profile])
+    const normalizeGroupList = (list?: string[]) => Array.from(new Set(list ?? [])).sort()
+    const formGroupList = normalizeGroupList(formValues.groupIds)
+    const profileGroupList = normalizeGroupList(profile.groupIds)
+
+    const groupsChanged =
+      formGroupList.length !== profileGroupList.length ||
+      formGroupList.some((id, index) => id !== profileGroupList[index])
+
+    return normalizedName !== currentName || normalizedPrimary !== currentPrimary || groupsChanged
+  }, [formValues.displayName, formValues.groupIds, formValues.primaryGroupId, profile])
 
   const joinedDate = useMemo(() => {
     if (!profile?.createdAtUtc) {
@@ -205,7 +336,7 @@ export default function SettingsPage() {
                   <Input
                     id="settings-name"
                     value={formValues.displayName}
-                    onChange={handleInputChange("displayName")}
+                    onChange={handleDisplayNameChange}
                     placeholder="Your full name"
                   />
                 </div>
@@ -214,13 +345,91 @@ export default function SettingsPage() {
                   <Input id="settings-email" type="email" value={profile.email} readOnly disabled />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="settings-department">Department</Label>
-                  <Input
-                    id="settings-department"
-                    value={formValues.department}
-                    onChange={handleInputChange("department")}
-                    placeholder="Department"
-                  />
+                  <Label htmlFor="settings-primary-group">Primary group</Label>
+                  <Select
+                    value={formValues.primaryGroupId ?? undefined}
+                    onValueChange={(value) => handlePrimaryGroupChange(value === "__none__" ? null : value)}
+                    disabled={groups.length === 0}
+                  >
+                    <SelectTrigger id="settings-primary-group">
+                      <SelectValue
+                        placeholder={groups.length ? "Select primary group" : "No groups available"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No primary group</SelectItem>
+                      {groups.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {groups.length === 0
+                      ? "No groups available"
+                      : primaryGroupName
+                        ? `Current primary group: ${primaryGroupName}`
+                        : "Select a primary group"}
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Groups</Label>
+                  <Popover open={isGroupPickerOpen} onOpenChange={setGroupPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between",
+                          selectedGroupCount === 0 && "text-muted-foreground",
+                        )}
+                        disabled={groups.length === 0}
+                      >
+                        {selectedGroupCount > 0
+                          ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
+                          : "Select groups"}
+                        <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[280px]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search groups..." />
+                        <CommandEmpty>No groups found.</CommandEmpty>
+                        <CommandGroup>
+                          {groups.map((group) => {
+                            const isSelected = formValues.groupIds.includes(group.id)
+                            return (
+                              <CommandItem
+                                key={group.id}
+                                value={group.id}
+                                onSelect={() => {
+                                  toggleGroupSelection(group.id)
+                                  setGroupPickerOpen(true)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100" : "opacity-0",
+                                  )}
+                                />
+                                <span className="flex-1">{group.name}</span>
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedGroupNames.length > 0
+                      ? selectedGroupNames.join(", ")
+                      : selectedGroupCount > 0
+                        ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
+                        : "Assign groups to organize your documents"}
+                  </p>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="settings-joined">Joined</Label>
