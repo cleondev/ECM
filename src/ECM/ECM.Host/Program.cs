@@ -56,9 +56,20 @@ public static class Program
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
 
+        var azureAdSection = builder.Configuration.GetSection("AzureAd");
+        var azureInstance = azureAdSection["Instance"];
+        var azureTenantId = azureAdSection["TenantId"];
+
+        builder.Services.PostConfigure<MicrosoftIdentityOptions>(
+            JwtBearerDefaults.AuthenticationScheme,
+            options => options.Authority = AuthorityUtilities.EnsureV2Authority(
+                options.Authority,
+                options.TenantId,
+                options.Instance));
+
         builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
         {
-            options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority);
+            options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority, azureTenantId, azureInstance);
             options.Events ??= new JwtBearerEvents();
             var previousHandler = options.Events.OnTokenValidated;
 
