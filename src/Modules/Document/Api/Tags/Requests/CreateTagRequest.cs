@@ -1,4 +1,4 @@
-namespace ECM.Document.Api.Tags;
+namespace ECM.Document.Api.Tags.Requests;
 
 public sealed record CreateTagRequest(
     string NamespaceSlug,

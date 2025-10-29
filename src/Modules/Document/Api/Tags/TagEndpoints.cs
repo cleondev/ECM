@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using ECM.Document.Api;
+using ECM.Document.Api.Tags.Requests;
+using ECM.Document.Api.Tags.Responses;
 using ECM.Document.Application.Tags.Commands;
 using ECM.Document.Infrastructure.Persistence;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;

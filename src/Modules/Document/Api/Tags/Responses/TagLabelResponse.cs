@@ -1,4 +1,4 @@
-namespace ECM.Document.Api.Tags;
+namespace ECM.Document.Api.Tags.Responses;
 
 public sealed record TagLabelResponse(
     Guid Id,
