@@ -10,6 +10,7 @@ using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Roles;
 using ECM.IAM.Application.Users;
+using ECM.IAM.Domain.Groups;
 using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users;
 using Microsoft.Extensions.Logging;
@@ -61,16 +62,30 @@ public sealed class AzureAdUserProvisioningService(
         try
         {
             var existing = await _userRepository.GetByEmailAsync(email, cancellationToken);
-            var unitIdentifier = GetUnitIdentifier(principal);
-            if (!string.IsNullOrWhiteSpace(unitIdentifier))
+            var primaryGroupId = GetPrimaryGroupId(principal);
+            if (primaryGroupId.HasValue)
             {
                 _logger.LogInformation(
-                    "Resolved unit identifier {UnitIdentifier} for user {Email} during provisioning.",
-                    unitIdentifier,
+                    "Resolved primary group {PrimaryGroupId} for user {Email} during provisioning.",
+                    primaryGroupId.Value,
                     email);
             }
 
-            var (assignments, primaryGroupId) = BuildDefaultAssignments(unitIdentifier);
+            var claimedGroupIds = GetGroupIds(principal);
+            if (claimedGroupIds.Count > 0)
+            {
+                var summary = string.Join(
+                    ", ",
+                    claimedGroupIds.Select(id => id.ToString()));
+
+                _logger.LogInformation(
+                    "Resolved {GroupCount} group assignments from claims for user {Email}: {Groups}.",
+                    claimedGroupIds.Count,
+                    email,
+                    summary);
+            }
+
+            var assignments = BuildAssignments(claimedGroupIds, primaryGroupId);
 
             if (existing is not null)
             {
@@ -153,19 +168,36 @@ public sealed class AzureAdUserProvisioningService(
            ?? principal.Identity?.Name
            ?? fallback;
 
-    private static string? GetUnitIdentifier(ClaimsPrincipal principal)
-    {
-        var value = principal.FindFirst("department")?.Value;
-        return string.IsNullOrWhiteSpace(value) ? null : value;
-    }
-
     private static string? GetEmail(ClaimsPrincipal principal)
         => principal.FindFirst(ClaimTypes.Email)?.Value
            ?? principal.FindFirst("preferred_username")?.Value
            ?? principal.FindFirst("emails")?.Value
            ?? principal.FindFirst(ClaimTypes.Upn)?.Value;
 
-    private static (IReadOnlyCollection<GroupAssignment> Assignments, Guid? PrimaryGroupId) BuildDefaultAssignments(string? unitIdentifier)
+    private static Guid? GetPrimaryGroupId(ClaimsPrincipal principal)
+    {
+        var value = principal.FindFirst("primary_group_id")?.Value;
+        return Guid.TryParse(value, out var parsed) && parsed != Guid.Empty ? parsed : null;
+    }
+
+    private static IReadOnlyCollection<Guid> GetGroupIds(ClaimsPrincipal principal)
+    {
+        var ids = new HashSet<Guid>();
+
+        foreach (var claim in principal.FindAll("group_id"))
+        {
+            if (Guid.TryParse(claim.Value, out var parsed) && parsed != Guid.Empty)
+            {
+                ids.Add(parsed);
+            }
+        }
+
+        return ids.Count > 0 ? ids.ToArray() : Array.Empty<Guid>();
+    }
+
+    private static IReadOnlyCollection<GroupAssignment> BuildAssignments(
+        IReadOnlyCollection<Guid> claimedGroupIds,
+        Guid? primaryGroupId)
     {
         var assignments = new List<GroupAssignment>
         {
@@ -173,11 +205,28 @@ public sealed class AzureAdUserProvisioningService(
             GroupAssignment.Guest(),
         };
 
-        if (!string.IsNullOrWhiteSpace(unitIdentifier))
+        foreach (var groupId in claimedGroupIds)
         {
-            assignments.Add(GroupAssignment.Unit(unitIdentifier));
+            if (groupId == Guid.Empty)
+            {
+                continue;
+            }
+
+            if (groupId == GroupDefaults.SystemId || groupId == GroupDefaults.GuestId)
+            {
+                continue;
+            }
+
+            assignments.Add(GroupAssignment.ForExistingGroup(groupId));
         }
 
-        return (assignments, null);
+        if (primaryGroupId.HasValue
+            && primaryGroupId.Value != Guid.Empty
+            && assignments.All(assignment => assignment.GroupId != primaryGroupId.Value))
+        {
+            assignments.Add(GroupAssignment.ForExistingGroup(primaryGroupId.Value));
+        }
+
+        return assignments;
     }
 }

@@ -52,15 +52,30 @@ public sealed class AzureAdUserProvisioningService(
             }
 
             var displayName = GetDisplayName(principal, email);
-            var unitIdentifier = GetUnitIdentifier(principal);
-            if (!string.IsNullOrWhiteSpace(unitIdentifier))
+            var primaryGroupIdClaim = GetPrimaryGroupId(principal);
+            if (primaryGroupIdClaim.HasValue)
             {
                 _logger.LogInformation(
-                    "Resolved unit identifier {UnitIdentifier} for user {Email} during provisioning.",
-                    unitIdentifier.Trim(),
+                    "Resolved primary group {PrimaryGroupId} for user {Email} during provisioning.",
+                    primaryGroupIdClaim.Value,
                     email);
             }
-            var (groupIds, primaryGroupId) = BuildGroupSelection(unitIdentifier);
+
+            var claimGroupIds = GetGroupIds(principal);
+            if (claimGroupIds.Count > 0)
+            {
+                var summary = string.Join(
+                    ", ",
+                    claimGroupIds.Select(id => id.ToString()));
+
+                _logger.LogInformation(
+                    "Resolved {GroupCount} group assignments from claims for user {Email}: {Groups}.",
+                    claimGroupIds.Count,
+                    email,
+                    summary);
+            }
+
+            var (groupIds, primaryGroupId) = BuildGroupSelection(claimGroupIds, primaryGroupIdClaim);
             var roleIds = await ResolveDefaultRoleIdsAsync(cancellationToken);
 
             if (groupIds.Count > 0)
@@ -148,13 +163,30 @@ public sealed class AzureAdUserProvisioningService(
            ?? principal.Identity?.Name
            ?? fallback;
 
-    private static string? GetUnitIdentifier(ClaimsPrincipal principal)
+    private static Guid? GetPrimaryGroupId(ClaimsPrincipal principal)
     {
-        var value = principal.FindFirst("department")?.Value;
-        return string.IsNullOrWhiteSpace(value) ? null : value;
+        var value = principal.FindFirst("primary_group_id")?.Value;
+        return Guid.TryParse(value, out var parsed) && parsed != Guid.Empty ? parsed : null;
     }
 
-    private static (IReadOnlyCollection<Guid> GroupIds, Guid? PrimaryGroupId) BuildGroupSelection(string? unitIdentifier)
+    private static IReadOnlyCollection<Guid> GetGroupIds(ClaimsPrincipal principal)
+    {
+        var ids = new HashSet<Guid>();
+
+        foreach (var claim in principal.FindAll("group_id"))
+        {
+            if (Guid.TryParse(claim.Value, out var parsed) && parsed != Guid.Empty)
+            {
+                ids.Add(parsed);
+            }
+        }
+
+        return ids.Count > 0 ? ids.ToArray() : Array.Empty<Guid>();
+    }
+
+    private static (IReadOnlyCollection<Guid> GroupIds, Guid? PrimaryGroupId) BuildGroupSelection(
+        IReadOnlyCollection<Guid> claimedGroupIds,
+        Guid? primaryGroupId)
     {
         var groupIds = new List<Guid>
         {
@@ -162,12 +194,20 @@ public sealed class AzureAdUserProvisioningService(
             GroupDefaultIds.Guest
         };
 
-        if (!string.IsNullOrWhiteSpace(unitIdentifier))
+        foreach (var groupId in claimedGroupIds)
         {
-            // Unit identifiers are logged for observability but require manual mapping to group ids.
+            if (!groupIds.Contains(groupId))
+            {
+                groupIds.Add(groupId);
+            }
         }
 
-        return (groupIds, null);
+        if (primaryGroupId.HasValue && !groupIds.Contains(primaryGroupId.Value))
+        {
+            groupIds.Add(primaryGroupId.Value);
+        }
+
+        return (groupIds, primaryGroupId);
     }
 
     private static string? GetEmail(ClaimsPrincipal principal)
