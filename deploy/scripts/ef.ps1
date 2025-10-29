@@ -1,6 +1,6 @@
 param(
   [Parameter(Mandatory=$true)]
-  [ValidateSet("add","update","script","list","rollback","miglist","diag","scan")] [string]$Action,
+  [ValidateSet("add","update","script","list","rollback","miglist","diag","scan","remove")] [string]$Action,
 
   [Parameter(Mandatory=$false)]
   [ValidateSet("iam","document","file","ocr","operations","operation","all")] [string]$Module,
@@ -76,7 +76,6 @@ switch ($Action) {
     }
     Write-Host "Database update completed."
   }
-
   "rollback" {
     if (-not $Name) { throw "Missing -Name (target migration, e.g., 0 or 20251017_AddX)" }
     foreach ($t in (Get-Targets $Module)) {
@@ -119,6 +118,16 @@ switch ($Action) {
     foreach ($t in (Get-Targets $Module)) {
       Write-Host "`n=== Available migrations for: $($t.Key) ==="
       dotnet ef migrations list `
+        --context $t.Ctx `
+        --project $t.Proj `
+        --startup-project $startup `
+        --configuration $Configuration `
+    }
+  }
+   "remove" {
+    foreach ($t in (Get-Targets $Module)) {
+      Write-Host "`n=== Available migrations for: $($t.Key) ==="
+      dotnet ef migrations remove `
         --context $t.Ctx `
         --project $t.Proj `
         --startup-project $startup `

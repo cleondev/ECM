@@ -33,7 +33,7 @@ public sealed class ShareLinkEntityConfiguration : IEntityTypeConfiguration<Shar
 
         builder.Property(link => link.SubjectType)
             .HasColumnName("subject_type")
-            .HasColumnType("share_subject")
+            .HasColumnType("text")
             .IsRequired();
 
         builder.Property(link => link.SubjectId)
@@ -41,7 +41,7 @@ public sealed class ShareLinkEntityConfiguration : IEntityTypeConfiguration<Shar
 
         builder.Property(link => link.Permissions)
             .HasColumnName("permissions")
-            .HasColumnType("share_perm[]")
+            .HasColumnType("text[]")
             .HasConversion(
                 value => value,
                 value => value ?? Array.Empty<string>());
