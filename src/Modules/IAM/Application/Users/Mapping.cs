@@ -26,12 +26,19 @@ internal static class Mapping
                 member.Group?.ParentGroupId))
             .ToArray();
 
+        var groupIds = user.Groups
+            .Select(member => member.GroupId)
+            .Distinct()
+            .ToArray();
+
         return new UserSummaryResult(
             user.Id,
             user.Email,
             user.DisplayName,
             user.IsActive,
             user.CreatedAtUtc,
+            user.PrimaryGroupId,
+            groupIds,
             roles,
             groups);
     }

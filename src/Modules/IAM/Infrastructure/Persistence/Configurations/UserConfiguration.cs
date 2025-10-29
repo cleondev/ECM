@@ -32,6 +32,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasColumnName("is_active")
             .HasDefaultValue(true);
 
+        builder.Property(user => user.PrimaryGroupId)
+            .HasColumnName("primary_group_id");
+
         builder.Property(user => user.CreatedAtUtc)
             .HasColumnName("created_at")
             .HasColumnType("timestamptz")

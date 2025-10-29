@@ -38,7 +38,6 @@ type UserSummaryResponse = {
   id: string
   email: string
   displayName: string
-  department?: string | null
   isActive?: boolean
   createdAtUtc?: string
   roles?: RoleSummaryResponse[]

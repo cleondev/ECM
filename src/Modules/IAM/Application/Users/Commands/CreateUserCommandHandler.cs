@@ -79,23 +79,42 @@ public sealed class CreateUserCommandHandler(
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        var groups = BuildGroupAssignments(command.Groups);
-        await _groupService.EnsureUserGroupsAsync(user, groups, cancellationToken);
+        await _defaultGroupAssignmentService.AssignAsync(user, cancellationToken);
+
+        var assignments = BuildAssignments(command.GroupIds, command.PrimaryGroupId);
+        await _groupService.EnsureUserGroupsAsync(user, assignments, command.PrimaryGroupId, cancellationToken);
 
         return OperationResult<UserSummaryResult>.Success(user.ToResult());
     }
 
-    private static IReadOnlyCollection<GroupAssignment> BuildGroupAssignments(IReadOnlyCollection<GroupAssignment> requested)
+    private static IReadOnlyCollection<GroupAssignment> BuildAssignments(
+        IReadOnlyCollection<Guid> groupIds,
+        Guid? primaryGroupId)
     {
-        var assignments = new List<GroupAssignment>
-        {
-            GroupAssignment.System(),
-            GroupAssignment.Guest(),
-        };
+        var assignments = new List<GroupAssignment>();
+        var seen = new HashSet<Guid>();
 
-        if (requested is { Count: > 0 })
+        if (groupIds is { Count: > 0 })
         {
-            assignments.AddRange(requested.Select(assignment => assignment.Normalize()));
+            foreach (var groupId in groupIds)
+            {
+                if (groupId == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (seen.Add(groupId))
+                {
+                    assignments.Add(GroupAssignment.ForExistingGroup(groupId));
+                }
+            }
+        }
+
+        if (primaryGroupId.HasValue
+            && primaryGroupId.Value != Guid.Empty
+            && seen.Add(primaryGroupId.Value))
+        {
+            assignments.Add(GroupAssignment.ForExistingGroup(primaryGroupId.Value));
         }
 
         return assignments;

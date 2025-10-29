@@ -1,7 +1,7 @@
+using System;
 using System.Security.Claims;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.Documents;
-using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -83,14 +83,14 @@ public class AzureAdUserProvisioningServiceTests
         client.CreateUserCalls.Should().Be(1);
         client.LastCreateRequest.Should().NotBeNull();
         client.LastCreateRequest!.RoleIds.Should().ContainSingle().Which.Should().Be(role.Id);
-        client.LastCreateRequest!.Groups
+        client.LastCreateRequest!.GroupIds
             .Should()
             .BeEquivalentTo(new[]
             {
-                new GroupAssignmentDto { GroupId = GroupDefaultIds.System, Kind = "system", Role = "member", Identifier = null, ParentGroupId = null },
-                new GroupAssignmentDto { GroupId = GroupDefaultIds.Guest, Kind = "system", Role = "member", Identifier = null, ParentGroupId = null },
-            },
-            options => options.ComparingByMembers<GroupAssignmentDto>());
+                GroupDefaultIds.System,
+                GroupDefaultIds.Guest
+            });
+        client.LastCreateRequest!.PrimaryGroupId.Should().BeNull();
     }
 
     [Fact]
@@ -109,9 +109,10 @@ public class AzureAdUserProvisioningServiceTests
 
         result.Should().Be(createdUser);
         client.LastCreateRequest.Should().NotBeNull();
-        client.LastCreateRequest!.Groups.Should().ContainEquivalentOf(
-            new GroupAssignmentDto { Identifier = "Finance", Kind = "unit", Role = "member" },
-            options => options.ComparingByMembers<GroupAssignmentDto>());
+        client.LastCreateRequest!.GroupIds
+            .Should()
+            .Contain(new[] { GroupDefaultIds.System, GroupDefaultIds.Guest });
+        client.LastCreateRequest!.PrimaryGroupId.Should().BeNull();
     }
 
     [Fact]
@@ -179,7 +180,7 @@ public class AzureAdUserProvisioningServiceTests
     }
 
     private static UserSummaryDto CreateUserSummary()
-        => new(Guid.NewGuid(), "user@example.com", "User", true, DateTimeOffset.UtcNow, [], []);
+        => new(Guid.NewGuid(), "user@example.com", "User", true, DateTimeOffset.UtcNow, null, Array.Empty<Guid>(), [], []);
 
     private sealed class FakeEcmApiClient : IEcmApiClient
     {

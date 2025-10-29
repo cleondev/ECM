@@ -49,4 +49,14 @@ public sealed record GroupAssignment(
         string role = "member",
         Guid? parentGroupId = null)
         => new GroupAssignment(groupId, identifier, GroupKindExtensions.FromString(kind), parentGroupId, role).Normalize();
+
+    public static GroupAssignment ForExistingGroup(Guid groupId)
+    {
+        if (groupId == Guid.Empty)
+        {
+            throw new ArgumentException("Group id is required.", nameof(groupId));
+        }
+
+        return new GroupAssignment(groupId, null, GroupKind.System);
+    }
 }

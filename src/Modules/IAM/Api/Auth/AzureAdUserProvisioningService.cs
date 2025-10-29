@@ -70,11 +70,11 @@ public sealed class AzureAdUserProvisioningService(
                     email);
             }
 
-            var assignments = BuildDefaultAssignments(unitIdentifier);
+            var (assignments, primaryGroupId) = BuildDefaultAssignments(unitIdentifier);
 
             if (existing is not null)
             {
-                await _groupService.EnsureUserGroupsAsync(existing, assignments, cancellationToken);
+                await _groupService.EnsureUserGroupsAsync(existing, assignments, primaryGroupId, cancellationToken);
                 return;
             }
 
@@ -93,7 +93,7 @@ public sealed class AzureAdUserProvisioningService(
 
             await _userRepository.AddAsync(user, cancellationToken);
 
-            await _groupService.EnsureUserGroupsAsync(user, assignments, cancellationToken);
+            await _groupService.EnsureUserGroupsAsync(user, assignments, primaryGroupId, cancellationToken);
 
             var roleDescription = roles.Count > 0
                 ? string.Join(", ", roles.Select(role => role.Name))
@@ -165,7 +165,7 @@ public sealed class AzureAdUserProvisioningService(
            ?? principal.FindFirst("emails")?.Value
            ?? principal.FindFirst(ClaimTypes.Upn)?.Value;
 
-    private static IReadOnlyCollection<GroupAssignment> BuildDefaultAssignments(string? unitIdentifier)
+    private static (IReadOnlyCollection<GroupAssignment> Assignments, Guid? PrimaryGroupId) BuildDefaultAssignments(string? unitIdentifier)
     {
         var assignments = new List<GroupAssignment>
         {
@@ -178,6 +178,6 @@ public sealed class AzureAdUserProvisioningService(
             assignments.Add(GroupAssignment.Unit(unitIdentifier));
         }
 
-        return assignments;
+        return (assignments, null);
     }
 }
