@@ -1,7 +1,7 @@
 using System;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Requests;
 
 public sealed record ListDocumentsRequest(
     [property: FromQuery(Name = "q")] string? Query,

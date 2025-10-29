@@ -1,7 +1,7 @@
 using System;
 using System.Security.Claims;
 
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Extensions;
 
 internal static class ClaimsPrincipalExtensions
 {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ECM.Document.Api.Documents;
+namespace ECM.Document.Api.Documents.Responses;
 
 public sealed record DocumentListResponse(
     int Page,
