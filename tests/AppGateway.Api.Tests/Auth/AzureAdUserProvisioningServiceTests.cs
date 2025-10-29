@@ -94,7 +94,7 @@ public class AzureAdUserProvisioningServiceTests
     }
 
     [Fact]
-    public async Task EnsureUserExistsAsync_IncludesUnitAssignment_WhenIdentifierPresent()
+    public async Task EnsureUserExistsAsync_IncludesClaimedGroups_WhenPresent()
     {
         var createdUser = CreateUserSummary();
         var client = new FakeEcmApiClient
@@ -103,7 +103,13 @@ public class AzureAdUserProvisioningServiceTests
         };
 
         var service = CreateService(client: client);
-        var principal = CreatePrincipal(createdUser.Email, createdUser.DisplayName, unitIdentifier: "Finance");
+        var primaryGroupId = Guid.NewGuid();
+        var additionalGroupId = Guid.NewGuid();
+        var principal = CreatePrincipal(
+            createdUser.Email,
+            createdUser.DisplayName,
+            primaryGroupId: primaryGroupId,
+            groupIds: new[] { additionalGroupId });
 
         var result = await service.EnsureUserExistsAsync(principal, CancellationToken.None);
 
@@ -111,8 +117,8 @@ public class AzureAdUserProvisioningServiceTests
         client.LastCreateRequest.Should().NotBeNull();
         client.LastCreateRequest!.GroupIds
             .Should()
-            .Contain(new[] { GroupDefaultIds.System, GroupDefaultIds.Guest });
-        client.LastCreateRequest!.PrimaryGroupId.Should().BeNull();
+            .Contain(new[] { GroupDefaultIds.System, GroupDefaultIds.Guest, additionalGroupId, primaryGroupId });
+        client.LastCreateRequest!.PrimaryGroupId.Should().Be(primaryGroupId);
     }
 
     [Fact]
@@ -167,14 +173,24 @@ public class AzureAdUserProvisioningServiceTests
         string email,
         string name,
         string claimType = ClaimTypes.Email,
-        string? unitIdentifier = null)
+        Guid? primaryGroupId = null,
+        Guid[]? groupIds = null)
     {
         var identity = new ClaimsIdentity();
         identity.AddClaim(new Claim(claimType, email));
         identity.AddClaim(new Claim("name", name));
-        if (!string.IsNullOrWhiteSpace(unitIdentifier))
+        if (primaryGroupId.HasValue)
         {
-            identity.AddClaim(new Claim("department", unitIdentifier));
+            identity.AddClaim(new Claim("primary_group_id", primaryGroupId.Value.ToString()));
+            identity.AddClaim(new Claim("group_id", primaryGroupId.Value.ToString()));
+        }
+
+        if (groupIds is not null)
+        {
+            foreach (var groupId in groupIds)
+            {
+                identity.AddClaim(new Claim("group_id", groupId.ToString()));
+            }
         }
         return new ClaimsPrincipal(identity);
     }

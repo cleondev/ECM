@@ -130,13 +130,23 @@ public sealed class IamAuthenticationController(
         identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         identity.AddClaim(new Claim("preferred_username", user.Email));
 
-        var department = user.Groups?
-            .FirstOrDefault(group => string.Equals(group.Kind, "unit", StringComparison.OrdinalIgnoreCase))?
-            .Name;
-
-        if (!string.IsNullOrWhiteSpace(department))
+        if (user.PrimaryGroupId.HasValue && user.PrimaryGroupId.Value != Guid.Empty)
         {
-            identity.AddClaim(new Claim("department", department));
+            identity.AddClaim(new Claim("primary_group_id", user.PrimaryGroupId.Value.ToString()));
+
+            var primaryGroupName = user.Groups?
+                .FirstOrDefault(group => group.Id == user.PrimaryGroupId.Value)?
+                .Name;
+
+            if (!string.IsNullOrWhiteSpace(primaryGroupName))
+            {
+                identity.AddClaim(new Claim("primary_group_name", primaryGroupName));
+            }
+        }
+
+        foreach (var groupId in user.GroupIds?.Where(id => id != Guid.Empty).Distinct() ?? Array.Empty<Guid>())
+        {
+            identity.AddClaim(new Claim("group_id", groupId.ToString()));
         }
 
         foreach (var role in user.Roles ?? Array.Empty<RoleSummaryDto>())
