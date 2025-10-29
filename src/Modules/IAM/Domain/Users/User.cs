@@ -52,6 +52,8 @@ public sealed class User : IHasDomainEvents
 
     public IReadOnlyCollection<GroupMember> Groups => _groups.AsReadOnly();
 
+    public Guid? PrimaryGroupId { get; private set; }
+
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     public bool HasRole(Guid roleId) => _roles.Any(link => link.RoleId == roleId);
@@ -143,6 +145,17 @@ public sealed class User : IHasDomainEvents
 
         _groups.Clear();
         _groups.AddRange(memberships);
+    }
+
+    public void SetPrimaryGroup(Guid? groupId)
+    {
+        if (groupId.HasValue && groupId.Value == Guid.Empty)
+        {
+            PrimaryGroupId = null;
+            return;
+        }
+
+        PrimaryGroupId = groupId;
     }
 
     private void Raise(IDomainEvent domainEvent)

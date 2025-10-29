@@ -53,15 +53,21 @@ public sealed class AzureAdUserProvisioningService(
 
             var displayName = GetDisplayName(principal, email);
             var unitIdentifier = GetUnitIdentifier(principal);
-            var groups = BuildGroupAssignments(unitIdentifier);
+            if (!string.IsNullOrWhiteSpace(unitIdentifier))
+            {
+                _logger.LogInformation(
+                    "Resolved unit identifier {UnitIdentifier} for user {Email} during provisioning.",
+                    unitIdentifier.Trim(),
+                    email);
+            }
+            var (groupIds, primaryGroupId) = BuildGroupSelection(unitIdentifier);
             var roleIds = await ResolveDefaultRoleIdsAsync(cancellationToken);
 
-            if (groups.Count > 0)
+            if (groupIds.Count > 0)
             {
                 var groupSummary = string.Join(
                     ", ",
-                    groups.Select(group =>
-                        group.GroupId?.ToString() ?? group.Identifier ?? "<unspecified>"));
+                    groupIds.Select(id => id.ToString()));
 
                 _logger.LogInformation(
                     "Automatically assigning IAM groups {Groups} to provisioned user {Email}.",
@@ -73,7 +79,8 @@ public sealed class AzureAdUserProvisioningService(
             {
                 Email = email,
                 DisplayName = displayName,
-                Groups = groups,
+                GroupIds = groupIds,
+                PrimaryGroupId = primaryGroupId,
                 IsActive = true,
                 Password = null,
                 RoleIds = roleIds
@@ -147,35 +154,20 @@ public sealed class AzureAdUserProvisioningService(
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    private static IReadOnlyCollection<GroupAssignmentDto> BuildGroupAssignments(string? unitIdentifier)
+    private static (IReadOnlyCollection<Guid> GroupIds, Guid? PrimaryGroupId) BuildGroupSelection(string? unitIdentifier)
     {
-        var assignments = new List<GroupAssignmentDto>
+        var groupIds = new List<Guid>
         {
-            new()
-            {
-                GroupId = GroupDefaultIds.System,
-                Kind = "system",
-                Role = "member"
-            },
-            new()
-            {
-                GroupId = GroupDefaultIds.Guest,
-                Kind = "system",
-                Role = "member"
-            }
+            GroupDefaultIds.System,
+            GroupDefaultIds.Guest
         };
 
         if (!string.IsNullOrWhiteSpace(unitIdentifier))
         {
-            assignments.Add(new GroupAssignmentDto
-            {
-                Identifier = unitIdentifier.Trim(),
-                Kind = "unit",
-                Role = "member"
-            });
+            // Unit identifiers are logged for observability but require manual mapping to group ids.
         }
 
-        return assignments;
+        return (groupIds, null);
     }
 
     private static string? GetEmail(ClaimsPrincipal principal)

@@ -11,5 +11,7 @@ public sealed record UserResponse(
     string DisplayName,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
+    Guid? PrimaryGroupId,
+    IReadOnlyCollection<Guid> GroupIds,
     IReadOnlyCollection<RoleResponse> Roles,
     IReadOnlyCollection<GroupResponse> Groups);

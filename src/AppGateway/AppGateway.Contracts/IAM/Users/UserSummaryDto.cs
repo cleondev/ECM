@@ -11,5 +11,7 @@ public sealed record UserSummaryDto(
     string DisplayName,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
+    Guid? PrimaryGroupId,
+    IReadOnlyCollection<Guid> GroupIds,
     IReadOnlyCollection<RoleSummaryDto> Roles,
     IReadOnlyCollection<GroupSummaryDto> Groups);

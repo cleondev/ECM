@@ -27,6 +27,7 @@ public sealed class GroupService(
     public async Task EnsureUserGroupsAsync(
         User user,
         IReadOnlyCollection<GroupAssignment> assignments,
+        Guid? primaryGroupId,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
@@ -35,7 +36,17 @@ public sealed class GroupService(
         var normalizedAssignments = assignments
             .Where(assignment => assignment is not null)
             .Select(assignment => assignment.Normalize())
-            .ToArray();
+            .ToList();
+
+        var normalizedPrimaryGroupId = primaryGroupId.HasValue && primaryGroupId.Value != Guid.Empty
+            ? primaryGroupId.Value
+            : (Guid?)null;
+
+        if (normalizedPrimaryGroupId.HasValue
+            && normalizedAssignments.All(assignment => assignment.GroupId != normalizedPrimaryGroupId))
+        {
+            normalizedAssignments.Add(GroupAssignment.ForExistingGroup(normalizedPrimaryGroupId.Value).Normalize());
+        }
 
         var dedupedAssignments = new List<GroupAssignment>();
         var seenGroupIds = new HashSet<Guid>();
@@ -254,6 +265,34 @@ public sealed class GroupService(
             .ToListAsync(cancellationToken);
 
         user.SyncGroups(refreshedMemberships);
+
+        Guid? resolvedPrimaryGroupId = null;
+
+        if (normalizedPrimaryGroupId.HasValue
+            && refreshedMemberships.Any(member => member.GroupId == normalizedPrimaryGroupId.Value))
+        {
+            resolvedPrimaryGroupId = normalizedPrimaryGroupId.Value;
+        }
+        else if (user.PrimaryGroupId.HasValue
+            && refreshedMemberships.Any(member => member.GroupId == user.PrimaryGroupId.Value))
+        {
+            resolvedPrimaryGroupId = user.PrimaryGroupId;
+        }
+        else
+        {
+            resolvedPrimaryGroupId = refreshedMemberships
+                .Where(member => member.Group is not null && member.Group.Kind == GroupKind.Unit)
+                .Select(member => (Guid?)member.GroupId)
+                .FirstOrDefault();
+        }
+
+        var existingPrimaryGroupId = user.PrimaryGroupId;
+        user.SetPrimaryGroup(resolvedPrimaryGroupId);
+
+        if (existingPrimaryGroupId != user.PrimaryGroupId)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static string? BuildIdentifierKey(string? identifier, Guid? parentGroupId)

@@ -25,6 +25,8 @@ internal static class UserResponseMapper
             summary.DisplayName,
             summary.IsActive,
             summary.CreatedAtUtc,
+            summary.PrimaryGroupId,
+            summary.GroupIds,
             roles,
             groups);
     }
