@@ -79,16 +79,13 @@ public sealed class CreateUserCommandHandler(
 
         await _userRepository.AddAsync(user, cancellationToken);
 
-        var groups = BuildGroupAssignments(command.Department);
-        if (groups.Count > 0)
-        {
-            await _groupService.EnsureUserGroupsAsync(user, groups, cancellationToken);
-        }
+        var groups = BuildGroupAssignments(command.Groups);
+        await _groupService.EnsureUserGroupsAsync(user, groups, cancellationToken);
 
         return OperationResult<UserSummaryResult>.Success(user.ToResult());
     }
 
-    private static IReadOnlyCollection<GroupAssignment> BuildGroupAssignments(string? department)
+    private static IReadOnlyCollection<GroupAssignment> BuildGroupAssignments(IReadOnlyCollection<GroupAssignment> requested)
     {
         var assignments = new List<GroupAssignment>
         {
@@ -96,9 +93,9 @@ public sealed class CreateUserCommandHandler(
             GroupAssignment.Guest(),
         };
 
-        if (!string.IsNullOrWhiteSpace(department))
+        if (requested is { Count: > 0 })
         {
-            assignments.Add(GroupAssignment.Unit(department));
+            assignments.AddRange(requested.Select(assignment => assignment.Normalize()));
         }
 
         return assignments;

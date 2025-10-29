@@ -23,7 +23,6 @@ internal static class UserResponseMapper
             summary.Id,
             summary.Email,
             summary.DisplayName,
-            summary.Department,
             summary.IsActive,
             summary.CreatedAtUtc,
             roles,

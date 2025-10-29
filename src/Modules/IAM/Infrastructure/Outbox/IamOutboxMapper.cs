@@ -37,7 +37,6 @@ internal static class IamOutboxMapper
             domainEvent.UserId,
             domainEvent.Email,
             domainEvent.DisplayName,
-            domainEvent.Department,
             domainEvent.IsActive,
             domainEvent.OccurredAtUtc);
 

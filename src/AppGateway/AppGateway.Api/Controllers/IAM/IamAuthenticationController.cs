@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Threading;
@@ -129,9 +130,13 @@ public sealed class IamAuthenticationController(
         identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         identity.AddClaim(new Claim("preferred_username", user.Email));
 
-        if (!string.IsNullOrWhiteSpace(user.Department))
+        var department = user.Groups?
+            .FirstOrDefault(group => string.Equals(group.Kind, "unit", StringComparison.OrdinalIgnoreCase))?
+            .Name;
+
+        if (!string.IsNullOrWhiteSpace(department))
         {
-            identity.AddClaim(new Claim("department", user.Department));
+            identity.AddClaim(new Claim("department", department));
         }
 
         foreach (var role in user.Roles ?? Array.Empty<RoleSummaryDto>())
