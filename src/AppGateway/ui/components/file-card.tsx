@@ -3,7 +3,7 @@
 import { useRef } from "react"
 import type React from "react"
 
-import type { FileItem } from "./file-manager"
+import type { FileItem } from "@/lib/types"
 import { Download, Edit3, FileText, GitBranch, MoreVertical, Share2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -29,7 +29,7 @@ type FileCardProps = {
   actionsDisabled?: boolean
 }
 
-const statusColors = {
+const statusColors: Record<NonNullable<FileItem['status']>, string> = {
   "in-progress": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
   completed: "bg-green-500/10 text-green-700 dark:text-green-400",
   draft: "bg-gray-500/10 text-gray-700 dark:text-gray-400",
@@ -62,9 +62,11 @@ export function FileCard({
         >
           <div className="aspect-[4/3] w-full bg-muted/70 flex items-center justify-center relative">
             <FileTypeIcon file={file} size="lg" />
-            {file.status && (
-              <Badge className={cn("absolute top-2 right-2 text-xs", statusColors[file.status])}>{file.status}</Badge>
-            )}
+            {file.status ? (
+              <Badge className={cn("absolute top-2 right-2 text-xs", statusColors[file.status])}>
+                {file.status}
+              </Badge>
+            ) : null}
           </div>
 
           <div className="px-4 py-3 sm:p-4 flex-1 flex flex-col gap-2">
@@ -112,7 +114,7 @@ export function FileCard({
         </button>
       </ContextMenuTrigger>
 
-      <ContextMenuContent className="w-48" align="end">
+      <ContextMenuContent className="w-48">
         <ContextMenuItem onSelect={() => onDownload?.()} disabled={actionsDisabled || !file.latestVersionId}>
           <Download className="h-4 w-4" />
           Download

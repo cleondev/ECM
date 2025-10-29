@@ -561,8 +561,8 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
         open={isTagDialogOpen}
         onOpenChange={setIsTagDialogOpen}
         mode={dialogMode}
-        editingTag={editingTag}
-        parentTag={parentTag}
+        editingTag={editingTag ?? undefined}
+        parentTag={parentTag ?? undefined}
         onSave={handleSaveTag}
       />
     </div>
