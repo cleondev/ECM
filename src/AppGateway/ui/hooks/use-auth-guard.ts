@@ -22,6 +22,20 @@ type AuthGuardState = {
 export function useAuthGuard(targetPath: string): AuthGuardState {
   const router = useRouter()
   const normalizedTargetPath = normalizeRedirectTarget(targetPath, APP_HOME_FALLBACK)
+
+  useEffect(() => {
+    const locationSnapshot =
+      typeof window === "undefined"
+        ? "(window unavailable)"
+        : `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+    console.debug(
+      "[auth] Khởi tạo useAuthGuard với targetPath=%s, normalizedTargetPath=%s, currentLocation=%s",
+      targetPath,
+      normalizedTargetPath,
+      locationSnapshot,
+    )
+  }, [targetPath, normalizedTargetPath])
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const cached = getCachedAuthSnapshot()
     return cached?.isAuthenticated ?? false
@@ -32,6 +46,16 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
     let active = true
 
     const redirectToLanding = () => {
+      const locationSnapshot =
+        typeof window === "undefined"
+          ? "(window unavailable)"
+          : `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+      console.debug(
+        "[auth] redirectToLanding() được gọi tại vị trí hiện tại=%s cho guard hướng tới %s.",
+        locationSnapshot,
+        normalizedTargetPath,
+      )
       clearCachedAuthSnapshot()
       setIsAuthenticated(false)
       router.replace(LANDING_REDIRECT)
@@ -39,8 +63,9 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
 
     const verify = async () => {
       console.debug(
-        "[auth] Bắt đầu xác thực quyền truy cập cho đường dẫn:",
+        "[auth] Bắt đầu xác thực quyền truy cập cho đường dẫn=%s (targetPath=%s).",
         normalizedTargetPath,
+        targetPath,
       )
       try {
         const profile = await fetchCurrentUserProfile()

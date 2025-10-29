@@ -385,7 +385,15 @@ function mapUserSummaryToUser(profile: UserSummaryResponse): User {
 
 export async function fetchCurrentUserProfile(): Promise<User | null> {
   try {
-    console.debug("[ui] Bắt đầu gọi /api/iam/profile để lấy hồ sơ người dùng hiện tại.")
+    const locationSnapshot =
+      typeof window === "undefined"
+        ? "(window unavailable)"
+        : `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+    console.debug(
+      "[ui] Bắt đầu gọi /api/iam/profile để lấy hồ sơ người dùng hiện tại (pageLocation=%s).",
+      locationSnapshot,
+    )
     const response = await gatewayFetch("/api/iam/profile")
 
     console.debug(

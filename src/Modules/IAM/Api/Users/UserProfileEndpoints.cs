@@ -37,11 +37,18 @@ public static class UserProfileEndpoints
     }
 
     private static async Task<Results<Ok<UserResponse>, NotFound>> GetProfileAsync(
+        HttpContext httpContext,
         ClaimsPrincipal principal,
         GetUserByEmailQueryHandler handler,
-        ILogger<LoggerCategory> logger,
+        ILogger<UserProfileEndpoints> logger,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation(
+            "Profile API GET hit for {Method} {Path}{Query}.",
+            httpContext.Request.Method,
+            httpContext.Request.Path,
+            httpContext.Request.QueryString);
+
         logger.LogInformation(
             "Handling profile retrieval for principal {Name} with auth type {AuthType}.",
             principal.Identity?.Name ?? "(unknown)",
@@ -71,11 +78,18 @@ public static class UserProfileEndpoints
 
     private static async Task<Results<Ok<UserResponse>, NotFound, ValidationProblem>> UpdateProfileAsync(
         UpdateUserProfileRequest request,
+        HttpContext httpContext,
         ClaimsPrincipal principal,
         UpdateUserProfileCommandHandler handler,
-        ILogger<LoggerCategory> logger,
+        ILogger<UserProfileEndpoints> logger,
         CancellationToken cancellationToken)
     {
+        logger.LogInformation(
+            "Profile API PUT hit for {Method} {Path}{Query}.",
+            httpContext.Request.Method,
+            httpContext.Request.Path,
+            httpContext.Request.QueryString);
+
         logger.LogInformation(
             "Handling profile update for principal {Name} with auth type {AuthType}.",
             principal.Identity?.Name ?? "(unknown)",
@@ -211,8 +225,4 @@ public static class UserProfileEndpoints
 
     private static bool IsLikelyEmail(string value)
         => value.Contains('@');
-
-    private sealed class LoggerCategory
-    {
-    }
 }

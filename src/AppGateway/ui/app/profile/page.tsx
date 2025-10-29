@@ -37,6 +37,19 @@ export default function ProfilePage() {
   const { isAuthenticated, isChecking } = useAuthGuard(PROFILE_ROUTE)
 
   useEffect(() => {
+    const locationSnapshot =
+      typeof window === "undefined"
+        ? "(window unavailable)"
+        : `${window.location.pathname}${window.location.search}${window.location.hash}`
+
+    console.debug(
+      "[profile] Trang profile được mount tại location=%s với cachedUser=%s",
+      locationSnapshot,
+      cachedSnapshot?.user?.id ?? "(none)",
+    )
+  }, [cachedSnapshot?.user?.id])
+
+  useEffect(() => {
     if (!isAuthenticated || isChecking) {
       console.debug(
         "[profile] Bỏ qua việc tải hồ sơ vì isAuthenticated=%s, isChecking=%s",
