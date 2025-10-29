@@ -502,7 +502,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                     </span>
                   </div>
                   <div className="border rounded-lg bg-muted/30">
-                    <ScrollArea className="h-[320px]">
+                    <ScrollArea className="h-[360px] sm:h-[420px] md:h-[480px]">
                       <div className="p-3 space-y-2">
                         {tags.length > 0 ? (
                           renderTagTree(tags)
