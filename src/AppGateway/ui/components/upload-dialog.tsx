@@ -309,7 +309,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     })
   }
 
-  const isSelectableTag = (tag: TagNode) => !tag.kind || tag.kind === "label"
+  const isSelectableTag = (tag: TagNode) =>
+    !tag.kind || tag.kind === "label" || tag.kind === "namespace"
 
   const toggleTagExpansion = (tagId: string) => {
     setExpandedTags((prev) => ({ ...prev, [tagId]: !prev[tagId] }))
@@ -324,7 +325,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       const displayIcon = tag.icon && tag.icon.trim() !== "" ? tag.icon : DEFAULT_TAG_ICON
 
       return (
-        <div key={tag.id} className="space-y-1">
+        <div key={tag.id} className="space-y-2">
           <div
             className={cn(
               "flex items-center gap-1 rounded-md text-sm transition-colors group",
@@ -362,23 +363,23 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               }}
               disabled={!canSelect}
               className={cn(
-                "flex items-center gap-2 flex-1 min-w-0 rounded px-2 py-1 text-left transition",
+                "flex items-center gap-3 flex-1 min-w-0 rounded-md px-3 py-2 text-left transition",
                 tag.color ?? "bg-muted/60",
                 canSelect ? "text-foreground" : "text-muted-foreground cursor-default opacity-80",
                 isSelected ? "ring-1 ring-primary" : "",
               )}
             >
-              <span className="text-xs flex-shrink-0">{displayIcon}</span>
+              <span className="text-sm flex-shrink-0">{displayIcon}</span>
               <span className="truncate">{tag.name}</span>
             </button>
 
             {isSelected ? (
-              <CheckCircle2 className="mr-2 h-3.5 w-3.5 text-primary" />
+              <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
             ) : null}
           </div>
 
           {hasChildren && isExpanded ? (
-            <div className="space-y-1">{renderTagTree(tag.children!, level + 1)}</div>
+            <div className="space-y-2">{renderTagTree(tag.children!, level + 1)}</div>
           ) : null}
         </div>
       )
@@ -405,7 +406,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="w-[95vw] max-w-[1280px] sm:w-[90vw] lg:w-[80vw] xl:w-[70vw] h-[90vh] sm:h-[90vh] lg:h-[90vh] flex flex-col">
+      <DialogContent className="w-[95vw] max-w-[1280px] sm:w-[90vw] lg:w-[80vw] xl:w-[70vw] h-[90vh] sm:h-[90vh] lg:h-[90vh] flex flex-col gap-6">
         <DialogHeader>
           <DialogTitle>Upload Files</DialogTitle>
         </DialogHeader>
@@ -453,8 +454,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
             </div>
           </div>
         ) : (
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <div className="mb-4">
+          <div className="flex flex-col flex-1 overflow-hidden gap-6">
+            <div className="flex flex-col gap-3">
               <Dashboard
                 uppy={uppy}
                 width="100%"
@@ -475,7 +476,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               </div>
             </div>
 
-            <Tabs defaultValue="tags" className="flex-1 flex flex-col overflow-hidden">
+            <Tabs defaultValue="tags" className="flex-1 flex flex-col overflow-hidden gap-4">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="tags">Tags</TabsTrigger>
                 <TabsTrigger value="flow">Flow</TabsTrigger>
@@ -483,12 +484,15 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               </TabsList>
 
               <TabsContent value="tags" className="flex-1 overflow-y-auto mt-4">
-                <div className="space-y-3">
-                  {selectedTags.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Selected tags: {selectedTags.map((tag) => tag.name).join(", ")}
-                    </div>
-                  )}
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Selected tags:{" "}
+                    {selectedTags.length > 0 ? (
+                      selectedTags.map((tag) => tag.name).join(", ")
+                    ) : (
+                      <span className="italic text-muted-foreground/80">No tags selected</span>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between">
                     <Label>Select Tags</Label>
                     <span className="text-xs text-muted-foreground">
@@ -498,8 +502,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                     </span>
                   </div>
                   <div className="border rounded-lg bg-muted/30">
-                    <ScrollArea className="h-[260px]">
-                      <div className="p-2 space-y-1">
+                    <ScrollArea className="h-[320px]">
+                      <div className="p-3 space-y-2">
                         {tags.length > 0 ? (
                           renderTagTree(tags)
                         ) : (
