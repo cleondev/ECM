@@ -41,8 +41,8 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
             .HasColumnName("owner_id")
             .IsRequired();
 
-        builder.Property(document => document.Department)
-            .HasColumnName("department");
+        builder.Property(document => document.GroupId)
+            .HasColumnName("group_id");
 
         builder.Property(document => document.CreatedBy)
             .HasColumnName("created_by")

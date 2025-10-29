@@ -95,8 +95,8 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
-| `GET /documents` | Liệt kê tài liệu theo bộ lọc. | `q`, `page`, `pageSize`, `sort`, `doc_type`, `status`, `sensitivity`, `owner_id`, `dept`, `tags[]` |
-| `POST /documents` | Tạo tài liệu mới. | Body `{title?, doc_type?, status?, owner_id?, created_by?, department?, sensitivity?, type_id?, file}` |
+| `GET /documents` | Liệt kê tài liệu theo bộ lọc. | `q`, `page`, `pageSize`, `sort`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `tags[]` |
+| `POST /documents` | Tạo tài liệu mới. | Body `{title?, doc_type?, status?, owner_id?, created_by?, group_id?, sensitivity?, type_id?, file}` |
 | `GET /documents/{id}` | Chi tiết tài liệu (owner, badges, version). | `id` |
 | `PATCH /documents/{id}` | Cập nhật thông tin cơ bản. | `id`, body |
 | `DELETE /documents/{id}` | Xóa mềm (mặc định) hoặc xóa hẳn khi `hard=true`. | `id`, query `hard?` |
@@ -169,9 +169,9 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
-| `GET /search` | Tìm kiếm tài liệu. | `q`, `mode=fts|vector|hybrid`, `doc_type`, `status`, `sensitivity`, `owner_id`, `dept`, `tags[]`, `page`, `pageSize`, `sort` |
+| `GET /search` | Tìm kiếm tài liệu. | `q`, `mode=fts|vector|hybrid`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `tags[]`, `page`, `pageSize`, `sort` |
 | `GET /search/suggest` | Autocomplete gợi ý. | `q`, `limit?` |
-| `GET /search/facets` | Thống kê facet. | `q`, `doc_type`, `status`, `sensitivity`, `owner_id`, `dept`, `tags[]` |
+| `GET /search/facets` | Thống kê facet. | `q`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `tags[]` |
 
 ## 10. OCR
 

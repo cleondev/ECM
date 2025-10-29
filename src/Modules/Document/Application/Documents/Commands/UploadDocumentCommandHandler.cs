@@ -51,7 +51,7 @@ public sealed class UploadDocumentCommandHandler(
                 command.OwnerId,
                 command.CreatedBy,
                 now,
-                command.Department,
+                command.GroupId,
                 command.Sensitivity,
                 command.DocumentTypeId);
         }

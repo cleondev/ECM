@@ -1,3 +1,5 @@
+using System;
+
 namespace ECM.Document.Api.Documents.Requests;
 
 public sealed class UpdateDocumentRequest
@@ -8,5 +10,5 @@ public sealed class UpdateDocumentRequest
 
     public string? Sensitivity { get; init; }
 
-    public string? Department { get; init; }
+    public Guid? GroupId { get; init; }
 }

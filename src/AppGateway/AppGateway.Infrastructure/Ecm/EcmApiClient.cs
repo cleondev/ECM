@@ -212,9 +212,9 @@ internal sealed class EcmApiClient(
             { new StringContent(requestDto.CreatedBy.ToString()), nameof(requestDto.CreatedBy) }
         };
 
-        if (!string.IsNullOrWhiteSpace(requestDto.Department))
+        if (requestDto.GroupId.HasValue)
         {
-            form.Add(new StringContent(requestDto.Department), nameof(requestDto.Department));
+            form.Add(new StringContent(requestDto.GroupId.Value.ToString()), nameof(requestDto.GroupId));
         }
 
         if (!string.IsNullOrWhiteSpace(requestDto.Sensitivity))
@@ -443,9 +443,9 @@ internal sealed class EcmApiClient(
             query["owner_id"] = request.OwnerId.Value.ToString();
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Department))
+        if (request.GroupId.HasValue)
         {
-            query["dept"] = request.Department;
+            query["group_id"] = request.GroupId.Value.ToString();
         }
 
         if (!string.IsNullOrWhiteSpace(request.Sort))

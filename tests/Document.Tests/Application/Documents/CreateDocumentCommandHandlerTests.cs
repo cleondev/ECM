@@ -34,7 +34,7 @@ public class CreateDocumentCommandHandlerTests
             "  Draft  ",
             ownerId,
             createdBy,
-            $"  {_groups.GuestGroupName.ToUpperInvariant()} Enablement  ",
+            _groups.GuestGroupId,
             "  Confidential  ",
             documentTypeId);
 
@@ -48,7 +48,7 @@ public class CreateDocumentCommandHandlerTests
         Assert.Equal("Confidential", summary.Sensitivity);
         Assert.Equal(ownerId, summary.OwnerId);
         Assert.Equal(createdBy, summary.CreatedBy);
-        Assert.Equal("guest Enablement", summary.Department);
+        Assert.Equal(_groups.GuestGroupId, summary.GroupId);
         Assert.Equal(now, summary.CreatedAtUtc);
         Assert.Equal(now, summary.UpdatedAtUtc);
         Assert.Equal(documentTypeId, summary.DocumentTypeId);

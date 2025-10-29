@@ -12,7 +12,7 @@ public sealed class DocumentUploadDefaultsOptions
 
     public string Sensitivity { get; set; } = "Internal";
 
-    public string? Department { get; set; }
+    public Guid? GroupId { get; set; }
 
     public Guid? OwnerId { get; set; }
 

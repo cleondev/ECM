@@ -9,7 +9,7 @@ public sealed record UploadDocumentCommand(
     string Status,
     Guid OwnerId,
     Guid CreatedBy,
-    string? Department,
+    Guid? GroupId,
     string? Sensitivity,
     Guid? DocumentTypeId,
     string FileName,

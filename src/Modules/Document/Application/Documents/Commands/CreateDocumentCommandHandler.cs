@@ -35,7 +35,7 @@ public sealed class CreateDocumentCommandHandler(IDocumentRepository repository,
                 command.OwnerId,
                 command.CreatedBy,
                 _clock.UtcNow,
-                command.Department,
+                command.GroupId,
                 command.Sensitivity,
                 command.DocumentTypeId);
         }

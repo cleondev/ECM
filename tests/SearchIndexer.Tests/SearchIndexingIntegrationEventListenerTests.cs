@@ -35,6 +35,7 @@ public class SearchIndexingIntegrationEventListenerTests
 
         var documentId = _groups.GuestGroupId;
         string[] tags = [_groups.GuestGroupName, "employee"];
+        var groupIds = new[] { _groups.GuestGroupId };
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -45,8 +46,9 @@ public class SearchIndexingIntegrationEventListenerTests
                 title = "Onboarding Checklist",
                 summary = "Steps for new hires",
                 content = "Detailed onboarding plan",
-                metadata = new Dictionary<string, string> { { "department", _groups.GuestGroupName } },
-                tags
+                metadata = new Dictionary<string, string> { { "source", "upload" } },
+                tags,
+                groupIds
             }
         }, CachedWebOptions);
 
@@ -62,7 +64,7 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Basic, scheduler.LastRecord.IndexingType);
         Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var groups));
-        Assert.Equal("grp-hr", groups);
+        Assert.Equal(_groups.GuestGroupId.ToString(), groups);
     }
 
     [Fact]
@@ -78,6 +80,7 @@ public class SearchIndexingIntegrationEventListenerTests
 
         var documentId = _groups.SystemGroupId;
         string[] tags = ["legal", _groups.SystemGroupName];
+        var groupIds = new[] { Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb") };
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -90,10 +93,11 @@ public class SearchIndexingIntegrationEventListenerTests
                 content = "OCR extracted body",
                 metadata = new
                 {
-                    groupIds = new[] { "grp-legal", "grp-shared" },
+                    groupIds,
                     source = "ocr"
                 },
-                tags
+                tags,
+                groupIds
             }
         }, CachedWebOptions);
 
@@ -109,7 +113,7 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Advanced, scheduler.LastRecord.IndexingType);
         Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var ocrGroups));
-        Assert.Equal("grp-legal,grp-shared", ocrGroups);
+        Assert.Equal(string.Join(',', groupIds), ocrGroups);
     }
 
     private static ServiceProvider BuildServiceProvider(IIndexingJobScheduler scheduler)

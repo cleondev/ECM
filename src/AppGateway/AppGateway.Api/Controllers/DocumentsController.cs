@@ -54,7 +54,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             Status = request.Status,
             OwnerId = request.OwnerId,
             CreatedBy = request.CreatedBy,
-            Department = request.Department,
+            GroupId = request.GroupId,
             Sensitivity = request.Sensitivity,
             DocumentTypeId = request.DocumentTypeId,
             FileName = string.IsNullOrWhiteSpace(request.File.FileName) ? "upload.bin" : request.File.FileName,
@@ -102,7 +102,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var normalizedDocType = NormalizeString(request.DocType, "General");
         var normalizedStatus = NormalizeString(request.Status, "Draft");
         var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
-        var normalizedDepartment = NormalizeOptional(request.Department);
+        var normalizedGroupId = NormalizeGuid(request.GroupId);
         var documentTypeId = request.DocumentTypeId;
         var flowDefinition = NormalizeOptional(request.FlowDefinition);
         var tagIds = request.TagIds.Count == 0
@@ -139,7 +139,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
                 Status = normalizedStatus,
                 OwnerId = ownerId.Value,
                 CreatedBy = createdBy.Value,
-                Department = normalizedDepartment,
+                GroupId = normalizedGroupId,
                 Sensitivity = normalizedSensitivity,
                 DocumentTypeId = documentTypeId,
                 FileName = string.IsNullOrWhiteSpace(file.FileName) ? "upload.bin" : file.FileName,
@@ -463,8 +463,7 @@ public sealed class CreateDocumentForm
     [Required]
     public Guid CreatedBy { get; init; }
 
-    [StringLength(128)]
-    public string? Department { get; init; }
+    public Guid? GroupId { get; init; }
 
     [StringLength(64)]
     public string? Sensitivity { get; init; }
@@ -487,7 +486,7 @@ public sealed class CreateDocumentsForm
 
     public Guid? CreatedBy { get; init; }
 
-    public string? Department { get; init; }
+    public Guid? GroupId { get; init; }
 
     public string? Sensitivity { get; init; }
 
@@ -515,7 +514,7 @@ public sealed class CreateDocumentsForm
             Status = GetString(form, nameof(Status)),
             OwnerId = GetGuid(form, nameof(OwnerId)),
             CreatedBy = GetGuid(form, nameof(CreatedBy)),
-            Department = GetString(form, nameof(Department)),
+            GroupId = GetGuid(form, nameof(GroupId)),
             Sensitivity = GetString(form, nameof(Sensitivity)),
             DocumentTypeId = GetGuid(form, nameof(DocumentTypeId)),
             FlowDefinition = GetString(form, nameof(FlowDefinition)),

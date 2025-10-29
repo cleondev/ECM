@@ -51,7 +51,7 @@ CREATE TABLE doc.document (
     status text NOT NULL,
     sensitivity text NOT NULL DEFAULT 'Internal',
     owner_id uuid NOT NULL,
-    department text,
+    group_id uuid,
     created_by uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT (now()),
     updated_at timestamptz NOT NULL DEFAULT (now()),
