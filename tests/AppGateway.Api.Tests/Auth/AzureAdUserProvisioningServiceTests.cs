@@ -83,6 +83,35 @@ public class AzureAdUserProvisioningServiceTests
         client.CreateUserCalls.Should().Be(1);
         client.LastCreateRequest.Should().NotBeNull();
         client.LastCreateRequest!.RoleIds.Should().ContainSingle().Which.Should().Be(role.Id);
+        client.LastCreateRequest!.Groups
+            .Should()
+            .BeEquivalentTo(new[]
+            {
+                new GroupAssignmentDto { GroupId = GroupDefaultIds.System, Kind = "system", Role = "member", Identifier = null, ParentGroupId = null },
+                new GroupAssignmentDto { GroupId = GroupDefaultIds.Guest, Kind = "system", Role = "member", Identifier = null, ParentGroupId = null },
+            },
+            options => options.ComparingByMembers<GroupAssignmentDto>());
+    }
+
+    [Fact]
+    public async Task EnsureUserExistsAsync_IncludesUnitAssignment_WhenIdentifierPresent()
+    {
+        var createdUser = CreateUserSummary();
+        var client = new FakeEcmApiClient
+        {
+            CreatedUser = createdUser
+        };
+
+        var service = CreateService(client: client);
+        var principal = CreatePrincipal(createdUser.Email, createdUser.DisplayName, unitIdentifier: "Finance");
+
+        var result = await service.EnsureUserExistsAsync(principal, CancellationToken.None);
+
+        result.Should().Be(createdUser);
+        client.LastCreateRequest.Should().NotBeNull();
+        client.LastCreateRequest!.Groups.Should().ContainEquivalentOf(
+            new GroupAssignmentDto { Identifier = "Finance", Kind = "unit", Role = "member" },
+            options => options.ComparingByMembers<GroupAssignmentDto>());
     }
 
     [Fact]
@@ -133,16 +162,24 @@ public class AzureAdUserProvisioningServiceTests
             NullLogger<AzureAdUserProvisioningService>.Instance);
     }
 
-    private static ClaimsPrincipal CreatePrincipal(string email, string name, string claimType = ClaimTypes.Email)
+    private static ClaimsPrincipal CreatePrincipal(
+        string email,
+        string name,
+        string claimType = ClaimTypes.Email,
+        string? unitIdentifier = null)
     {
         var identity = new ClaimsIdentity();
         identity.AddClaim(new Claim(claimType, email));
         identity.AddClaim(new Claim("name", name));
+        if (!string.IsNullOrWhiteSpace(unitIdentifier))
+        {
+            identity.AddClaim(new Claim("department", unitIdentifier));
+        }
         return new ClaimsPrincipal(identity);
     }
 
     private static UserSummaryDto CreateUserSummary()
-        => new(Guid.NewGuid(), "user@example.com", "User", null, true, DateTimeOffset.UtcNow, [], []);
+        => new(Guid.NewGuid(), "user@example.com", "User", true, DateTimeOffset.UtcNow, [], []);
 
     private sealed class FakeEcmApiClient : IEcmApiClient
     {

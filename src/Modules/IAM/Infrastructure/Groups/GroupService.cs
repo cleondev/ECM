@@ -35,32 +35,173 @@ public sealed class GroupService(
         var normalizedAssignments = assignments
             .Where(assignment => assignment is not null)
             .Select(assignment => assignment.Normalize())
-            .GroupBy(assignment => assignment.Name, Comparer)
-            .Select(group => group.First())
             .ToArray();
 
-        var targetNames = normalizedAssignments.Select(assignment => assignment.Name).ToArray();
+        var dedupedAssignments = new List<GroupAssignment>();
+        var seenGroupIds = new HashSet<Guid>();
+        var seenIdentifiers = new HashSet<string>(Comparer);
 
-        var existingGroups = targetNames.Length == 0
-            ? new Dictionary<string, Group>(Comparer)
+        foreach (var assignment in normalizedAssignments)
+        {
+            if (assignment.GroupId.HasValue)
+            {
+                if (seenGroupIds.Add(assignment.GroupId.Value))
+                {
+                    dedupedAssignments.Add(assignment);
+                }
+
+                continue;
+            }
+
+            var identifierKey = BuildIdentifierKey(assignment.Identifier, assignment.ParentGroupId);
+            if (identifierKey is not null)
+            {
+                if (seenIdentifiers.Add(identifierKey))
+                {
+                    dedupedAssignments.Add(assignment);
+                }
+
+                continue;
+            }
+
+            dedupedAssignments.Add(assignment);
+        }
+
+        normalizedAssignments = dedupedAssignments.ToArray();
+
+        var targetGroupIds = normalizedAssignments
+            .Where(assignment => assignment.GroupId.HasValue)
+            .Select(assignment => assignment.GroupId!.Value)
+            .Distinct()
+            .ToArray();
+
+        var identifierTargets = normalizedAssignments
+            .Where(assignment => !string.IsNullOrWhiteSpace(assignment.Identifier))
+            .Select(assignment => assignment.Identifier!.Trim())
+            .Distinct(Comparer)
+            .ToArray();
+
+        var existingGroupsById = targetGroupIds.Length == 0
+            ? new Dictionary<Guid, Group>()
             : await _context.Groups
-                .Where(group => targetNames.Contains(group.Name))
-                .ToDictionaryAsync(group => group.Name, Comparer, cancellationToken);
+                .Where(group => targetGroupIds.Contains(group.Id))
+                .ToDictionaryAsync(group => group.Id, cancellationToken);
+
+        var existingGroupsByIdentifier = identifierTargets.Length == 0
+            ? new Dictionary<string, Group>(Comparer)
+            : (await _context.Groups
+                    .Where(group => identifierTargets.Contains(group.Name))
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(group => group.Name, Comparer);
+
+        var unitTargetIds = new HashSet<Guid>();
 
         foreach (var assignment in normalizedAssignments)
         {
             var desiredParentGroupId = assignment.ParentGroupId;
+            Group? group = null;
 
-            if (!existingGroups.TryGetValue(assignment.Name, out var group))
+            if (assignment.GroupId.HasValue && existingGroupsById.TryGetValue(assignment.GroupId.Value, out group))
             {
-                group = Group.Create(assignment.Name, assignment.Kind, createdBy: null, _clock.UtcNow, desiredParentGroupId);
-                await _context.Groups.AddAsync(group, cancellationToken);
-                existingGroups[assignment.Name] = group;
-                _logger.LogInformation(
-                    "Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.",
-                    assignment.Name,
-                    assignment.Kind.ToNormalizedString(),
-                    user.Id);
+                var identifier = assignment.Identifier?.Trim();
+                if (!string.IsNullOrWhiteSpace(identifier) && !existingGroupsByIdentifier.ContainsKey(identifier))
+                {
+                    existingGroupsByIdentifier[identifier] = group;
+                }
+            }
+            else if (assignment.GroupId.HasValue)
+            {
+                var desiredGroupId = assignment.GroupId.Value;
+                var identifier = assignment.Identifier?.Trim();
+                var createdNewGroup = false;
+
+                if (!string.IsNullOrWhiteSpace(identifier)
+                    && existingGroupsByIdentifier.TryGetValue(identifier, out group))
+                {
+                    existingGroupsById[group.Id] = group;
+
+                    if (group.Id != desiredGroupId)
+                    {
+                        _logger.LogInformation(
+                            "Mapped requested group id {RequestedGroupId} to existing group {GroupId} via identifier {Identifier} for user {UserId}.",
+                            desiredGroupId,
+                            group.Id,
+                            identifier,
+                            user.Id);
+                    }
+                }
+                else if (desiredGroupId == GroupDefaults.SystemId)
+                {
+                    group = Group.CreateSystemGroup(GroupDefaults.SystemName, _clock.UtcNow);
+                    createdNewGroup = true;
+                }
+                else if (desiredGroupId == GroupDefaults.GuestId)
+                {
+                    group = Group.CreateSystemGroup(GroupDefaults.GuestName, _clock.UtcNow);
+                    createdNewGroup = true;
+                }
+                else if (!string.IsNullOrWhiteSpace(identifier))
+                {
+                    group = Group.Create(identifier, assignment.Kind, createdBy: null, _clock.UtcNow, desiredParentGroupId);
+                    createdNewGroup = true;
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Skipping group assignment for user {UserId} because group id {GroupId} could not be resolved.",
+                        user.Id,
+                        desiredGroupId);
+                    continue;
+                }
+
+                if (group is null)
+                {
+                    continue;
+                }
+
+                if (createdNewGroup)
+                {
+                    await _context.Groups.AddAsync(group, cancellationToken);
+                    existingGroupsById[group.Id] = group;
+                    existingGroupsByIdentifier[group.Name] = group;
+                    _logger.LogInformation(
+                        "Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.",
+                        group.Name,
+                        group.Kind.ToNormalizedString(),
+                        user.Id);
+                }
+                else
+                {
+                    existingGroupsById[group.Id] = group;
+                    if (!existingGroupsByIdentifier.ContainsKey(group.Name))
+                    {
+                        existingGroupsByIdentifier[group.Name] = group;
+                    }
+                }
+            }
+            else
+            {
+                var identifier = assignment.Identifier?.Trim();
+                if (string.IsNullOrWhiteSpace(identifier))
+                {
+                    _logger.LogWarning(
+                        "Skipping group assignment without identifier for user {UserId} while provisioning.",
+                        user.Id);
+                    continue;
+                }
+
+                if (!existingGroupsByIdentifier.TryGetValue(identifier, out group))
+                {
+                    group = Group.Create(identifier, assignment.Kind, createdBy: null, _clock.UtcNow, desiredParentGroupId);
+                    await _context.Groups.AddAsync(group, cancellationToken);
+                    existingGroupsByIdentifier[identifier] = group;
+                    existingGroupsById[group.Id] = group;
+                    _logger.LogInformation(
+                        "Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.",
+                        group.Name,
+                        group.Kind.ToNormalizedString(),
+                        user.Id);
+                }
             }
 
             if (group.ParentGroupId != desiredParentGroupId)
@@ -79,7 +220,12 @@ public sealed class GroupService(
                 _logger.LogInformation(
                     "Added user {UserId} to group {GroupName}.",
                     user.Id,
-                    assignment.Name);
+                    group.Name);
+            }
+
+            if (assignment.Kind == GroupKind.Unit)
+            {
+                unitTargetIds.Add(group.Id);
             }
         }
 
@@ -88,20 +234,15 @@ public sealed class GroupService(
             .Where(member => member.UserId == user.Id && member.ValidToUtc == null)
             .ToListAsync(cancellationToken);
 
-        var unitTargets = normalizedAssignments
-            .Where(assignment => assignment.Kind == GroupKind.Unit)
-            .Select(assignment => assignment.Name)
-            .ToHashSet(Comparer);
-
         foreach (var membership in activeMemberships.Where(member => member.Group is not null && member.Group.Kind == GroupKind.Unit))
         {
-            if (!unitTargets.Contains(membership.Group.Name))
+            if (!unitTargetIds.Contains(membership.GroupId))
             {
                 membership.Close(_clock.UtcNow);
                 _logger.LogInformation(
                     "Marked membership of user {UserId} in unit group {GroupName} as inactive.",
                     user.Id,
-                    membership.Group.Name);
+                    membership.Group!.Name);
             }
         }
 
@@ -113,5 +254,15 @@ public sealed class GroupService(
             .ToListAsync(cancellationToken);
 
         user.SyncGroups(refreshedMemberships);
+    }
+
+    private static string? BuildIdentifierKey(string? identifier, Guid? parentGroupId)
+    {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            return null;
+        }
+
+        return $"{identifier.Trim()}::{parentGroupId?.ToString() ?? string.Empty}";
     }
 }

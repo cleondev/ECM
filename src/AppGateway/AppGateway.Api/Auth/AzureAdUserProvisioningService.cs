@@ -52,9 +52,22 @@ public sealed class AzureAdUserProvisioningService(
             }
 
             var displayName = GetDisplayName(principal, email);
-            var department = GetDepartment(principal);
-            var groups = BuildGroupAssignments(department);
+            var unitIdentifier = GetUnitIdentifier(principal);
+            var groups = BuildGroupAssignments(unitIdentifier);
             var roleIds = await ResolveDefaultRoleIdsAsync(cancellationToken);
+
+            if (groups.Count > 0)
+            {
+                var groupSummary = string.Join(
+                    ", ",
+                    groups.Select(group =>
+                        group.GroupId?.ToString() ?? group.Identifier ?? "<unspecified>"));
+
+                _logger.LogInformation(
+                    "Automatically assigning IAM groups {Groups} to provisioned user {Email}.",
+                    groupSummary,
+                    email);
+            }
 
             var request = new CreateUserRequestDto
             {
@@ -128,27 +141,41 @@ public sealed class AzureAdUserProvisioningService(
            ?? principal.Identity?.Name
            ?? fallback;
 
-    private static string? GetDepartment(ClaimsPrincipal principal)
+    private static string? GetUnitIdentifier(ClaimsPrincipal principal)
     {
         var value = principal.FindFirst("department")?.Value;
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    private static IReadOnlyCollection<GroupAssignmentDto> BuildGroupAssignments(string? department)
+    private static IReadOnlyCollection<GroupAssignmentDto> BuildGroupAssignments(string? unitIdentifier)
     {
-        if (string.IsNullOrWhiteSpace(department))
+        var assignments = new List<GroupAssignmentDto>
         {
-            return Array.Empty<GroupAssignmentDto>();
-        }
-
-        return new[]
-        {
-            new GroupAssignmentDto
+            new()
             {
-                Name = department.Trim(),
-                Kind = "unit",
+                GroupId = GroupDefaultIds.System,
+                Kind = "system",
+                Role = "member"
+            },
+            new()
+            {
+                GroupId = GroupDefaultIds.Guest,
+                Kind = "system",
+                Role = "member"
             }
         };
+
+        if (!string.IsNullOrWhiteSpace(unitIdentifier))
+        {
+            assignments.Add(new GroupAssignmentDto
+            {
+                Identifier = unitIdentifier.Trim(),
+                Kind = "unit",
+                Role = "member"
+            });
+        }
+
+        return assignments;
     }
 
     private static string? GetEmail(ClaimsPrincipal principal)

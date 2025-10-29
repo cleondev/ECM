@@ -61,12 +61,38 @@ public class GroupServiceTests
         context.Users.Add(user);
         await context.SaveChangesAsync();
 
-        var assignments = new[] { new GroupAssignment("child", GroupKind.Unit, newParent.Id) };
+        var assignments = new[] { new GroupAssignment(null, "child", GroupKind.Unit, newParent.Id) };
 
         await service.EnsureUserGroupsAsync(user, assignments, CancellationToken.None);
 
         var updatedGroup = await context.Groups.SingleAsync(group => group.Id == child.Id);
         Assert.Equal(newParent.Id, updatedGroup.ParentGroupId);
+    }
+
+    [Fact]
+    public async Task EnsureUserGroupsAsync_CreatesSystemGroup_WhenAssignmentUsesWellKnownId()
+    {
+        var clock = new FixedClock(new DateTimeOffset(2025, 3, 10, 12, 0, 0, TimeSpan.Zero));
+        var options = new DbContextOptionsBuilder<IamDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new IamDbContext(options);
+        var service = new GroupService(context, clock, NullLogger<GroupService>.Instance);
+
+        var user = User.Create("system.user@example.com", "System User", clock.UtcNow);
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var assignments = new[] { GroupAssignment.System() };
+
+        await service.EnsureUserGroupsAsync(user, assignments, CancellationToken.None);
+
+        var systemGroup = await context.Groups.SingleAsync(group => group.Id == GroupDefaults.SystemId);
+        Assert.Equal(GroupDefaults.SystemName, systemGroup.Name);
+
+        var membership = await context.GroupMembers.SingleAsync(member => member.GroupId == systemGroup.Id && member.UserId == user.Id);
+        Assert.Null(membership.ValidToUtc);
     }
 
     private sealed class FixedClock(DateTimeOffset utcNow) : ISystemClock
