@@ -16,6 +16,7 @@ using Microsoft.Identity.Web;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using ServiceDefaults;
+using ServiceDefaults.Authentication;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
@@ -57,6 +58,7 @@ public static class Program
 
         builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
         {
+            options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority);
             options.Events ??= new JwtBearerEvents();
             var previousHandler = options.Events.OnTokenValidated;
 
