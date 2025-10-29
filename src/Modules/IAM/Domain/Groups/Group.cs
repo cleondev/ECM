@@ -34,24 +34,28 @@ public sealed class Group
 
     public ICollection<GroupMember> Members { get; }
 
-    public static Group CreateSystemGroup(string name, DateTimeOffset createdAtUtc, Guid? createdBy = null)
+    public static Group Create(string name, string? kind, Guid? createdBy, DateTimeOffset createdAtUtc)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Group name is required.", nameof(name));
         }
 
-        var normalizedName = NormalizeName(name);
-        var groupId = GroupDefaults.TryGetIdForName(normalizedName, out var id)
-            ? id
-            : Guid.NewGuid();
+        var normalizedName = name.Trim();
+        var normalizedKind = string.IsNullOrWhiteSpace(kind)
+            ? "normal"
+            : kind.Trim();
 
-        return new Group(groupId, normalizedName, GroupKinds.System, createdBy, createdAtUtc);
+        return new Group(Guid.NewGuid(), normalizedName, normalizedKind, createdBy, createdAtUtc);
     }
 
-    public static string NormalizeName(string name)
+    public void Rename(string name)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        return name.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Group name is required.", nameof(name));
+        }
+
+        Name = name.Trim();
     }
 }

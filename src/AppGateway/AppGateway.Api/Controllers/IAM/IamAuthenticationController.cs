@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Infrastructure.Ecm;
@@ -136,6 +137,11 @@ public sealed class IamAuthenticationController(
         foreach (var role in user.Roles ?? Array.Empty<RoleSummaryDto>())
         {
             identity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
+        }
+
+        foreach (var group in user.Groups ?? Array.Empty<GroupSummaryDto>())
+        {
+            identity.AddClaim(new Claim("group", group.Name));
         }
 
         return new ClaimsPrincipal(identity);

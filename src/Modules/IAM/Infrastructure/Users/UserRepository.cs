@@ -20,6 +20,8 @@ public sealed class UserRepository(IamDbContext context) : IUserRepository
         => await _context.Users
             .Include(user => user.Roles)
             .ThenInclude(link => link.Role)
+            .Include(user => user.Groups)
+            .ThenInclude(member => member.Group)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
@@ -27,12 +29,16 @@ public sealed class UserRepository(IamDbContext context) : IUserRepository
         => await _context.Users
             .Include(user => user.Roles)
             .ThenInclude(link => link.Role)
+            .Include(user => user.Groups)
+            .ThenInclude(member => member.Group)
             .FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         => await _context.Users
             .Include(user => user.Roles)
             .ThenInclude(link => link.Role)
+            .Include(user => user.Groups)
+            .ThenInclude(member => member.Group)
             .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)

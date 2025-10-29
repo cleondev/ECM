@@ -1,14 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using ECM.IAM.Application.Groups;
 using ECM.IAM.Application.Users;
 using ECM.BuildingBlocks.Application;
 
 namespace ECM.IAM.Application.Users.Commands;
 
-public sealed class UpdateUserProfileCommandHandler(IUserRepository userRepository)
+public sealed class UpdateUserProfileCommandHandler(IUserRepository userRepository, IGroupService groupService)
 {
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly IGroupService _groupService = groupService;
 
     public async Task<OperationResult<UserSummaryResult>> HandleAsync(
         UpdateUserProfileCommand command,
@@ -28,7 +31,6 @@ public sealed class UpdateUserProfileCommandHandler(IUserRepository userReposito
         try
         {
             user.UpdateDisplayName(command.DisplayName);
-            user.UpdateDepartment(command.Department);
         }
         catch (ArgumentException exception)
         {
@@ -37,6 +39,28 @@ public sealed class UpdateUserProfileCommandHandler(IUserRepository userReposito
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 
+        var groups = BuildGroupAssignments(command.Department);
+        if (groups.Count > 0)
+        {
+            await _groupService.EnsureUserGroupsAsync(user, groups, cancellationToken);
+        }
+
         return OperationResult<UserSummaryResult>.Success(user.ToResult());
+    }
+
+    private static IReadOnlyCollection<GroupAssignment> BuildGroupAssignments(string? department)
+    {
+        var assignments = new List<GroupAssignment>
+        {
+            GroupAssignment.System(),
+            GroupAssignment.Guest(),
+        };
+
+        if (!string.IsNullOrWhiteSpace(department))
+        {
+            assignments.Add(GroupAssignment.Unit(department));
+        }
+
+        return assignments;
     }
 }

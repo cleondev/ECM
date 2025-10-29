@@ -14,28 +14,15 @@ public class UserTests
     {
         var createdAt = DateTimeOffset.UtcNow;
 
-        var user = User.Create(
-            "  alice@example.com  ",
-            "  Alice Smith  ",
-            createdAt,
-            $"  {_groups.GuestGroupName}  ",
-            isActive: false);
+        var user = User.Create("  alice@example.com  ", "  Alice Smith  ", createdAt, isActive: false);
 
         Assert.NotEqual(Guid.Empty, user.Id);
         Assert.Equal("alice@example.com", user.Email);
         Assert.Equal("Alice Smith", user.DisplayName);
-        Assert.Equal("Sales", user.Department);
+        Assert.Null(user.Department);
         Assert.False(user.IsActive);
         Assert.Equal(createdAt, user.CreatedAtUtc);
         Assert.Empty(user.Roles);
-    }
-
-    [Fact]
-    public void Create_WithWhitespaceDepartment_SetsDepartmentToNull()
-    {
-        var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow, "   ");
-
-        Assert.Null(user.Department);
     }
 
     [Theory]
@@ -88,15 +75,6 @@ public class UserTests
     [Fact]
     public void UpdateDepartment_TrimsValueOrClearsWhenWhitespace()
     {
-        var user = User.Create("user@example.com", "User", DateTimeOffset.UtcNow, _groups.SystemGroupName);
-
-        user.UpdateDepartment("  Marketing  ");
-        Assert.Equal("Marketing", user.Department);
-
-        user.UpdateDepartment("   ");
-        Assert.Null(user.Department);
-    }
-
     [Fact]
     public void ActivateAndDeactivate_ToggleState()
     {

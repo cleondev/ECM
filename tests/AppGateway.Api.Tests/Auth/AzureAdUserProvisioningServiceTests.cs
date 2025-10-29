@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -141,7 +142,7 @@ public class AzureAdUserProvisioningServiceTests
     }
 
     private static UserSummaryDto CreateUserSummary()
-        => new(Guid.NewGuid(), "user@example.com", "User", null, true, DateTimeOffset.UtcNow, []);
+        => new(Guid.NewGuid(), "user@example.com", "User", null, true, DateTimeOffset.UtcNow, [], []);
 
     private sealed class FakeEcmApiClient : IEcmApiClient
     {

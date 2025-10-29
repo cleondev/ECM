@@ -1,4 +1,5 @@
 using System;
+using ECM.IAM.Domain.Users;
 
 namespace ECM.IAM.Domain.Groups;
 
@@ -19,6 +20,15 @@ public sealed class GroupMember
         ValidToUtc = validToUtc;
     }
 
+    private GroupMember(Guid groupId, Guid userId, string role, DateTimeOffset validFromUtc)
+        : this()
+    {
+        GroupId = groupId;
+        UserId = userId;
+        Role = role;
+        ValidFromUtc = validFromUtc;
+    }
+
     public Guid GroupId { get; private set; }
 
     public Guid UserId { get; private set; }
@@ -31,12 +41,9 @@ public sealed class GroupMember
 
     public Group Group { get; private set; } = null!;
 
-    public static GroupMember Create(
-        Guid groupId,
-        Guid userId,
-        DateTimeOffset validFromUtc,
-        string role = GroupMemberRoles.Member,
-        DateTimeOffset? validToUtc = null)
+    public User User { get; private set; } = null!;
+
+    public static GroupMember Create(Guid groupId, Guid userId, DateTimeOffset validFromUtc, string? role = null)
     {
         if (groupId == Guid.Empty)
         {
@@ -48,15 +55,18 @@ public sealed class GroupMember
             throw new ArgumentException("User id is required.", nameof(userId));
         }
 
-        var normalizedRole = string.IsNullOrWhiteSpace(role)
-            ? GroupMemberRoles.Member
-            : role.Trim().ToLowerInvariant();
+        var normalizedRole = string.IsNullOrWhiteSpace(role) ? "member" : role.Trim();
 
-        return new GroupMember(groupId, userId, normalizedRole, validFromUtc, validToUtc);
+        return new GroupMember(groupId, userId, normalizedRole, validFromUtc);
     }
-}
 
-public static class GroupMemberRoles
-{
-    public const string Member = "member";
+    public void Close(DateTimeOffset endedAtUtc)
+    {
+        if (ValidToUtc.HasValue)
+        {
+            return;
+        }
+
+        ValidToUtc = endedAtUtc;
+    }
 }
