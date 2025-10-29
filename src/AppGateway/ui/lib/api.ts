@@ -196,7 +196,20 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
 
   const namespaces = new Map<string, TagNode>()
 
-  for (const label of labels) {
+  const sortedLabels = [...labels].sort((a, b) => {
+    const aDepth = (a.path || a.slug || a.id || "").split("/").filter(Boolean).length
+    const bDepth = (b.path || b.slug || b.id || "").split("/").filter(Boolean).length
+    const depthComparison = aDepth - bDepth
+    if (depthComparison !== 0) {
+      return depthComparison
+    }
+
+    const aKey = a.slug || a.path || a.id
+    const bKey = b.slug || b.path || b.id
+    return aKey.localeCompare(bKey)
+  })
+
+  for (const label of sortedLabels) {
     const namespaceSlug = label.namespaceSlug || "user"
     if (!namespaces.has(namespaceSlug)) {
       namespaces.set(namespaceSlug, {
@@ -210,27 +223,71 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
     }
 
     const namespaceNode = namespaces.get(namespaceSlug)!
-    const name = (label.path || label.slug || label.id || "").split("/").filter(Boolean).pop() || label.slug || label.id
+    const segments = (label.path || label.slug || label.id || "")
+      .split("/")
+      .map((segment) => segment.trim())
+      .filter(Boolean)
 
-    namespaceNode.children?.push({
-      id: label.id,
-      name,
-      color: colorForKey(label.slug || label.path || label.id),
-      kind: "label",
-      namespaceSlug: label.namespaceSlug,
-      slug: label.slug,
-      path: label.path,
-      isActive: label.isActive,
-    })
+    if (segments.length === 0) {
+      segments.push(label.slug || label.id)
+    }
+
+    let currentNode = namespaceNode
+    let accumulatedPath = ""
+
+    for (let index = 0; index < segments.length; index += 1) {
+      const segment = segments[index]
+      accumulatedPath = accumulatedPath ? `${accumulatedPath}/${segment}` : segment
+      const isLeaf = index === segments.length - 1
+
+      if (!currentNode.children) {
+        currentNode.children = []
+      }
+
+      let childNode = currentNode.children.find((child) => child.path === accumulatedPath)
+
+      if (!childNode) {
+        childNode = {
+          id: isLeaf ? label.id : `path:${namespaceSlug}:${accumulatedPath}`,
+          name: segment,
+          color: colorForKey(accumulatedPath),
+          kind: isLeaf ? "label" : "namespace",
+          namespaceSlug,
+          slug: isLeaf ? label.slug : segment,
+          path: accumulatedPath,
+          isActive: isLeaf ? label.isActive : true,
+          children: [],
+        }
+
+        currentNode.children.push(childNode)
+      }
+
+      if (isLeaf) {
+        childNode.id = label.id
+        childNode.name = segment
+        childNode.color = colorForKey(label.slug || label.path || label.id)
+        childNode.kind = "label"
+        childNode.namespaceSlug = label.namespaceSlug
+        childNode.slug = label.slug
+        childNode.path = accumulatedPath
+        childNode.isActive = label.isActive
+      }
+
+      currentNode = childNode
+    }
   }
 
-  const result = Array.from(namespaces.values()).map((namespace) => ({
-    ...namespace,
-    children: namespace.children
-      ? [...namespace.children].sort((a, b) => a.name.localeCompare(b.name))
-      : undefined,
-  }))
+  const sortAndPrune = (node: TagNode) => {
+    if (node.children && node.children.length > 0) {
+      node.children.sort((a, b) => a.name.localeCompare(b.name))
+      node.children.forEach(sortAndPrune)
+    } else if (node.children) {
+      delete node.children
+    }
+  }
 
+  const result = Array.from(namespaces.values())
+  result.forEach(sortAndPrune)
   result.sort((a, b) => a.name.localeCompare(b.name))
   return result
 }
@@ -813,6 +870,7 @@ export async function fetchTags(): Promise<TagNode[]> {
 
 export async function createTag(data: TagUpdateData, parent?: TagNode | string): Promise<TagNode> {
   const parentValue = typeof parent === "string" ? parent : parent?.id
+  const parentNode = typeof parent === "object" ? parent : undefined
 
   try {
     const normalizedName = data.name.trim()
@@ -824,18 +882,21 @@ export async function createTag(data: TagUpdateData, parent?: TagNode | string):
       ? parentValue.slice(3)
       : parentValue && parentValue.length > 0
         ? parentValue
-        : typeof parent === "object" && parent?.namespaceSlug
-          ? parent.namespaceSlug
+        : parentNode?.namespaceSlug
+          ? parentNode.namespaceSlug
           : "user"
 
     const slug = slugify(normalizedName)
     if (!slug) {
       throw new Error("Tag name must include alphanumeric characters")
     }
+    const parentPath = parentNode?.path
+    const path = parentPath ? `${parentPath}/${slug}` : slug
+
     const payload = {
       NamespaceSlug: namespaceSlug,
       Slug: slug,
-      Path: slug,
+      Path: path,
       CreatedBy: null as string | null,
     }
 
@@ -859,6 +920,10 @@ export async function createTag(data: TagUpdateData, parent?: TagNode | string):
     return mapped
   } catch (error) {
     console.warn("[ui] Failed to create tag via gateway, using mock response:", error)
+    const fallbackSlug = slugify(data.name) || data.name
+    const fallbackParentPath = parentNode?.path
+    const fallbackPath = fallbackParentPath ? `${fallbackParentPath}/${fallbackSlug}` : fallbackSlug
+
     return {
       id: Date.now().toString(),
       name: data.name,
@@ -866,13 +931,13 @@ export async function createTag(data: TagUpdateData, parent?: TagNode | string):
       icon: data.icon,
       kind: "label",
       namespaceSlug:
-        typeof parent === "object"
-          ? parent.namespaceSlug
+        parentNode?.namespaceSlug
+          ? parentNode.namespaceSlug
           : parentValue?.startsWith("ns:")
             ? parentValue.slice(3)
             : undefined,
-      slug: slugify(data.name),
-      path: data.name,
+      slug: fallbackSlug,
+      path: fallbackPath,
       isActive: true,
     }
   }
@@ -891,10 +956,12 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
     }
 
     const namespaceSlug = tag.namespaceSlug ?? "user"
+    const parentPath = tag.path?.split("/").slice(0, -1).join("/") || undefined
+    const path = parentPath ? `${parentPath}/${slug}` : slug
     const payload = {
       NamespaceSlug: namespaceSlug,
       Slug: slug,
-      Path: slug,
+      Path: path,
       UpdatedBy: null as string | null,
     }
 
@@ -916,13 +983,17 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
     }
   } catch (error) {
     console.warn("[ui] Failed to update tag via gateway, using mock response:", error)
+    const fallbackSlug = slugify(data.name) || data.name
+    const fallbackParentPath = tag.path?.split("/").slice(0, -1).join("/") || undefined
+    const fallbackPath = fallbackParentPath ? `${fallbackParentPath}/${fallbackSlug}` : fallbackSlug
+
     return {
       ...tag,
       name: data.name,
       color: data.color,
       icon: data.icon,
-      slug: slugify(data.name),
-      path: data.name,
+      slug: fallbackSlug,
+      path: fallbackPath,
     }
   }
 }
