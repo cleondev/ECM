@@ -405,7 +405,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="max-w-[1280px] sm:max-w-[1280px] w-full sm:w-[1200px] h-[860px] flex flex-col">
+      <DialogContent className="w-[95vw] max-w-[1280px] sm:w-[90vw] lg:w-[80vw] xl:w-[70vw] h-[90vh] sm:h-[90vh] lg:h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Upload Files</DialogTitle>
         </DialogHeader>
