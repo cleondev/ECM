@@ -131,13 +131,6 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "iam_group_members_active_user_idx",
-                schema: "iam",
-                table: "group_members",
-                column: "user_id",
-                filter: "valid_to IS NULL OR valid_to >= now()");
-
-            migrationBuilder.CreateIndex(
                 name: "iam_group_members_group_validity_idx",
                 schema: "iam",
                 table: "group_members",

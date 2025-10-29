@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECM.IAM.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(IamDbContext))]
-    [Migration("20251029043239_initIAMDb")]
+    [Migration("20251029045234_initIAMDb")]
     partial class initIAMDb
     {
         /// <inheritdoc />
@@ -93,10 +93,6 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
 
                     b.HasKey("GroupId", "UserId")
                         .HasName("pk_group_members");
-
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("iam_group_members_active_user_idx")
-                        .HasFilter("valid_to IS NULL OR valid_to >= now()");
 
                     b.HasIndex("GroupId", "ValidFromUtc", "ValidToUtc")
                         .HasDatabaseName("iam_group_members_group_validity_idx");

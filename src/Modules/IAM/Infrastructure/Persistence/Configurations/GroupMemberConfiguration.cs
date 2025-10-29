@@ -32,10 +32,6 @@ public sealed class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMem
             .HasColumnName("valid_to")
             .HasColumnType("timestamptz");
 
-        builder.HasIndex(member => member.UserId)
-            .HasDatabaseName("iam_group_members_active_user_idx")
-            .HasFilter("valid_to IS NULL OR valid_to >= now()");
-
         builder.HasIndex(member => new { member.GroupId, member.ValidFromUtc, member.ValidToUtc })
             .HasDatabaseName("iam_group_members_group_validity_idx");
     }

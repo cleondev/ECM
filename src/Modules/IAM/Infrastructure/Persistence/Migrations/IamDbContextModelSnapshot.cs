@@ -91,10 +91,6 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                     b.HasKey("GroupId", "UserId")
                         .HasName("pk_group_members");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("iam_group_members_active_user_idx")
-                        .HasFilter("valid_to IS NULL OR valid_to >= now()");
-
                     b.HasIndex("GroupId", "ValidFromUtc", "ValidToUtc")
                         .HasDatabaseName("iam_group_members_group_validity_idx");
 
