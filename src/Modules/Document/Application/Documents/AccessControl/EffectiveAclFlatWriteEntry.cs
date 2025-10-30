@@ -1,16 +1,17 @@
 using System;
+using ECM.Document.Domain.Documents;
 
 namespace ECM.Document.Application.Documents.AccessControl;
 
 public readonly record struct EffectiveAclFlatWriteEntry(
-    Guid DocumentId,
+    DocumentId DocumentId,
     Guid UserId,
     DateTimeOffset? ValidToUtc,
     bool IsValid,
     string Source,
     string IdempotencyKey)
 {
-    public static EffectiveAclFlatWriteEntry ForOwner(Guid documentId, Guid ownerId)
+    public static EffectiveAclFlatWriteEntry ForOwner(DocumentId documentId, Guid ownerId)
     {
         return new EffectiveAclFlatWriteEntry(
             documentId,

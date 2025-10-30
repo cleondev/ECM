@@ -92,7 +92,7 @@ public sealed class UploadDocumentCommandHandler(
 
         await _repository.AddAsync(document, cancellationToken);
 
-        var ownerEntry = EffectiveAclFlatWriteEntry.ForOwner(document.Id.Value, document.OwnerId);
+        var ownerEntry = EffectiveAclFlatWriteEntry.ForOwner(document.Id, document.OwnerId);
         await _aclWriter.UpsertAsync(ownerEntry, cancellationToken);
 
         return OperationResult<DocumentWithVersionResult>.Success(

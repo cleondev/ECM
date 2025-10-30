@@ -124,7 +124,7 @@ public static class DocumentEndpoints
 
         var query = context
             .Documents.AsNoTracking()
-            .Where(document => accessibleDocumentIdsQuery.Contains(document.Id.Value))
+            .Where(document => accessibleDocumentIdsQuery.Contains(document.Id))
             .Include(document => document.Versions)
             .Include(document => document.Tags)
                 .ThenInclude(documentTag => documentTag.Tag)

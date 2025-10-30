@@ -12,8 +12,13 @@ public sealed class EffectiveAclFlatEntryConfiguration : IEntityTypeConfiguratio
 
         builder.HasKey(entry => new { entry.DocumentId, entry.UserId, entry.IdempotencyKey });
 
-        builder.Property(entry => entry.DocumentId)
-            .HasColumnName("document_id");
+        var documentIdProperty = builder.Property(entry => entry.DocumentId)
+            .HasColumnName("document_id")
+            .HasColumnType("uuid")
+            .HasConversion(EfConverters.DocumentIdConverter);
+
+        documentIdProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        documentIdProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(entry => entry.UserId)
             .HasColumnName("user_id");
