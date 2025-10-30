@@ -16,6 +16,10 @@ public sealed class TagNamespaceConfiguration : IEntityTypeConfiguration<TagName
 
         builder.HasKey(ns => ns.NamespaceSlug);
 
+        builder.Property(ns => ns.Id)
+            .HasColumnName("id")
+            .IsRequired();
+
         builder.Property(ns => ns.NamespaceSlug)
             .HasColumnName("namespace_slug")
             .IsRequired();
@@ -29,6 +33,9 @@ public sealed class TagNamespaceConfiguration : IEntityTypeConfiguration<TagName
 
         builder.Property(ns => ns.DisplayName)
             .HasColumnName("display_name");
+
+        builder.Property(ns => ns.Description)
+            .HasColumnName("description");
 
         builder.Property(ns => ns.CreatedAtUtc)
             .HasColumnName("created_at")

@@ -28,7 +28,7 @@ public sealed class TagNamespaceRepository(DocumentDbContext context) : ITagName
             return;
         }
 
-        var tagNamespace = new TagNamespace(namespaceSlug, "user", ownerUserId, displayName, createdAtUtc);
+        var tagNamespace = TagNamespace.Create(namespaceSlug, "user", ownerUserId, displayName, description: null, createdAtUtc);
         await _context.TagNamespaces.AddAsync(tagNamespace, cancellationToken).ConfigureAwait(false);
 
         try
