@@ -3,42 +3,36 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.Document.Application.Tags.Repositories;
+using ECM.Document.Domain.Tags;
 
 namespace Document.Tests.Application.Tags;
 
 internal sealed class FakeTagNamespaceRepository : ITagNamespaceRepository
 {
-    private readonly HashSet<string> _namespaces = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<Guid, TagNamespace> _namespaces = [];
 
-    public FakeTagNamespaceRepository(IEnumerable<string>? namespaces = null)
+    public FakeTagNamespaceRepository(IEnumerable<TagNamespace>? namespaces = null)
     {
         if (namespaces is null)
         {
             return;
         }
 
-        foreach (var name in namespaces)
+        foreach (var tagNamespace in namespaces)
         {
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                _namespaces.Add(name);
-            }
+            Seed(tagNamespace);
         }
     }
 
-    public IReadOnlyCollection<string> Namespaces => _namespaces;
-
-    public Task<bool> ExistsAsync(string namespaceSlug, CancellationToken cancellationToken = default)
-        => Task.FromResult(_namespaces.Contains(namespaceSlug));
-
-    public Task EnsureUserNamespaceAsync(
-        string namespaceSlug,
-        Guid? ownerUserId,
-        string? displayName,
-        DateTimeOffset createdAtUtc,
-        CancellationToken cancellationToken = default)
+    public void Seed(TagNamespace tagNamespace)
     {
-        _namespaces.Add(namespaceSlug);
-        return Task.CompletedTask;
+        ArgumentNullException.ThrowIfNull(tagNamespace);
+        _namespaces[tagNamespace.Id] = tagNamespace;
+    }
+
+    public Task<TagNamespace?> GetAsync(Guid namespaceId, CancellationToken cancellationToken = default)
+    {
+        _namespaces.TryGetValue(namespaceId, out var tagNamespace);
+        return Task.FromResult(tagNamespace);
     }
 }

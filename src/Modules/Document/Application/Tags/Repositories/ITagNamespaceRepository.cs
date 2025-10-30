@@ -7,12 +7,5 @@ namespace ECM.Document.Application.Tags.Repositories;
 
 public interface ITagNamespaceRepository
 {
-    Task<bool> ExistsAsync(string namespaceSlug, CancellationToken cancellationToken = default);
-
-    Task EnsureUserNamespaceAsync(
-        string namespaceSlug,
-        Guid? ownerUserId,
-        string? displayName,
-        DateTimeOffset createdAtUtc,
-        CancellationToken cancellationToken = default);
+    Task<TagNamespace?> GetAsync(Guid namespaceId, CancellationToken cancellationToken = default);
 }

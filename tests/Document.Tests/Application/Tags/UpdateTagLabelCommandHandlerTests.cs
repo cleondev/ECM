@@ -13,57 +13,82 @@ namespace Document.Tests.Application.Tags;
 public class UpdateTagLabelCommandHandlerTests
 {
     [Fact]
-    public async Task HandleAsync_WithHierarchicalPath_AllowsForwardSlashes()
+    public async Task HandleAsync_WhenParentChanges_RecalculatesPath()
     {
-        var createdAt = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
-        var existingTag = TagLabel.Create("system", "operations", "operations", Guid.NewGuid(), createdAt);
-        var repository = new FakeTagLabelRepository(["system"]);
-        repository.Seed(existingTag);
+        var now = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
+        var tagNamespace = TagNamespace.Create("group", null, Guid.NewGuid(), "Team", isSystem: false, createdAtUtc: now);
+        var namespaceRepository = new FakeTagNamespaceRepository([tagNamespace]);
+        var repository = new FakeTagLabelRepository();
+        var clock = new FixedClock(now.AddMinutes(10));
+        var handler = new UpdateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
-        var clock = new FixedClock(createdAt.AddMinutes(5));
-        var handler = new UpdateTagLabelCommandHandler(repository, clock);
+        var ownerId = Guid.NewGuid();
+        var originalParent = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Root", 0, null, null, ownerId, false, now);
+        var newParent = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Folder", 1, null, null, ownerId, false, now);
+        var tag = TagLabel.Create(tagNamespace.Id, originalParent.Id, originalParent.PathIds, "Leaf", 0, null, null, ownerId, false, now);
+
+        repository.Seed(originalParent);
+        repository.Seed(newParent);
+        repository.Seed(tag);
 
         var command = new UpdateTagLabelCommand(
-            existingTag.Id,
-            "System",
-            "Operations",
-            "Operations/Site-A",
-            Guid.NewGuid());
+            tag.Id,
+            tagNamespace.Id,
+            newParent.Id,
+            "Leaf",
+            3,
+            "#fff",
+            "icon",
+            true,
+            ownerId);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        var tag = Assert.IsType<TagLabelResult>(result.Value);
-        Assert.Equal("operations", tag.Slug);
-        Assert.Equal("operations/site-a", tag.Path);
+        var updated = Assert.IsType<TagLabelResult>(result.Value);
+        Assert.Equal(newParent.Id, updated.ParentId);
+        Assert.Equal(new[] { newParent.Id, tag.Id }, updated.PathIds);
+        Assert.Equal(3, updated.SortOrder);
+        Assert.Equal("#fff", updated.Color);
+        Assert.Equal("icon", updated.IconKey);
 
-        var storedTag = Assert.Single(repository.StoredTags);
-        Assert.Equal(existingTag.Id, storedTag.Id);
-        Assert.Equal("operations/site-a", storedTag.Path);
+        var stored = repository.StoredTags.Single(t => t.Id == tag.Id);
+        Assert.Equal(updated.PathIds, stored.PathIds);
         Assert.Equal(CancellationToken.None, repository.CapturedToken);
     }
 
     [Fact]
-    public async Task HandleAsync_WithInvalidCharactersInPath_ReturnsFailure()
+    public async Task HandleAsync_WhenAssigningDescendantParent_ReturnsFailure()
     {
-        var createdAt = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
-        var existingTag = TagLabel.Create("system", "ops", "ops", Guid.NewGuid(), createdAt);
-        var repository = new FakeTagLabelRepository(["system"]);
-        repository.Seed(existingTag);
+        var now = DateTimeOffset.UtcNow;
+        var tagNamespace = TagNamespace.Create("global", null, null, "Global", isSystem: false, createdAtUtc: now);
+        var namespaceRepository = new FakeTagNamespaceRepository([tagNamespace]);
+        var repository = new FakeTagLabelRepository();
+        var clock = new FixedClock(now.AddMinutes(1));
+        var handler = new UpdateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
-        var clock = new FixedClock(createdAt.AddMinutes(1));
-        var handler = new UpdateTagLabelCommandHandler(repository, clock);
+        var ownerId = Guid.NewGuid();
+        var root = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Root", 0, null, null, ownerId, false, now);
+        var child = TagLabel.Create(tagNamespace.Id, root.Id, root.PathIds, "Child", 0, null, null, ownerId, false, now);
 
-        var command = new UpdateTagLabelCommand(existingTag.Id, "system", "ops", "ops#invalid", Guid.NewGuid());
+        repository.Seed(root);
+        repository.Seed(child);
+
+        var command = new UpdateTagLabelCommand(
+            root.Id,
+            tagNamespace.Id,
+            child.Id,
+            "Root",
+            null,
+            null,
+            null,
+            true,
+            ownerId);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Contains("forward slashes", result.Errors.Single());
-
-        var storedTag = Assert.Single(repository.StoredTags);
-        Assert.Equal("ops", storedTag.Path);
-        Assert.Null(repository.CapturedToken);
+        Assert.Contains("descendant", string.Join(' ', result.Errors), StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class FixedClock(DateTimeOffset now) : ISystemClock

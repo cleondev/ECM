@@ -35,13 +35,15 @@ CREATE TABLE doc.file_object (
 );
 
 CREATE TABLE doc.tag_namespace (
-    namespace_slug text NOT NULL,
-    kind text NOT NULL,
+    id uuid NOT NULL,
+    scope text NOT NULL,
     owner_user_id uuid,
+    owner_group_id uuid,
     display_name text,
+    is_system boolean NOT NULL DEFAULT FALSE,
     created_at timestamptz NOT NULL DEFAULT (now()),
-    CONSTRAINT pk_tag_namespace PRIMARY KEY (namespace_slug),
-    CONSTRAINT chk_tag_namespace_kind CHECK (kind IN ('system','user'))
+    CONSTRAINT pk_tag_namespace PRIMARY KEY (id),
+    CONSTRAINT chk_tag_namespace_scope CHECK (scope IN ('global','group','user'))
 );
 
 CREATE TABLE doc.document (
@@ -62,15 +64,20 @@ CREATE TABLE doc.document (
 
 CREATE TABLE doc.tag_label (
     id uuid NOT NULL,
-    namespace_slug text NOT NULL,
-    slug text NOT NULL,
-    path text NOT NULL,
+    namespace_id uuid NOT NULL,
+    parent_id uuid,
+    name text NOT NULL,
+    path_ids uuid[] NOT NULL,
+    sort_order integer NOT NULL DEFAULT 0,
+    color text,
+    icon_key text,
     is_active boolean NOT NULL DEFAULT TRUE,
+    is_system boolean NOT NULL DEFAULT FALSE,
     created_by uuid,
     created_at timestamptz NOT NULL DEFAULT (now()),
     CONSTRAINT pk_tag_label PRIMARY KEY (id),
-    CONSTRAINT chk_tag_path_format CHECK (path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$'),
-    CONSTRAINT fk_tag_label_tag_namespace_namespace_slug FOREIGN KEY (namespace_slug) REFERENCES doc.tag_namespace (namespace_slug) ON DELETE CASCADE
+    CONSTRAINT fk_tag_label_parent FOREIGN KEY (parent_id) REFERENCES doc.tag_label (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_tag_label_tag_namespace_namespace_id FOREIGN KEY (namespace_id) REFERENCES doc.tag_namespace (id) ON DELETE CASCADE
 );
 
 CREATE TABLE doc.metadata (
@@ -152,11 +159,19 @@ CREATE INDEX "IX_signature_request_requested_by" ON doc.signature_request (reque
 
 CREATE INDEX "IX_signature_request_version_id" ON doc.signature_request (version_id);
 
-CREATE INDEX "IX_tag_label_created_by" ON doc.tag_label (created_by);
+CREATE INDEX tag_namespace_scope_owner_idx ON doc.tag_namespace (scope, owner_user_id, owner_group_id);
 
-CREATE INDEX "IX_tag_label_namespace_slug" ON doc.tag_label (namespace_slug);
+CREATE INDEX "IX_tag_label_namespace_id" ON doc.tag_label (namespace_id);
 
-CREATE UNIQUE INDEX tag_label_ns_path_idx ON doc.tag_label (namespace_slug, path);
+CREATE INDEX "IX_tag_label_parent_id" ON doc.tag_label (parent_id);
+
+CREATE INDEX tag_label_ns_parent_idx ON doc.tag_label (namespace_id, parent_id);
+
+CREATE UNIQUE INDEX uq_tag_sibling_name ON doc.tag_label (namespace_id, parent_id, name);
+
+CREATE INDEX tag_label_ns_path_gin ON doc.tag_label USING gin (path_ids);
+
+CREATE INDEX tag_label_name_trgm ON doc.tag_label USING gin (name gin_trgm_ops);
 
 CREATE INDEX "IX_version_created_by" ON doc.version (created_by);
 

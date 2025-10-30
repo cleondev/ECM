@@ -1,9 +1,9 @@
+using System;
 using ECM.BuildingBlocks.Domain.Events;
 
 namespace ECM.Document.Domain.Tags.Events;
 
 public sealed record TagLabelDeletedDomainEvent(
     Guid TagId,
-    string NamespaceSlug,
-    string Path,
+    Guid NamespaceId,
     DateTimeOffset OccurredAtUtc) : IDomainEvent;
