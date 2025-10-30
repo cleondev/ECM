@@ -121,7 +121,13 @@ public static class DocumentEndpoints
             )
             .Select(entry => entry.DocumentId);
 
-        query = query.Where(document => authorizedDocuments.Contains(document.Id.Value));
+        query = query
+            .Join(
+                authorizedDocuments,
+                document => document.Id.Value,
+                authorizedDocumentId => authorizedDocumentId,
+                (document, _) => document
+            );
 
         if (!string.IsNullOrWhiteSpace(request.Query))
         {
