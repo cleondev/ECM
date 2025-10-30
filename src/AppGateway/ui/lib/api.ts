@@ -69,6 +69,7 @@ export type DocumentVersionResponse = {
 export type DocumentTagResponse = {
   id: string
   namespaceId: string
+  namespaceDisplayName?: string | null
   parentId?: string | null
   name: string
   pathIds: string[]
@@ -444,6 +445,7 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     document.tags?.map((tag) => ({
       id: tag.id,
       namespaceId: tag.namespaceId,
+      namespaceDisplayName: tag.namespaceDisplayName ?? null,
       parentId: tag.parentId ?? null,
       name: tag.name,
       color: tag.color ?? null,

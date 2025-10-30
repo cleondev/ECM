@@ -47,7 +47,7 @@ public sealed class CreateTagLabelCommandHandler(
         }
 
         var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
-            ? tagNamespace.Scope
+            ? null
             : tagNamespace.DisplayName.Trim();
 
         var normalizedName = command.Name.Trim();

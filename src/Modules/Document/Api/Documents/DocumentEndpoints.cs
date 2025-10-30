@@ -127,7 +127,8 @@ public static class DocumentEndpoints
             .Documents.AsNoTracking()
             .Include(document => document.Versions)
             .Include(document => document.Tags)
-            .ThenInclude(documentTag => documentTag.Tag)
+                .ThenInclude(documentTag => documentTag.Tag)
+                    .ThenInclude(tag => tag.Namespace)
             .Include(document => document.Metadata)
             .AsQueryable();
 
@@ -353,6 +354,9 @@ public static class DocumentEndpoints
 
         return value;
     }
+
+    private static string? NormalizeNamespaceDisplayName(string? displayName)
+        => string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
 
     private static string NormalizeTitle(string? title, string fileName)
     {
@@ -633,10 +637,12 @@ public static class DocumentEndpoints
             {
                 var tag = documentTag.Tag;
                 var pathIds = tag?.PathIds ?? [];
+                var namespaceDisplayName = NormalizeNamespaceDisplayName(tag?.Namespace?.DisplayName);
 
                 return new DocumentTagResponse(
                     documentTag.TagId,
                     tag?.NamespaceId ?? Guid.Empty,
+                    namespaceDisplayName,
                     tag?.ParentId,
                     tag?.Name ?? string.Empty,
                     pathIds,

@@ -1,6 +1,7 @@
 export type DocumentTag = {
   id: string
   namespaceId: string
+  namespaceDisplayName?: string | null
   parentId?: string | null
   name: string
   color?: string | null

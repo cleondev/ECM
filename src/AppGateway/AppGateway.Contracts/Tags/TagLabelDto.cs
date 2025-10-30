@@ -5,6 +5,7 @@ namespace AppGateway.Contracts.Tags;
 public sealed record TagLabelDto(
     Guid Id,
     Guid NamespaceId,
+    string? NamespaceDisplayName,
     Guid? ParentId,
     string Name,
     Guid[] PathIds,
