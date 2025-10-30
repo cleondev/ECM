@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Tags.Commands;
+using ECM.Document.Application.Tags.Results;
 using Xunit;
 
 namespace Document.Tests.Application.Tags;
@@ -23,7 +24,7 @@ public class CreateTagLabelCommandHandlerTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        var tag = Assert.NotNull(result.Value);
+        var tag = Assert.IsType<TagLabelResult>(result.Value);
         Assert.Equal("system", tag.NamespaceSlug);
         Assert.Equal("operations", tag.Slug);
         Assert.Equal("projects/quarter-1", tag.Path);

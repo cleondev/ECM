@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Tags.Commands;
+using ECM.Document.Application.Tags.Results;
 using ECM.Document.Domain.Tags;
 using Xunit;
 
@@ -32,7 +33,7 @@ public class UpdateTagLabelCommandHandlerTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        var tag = Assert.NotNull(result.Value);
+        var tag = Assert.IsType<TagLabelResult>(result.Value);
         Assert.Equal("operations", tag.Slug);
         Assert.Equal("operations/site-a", tag.Path);
 
