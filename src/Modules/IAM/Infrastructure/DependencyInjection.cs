@@ -40,6 +40,7 @@ public static class IamInfrastructureModuleExtensions
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IAccessRelationRepository, AccessRelationRepository>();
         services.AddScoped<IGroupService, GroupService>();
+        services.AddScoped<IDefaultGroupAssignmentService, DefaultGroupAssignmentService>();
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
         return services;
