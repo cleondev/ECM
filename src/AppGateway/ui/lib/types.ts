@@ -110,8 +110,6 @@ export type UploadMetadata = {
   title: string
   docType: string
   status: string
-  primaryGroupId?: string | null
-  groupIds?: string[]
   sensitivity: string
   description?: string
   notes?: string
