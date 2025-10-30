@@ -15,9 +15,10 @@ public class CreateTagLabelCommandHandlerTests
     public async Task HandleAsync_WithHierarchicalPath_AllowsForwardSlashes()
     {
         var now = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
-        var repository = new FakeTagLabelRepository(["system"]);
+        var namespaceRepository = new FakeTagNamespaceRepository(["system"]);
+        var repository = new FakeTagLabelRepository();
         var clock = new FixedClock(now);
-        var handler = new CreateTagLabelCommandHandler(repository, clock);
+        var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
         var command = new CreateTagLabelCommand("System", "Operations", "Projects/Quarter-1", Guid.NewGuid());
 
@@ -38,9 +39,10 @@ public class CreateTagLabelCommandHandlerTests
     [Fact]
     public async Task HandleAsync_WithInvalidCharactersInPath_ReturnsFailure()
     {
-        var repository = new FakeTagLabelRepository(["system"]);
+        var namespaceRepository = new FakeTagNamespaceRepository(["system"]);
+        var repository = new FakeTagLabelRepository();
         var clock = new FixedClock(DateTimeOffset.UtcNow);
-        var handler = new CreateTagLabelCommandHandler(repository, clock);
+        var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
         var command = new CreateTagLabelCommand("system", "ops", "invalid#path", Guid.NewGuid());
 
@@ -50,6 +52,23 @@ public class CreateTagLabelCommandHandlerTests
         Assert.Contains("forward slashes", result.Errors.Single());
         Assert.Empty(repository.StoredTags);
         Assert.Null(repository.CapturedToken);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenUserNamespaceIsMissing_CreatesNamespace()
+    {
+        var namespaceRepository = new FakeTagNamespaceRepository();
+        var repository = new FakeTagLabelRepository();
+        var clock = new FixedClock(new DateTimeOffset(2024, 05, 01, 7, 30, 0, TimeSpan.Zero));
+        var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
+
+        var creatorId = Guid.NewGuid();
+        var command = new CreateTagLabelCommand("user/test@example.com", "ops", null, creatorId);
+
+        var result = await handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Contains("user/test@example.com", namespaceRepository.Namespaces, StringComparer.OrdinalIgnoreCase);
     }
 
     private sealed class FixedClock(DateTimeOffset now) : ISystemClock

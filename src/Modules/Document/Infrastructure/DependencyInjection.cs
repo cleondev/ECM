@@ -38,6 +38,7 @@ public static class DocumentInfrastructureModuleExtensions
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IDocumentVersionReadService, DocumentVersionReadService>();
         services.AddScoped<ITagLabelRepository, TagLabelRepository>();
+        services.AddScoped<ITagNamespaceRepository, TagNamespaceRepository>();
         services.AddScoped<IEffectiveAclFlatWriter, EffectiveAclFlatWriter>();
 
         return services;

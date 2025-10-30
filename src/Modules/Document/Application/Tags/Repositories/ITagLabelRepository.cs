@@ -11,8 +11,6 @@ public interface ITagLabelRepository
 
     Task<TagLabel?> GetByNamespaceAndPathAsync(string namespaceSlug, string path, CancellationToken cancellationToken = default);
 
-    Task<bool> NamespaceExistsAsync(string namespaceSlug, CancellationToken cancellationToken = default);
-
     Task<TagLabel> AddAsync(TagLabel tagLabel, CancellationToken cancellationToken = default);
 
     Task<TagLabel> UpdateAsync(TagLabel tagLabel, CancellationToken cancellationToken = default);

@@ -18,9 +18,6 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
     public Task<TagLabel?> GetByNamespaceAndPathAsync(string namespaceSlug, string path, CancellationToken cancellationToken = default)
         => _context.TagLabels.FirstOrDefaultAsync(label => label.NamespaceSlug == namespaceSlug && label.Path == path, cancellationToken);
 
-    public Task<bool> NamespaceExistsAsync(string namespaceSlug, CancellationToken cancellationToken = default)
-        => _context.TagNamespaces.AnyAsync(ns => ns.NamespaceSlug == namespaceSlug, cancellationToken);
-
     public async Task<TagLabel> AddAsync(TagLabel tagLabel, CancellationToken cancellationToken = default)
     {
         await _context.TagLabels.AddAsync(tagLabel, cancellationToken);
