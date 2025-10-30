@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -297,9 +298,14 @@ export default function SettingsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Settings</h1>
+            <p className="text-muted-foreground">Manage your account settings and preferences</p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/hello">Open hello word page</Link>
+          </Button>
         </div>
 
         <Tabs defaultValue="general" className="space-y-6">
