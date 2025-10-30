@@ -28,6 +28,20 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
         return Task.FromResult(tagLabel);
     }
 
+    public Task<TagLabel[]> ListWithNamespaceAsync(CancellationToken cancellationToken = default)
+    {
+        CapturedToken = cancellationToken;
+
+        var ordered = _tags.Values
+            .OrderBy(label => label.NamespaceId)
+            .ThenBy(label => label.ParentId.HasValue ? 1 : 0)
+            .ThenBy(label => label.SortOrder)
+            .ThenBy(label => label.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        return Task.FromResult(ordered);
+    }
+
     public Task<bool> ExistsWithNameAsync(
         Guid namespaceId,
         Guid? parentId,
