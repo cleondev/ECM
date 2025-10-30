@@ -58,7 +58,7 @@ public class UploadDocumentCommandHandlerTests
             aclWriter.Entries,
             entry =>
             {
-                Assert.Equal(repository.Documents[0].Id.Value, entry.DocumentId);
+                Assert.Equal(repository.Documents[0].Id, entry.DocumentId);
                 Assert.Equal(repository.Documents[0].OwnerId, entry.UserId);
                 Assert.Equal(EffectiveAclFlatSources.Owner, entry.Source);
                 Assert.Equal(EffectiveAclFlatIdempotencyKeys.Owner, entry.IdempotencyKey);
