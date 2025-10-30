@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -63,6 +64,8 @@ internal sealed class UiRequestAuthorizationMiddleware
             return;
         }
 
+        await EnsureAuthenticatedUserAsync(context);
+
         if (IsPublicRequest(context.Request.Path))
         {
             await _next(context);
@@ -104,6 +107,21 @@ internal sealed class UiRequestAuthorizationMiddleware
         }
 
         RedirectToSignIn(context);
+    }
+
+    private static async Task EnsureAuthenticatedUserAsync(HttpContext context)
+    {
+        if (context.User?.Identity?.IsAuthenticated ?? false)
+        {
+            return;
+        }
+
+        var authenticateResult = await context.AuthenticateAsync();
+
+        if (authenticateResult.Succeeded && authenticateResult.Principal is not null)
+        {
+            context.User = authenticateResult.Principal;
+        }
     }
 
     private static bool ShouldEvaluateRequest(HttpRequest request)
@@ -273,7 +291,7 @@ internal sealed class UiRequestAuthorizationMiddleware
             return new PathString("/");
         }
 
-        return path.Value!.EndsWith("/", StringComparison.Ordinal)
+        return path.Value!.EndsWith('/', StringComparison.Ordinal)
             ? path
             : path.Add("/");
     }

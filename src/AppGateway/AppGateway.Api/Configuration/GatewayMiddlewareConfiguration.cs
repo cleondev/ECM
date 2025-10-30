@@ -23,6 +23,10 @@ public static class GatewayMiddlewareConfiguration
         app.UseExceptionHandler();
         app.UseStatusCodePages();
 
+        app.UseMiddleware<UiRequestAuthorizationMiddleware>();
+
+        ConfigureStaticFileServing(app);
+
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseMiddleware<UiRequestAuthorizationMiddleware>();
