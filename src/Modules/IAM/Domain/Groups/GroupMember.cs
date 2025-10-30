@@ -69,4 +69,18 @@ public sealed class GroupMember
 
         ValidToUtc = endedAtUtc;
     }
+
+    public void Reopen(DateTimeOffset validFromUtc, string? role = null)
+    {
+        if (validFromUtc == default)
+        {
+            throw new ArgumentException("Valid from time is required.", nameof(validFromUtc));
+        }
+
+        ValidFromUtc = validFromUtc;
+        ValidToUtc = null;
+
+        var normalizedRole = string.IsNullOrWhiteSpace(role) ? GroupMemberRoles.Member : role.Trim();
+        Role = normalizedRole;
+    }
 }

@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
@@ -65,7 +66,11 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var parsedGroupIds = formCollection is null
             ? []
             : ParseGroupIds(formCollection);
-        var normalizedGroupIds = NormalizeGroupSelection(NormalizeGuid(request.GroupId), parsedGroupIds, out var normalizedGroupId);
+        var (normalizedGroupId, normalizedGroupIds) = await ResolveGroupSelectionAsync(
+            request.CreatedBy.Value,
+            NormalizeGuid(request.GroupId),
+            parsedGroupIds,
+            cancellationToken);
 
         var upload = new CreateDocumentUpload
         {
@@ -123,9 +128,12 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var normalizedDocType = NormalizeString(request.DocType, "General");
         var normalizedStatus = NormalizeString(request.Status, "Draft");
         var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
-        var normalizedGroupId = NormalizeGuid(request.GroupId);
-        var normalizedGroupIds = NormalizeGroupSelection(normalizedGroupId, request.GroupIds, out var resolvedGroupId);
-        normalizedGroupId = resolvedGroupId;
+        var requestedGroupId = NormalizeGuid(request.GroupId);
+        var (normalizedGroupId, normalizedGroupIds) = await ResolveGroupSelectionAsync(
+            createdBy.Value,
+            requestedGroupId,
+            request.GroupIds,
+            cancellationToken);
         var documentTypeId = request.DocumentTypeId;
         var flowDefinition = NormalizeOptional(request.FlowDefinition);
         var tagIds = request.TagIds.Count == 0
@@ -559,6 +567,71 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
 
         primaryGroupId = buffer.Count > 0 ? buffer[0] : (Guid?)null;
         return buffer;
+    }
+
+    private async Task<(Guid? PrimaryGroupId, IReadOnlyList<Guid> GroupIds)> ResolveGroupSelectionAsync(
+        Guid createdBy,
+        Guid? requestedGroupId,
+        IReadOnlyCollection<Guid>? requestedGroupIds,
+        CancellationToken cancellationToken)
+    {
+        var normalized = NormalizeGroupSelection(requestedGroupId, requestedGroupIds ?? Array.Empty<Guid>(), out var primaryGroupId);
+        if (normalized.Count > 0)
+        {
+            return (primaryGroupId, normalized);
+        }
+
+        try
+        {
+            var user = await _client.GetUserAsync(createdBy, cancellationToken);
+            if (user is not null)
+            {
+                var buffer = new List<Guid>();
+                var seen = new HashSet<Guid>();
+
+                if (user.PrimaryGroupId is Guid primary && primary != Guid.Empty && seen.Add(primary))
+                {
+                    buffer.Add(primary);
+                }
+
+                if (user.GroupIds is not null)
+                {
+                    foreach (var id in user.GroupIds)
+                    {
+                        if (id == Guid.Empty || !seen.Add(id))
+                        {
+                            continue;
+                        }
+
+                        buffer.Add(id);
+                    }
+                }
+
+                if (buffer.Count > 0)
+                {
+                    return (buffer[0], buffer);
+                }
+
+                _logger.LogWarning(
+                    "User {UserId} does not have any group memberships; falling back to the system group.",
+                    createdBy);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Failed to resolve user {UserId} for group selection; falling back to the system group.",
+                    createdBy);
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Failed to resolve group selection for user {UserId}; falling back to the system group.",
+                createdBy);
+        }
+
+        return (GroupDefaultIds.System, new[] { GroupDefaultIds.System });
     }
 
     private async Task<Guid?> ResolveUserIdAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)

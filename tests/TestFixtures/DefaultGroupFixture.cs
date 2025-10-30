@@ -13,5 +13,10 @@ public sealed class DefaultGroupFixture
 
     public string SystemGroupName { get; } = "system";
 
-    public IReadOnlyCollection<string> DefaultGroupNames => [GuestGroupName, SystemGroupName];
+    public Guid GuessGroupId { get; } = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+    public string GuessGroupName { get; } = "Guess User";
+
+    public IReadOnlyCollection<string> DefaultGroupNames =>
+        [GuestGroupName, GuessGroupName, SystemGroupName];
 }
