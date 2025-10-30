@@ -83,11 +83,12 @@ public static class GatewayEndpointConfiguration
             return;
         }
 
-        var mainAppPath = Program.MainAppPath.TrimEnd('/');
+        MapExportedRouteFallback(app, Program.MainAppPath, "app/index.html");
+        MapExportedRouteFallback(app, "/me", "me/index.html");
+        MapExportedRouteFallback(app, "/s", "s/index.html");
+        MapExportedRouteFallback(app, "/settings", "settings/index.html");
+        MapExportedRouteFallback(app, Program.UiRequestPath, "index.html");
 
-        app.MapFallbackToFile($"{mainAppPath}/{{*path:nonfile}}", "app/index.html").AllowAnonymous();
-        app.MapFallbackToFile(Program.MainAppPath, "app/index.html").AllowAnonymous();
-        app.MapFallbackToFile($"{Program.UiRequestPath}/{{*path:nonfile}}", "index.html").AllowAnonymous();
         app.MapFallbackToFile("index.html").AllowAnonymous();
     }
 
@@ -103,4 +104,44 @@ public static class GatewayEndpointConfiguration
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
     }
 
+    private static void MapExportedRouteFallback(WebApplication app, string requestPath, string staticFile)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        if (string.IsNullOrWhiteSpace(app.Environment.WebRootPath))
+        {
+            return;
+        }
+
+        var filePath = Path.Combine(
+            app.Environment.WebRootPath!,
+            staticFile.Replace('/', Path.DirectorySeparatorChar));
+
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
+
+        var normalizedRequestPath = NormalizeRequestPath(requestPath);
+        var nonFilePattern = normalizedRequestPath == "/"
+            ? "{*path:nonfile}"
+            : $"{normalizedRequestPath}/{{*path:nonfile}}";
+
+        app.MapFallbackToFile(nonFilePattern, staticFile).AllowAnonymous();
+
+        if (normalizedRequestPath != "/")
+        {
+            app.MapFallbackToFile(normalizedRequestPath, staticFile).AllowAnonymous();
+        }
+    }
+
+    private static string NormalizeRequestPath(string requestPath)
+    {
+        if (string.IsNullOrWhiteSpace(requestPath))
+        {
+            return "/";
+        }
+
+        return requestPath.Length == 1 ? requestPath : requestPath.TrimEnd('/');
+    }
 }

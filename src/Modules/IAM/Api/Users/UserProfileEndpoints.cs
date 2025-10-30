@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.IAM.Api;
@@ -32,6 +33,10 @@ public static class UserProfileEndpoints
         group.MapPut(string.Empty, UpdateProfileAsync)
             .WithName("UpdateCurrentUserProfile")
             .WithSummary("Update the profile of the current user");
+
+        group.MapPut("password", UpdatePasswordAsync)
+            .WithName("UpdateCurrentUserPassword")
+            .WithSummary("Set or change the password of the current user");
 
         return group;
     }
@@ -135,6 +140,59 @@ public static class UserProfileEndpoints
         return TypedResults.Ok(UserResponseMapper.Map(result.Value!));
     }
 
+    private static async Task<Results<NoContent, NotFound, ValidationProblem>> UpdatePasswordAsync(
+        UpdatePasswordRequest request,
+        HttpContext httpContext,
+        ClaimsPrincipal principal,
+        UpdateUserPasswordCommandHandler handler,
+        ILogger<LoggerScope> logger,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation(
+            "Profile API PASSWORD PUT hit for {Method} {Path}{Query}.",
+            httpContext.Request.Method,
+            httpContext.Request.Path,
+            httpContext.Request.QueryString);
+
+        var email = GetEmail(principal, logger);
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            logger.LogWarning("Unable to resolve an email address for the current principal while handling password update.");
+            LogPrincipalClaims(principal, logger);
+            return TypedResults.NotFound();
+        }
+
+        logger.LogInformation(
+            "Handling password update for principal {Name}. Current password provided: {Provided}.",
+            principal.Identity?.Name ?? "(unknown)",
+            string.IsNullOrEmpty(request.CurrentPassword) ? "no" : "yes");
+
+        var result = await handler.HandleAsync(
+            new UpdateUserPasswordCommand(email, request.CurrentPassword, request.NewPassword),
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            logger.LogWarning(
+                "Password update failed for email {Email}. Errors: {Errors}",
+                email,
+                string.Join("; ", result.Errors));
+
+            if (result.Errors.Any(error => error.Contains("not found", StringComparison.OrdinalIgnoreCase)))
+            {
+                return TypedResults.NotFound();
+            }
+
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["password"] = [.. result.Errors]
+            });
+        }
+
+        logger.LogInformation("Successfully updated password for email {Email}.", email);
+        return TypedResults.NoContent();
+    }
+
     private static string? GetEmail(ClaimsPrincipal principal, ILogger logger)
     {
         logger.LogDebug(
@@ -235,3 +293,7 @@ public static class UserProfileEndpoints
     {
     }
 }
+
+public sealed record UpdatePasswordRequest(
+    [property: JsonPropertyName("currentPassword")] string? CurrentPassword,
+    [property: JsonPropertyName("newPassword")] string NewPassword);

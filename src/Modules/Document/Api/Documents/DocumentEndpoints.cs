@@ -128,7 +128,6 @@ public static class DocumentEndpoints
             .Include(document => document.Versions)
             .Include(document => document.Tags)
                 .ThenInclude(documentTag => documentTag.Tag)
-                    .ThenInclude(tag => tag.Namespace)
             .Include(document => document.Metadata)
             .AsQueryable();
 

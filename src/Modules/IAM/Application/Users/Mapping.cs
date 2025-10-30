@@ -31,6 +31,8 @@ internal static class Mapping
             .Distinct()
             .ToArray();
 
+        var hasPassword = !string.IsNullOrWhiteSpace(user.PasswordHash);
+
         return new UserSummaryResult(
             user.Id,
             user.Email,
@@ -40,6 +42,7 @@ internal static class Mapping
             user.PrimaryGroupId,
             groupIds,
             roles,
-            groups);
+            groups,
+            hasPassword);
     }
 }
