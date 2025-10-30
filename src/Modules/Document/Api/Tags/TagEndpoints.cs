@@ -109,10 +109,14 @@ public static class TagEndpoints
             return TypedResults.NotFound();
         }
 
+        var namespaceDisplayName = NormalizeNamespaceDisplayName(
+            result.Value.NamespaceDisplayName,
+            result.Value.NamespaceScope);
+
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
-            result.Value.NamespaceDisplayName,
+            namespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,
@@ -139,7 +143,7 @@ public static class TagEndpoints
             .Select(tag => new TagLabelResponse(
                 tag.Id,
                 tag.NamespaceId,
-                tag.NamespaceDisplayName,
+                NormalizeNamespaceDisplayName(tag.NamespaceDisplayName, tag.NamespaceScope),
                 tag.ParentId,
                 tag.Name,
                 tag.PathIds,
@@ -212,10 +216,14 @@ public static class TagEndpoints
             );
         }
 
+        var namespaceDisplayName = NormalizeNamespaceDisplayName(
+            result.Value.NamespaceDisplayName,
+            result.Value.NamespaceScope);
+
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
-            result.Value.NamespaceDisplayName,
+            namespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,

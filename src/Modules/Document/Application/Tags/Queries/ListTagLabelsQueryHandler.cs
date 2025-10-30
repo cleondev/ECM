@@ -20,6 +20,7 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
             .Select(label => new TagLabelResult(
                 label.Id,
                 label.NamespaceId,
+                label.Namespace?.Scope ?? string.Empty,
                 NormalizeNamespaceDisplayName(label.Namespace?.DisplayName, label.Namespace?.Scope),
                 label.ParentId,
                 label.Name,
