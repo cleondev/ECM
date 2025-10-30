@@ -112,6 +112,10 @@ public sealed class GroupService(
             .Distinct()
             .ToArray();
 
+        var existingMembershipsByGroupId = await _context.GroupMembers
+            .Where(member => member.UserId == user.Id)
+            .ToDictionaryAsync(member => member.GroupId, cancellationToken);
+
         var identifierTargets = normalizedAssignments
             .Where(assignment => !string.IsNullOrWhiteSpace(assignment.Identifier))
             .Select(assignment => assignment.Identifier!.Trim())
@@ -266,19 +270,32 @@ public sealed class GroupService(
                 group.SetParent(desiredParentGroupId);
             }
 
-            var isMember = await _context.GroupMembers.AnyAsync(
-                member => member.GroupId == group.Id && member.UserId == user.Id && member.ValidToUtc == null,
-                cancellationToken);
-
-            if (!isMember)
+            if (existingMembershipsByGroupId.TryGetValue(group.Id, out var existingMembership))
             {
-                var membership = GroupMember.Create(group.Id, user.Id, _clock.UtcNow, assignment.Role);
-                await _context.GroupMembers.AddAsync(membership, cancellationToken);
-                _logger.LogInformation(
-                    "Added user {UserId} to group {GroupName}.",
-                    user.Id,
-                    group.Name);
+                if (existingMembership.ValidToUtc.HasValue)
+                {
+                    existingMembership.Reopen(_clock.UtcNow, assignment.Role);
+                    _logger.LogInformation(
+                        "Reactivated membership of user {UserId} in group {GroupName}.",
+                        user.Id,
+                        group.Name);
+                }
+
+                if (assignment.Kind is GroupKind.Unit or GroupKind.Team)
+                {
+                    unitTargetIds.Add(group.Id);
+                }
+
+                continue;
             }
+
+            var membership = GroupMember.Create(group.Id, user.Id, _clock.UtcNow, assignment.Role);
+            await _context.GroupMembers.AddAsync(membership, cancellationToken);
+            existingMembershipsByGroupId[group.Id] = membership;
+            _logger.LogInformation(
+                "Added user {UserId} to group {GroupName}.",
+                user.Id,
+                group.Name);
 
             if (assignment.Kind is GroupKind.Unit or GroupKind.Team)
             {
