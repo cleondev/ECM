@@ -184,13 +184,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       return
     }
 
-    const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
-      ".uppy-Dashboard-AddFiles",
-    )
-
-    if (!addFilesElement) {
-      return
-    }
+    let cleanup: (() => void) | undefined
 
     const triggerFileSelection = () => {
       const hiddenInput = dashboardRoot.querySelector<HTMLInputElement>(
@@ -221,55 +215,83 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       )
     }
 
-    const handleClick = (event: MouseEvent) => {
-      if (shouldIgnoreEvent(event.target)) {
-        return
+    const attachInteractions = () => {
+      const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
+        // Note: Uppy spells this class without a hyphen before "Add".
+        ".uppy-DashboardAddFiles",
+      )
+
+      if (!addFilesElement) {
+        return false
       }
 
-      event.preventDefault()
-      triggerFileSelection()
-    }
+      const handleClick = (event: MouseEvent) => {
+        if (shouldIgnoreEvent(event.target)) {
+          return
+        }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreEvent(event.target)) {
-        return
+        event.preventDefault()
+        triggerFileSelection()
       }
 
-      if (event.key !== "Enter" && event.key !== " ") {
-        return
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (shouldIgnoreEvent(event.target)) {
+          return
+        }
+
+        if (event.key !== "Enter" && event.key !== " ") {
+          return
+        }
+
+        event.preventDefault()
+        triggerFileSelection()
       }
 
-      event.preventDefault()
-      triggerFileSelection()
-    }
-
-    const previousTabIndex = addFilesElement.getAttribute("tabindex")
-    const previousRole = addFilesElement.getAttribute("role")
-
-    if (previousTabIndex === null) {
-      addFilesElement.setAttribute("tabindex", "0")
-    }
-
-    if (previousRole === null) {
-      addFilesElement.setAttribute("role", "button")
-    }
-
-    addFilesElement.addEventListener("click", handleClick)
-    addFilesElement.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      addFilesElement.removeEventListener("click", handleClick)
-      addFilesElement.removeEventListener("keydown", handleKeyDown)
+      const previousTabIndex = addFilesElement.getAttribute("tabindex")
+      const previousRole = addFilesElement.getAttribute("role")
 
       if (previousTabIndex === null) {
-        addFilesElement.removeAttribute("tabindex")
+        addFilesElement.setAttribute("tabindex", "0")
       }
 
       if (previousRole === null) {
-        addFilesElement.removeAttribute("role")
-      } else {
-        addFilesElement.setAttribute("role", previousRole)
+        addFilesElement.setAttribute("role", "button")
       }
+
+      addFilesElement.addEventListener("click", handleClick)
+      addFilesElement.addEventListener("keydown", handleKeyDown)
+
+      cleanup = () => {
+        addFilesElement.removeEventListener("click", handleClick)
+        addFilesElement.removeEventListener("keydown", handleKeyDown)
+
+        if (previousTabIndex === null) {
+          addFilesElement.removeAttribute("tabindex")
+        }
+
+        if (previousRole === null) {
+          addFilesElement.removeAttribute("role")
+        } else {
+          addFilesElement.setAttribute("role", previousRole)
+        }
+      }
+
+      return true
+    }
+
+    const observer = new MutationObserver(() => {
+      if (attachInteractions()) {
+        observer.disconnect()
+      }
+    })
+
+    if (!attachInteractions()) {
+      observer.observe(dashboardRoot, { childList: true, subtree: true })
+    }
+
+    return () => {
+      observer.disconnect()
+      cleanup?.()
     }
   }, [open])
 
