@@ -46,6 +46,10 @@ public sealed class CreateTagLabelCommandHandler(
             return OperationResult<TagLabelResult>.Failure("Tag namespace does not exist.");
         }
 
+        var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
+            ? tagNamespace.Scope
+            : tagNamespace.DisplayName.Trim();
+
         var normalizedName = command.Name.Trim();
         var parentId = NormalizeGuid(command.ParentId);
 
@@ -100,6 +104,7 @@ public sealed class CreateTagLabelCommandHandler(
         var result = new TagLabelResult(
             tagLabel.Id,
             tagLabel.NamespaceId,
+            namespaceDisplayName,
             tagLabel.ParentId,
             tagLabel.Name,
             tagLabel.PathIds,
