@@ -1,6 +1,7 @@
 using System.IO;
 using AppGateway.Api.Middlewares;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using ServiceDefaults;
 
@@ -36,6 +37,30 @@ public static class GatewayMiddlewareConfiguration
         {
             return;
         }
+
+        app.Use(async (context, next) =>
+        {
+            if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method))
+            {
+                await next();
+                return;
+            }
+
+            var redirectTarget = StaticFileRedirectHelper.ResolveDirectoryRedirect(
+                context.Request.Path,
+                context.Request.PathBase,
+                context.Request.QueryString,
+                Program.UiRequestPath,
+                app.Environment.WebRootFileProvider);
+
+            if (redirectTarget is null)
+            {
+                await next();
+                return;
+            }
+
+            context.Response.Redirect(redirectTarget, permanent: true, preserveMethod: true);
+        });
 
         app.UseDefaultFiles();
         app.UseDefaultFiles(new DefaultFilesOptions

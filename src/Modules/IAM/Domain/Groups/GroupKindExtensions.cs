@@ -8,6 +8,7 @@ public static class GroupKindExtensions
     {
         GroupKind.System => "system",
         GroupKind.Unit => "unit",
+        GroupKind.Team => "team",
         GroupKind.Temporary => "temporary",
         GroupKind.Guess => "guess",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported group kind."),
@@ -24,6 +25,7 @@ public static class GroupKindExtensions
         {
             "system" => GroupKind.System,
             "unit" => GroupKind.Unit,
+            "team" => GroupKind.Team,
             "temporary" => GroupKind.Temporary,
             "normal" => GroupKind.Temporary,
             "guess" => GroupKind.Guess,
