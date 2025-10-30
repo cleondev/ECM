@@ -28,6 +28,8 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
             .Include(document => document.Versions)
             .Include(document => document.Metadata)
             .Include(document => document.Tags)
+                .ThenInclude(documentTag => documentTag.Tag)
+                    .ThenInclude(tag => tag.Namespace)
             .FirstOrDefaultAsync(document => document.Id == documentId, cancellationToken);
     }
 
