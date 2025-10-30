@@ -42,6 +42,32 @@ public class GroupServiceTests
     }
 
     [Fact]
+    public async Task EnsureUserGroupsAsync_CreatesTeamGroupFromAssignment()
+    {
+        var clock = new FixedClock(new DateTimeOffset(2025, 3, 10, 12, 0, 0, TimeSpan.Zero));
+        var options = new DbContextOptionsBuilder<IamDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new IamDbContext(options);
+        var service = new GroupService(context, clock, NullLogger<GroupService>.Instance);
+
+        var user = User.Create("team.user@example.com", "Team User", clock.UtcNow);
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        var assignments = new[] { GroupAssignment.FromContract(null, "beta-team", "team") };
+
+        await service.EnsureUserGroupsAsync(user, assignments, null, CancellationToken.None);
+
+        var teamGroup = await context.Groups.SingleAsync(group => group.Name == "beta-team");
+        Assert.Equal(GroupKind.Team, teamGroup.Kind);
+
+        var membership = await context.GroupMembers.SingleAsync(member => member.GroupId == teamGroup.Id && member.UserId == user.Id);
+        Assert.Null(membership.ValidToUtc);
+    }
+
+    [Fact]
     public async Task EnsureUserGroupsAsync_UpdatesParentForExistingGroup()
     {
         var clock = new FixedClock(new DateTimeOffset(2025, 3, 10, 12, 0, 0, TimeSpan.Zero));
