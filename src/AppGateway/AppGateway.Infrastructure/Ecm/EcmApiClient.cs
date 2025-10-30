@@ -9,7 +9,6 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text.Json;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -225,9 +224,9 @@ internal sealed class EcmApiClient(
                 .Distinct()
                 .ToArray();
 
-            if (normalizedGroupIds.Length > 0)
+            foreach (var groupId in normalizedGroupIds)
             {
-                form.Add(new StringContent(JsonSerializer.Serialize(normalizedGroupIds)), nameof(requestDto.GroupIds));
+                form.Add(new StringContent(groupId.ToString()), $"{nameof(requestDto.GroupIds)}[]");
             }
         }
 
