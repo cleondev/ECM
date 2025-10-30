@@ -89,6 +89,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({})
   const autoCloseTimeoutRef = useRef<number | null>(null)
+  const dashboardRootRef = useRef<HTMLDivElement | null>(null)
 
   const uppy = useMemo<ManagedUppy>(() => {
     const instance = new Uppy<CoreMeta, CoreResponse>({
@@ -172,6 +173,105 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       setSelectedFileCount(0)
     }
   }, [open, uppy, clearAutoCloseTimeout])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const dashboardRoot = dashboardRootRef.current
+    if (!dashboardRoot) {
+      return
+    }
+
+    const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
+      ".uppy-Dashboard-AddFiles",
+    )
+
+    if (!addFilesElement) {
+      return
+    }
+
+    const triggerFileSelection = () => {
+      const hiddenInput = dashboardRoot.querySelector<HTMLInputElement>(
+        ".uppy-Dashboard-input",
+      )
+
+      if (hiddenInput) {
+        hiddenInput.click()
+        return
+      }
+
+      const browseButton = dashboardRoot.querySelector<HTMLButtonElement>(
+        ".uppy-Dashboard-browse",
+      )
+
+      browseButton?.click()
+    }
+
+    const shouldIgnoreEvent = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) {
+        return false
+      }
+
+      return Boolean(
+        target.closest(
+          "button, a, input, label, [role='button'], [data-uppy-super-focusable]",
+        ),
+      )
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      if (shouldIgnoreEvent(event.target)) {
+        return
+      }
+
+      event.preventDefault()
+      triggerFileSelection()
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (shouldIgnoreEvent(event.target)) {
+        return
+      }
+
+      if (event.key !== "Enter" && event.key !== " ") {
+        return
+      }
+
+      event.preventDefault()
+      triggerFileSelection()
+    }
+
+    const previousTabIndex = addFilesElement.getAttribute("tabindex")
+    const previousRole = addFilesElement.getAttribute("role")
+
+    if (previousTabIndex === null) {
+      addFilesElement.setAttribute("tabindex", "0")
+    }
+
+    if (previousRole === null) {
+      addFilesElement.setAttribute("role", "button")
+    }
+
+    addFilesElement.addEventListener("click", handleClick)
+    addFilesElement.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      addFilesElement.removeEventListener("click", handleClick)
+      addFilesElement.removeEventListener("keydown", handleKeyDown)
+
+      if (previousTabIndex === null) {
+        addFilesElement.removeAttribute("tabindex")
+      }
+
+      if (previousRole === null) {
+        addFilesElement.removeAttribute("role")
+      } else {
+        addFilesElement.setAttribute("role", previousRole)
+      }
+    }
+  }, [open])
 
   useEffect(() => {
     return () => {
@@ -579,7 +679,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
           </div>
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden gap-6">
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3" ref={dashboardRootRef}>
               <Dashboard
                 uppy={uppy}
                 width="100%"
