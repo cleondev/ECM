@@ -20,6 +20,16 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
             .Include(label => label.Parent)
             .FirstOrDefaultAsync(label => label.Id == tagId, cancellationToken);
 
+    public Task<TagLabel[]> ListWithNamespaceAsync(CancellationToken cancellationToken = default)
+        => _context.TagLabels
+            .AsNoTracking()
+            .Include(label => label.Namespace)
+            .OrderBy(label => label.NamespaceId)
+            .ThenBy(label => label.ParentId.HasValue ? 1 : 0)
+            .ThenBy(label => label.SortOrder)
+            .ThenBy(label => label.Name)
+            .ToArrayAsync(cancellationToken);
+
     public Task<bool> ExistsWithNameAsync(
         Guid namespaceId,
         Guid? parentId,

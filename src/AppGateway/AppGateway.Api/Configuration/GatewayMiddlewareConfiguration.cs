@@ -29,6 +29,9 @@ public static class GatewayMiddlewareConfiguration
 
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseMiddleware<UiRequestAuthorizationMiddleware>();
+
+        ConfigureStaticFileServing(app);
 
         return app;
     }

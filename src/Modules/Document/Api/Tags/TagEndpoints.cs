@@ -9,12 +9,11 @@ using ECM.Document.Api.Documents.Extensions;
 using ECM.Document.Api.Tags.Requests;
 using ECM.Document.Api.Tags.Responses;
 using ECM.Document.Application.Tags.Commands;
-using ECM.Document.Infrastructure.Persistence;
+using ECM.Document.Application.Tags.Queries;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ECM.Document.Api.Tags;
@@ -130,57 +129,31 @@ public static class TagEndpoints
     }
 
     private static async Task<Ok<TagLabelResponse[]>> ListTagsAsync(
-        DocumentDbContext context,
+        ListTagLabelsQueryHandler handler,
         CancellationToken cancellationToken
     )
     {
-        var tagRecords = await (
-            from label in context.TagLabels.AsNoTracking()
-            join ns in context.TagNamespaces.AsNoTracking()
-                on label.NamespaceId equals ns.Id into namespaceGroup
-            from ns in namespaceGroup.DefaultIfEmpty()
-            orderby label.NamespaceId,
-                label.ParentId.HasValue ? 1 : 0,
-                label.SortOrder,
-                label.Name
-            select new
-            {
-                label.Id,
-                label.NamespaceId,
-                NamespaceDisplayName = ns != null ? ns.DisplayName : null,
-                NamespaceScope = ns != null ? ns.Scope : null,
-                label.ParentId,
-                label.Name,
-                label.PathIds,
-                label.SortOrder,
-                label.Color,
-                label.IconKey,
-                label.IsActive,
-                label.IsSystem,
-                label.CreatedBy,
-                label.CreatedAtUtc,
-            }
-        ).ToArrayAsync(cancellationToken);
+        var tagLabels = await handler.HandleAsync(cancellationToken).ConfigureAwait(false);
 
-        var tags = tagRecords
-            .Select(record => new TagLabelResponse(
-                record.Id,
-                record.NamespaceId,
-                NormalizeNamespaceDisplayName(record.NamespaceDisplayName, record.NamespaceScope),
-                record.ParentId,
-                record.Name,
-                record.PathIds,
-                record.SortOrder,
-                record.Color,
-                record.IconKey,
-                record.IsActive,
-                record.IsSystem,
-                record.CreatedBy,
-                record.CreatedAtUtc
+        var response = tagLabels
+            .Select(tag => new TagLabelResponse(
+                tag.Id,
+                tag.NamespaceId,
+                tag.NamespaceDisplayName,
+                tag.ParentId,
+                tag.Name,
+                tag.PathIds,
+                tag.SortOrder,
+                tag.Color,
+                tag.IconKey,
+                tag.IsActive,
+                tag.IsSystem,
+                tag.CreatedBy,
+                tag.CreatedAtUtc
             ))
             .ToArray();
 
-        return TypedResults.Ok(tags);
+        return TypedResults.Ok(response);
     }
 
     private static async Task<Results<Created<TagLabelResponse>, ValidationProblem>> CreateTagAsync(
