@@ -623,11 +623,6 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden gap-6">
             <div className="flex flex-col gap-3" ref={dashboardRootRef}>
-              <div className="flex justify-end">
-                <Button type="button" variant="outline" onClick={openFileDialog}>
-                  Browse files
-                </Button>
-              </div>
               <Dashboard
                 uppy={uppy}
                 width="100%"
