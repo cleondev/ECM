@@ -4,8 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application;
-using ECM.Ocr.Application.Abstractions;
+using ECM.Document.Domain.Documents;
 using ECM.Document.Infrastructure.Persistence;
+using ECM.Ocr.Application.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -29,9 +30,11 @@ internal sealed class DocumentFileLinkService(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        var typedDocumentId = new DocumentId(documentId);
+
         var storageKey = await _documentDbContext.DocumentVersions
             .AsNoTracking()
-            .Where(version => version.DocumentId.Value == documentId)
+            .Where(version => version.DocumentId == typedDocumentId)
             .OrderByDescending(version => version.VersionNo)
             .Select(version => version.StorageKey)
             .FirstOrDefaultAsync(cancellationToken)
