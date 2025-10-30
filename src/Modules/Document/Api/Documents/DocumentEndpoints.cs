@@ -104,6 +104,24 @@ public static class DocumentEndpoints
             return TypedResults.Ok(emptyResponse);
         }
 
+        var now = DateTimeOffset.UtcNow;
+
+        var accessibleDocumentIds = await context.EffectiveAclEntries
+            .AsNoTracking()
+            .Where(entry =>
+                entry.UserId == userId.Value
+                && (entry.ValidToUtc == null || entry.ValidToUtc >= now)
+            )
+            .Select(entry => entry.DocumentId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        if (accessibleDocumentIds.Length == 0)
+        {
+            var emptyResponse = new DocumentListResponse(page, pageSize, 0, 0, []);
+            return TypedResults.Ok(emptyResponse);
+        }
+
         var query = context
             .Documents.AsNoTracking()
             .Include(document => document.Versions)
@@ -112,16 +130,11 @@ public static class DocumentEndpoints
             .Include(document => document.Metadata)
             .AsQueryable();
 
-        var now = DateTimeOffset.UtcNow;
-        var authorizedDocumentIds = context
-            .EffectiveAclEntries.AsNoTracking()
-            .Where(entry =>
-                entry.UserId == userId.Value
-                && (entry.ValidToUtc == null || entry.ValidToUtc >= now)
+        query = query.Where(document =>
+            accessibleDocumentIds.Contains(
+                EF.Property<Guid>(document, nameof(DomainDocument.Id))
             )
-            .Select(entry => entry.DocumentId);
-
-        query = query.Where(document => authorizedDocumentIds.Contains(document.Id.Value));
+        );
 
         if (!string.IsNullOrWhiteSpace(request.Query))
         {
