@@ -66,7 +66,7 @@ public class CreateDocumentCommandHandlerTests
             aclWriter.Entries,
             entry =>
             {
-                Assert.Equal(storedDocument.Id.Value, entry.DocumentId);
+                Assert.Equal(storedDocument.Id, entry.DocumentId);
                 Assert.Equal(storedDocument.OwnerId, entry.UserId);
             });
     }
