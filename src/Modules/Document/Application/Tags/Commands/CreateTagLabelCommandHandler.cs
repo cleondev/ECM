@@ -47,9 +47,8 @@ public sealed class CreateTagLabelCommandHandler(
         }
 
         var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
-            ? tagNamespace.Scope
+            ? null
             : tagNamespace.DisplayName.Trim();
-        var namespaceScope = tagNamespace.Scope;
 
         var normalizedName = command.Name.Trim();
         var parentId = NormalizeGuid(command.ParentId);
@@ -105,7 +104,6 @@ public sealed class CreateTagLabelCommandHandler(
         var result = new TagLabelResult(
             tagLabel.Id,
             tagLabel.NamespaceId,
-            namespaceScope,
             namespaceDisplayName,
             tagLabel.ParentId,
             tagLabel.Name,

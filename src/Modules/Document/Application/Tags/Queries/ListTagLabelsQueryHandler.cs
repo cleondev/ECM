@@ -20,8 +20,7 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
             .Select(label => new TagLabelResult(
                 label.Id,
                 label.NamespaceId,
-                label.Namespace?.Scope ?? string.Empty,
-                NormalizeNamespaceDisplayName(label.Namespace?.DisplayName, label.Namespace?.Scope),
+                NormalizeNamespaceDisplayName(label.Namespace?.DisplayName),
                 label.ParentId,
                 label.Name,
                 label.PathIds,
@@ -36,6 +35,6 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
             .ToArray();
     }
 
-    private static string? NormalizeNamespaceDisplayName(string? displayName, string? fallback)
-        => string.IsNullOrWhiteSpace(displayName) ? fallback : displayName.Trim();
+    private static string? NormalizeNamespaceDisplayName(string? displayName)
+        => string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
 }

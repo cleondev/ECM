@@ -109,14 +109,10 @@ public static class TagEndpoints
             return TypedResults.NotFound();
         }
 
-        var namespaceDisplayName = NormalizeNamespaceDisplayName(
-            result.Value.NamespaceDisplayName,
-            result.Value.NamespaceScope);
-
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
-            namespaceDisplayName,
+            result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,
@@ -143,7 +139,7 @@ public static class TagEndpoints
             .Select(tag => new TagLabelResponse(
                 tag.Id,
                 tag.NamespaceId,
-                NormalizeNamespaceDisplayName(tag.NamespaceDisplayName, tag.NamespaceScope),
+                tag.NamespaceDisplayName,
                 tag.ParentId,
                 tag.Name,
                 tag.PathIds,
@@ -216,14 +212,10 @@ public static class TagEndpoints
             );
         }
 
-        var namespaceDisplayName = NormalizeNamespaceDisplayName(
-            result.Value.NamespaceDisplayName,
-            result.Value.NamespaceScope);
-
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
-            namespaceDisplayName,
+            result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,
@@ -238,9 +230,6 @@ public static class TagEndpoints
 
         return TypedResults.Created($"/api/ecm/tags/{response.Id}", response);
     }
-
-    private static string? NormalizeNamespaceDisplayName(string? displayName, string? fallback)
-        => string.IsNullOrWhiteSpace(displayName) ? fallback : displayName.Trim();
 
     private static Guid? NormalizeGuid(Guid? value)
         => value.HasValue && value.Value != Guid.Empty ? value : null;

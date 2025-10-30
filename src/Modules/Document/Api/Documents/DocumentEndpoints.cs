@@ -356,8 +356,8 @@ public static class DocumentEndpoints
         return value;
     }
 
-    private static string? NormalizeNamespaceDisplayName(string? displayName, string? fallback)
-        => string.IsNullOrWhiteSpace(displayName) ? fallback : displayName.Trim();
+    private static string? NormalizeNamespaceDisplayName(string? displayName)
+        => string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
 
     private static string NormalizeTitle(string? title, string fileName)
     {
@@ -638,10 +638,7 @@ public static class DocumentEndpoints
             {
                 var tag = documentTag.Tag;
                 var pathIds = tag?.PathIds ?? [];
-                var namespaceDisplayName = NormalizeNamespaceDisplayName(
-                    tag?.Namespace?.DisplayName,
-                    tag?.Namespace?.Scope
-                );
+                var namespaceDisplayName = NormalizeNamespaceDisplayName(tag?.Namespace?.DisplayName);
 
                 return new DocumentTagResponse(
                     documentTag.TagId,
