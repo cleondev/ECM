@@ -148,7 +148,7 @@ public static class TagEndpoints
         CreateTagRequest request,
         CreateTagLabelCommandHandler handler,
         IUserLookupService userLookupService,
-        ILogger<TagEndpoints> logger,
+        ILogger<TagEndpointsLoggingCategory> logger,
         CancellationToken cancellationToken
     )
     {
@@ -270,3 +270,5 @@ public static class TagEndpoints
         return TypedResults.NoContent();
     }
 }
+
+internal sealed class TagEndpointsLoggingCategory;
