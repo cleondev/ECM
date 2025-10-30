@@ -18,6 +18,7 @@ public static class IamApplicationModuleExtensions
         services.AddScoped<CreateUserCommandHandler>();
         services.AddScoped<UpdateUserCommandHandler>();
         services.AddScoped<UpdateUserProfileCommandHandler>();
+        services.AddScoped<UpdateUserPasswordCommandHandler>();
         services.AddScoped<AssignUserRoleCommandHandler>();
         services.AddScoped<RemoveUserRoleCommandHandler>();
 

@@ -17,10 +17,14 @@ public sealed class SignatureRequestConfiguration : IEntityTypeConfiguration<Sig
             .HasColumnName("id")
             .ValueGeneratedNever();
 
-        builder.Property(request => request.DocumentId)
+        var documentIdProperty = builder.Property(request => request.DocumentId)
             .HasColumnName("document_id")
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value))
+            .HasColumnType("uuid")
+            .HasConversion(EfConverters.DocumentIdConverter)
             .IsRequired();
+
+        documentIdProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        documentIdProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(request => request.VersionId)
             .HasColumnName("version_id")

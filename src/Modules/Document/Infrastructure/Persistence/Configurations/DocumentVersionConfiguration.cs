@@ -18,10 +18,14 @@ public sealed class DocumentVersionConfiguration : IEntityTypeConfiguration<Docu
             .HasColumnName("id")
             .ValueGeneratedNever();
 
-        builder.Property(version => version.DocumentId)
+        var documentIdProperty = builder.Property(version => version.DocumentId)
             .HasColumnName("document_id")
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value))
+            .HasColumnType("uuid")
+            .HasConversion(EfConverters.DocumentIdConverter)
             .IsRequired();
+
+        documentIdProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        documentIdProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(version => version.VersionNo)
             .HasColumnName("version_no")

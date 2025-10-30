@@ -105,14 +105,12 @@ public static class DocumentEndpoints
             return TypedResults.Ok(emptyResponse);
         }
 
-        var accessibleEntriesQuery = context.EffectiveAclEntries
+        var accessibleDocumentIdsQuery = context.EffectiveAclEntries
             .AsNoTracking()
             .Where(entry =>
                 entry.UserId == userId.Value
                 && entry.IsValid
-            );
-
-        var accessibleDocumentIdsQuery = accessibleEntriesQuery
+            )
             .Select(entry => entry.DocumentId)
             .Distinct();
 
@@ -126,14 +124,13 @@ public static class DocumentEndpoints
 
         var query = context
             .Documents.AsNoTracking()
+            .Where(document => accessibleDocumentIdsQuery.Contains(document.Id.Value))
             .Include(document => document.Versions)
             .Include(document => document.Tags)
                 .ThenInclude(documentTag => documentTag.Tag)
                     .ThenInclude(tag => tag.Namespace)
             .Include(document => document.Metadata)
             .AsQueryable();
-
-        query = query.Where(document => accessibleDocumentIdsQuery.Contains(document.Id.Value));
 
         if (!string.IsNullOrWhiteSpace(request.Query))
         {
