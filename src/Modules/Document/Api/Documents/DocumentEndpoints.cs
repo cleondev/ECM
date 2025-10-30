@@ -270,27 +270,7 @@ public static class DocumentEndpoints
             ? (string.IsNullOrWhiteSpace(defaults.Status) ? "draft" : defaults.Status.Trim())
             : request.Status.Trim();
 
-        var requestGroupIds = NormalizeGroupIds(request.GroupIds);
-        var defaultGroupIds = NormalizeGroupIds(defaults.GroupIds);
-
-        var groupId = NormalizeGuid(request.GroupId);
-        if (groupId is null && requestGroupIds.Length > 0)
-        {
-            groupId = requestGroupIds[0];
-        }
-
-        if (groupId is null)
-        {
-            groupId = NormalizeGuid(defaults.GroupId);
-        }
-
-        var effectiveGroupIds = requestGroupIds.Length > 0 ? requestGroupIds : defaultGroupIds;
-        if (groupId is null && effectiveGroupIds.Length > 0)
-        {
-            groupId = effectiveGroupIds[0];
-        }
-
-        var normalizedGroupIds = EnsurePrimaryGroup(groupId, effectiveGroupIds);
+        var groupId = NormalizeGuid(request.GroupId) ?? NormalizeGuid(defaults.GroupId);
         var sensitivity = string.IsNullOrWhiteSpace(request.Sensitivity)
             ? (
                 string.IsNullOrWhiteSpace(defaults.Sensitivity)
@@ -314,7 +294,6 @@ public static class DocumentEndpoints
             ownerId.Value,
             createdBy.Value,
             groupId,
-            normalizedGroupIds,
             sensitivity,
             documentTypeId,
             request.File.FileName,
@@ -678,7 +657,7 @@ public static class DocumentEndpoints
             .ThenBy(tag => tag.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        var groupIds = EnsurePrimaryGroup(document.GroupId, []);
+        var groupIds = BuildGroupIds(document.GroupId);
 
         return new DocumentResponse(
             document.Id.Value,
@@ -700,61 +679,9 @@ public static class DocumentEndpoints
         );
     }
 
-    private static Guid[] NormalizeGroupIds(IEnumerable<Guid>? groupIds)
+    private static Guid[] BuildGroupIds(Guid? primaryGroupId)
     {
-        if (groupIds is null)
-        {
-            return [];
-        }
-
-        var buffer = new List<Guid>();
-        var seen = new HashSet<Guid>();
-
-        foreach (var id in groupIds)
-        {
-            if (id == Guid.Empty)
-            {
-                continue;
-            }
-
-            if (seen.Add(id))
-            {
-                buffer.Add(id);
-            }
-        }
-
-        return [.. buffer];
-    }
-
-    private static Guid[] EnsurePrimaryGroup(Guid? primaryGroupId, IReadOnlyList<Guid> groupIds)
-    {
-        if (groupIds is null)
-        {
-            return primaryGroupId is { } fallback && fallback != Guid.Empty ? [fallback] : [];
-        }
-
-        var buffer = new List<Guid>(groupIds.Count + 1);
-        var seen = new HashSet<Guid>();
-
-        if (primaryGroupId is { } primary && primary != Guid.Empty && seen.Add(primary))
-        {
-            buffer.Add(primary);
-        }
-
-        foreach (var id in groupIds)
-        {
-            if (id == Guid.Empty)
-            {
-                continue;
-            }
-
-            if (seen.Add(id))
-            {
-                buffer.Add(id);
-            }
-        }
-
-        return [.. buffer];
+        return primaryGroupId is { } value and not Guid.Empty ? [value] : [];
     }
 
     private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("vi-VN");

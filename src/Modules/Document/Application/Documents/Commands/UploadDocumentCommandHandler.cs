@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
@@ -45,8 +43,6 @@ public sealed class UploadDocumentCommandHandler(
 
         var now = _clock.UtcNow;
 
-        var primaryGroupId = ResolvePrimaryGroupId(command.GroupId, command.GroupIds);
-
         DocumentEntity document;
         try
         {
@@ -57,7 +53,7 @@ public sealed class UploadDocumentCommandHandler(
                 command.OwnerId,
                 command.CreatedBy,
                 now,
-                primaryGroupId,
+                command.GroupId,
                 command.Sensitivity,
                 command.DocumentTypeId);
         }
@@ -103,24 +99,4 @@ public sealed class UploadDocumentCommandHandler(
             document.ToResult(version));
     }
 
-    private static Guid? ResolvePrimaryGroupId(Guid? groupId, IReadOnlyCollection<Guid> groupIds)
-    {
-        if (groupId.HasValue && groupId.Value != Guid.Empty)
-        {
-            return groupId.Value;
-        }
-
-        if (groupIds is not null)
-        {
-            foreach (var id in groupIds)
-            {
-                if (id != Guid.Empty)
-                {
-                    return id;
-                }
-            }
-        }
-
-        return null;
-    }
 }

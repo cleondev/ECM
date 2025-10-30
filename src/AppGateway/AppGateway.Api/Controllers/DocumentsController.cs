@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
@@ -61,11 +62,9 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var formCollection = Request.HasFormContentType ? Request.Form : null;
-        var parsedGroupIds = formCollection is null
-            ? []
-            : ParseGroupIds(formCollection);
-        var normalizedGroupIds = NormalizeGroupSelection(NormalizeGuid(request.GroupId), parsedGroupIds, out var normalizedGroupId);
+        var (normalizedGroupId, normalizedGroupIds) = await ResolveGroupSelectionAsync(
+            request.CreatedBy.Value,
+            cancellationToken);
 
         var upload = new CreateDocumentUpload
         {
@@ -123,9 +122,9 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var normalizedDocType = NormalizeString(request.DocType, "General");
         var normalizedStatus = NormalizeString(request.Status, "Draft");
         var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
-        var normalizedGroupId = NormalizeGuid(request.GroupId);
-        var normalizedGroupIds = NormalizeGroupSelection(normalizedGroupId, request.GroupIds, out var resolvedGroupId);
-        normalizedGroupId = resolvedGroupId;
+        var (normalizedGroupId, normalizedGroupIds) = await ResolveGroupSelectionAsync(
+            createdBy.Value,
+            cancellationToken);
         var documentTypeId = request.DocumentTypeId;
         var flowDefinition = NormalizeOptional(request.FlowDefinition);
         var tagIds = request.TagIds.Count == 0
@@ -427,35 +426,6 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return "Untitled document";
     }
 
-    private static IReadOnlyList<Guid> ParseGroupIds(IFormCollection? form)
-    {
-        if (form is null)
-        {
-            return [];
-        }
-
-        return ParseGuidList(form, "GroupIds", "groupIds", "group_ids", "GroupIds[]", "groupIds[]", "group_ids[]");
-    }
-
-    private static IReadOnlyList<Guid> ParseGuidList(IFormCollection form, params string[] fieldNames)
-    {
-        foreach (var field in fieldNames)
-        {
-            if (!form.TryGetValue(field, out var values) || values.Count == 0)
-            {
-                continue;
-            }
-
-            var parsed = ParseGuidValues(values);
-            if (parsed.Count > 0)
-            {
-                return parsed;
-            }
-        }
-
-        return [];
-    }
-
     private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)
     {
         var buffer = new List<Guid>();
@@ -561,6 +531,47 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return buffer;
     }
 
+    private async Task<(Guid? PrimaryGroupId, IReadOnlyList<Guid> GroupIds)> ResolveGroupSelectionAsync(
+        Guid createdBy,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await _client.GetUserAsync(createdBy, cancellationToken);
+            if (user is not null)
+            {
+                var normalized = NormalizeGroupSelection(
+                    user.PrimaryGroupId,
+                    user.GroupIds ?? Array.Empty<Guid>(),
+                    out var primaryGroupId);
+
+                if (normalized.Count > 0)
+                {
+                    return (primaryGroupId, normalized);
+                }
+
+                _logger.LogWarning(
+                    "User {UserId} does not have any group memberships; falling back to the system group.",
+                    createdBy);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Failed to resolve user {UserId} for group selection; falling back to the system group.",
+                    createdBy);
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Failed to resolve group selection for user {UserId}; falling back to the system group.",
+                createdBy);
+        }
+
+        return (GroupDefaultIds.System, new[] { GroupDefaultIds.System });
+    }
+
     private async Task<Guid?> ResolveUserIdAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)
     {
         if (principal is null)
@@ -621,10 +632,6 @@ public sealed class CreateDocumentForm
     [Required]
     public Guid? CreatedBy { get; init; }
 
-    public Guid? GroupId { get; init; }
-
-    public IReadOnlyCollection<Guid> GroupIds { get; init; } = [];
-
     [StringLength(64)]
     public string? Sensitivity { get; init; }
 
@@ -649,8 +656,6 @@ public sealed class CreateDocumentForm
             Status = GetString(form, nameof(Status)) ?? string.Empty,
             OwnerId = GetGuid(form, nameof(OwnerId)),
             CreatedBy = GetGuid(form, nameof(CreatedBy)),
-            GroupId = GetGuid(form, nameof(GroupId)) ?? GetGuid(form, "PrimaryGroupId"),
-            GroupIds = GetGuidList(form, nameof(GroupIds)),
             Sensitivity = GetString(form, nameof(Sensitivity)),
             DocumentTypeId = GetGuid(form, nameof(DocumentTypeId)),
             File = GetFile(form, nameof(File)),
@@ -782,16 +787,12 @@ public sealed class CreateDocumentForm
 
     private static IEnumerable<string> EnumerateFieldNames(string propertyName)
     {
-        yield return propertyName;
-        yield return char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
+        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
 
-        if (propertyName.Equals("GroupIds", StringComparison.Ordinal))
-        {
-            yield return "group_ids";
-            yield return "GroupIds[]";
-            yield return "groupIds[]";
-            yield return "group_ids[]";
-        }
+        yield return propertyName;
+        yield return camelCase;
+        yield return $"{propertyName}[]";
+        yield return $"{camelCase}[]";
     }
 
     private static IFormFile? GetFile(IFormCollection form, string propertyName)
@@ -813,10 +814,6 @@ public sealed class CreateDocumentsForm
     public Guid? OwnerId { get; init; }
 
     public Guid? CreatedBy { get; init; }
-
-    public Guid? GroupId { get; init; }
-
-    public IReadOnlyList<Guid> GroupIds { get; init; } = [];
 
     public string? Sensitivity { get; init; }
 
@@ -844,8 +841,6 @@ public sealed class CreateDocumentsForm
             Status = GetString(form, nameof(Status)),
             OwnerId = GetGuid(form, nameof(OwnerId)),
             CreatedBy = GetGuid(form, nameof(CreatedBy)),
-            GroupId = GetGuid(form, nameof(GroupId)),
-            GroupIds = GetGuidList(form, nameof(GroupIds)),
             Sensitivity = GetString(form, nameof(Sensitivity)),
             DocumentTypeId = GetGuid(form, nameof(DocumentTypeId)),
             FlowDefinition = GetString(form, nameof(FlowDefinition)),
@@ -926,22 +921,12 @@ public sealed class CreateDocumentsForm
 
     private static IEnumerable<string> EnumerateFieldNames(string propertyName)
     {
+        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
+
         yield return propertyName;
-        yield return char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-
-        if (propertyName.Equals("GroupIds", StringComparison.Ordinal))
-        {
-            yield return "group_ids";
-            yield return "GroupIds[]";
-            yield return "groupIds[]";
-            yield return "group_ids[]";
-        }
-
-        if (propertyName.Equals("Tags", StringComparison.OrdinalIgnoreCase))
-        {
-            yield return "Tags[]";
-            yield return "tags[]";
-        }
+        yield return camelCase;
+        yield return $"{propertyName}[]";
+        yield return $"{camelCase}[]";
     }
 
     private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)

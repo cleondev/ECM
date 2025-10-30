@@ -17,7 +17,7 @@ public static class GroupDefaults
 
     public static readonly Guid GuessUserId = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
-    private static readonly IReadOnlyList<string> _names = [GuestName, SystemName];
+    private static readonly IReadOnlyList<string> _names = [GuestName, GuessUserName, SystemName];
 
     public static IReadOnlyList<string> Names => _names;
 

@@ -231,6 +231,9 @@ public static class TagEndpoints
         return TypedResults.Created($"/api/ecm/tags/{response.Id}", response);
     }
 
+    private static string? NormalizeNamespaceDisplayName(string? displayName, string? fallback)
+        => string.IsNullOrWhiteSpace(displayName) ? fallback : displayName.Trim();
+
     private static Guid? NormalizeGuid(Guid? value)
         => value.HasValue && value.Value != Guid.Empty ? value : null;
 
