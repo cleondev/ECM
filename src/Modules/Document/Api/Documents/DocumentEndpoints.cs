@@ -106,17 +106,20 @@ public static class DocumentEndpoints
 
         var now = DateTimeOffset.UtcNow;
 
-        var accessibleDocumentIds = await context.EffectiveAclEntries
+        var accessibleEntriesQuery = context.EffectiveAclEntries
             .AsNoTracking()
             .Where(entry =>
                 entry.UserId == userId.Value
                 && (entry.ValidToUtc == null || entry.ValidToUtc >= now)
-            )
-            .Select(entry => entry.DocumentId)
-            .Distinct()
-            .ToArrayAsync(cancellationToken);
+            );
 
-        if (accessibleDocumentIds.Length == 0)
+        var accessibleDocumentIdsQuery = accessibleEntriesQuery
+            .Select(entry => entry.DocumentId)
+            .Distinct();
+
+        var hasAccessibleDocuments = await accessibleDocumentIdsQuery.AnyAsync(cancellationToken);
+
+        if (!hasAccessibleDocuments)
         {
             var emptyResponse = new DocumentListResponse(page, pageSize, 0, 0, []);
             return TypedResults.Ok(emptyResponse);
@@ -130,11 +133,7 @@ public static class DocumentEndpoints
             .Include(document => document.Metadata)
             .AsQueryable();
 
-        query = query.Where(document =>
-            accessibleDocumentIds.Contains(
-                EF.Property<Guid>(document, nameof(DomainDocument.Id))
-            )
-        );
+        query = query.Where(document => accessibleDocumentIdsQuery.Contains(document.Id.Value));
 
         if (!string.IsNullOrWhiteSpace(request.Query))
         {
