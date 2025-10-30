@@ -641,7 +641,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                 hideUploadButton
                 proudlyDisplayPoweredByUppy={false}
                 showProgressDetails
-                locale={{ strings: { dropPasteFiles: "Drop files here or browse files" } }}
+                locale={{ strings: { dropPasteImportBoth: "Drop files here or browse files" } }}
                 note={
                   currentUser
                     ? "You can add up to 20 files per upload."
