@@ -197,12 +197,13 @@ Trong trường hợp cần seed dữ liệu mẫu hoặc tạo topic/bucket, th
 
 ### Nhóm IAM mặc định
 
-Module IAM đi kèm hai group hệ thống để phục vụ việc khởi tạo quyền mặc định:
+Module IAM đi kèm ba group hệ thống để phục vụ việc khởi tạo quyền mặc định:
 
 - **`guest`** – đại diện cho mọi user mới tạo, dùng cho các quyền đọc cơ bản.
 - **`system`** – nhóm nội bộ để các worker, automation hoặc account dịch vụ có thể nhận thêm đặc quyền.
+- **`Guess User`** (`kind = guess`) – group mặc định dùng để đặt `primary_group_id` cho user mới, nằm dưới group `system`.
 
-Khi tạo user qua API hoặc cơ chế provisioning, dịch vụ IAM tự động đảm bảo cả hai group tồn tại (sẽ tạo nếu thiếu) và gán user vào đó. Nếu tổ chức cần workflow riêng, có thể thay đổi membership sau khi người dùng đã được tạo.
+Khi tạo user qua API hoặc cơ chế provisioning, dịch vụ IAM tự động đảm bảo cả ba group tồn tại (sẽ tạo nếu thiếu), gán user vào đó và đánh dấu `primary_group_id` trỏ về `Guess User`. Nếu tổ chức cần workflow riêng, có thể thay đổi membership sau khi người dùng đã được tạo.
 
 > ✅ **Thay đổi chính:** Trường `department` đã bị loại bỏ. Thay vào đó, IAM dùng **unit group** (`kind = unit`) làm đơn vị tổ chức chính. Mỗi user có thể:
 >

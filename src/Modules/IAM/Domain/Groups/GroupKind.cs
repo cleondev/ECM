@@ -5,4 +5,5 @@ public enum GroupKind
     System,
     Unit,
     Temporary,
+    Guess,
 }

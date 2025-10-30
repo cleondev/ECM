@@ -42,10 +42,36 @@ public sealed class GroupService(
             ? primaryGroupId.Value
             : (Guid?)null;
 
+        var systemGroup = await EnsureSystemGroupExistsAsync(cancellationToken);
+        var guessGroup = await EnsureGuessGroupExistsAsync(systemGroup.Id, cancellationToken);
+
+        if (!normalizedPrimaryGroupId.HasValue && !user.PrimaryGroupId.HasValue)
+        {
+            normalizedPrimaryGroupId = guessGroup.Id;
+        }
+
         if (normalizedPrimaryGroupId.HasValue
             && normalizedAssignments.All(assignment => assignment.GroupId != normalizedPrimaryGroupId))
         {
-            normalizedAssignments.Add(GroupAssignment.ForExistingGroup(normalizedPrimaryGroupId.Value).Normalize());
+            var primaryAssignment = normalizedAssignments
+                .FirstOrDefault(assignment => assignment.GroupId == normalizedPrimaryGroupId);
+            var primaryKind = primaryAssignment?.Kind
+                ?? (normalizedPrimaryGroupId == guessGroup.Id ? guessGroup.Kind : GroupKind.System);
+
+            normalizedAssignments.Add(
+                GroupAssignment.ForExistingGroup(normalizedPrimaryGroupId.Value, primaryKind).Normalize());
+        }
+
+        if (normalizedAssignments.All(assignment => assignment.GroupId != systemGroup.Id))
+        {
+            normalizedAssignments.Add(
+                GroupAssignment.ForExistingGroup(systemGroup.Id, systemGroup.Kind).Normalize());
+        }
+
+        if (normalizedAssignments.All(assignment => assignment.GroupId != guessGroup.Id))
+        {
+            normalizedAssignments.Add(
+                GroupAssignment.ForExistingGroup(guessGroup.Id, guessGroup.Kind).Normalize());
         }
 
         var dedupedAssignments = new List<GroupAssignment>();
@@ -104,6 +130,26 @@ public sealed class GroupService(
                     .Where(group => identifierTargets.Contains(group.Name))
                     .ToListAsync(cancellationToken))
                 .ToDictionary(group => group.Name, Comparer);
+
+        if (!existingGroupsById.ContainsKey(systemGroup.Id))
+        {
+            existingGroupsById[systemGroup.Id] = systemGroup;
+        }
+
+        if (!existingGroupsByIdentifier.ContainsKey(systemGroup.Name))
+        {
+            existingGroupsByIdentifier[systemGroup.Name] = systemGroup;
+        }
+
+        if (!existingGroupsById.ContainsKey(guessGroup.Id))
+        {
+            existingGroupsById[guessGroup.Id] = guessGroup;
+        }
+
+        if (!existingGroupsByIdentifier.ContainsKey(guessGroup.Name))
+        {
+            existingGroupsByIdentifier[guessGroup.Name] = guessGroup;
+        }
 
         var unitTargetIds = new HashSet<Guid>();
 
@@ -281,9 +327,13 @@ public sealed class GroupService(
         else
         {
             resolvedPrimaryGroupId = refreshedMemberships
-                .Where(member => member.Group is not null && member.Group.Kind == GroupKind.Unit)
+                .Where(member => member.Group is not null && member.Group.Kind == GroupKind.Guess)
                 .Select(member => (Guid?)member.GroupId)
-                .FirstOrDefault();
+                .FirstOrDefault()
+                ?? refreshedMemberships
+                    .Where(member => member.Group is not null && member.Group.Kind == GroupKind.Unit)
+                    .Select(member => (Guid?)member.GroupId)
+                    .FirstOrDefault();
         }
 
         var existingPrimaryGroupId = user.PrimaryGroupId;
@@ -293,6 +343,62 @@ public sealed class GroupService(
         {
             await _context.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private async Task<Group> EnsureSystemGroupExistsAsync(CancellationToken cancellationToken)
+    {
+        var group = await _context.Groups
+            .FirstOrDefaultAsync(existing => existing.Id == GroupDefaults.SystemId, cancellationToken);
+
+        group ??= await _context.Groups
+            .FirstOrDefaultAsync(existing => existing.Kind == GroupKind.System, cancellationToken);
+
+        if (group is not null)
+        {
+            return group;
+        }
+
+        group = Group.CreateSystemGroup(GroupDefaults.SystemName, _clock.UtcNow);
+        await _context.Groups.AddAsync(group, cancellationToken);
+        _logger.LogInformation(
+            "Created IAM group {GroupName} of kind {Kind} while ensuring defaults.",
+            group.Name,
+            group.Kind.ToNormalizedString());
+
+        return group;
+    }
+
+    private async Task<Group> EnsureGuessGroupExistsAsync(Guid systemGroupId, CancellationToken cancellationToken)
+    {
+        var group = await _context.Groups
+            .FirstOrDefaultAsync(existing => existing.Id == GroupDefaults.GuessUserId, cancellationToken);
+
+        group ??= await _context.Groups
+            .FirstOrDefaultAsync(existing => existing.Kind == GroupKind.Guess, cancellationToken);
+
+        if (group is null)
+        {
+            group = Group.CreateGuessGroup(systemGroupId, _clock.UtcNow);
+            await _context.Groups.AddAsync(group, cancellationToken);
+            _logger.LogInformation(
+                "Created IAM group {GroupName} of kind {Kind} while ensuring defaults.",
+                group.Name,
+                group.Kind.ToNormalizedString());
+
+            return group;
+        }
+
+        if (group.ParentGroupId != systemGroupId)
+        {
+            group.SetParent(systemGroupId);
+        }
+
+        if (!string.Equals(group.Name, GroupDefaults.GuessUserName, StringComparison.OrdinalIgnoreCase))
+        {
+            group.Rename(GroupDefaults.GuessUserName);
+        }
+
+        return group;
     }
 
     private static string? BuildIdentifierKey(string? identifier, Guid? parentGroupId)

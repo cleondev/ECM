@@ -66,6 +66,22 @@ public sealed class Group
         return new Group(id, normalizedName, GroupKind.System, parentGroupId: null, createdBy: null, createdAtUtc);
     }
 
+    public static Group CreateGuessGroup(Guid parentGroupId, DateTimeOffset createdAtUtc)
+    {
+        if (parentGroupId == Guid.Empty)
+        {
+            throw new ArgumentException("Parent group id is required.", nameof(parentGroupId));
+        }
+
+        return new Group(
+            GroupDefaults.GuessUserId,
+            GroupDefaults.GuessUserName,
+            GroupKind.Guess,
+            parentGroupId,
+            createdBy: null,
+            createdAtUtc);
+    }
+
     public void Rename(string name)
     {
         if (string.IsNullOrWhiteSpace(name))

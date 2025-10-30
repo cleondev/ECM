@@ -9,6 +9,7 @@ public static class GroupKindExtensions
         GroupKind.System => "system",
         GroupKind.Unit => "unit",
         GroupKind.Temporary => "temporary",
+        GroupKind.Guess => "guess",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported group kind."),
     };
 
@@ -25,6 +26,7 @@ public static class GroupKindExtensions
             "unit" => GroupKind.Unit,
             "temporary" => GroupKind.Temporary,
             "normal" => GroupKind.Temporary,
+            "guess" => GroupKind.Guess,
             _ => throw new ArgumentException($"Unknown group kind '{value}'.", nameof(value)),
         };
     }

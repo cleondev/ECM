@@ -18,12 +18,12 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `GET /api/iam/users` | Liệt kê người dùng trong module IAM. | – |
 | `GET /api/iam/users/{id}` | Chi tiết người dùng theo ID. | `id` |
 | `GET /api/iam/users/by-email` | Tìm người dùng theo email. | Query `email` |
-| `POST /api/iam/users` | Tạo người dùng mới, tự động gán group hệ thống (`guest`, `system`) và gán thêm vai trò tùy chọn. | Body `{email, displayName, groupIds[]?, primaryGroupId?, isActive?, password?, roleIds[]}` |
+| `POST /api/iam/users` | Tạo người dùng mới, tự động gán group hệ thống (`guest`, `system`, `Guess User`) và gán thêm vai trò tùy chọn. | Body `{email, displayName, groupIds[]?, primaryGroupId?, isActive?, password?, roleIds[]}` |
 | `PUT /api/iam/users/{id}` | Cập nhật hồ sơ cơ bản hoặc trạng thái hoạt động. | `id`, body `{displayName, groupIds[]?, primaryGroupId?, isActive?}` |
 | `POST /api/iam/users/{id}/roles` | Gán thêm một vai trò cho người dùng. | `id`, body `{roleId}` |
 | `DELETE /api/iam/users/{id}/roles/{roleId}` | Hủy gán vai trò khỏi người dùng. | `id`, `roleId` |
 
-> **Lưu ý:** Các group hệ thống `guest` và `system` sẽ được tạo tự động nếu chưa tồn tại, và mọi user mới đều được gán vào cả hai group này ngay sau khi provisioning thành công.
+> **Lưu ý:** Các group hệ thống `guest`, `system` và `Guess User` sẽ được tạo tự động nếu chưa tồn tại. Mọi user mới đều được gán vào ba group này và `primary_group_id` mặc định trỏ về `Guess User` ngay sau khi provisioning thành công.
 >
 > * `primaryGroupId` đại diện cho **unit group** chính của người dùng. Khi chưa truyền tham số này, IAM sẽ giữ nguyên giá trị cũ hoặc để trống.
 > * `groupIds[]` cho phép gán bổ sung các nhóm khác (ví dụ project, workflow). Các tenant trước đây dùng `department` phải tạo group tương ứng rồi map người dùng sang `groupIds`/`primaryGroupId`.
