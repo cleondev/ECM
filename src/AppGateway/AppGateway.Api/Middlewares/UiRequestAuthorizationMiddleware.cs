@@ -291,7 +291,7 @@ internal sealed class UiRequestAuthorizationMiddleware
             return new PathString("/");
         }
 
-        return path.Value!.EndsWith('/', StringComparison.Ordinal)
+        return path.Value!.EndsWith("/", StringComparison.Ordinal)
             ? path
             : path.Add("/");
     }
