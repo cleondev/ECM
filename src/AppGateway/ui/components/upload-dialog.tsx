@@ -189,57 +189,72 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       return
     }
 
-    let cleanup: (() => void) | undefined
+    const resolveAddFilesContainer = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) {
+        return null
+      }
 
-    const attachInteractions = () => {
+      return target.closest<HTMLDivElement>(".uppy-Dashboard-AddFiles")
+    }
+
+    const shouldIgnoreEvent = (target: EventTarget | null, container: HTMLDivElement) => {
+      if (!(target instanceof HTMLElement)) {
+        return false
+      }
+
+      const interactiveAncestor = target.closest(
+        "button, a, input, label, [role='button'], [data-uppy-super-focusable]",
+      )
+
+      if (!interactiveAncestor) {
+        return false
+      }
+
+      if (interactiveAncestor === container) {
+        return false
+      }
+
+      return container.contains(interactiveAncestor)
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      const container = resolveAddFilesContainer(event.target)
+
+      if (!container || shouldIgnoreEvent(event.target, container)) {
+        return
+      }
+
+      event.preventDefault()
+      openFileDialog()
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return
+      }
+
+      const container = resolveAddFilesContainer(event.target)
+
+      if (!container || shouldIgnoreEvent(event.target, container)) {
+        return
+      }
+
+      event.preventDefault()
+      openFileDialog()
+    }
+
+    dashboardRoot.addEventListener("click", handleClick)
+    dashboardRoot.addEventListener("keydown", handleKeyDown)
+
+    let cleanupAttributes: (() => void) | undefined
+
+    const ensureAccessibilityAttributes = () => {
       const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
         ".uppy-Dashboard-AddFiles",
       )
 
       if (!addFilesElement) {
         return false
-      }
-
-      const shouldIgnoreEvent = (target: EventTarget | null) => {
-        if (!(target instanceof HTMLElement)) {
-          return false
-        }
-
-        const interactiveAncestor = target.closest(
-          "button, a, input, label, [role='button'], [data-uppy-super-focusable]",
-        )
-
-        if (!interactiveAncestor) {
-          return false
-        }
-
-        if (interactiveAncestor === addFilesElement) {
-          return false
-        }
-
-        return addFilesElement.contains(interactiveAncestor)
-      }
-
-      const handleClick = (event: MouseEvent) => {
-        if (shouldIgnoreEvent(event.target)) {
-          return
-        }
-
-        event.preventDefault()
-        openFileDialog()
-      }
-
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (shouldIgnoreEvent(event.target)) {
-          return
-        }
-
-        if (event.key !== "Enter" && event.key !== " ") {
-          return
-        }
-
-        event.preventDefault()
-        openFileDialog()
       }
 
       const previousTabIndex = addFilesElement.getAttribute("tabindex")
@@ -253,13 +268,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
         addFilesElement.setAttribute("role", "button")
       }
 
-      addFilesElement.addEventListener("click", handleClick)
-      addFilesElement.addEventListener("keydown", handleKeyDown)
-
-      cleanup = () => {
-        addFilesElement.removeEventListener("click", handleClick)
-        addFilesElement.removeEventListener("keydown", handleKeyDown)
-
+      cleanupAttributes = () => {
         if (previousTabIndex === null) {
           addFilesElement.removeAttribute("tabindex")
         }
@@ -275,18 +284,20 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     }
 
     const observer = new MutationObserver(() => {
-      if (attachInteractions()) {
+      if (ensureAccessibilityAttributes()) {
         observer.disconnect()
       }
     })
 
-    if (!attachInteractions()) {
+    if (!ensureAccessibilityAttributes()) {
       observer.observe(dashboardRoot, { childList: true, subtree: true })
     }
 
     return () => {
+      dashboardRoot.removeEventListener("click", handleClick)
+      dashboardRoot.removeEventListener("keydown", handleKeyDown)
       observer.disconnect()
-      cleanup?.()
+      cleanupAttributes?.()
     }
   }, [open, openFileDialog])
 
