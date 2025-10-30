@@ -37,7 +37,6 @@ public class CreateDocumentCommandHandlerTests
             ownerId,
             createdBy,
             _groups.GuestGroupId,
-            [_groups.GuestGroupId],
             "  Confidential  ",
             documentTypeId);
 
@@ -86,7 +85,6 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
-            [],
             null,
             null);
 
@@ -112,7 +110,6 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
-            [],
             null,
             null);
 

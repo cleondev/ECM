@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents.AccessControl;
@@ -31,8 +30,6 @@ public sealed class CreateDocumentCommandHandler(
             return OperationResult<DocumentSummaryResult>.Failure(exception.Message);
         }
 
-        var primaryGroupId = ResolvePrimaryGroupId(command.GroupId, command.GroupIds);
-
         DocumentEntity document;
         try
         {
@@ -43,7 +40,7 @@ public sealed class CreateDocumentCommandHandler(
                 command.OwnerId,
                 command.CreatedBy,
                 _clock.UtcNow,
-                primaryGroupId,
+                command.GroupId,
                 command.Sensitivity,
                 command.DocumentTypeId);
         }
@@ -58,26 +55,5 @@ public sealed class CreateDocumentCommandHandler(
         await _aclWriter.UpsertAsync(ownerEntry, cancellationToken);
 
         return OperationResult<DocumentSummaryResult>.Success(document.ToResult());
-    }
-
-    private static Guid? ResolvePrimaryGroupId(Guid? groupId, IReadOnlyCollection<Guid> groupIds)
-    {
-        if (groupId.HasValue && groupId.Value != Guid.Empty)
-        {
-            return groupId.Value;
-        }
-
-        if (groupIds is not null)
-        {
-            foreach (var id in groupIds)
-            {
-                if (id != Guid.Empty)
-                {
-                    return id;
-                }
-            }
-        }
-
-        return null;
     }
 }
