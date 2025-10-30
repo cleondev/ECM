@@ -6,7 +6,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		ARCHITECT.md = ARCHITECT.md
 		azure-pipelines.yml = azure-pipelines.yml
-		docs\dataflow.html = docs\dataflow.html
 		MIGRATION_GUIDE.md = MIGRATION_GUIDE.md
 		NAMING.md = NAMING.md
 		README.md = README.md
@@ -104,6 +103,36 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Utilities", "src\Shared\Utilities\Shared.Utilities.csproj", "{AFA144C0-6B8E-4827-9274-35DCF701563D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Extensions", "src\Shared\Extensions\Shared.Extensions.csproj", "{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		docs\api-reference.md = docs\api-reference.md
+		docs\azure-entra-app-registration.md = docs\azure-entra-app-registration.md
+		docs\azure-pipelines.md = docs\azure-pipelines.md
+		docs\changelog.md = docs\changelog.md
+		docs\dataflow.html = docs\dataflow.html
+		docs\environment-configuration.md = docs\environment-configuration.md
+		docs\gateway-ecm-flow.md = docs\gateway-ecm-flow.md
+		docs\Login Flow.png = docs\Login Flow.png
+		docs\migrations-troubleshooting.md = docs\migrations-troubleshooting.md
+		docs\ocr-integration.md = docs\ocr-integration.md
+		docs\share-links.md = docs\share-links.md
+		docs\tag-sample-script.sql = docs\tag-sample-script.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{84A5AF64-2782-47D3-BD8D-32937AC6F1DC}"
+	ProjectSection(SolutionItems) = preProject
+		database\00_extensions.sql = database\00_extensions.sql
+		database\01_iam.sql = database\01_iam.sql
+		database\02_doc.sql = database\02_doc.sql
+		database\03_wf.sql = database\03_wf.sql
+		database\04_search.sql = database\04_search.sql
+		database\05_ocr.sql = database\05_ocr.sql
+		database\06_ops.sql = database\06_ops.sql
+		database\07_share.sql = database\07_share.sql
+		database\10_sample_data.sql = database\10_sample_data.sql
+		database\11_default_tag_namespaces.sql = database\11_default_tag_namespaces.sql
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
