@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight, FolderOpen } from "lucide-react"
+import { Upload, CheckCircle2, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react"
 import { fetchFlows, fetchTags, checkLogin } from "@/lib/api"
 import type { DocumentBatchResponse } from "@/lib/api"
 import type { Flow, SelectedTag, TagNode, UploadMetadata, User } from "@/lib/types"
@@ -624,13 +624,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
           <div className="flex flex-col flex-1 overflow-hidden gap-6">
             <div className="flex flex-col gap-3" ref={dashboardRootRef}>
               <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={openFileDialog}
-                  className="gap-2"
-                >
-                  <FolderOpen className="h-4 w-4" />
+                <Button type="button" variant="outline" onClick={openFileDialog}>
                   Browse files
                 </Button>
               </div>
