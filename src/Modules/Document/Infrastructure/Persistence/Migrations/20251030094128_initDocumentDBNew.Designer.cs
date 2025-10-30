@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECM.Document.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DocumentDbContext))]
-    [Migration("20251030040429_initDocumentDB")]
-    partial class initDocumentDB
+    [Migration("20251030094128_initDocumentDBNew")]
+    partial class initDocumentDBNew
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -370,7 +370,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parent_id");
 
-                    b.Property<Guid[]>("PathIds")
+                    b.PrimitiveCollection<Guid[]>("PathIds")
                         .IsRequired()
                         .HasColumnType("uuid[]")
                         .HasColumnName("path_ids");
@@ -384,11 +384,19 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_tag_label");
 
-                    b.HasIndex("NamespaceId")
-                        .HasDatabaseName("IX_tag_label_namespace_id");
+                    b.HasIndex("Name")
+                        .HasDatabaseName("tag_label_name_trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Name"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Name"), new[] { "public.gin_trgm_ops" });
 
                     b.HasIndex("ParentId")
-                        .HasDatabaseName("IX_tag_label_parent_id");
+                        .HasDatabaseName("ix_tag_label_parent_id");
+
+                    b.HasIndex("PathIds")
+                        .HasDatabaseName("tag_label_ns_path_gin");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("PathIds"), "gin");
 
                     b.HasIndex("NamespaceId", "ParentId")
                         .HasDatabaseName("tag_label_ns_parent_idx");
@@ -396,15 +404,6 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     b.HasIndex("NamespaceId", "ParentId", "Name")
                         .IsUnique()
                         .HasDatabaseName("uq_tag_sibling_name");
-
-                    b.HasIndex("Name")
-                        .HasDatabaseName("tag_label_name_trgm")
-                        .HasAnnotation("Npgsql:IndexMethod", "gin")
-                        .HasAnnotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
-
-                    b.HasIndex("PathIds")
-                        .HasDatabaseName("tag_label_ns_path_gin")
-                        .HasAnnotation("Npgsql:IndexMethod", "gin");
 
                     b.ToTable("tag_label", "doc");
                 });
@@ -679,20 +678,22 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ECM.Document.Domain.Tags.TagLabel", b =>
                 {
-                    b.HasOne("ECM.Document.Domain.Tags.TagLabel", "Parent")
-                        .WithMany()
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_tag_label_parent");
-
                     b.HasOne("ECM.Document.Domain.Tags.TagNamespace", "Namespace")
                         .WithMany("Labels")
                         .HasForeignKey("NamespaceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_tag_label_tag_namespace_namespace_id");
+                        .HasConstraintName("fk_tag_label_tag_namespaces_namespace_id");
+
+                    b.HasOne("ECM.Document.Domain.Tags.TagLabel", "Parent")
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tag_label_tag_label_parent_id");
 
                     b.Navigation("Namespace");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("ECM.Document.Domain.Versions.DocumentVersion", b =>

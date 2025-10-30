@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ECM.Document.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class initDocumentDB : Migration
+    public partial class initDocumentDBNew : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -117,8 +117,8 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     namespace_id = table.Column<Guid>(type: "uuid", nullable: false),
                     parent_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    name = table.Column<string>(type: "text", nullable: false),
                     path_ids = table.Column<Guid[]>(type: "uuid[]", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
                     sort_order = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     color = table.Column<string>(type: "text", nullable: true),
                     icon_key = table.Column<string>(type: "text", nullable: true),
@@ -131,14 +131,14 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 {
                     table.PrimaryKey("pk_tag_label", x => x.id);
                     table.ForeignKey(
-                        name: "fk_tag_label_parent",
+                        name: "fk_tag_label_tag_label_parent_id",
                         column: x => x.parent_id,
                         principalSchema: "doc",
                         principalTable: "tag_label",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "fk_tag_label_tag_namespace_namespace_id",
+                        name: "fk_tag_label_tag_namespaces_namespace_id",
                         column: x => x.namespace_id,
                         principalSchema: "doc",
                         principalTable: "tag_namespace",
@@ -302,8 +302,8 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 name: "doc_document_updated_at_id_idx",
                 schema: "doc",
                 table: "document",
-                columns: ["updated_at", "id"],
-                descending: []);
+                columns: new[] { "updated_at", "id" },
+                descending: new bool[0]);
 
             migrationBuilder.CreateIndex(
                 name: "IX_document_created_by",
@@ -340,7 +340,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 name: "doc_effective_acl_flat_user_document_idx",
                 schema: "doc",
                 table: "effective_acl_flat",
-                columns: ["user_id", "valid_to", "document_id"]);
+                columns: new[] { "user_id", "valid_to", "document_id" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_signature_request_document_id",
@@ -361,35 +361,24 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 column: "version_id");
 
             migrationBuilder.CreateIndex(
-                name: "tag_namespace_scope_owner_idx",
-                schema: "doc",
-                table: "tag_namespace",
-                columns: ["scope", "owner_user_id", "owner_group_id"]);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_tag_label_namespace_id",
-                schema: "doc",
-                table: "tag_label",
-                column: "namespace_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_tag_label_parent_id",
+                name: "ix_tag_label_parent_id",
                 schema: "doc",
                 table: "tag_label",
                 column: "parent_id");
 
             migrationBuilder.CreateIndex(
+                name: "tag_label_name_trgm",
+                schema: "doc",
+                table: "tag_label",
+                column: "name")
+                .Annotation("Npgsql:IndexMethod", "gin")
+                .Annotation("Npgsql:IndexOperators", new[] { "public.gin_trgm_ops" });
+
+            migrationBuilder.CreateIndex(
                 name: "tag_label_ns_parent_idx",
                 schema: "doc",
                 table: "tag_label",
-                columns: ["namespace_id", "parent_id"]);
-
-            migrationBuilder.CreateIndex(
-                name: "uq_tag_sibling_name",
-                schema: "doc",
-                table: "tag_label",
-                columns: ["namespace_id", "parent_id", "name"],
-                unique: true);
+                columns: new[] { "namespace_id", "parent_id" });
 
             migrationBuilder.CreateIndex(
                 name: "tag_label_ns_path_gin",
@@ -399,12 +388,17 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 .Annotation("Npgsql:IndexMethod", "gin");
 
             migrationBuilder.CreateIndex(
-                name: "tag_label_name_trgm",
+                name: "uq_tag_sibling_name",
                 schema: "doc",
                 table: "tag_label",
-                column: "name")
-                .Annotation("Npgsql:IndexMethod", "gin")
-                .Annotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
+                columns: new[] { "namespace_id", "parent_id", "name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "tag_namespace_scope_owner_idx",
+                schema: "doc",
+                table: "tag_namespace",
+                columns: new[] { "scope", "owner_user_id", "owner_group_id" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_version_created_by",
@@ -422,7 +416,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 name: "IX_version_document_id_version_no",
                 schema: "doc",
                 table: "version",
-                columns: ["document_id", "version_no"],
+                columns: new[] { "document_id", "version_no" },
                 unique: true);
         }
 

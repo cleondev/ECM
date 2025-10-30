@@ -82,7 +82,7 @@ public sealed class TagLabelConfiguration : IEntityTypeConfiguration<TagLabel>
 
         builder.HasIndex(label => label.Name)
             .HasMethod("gin")
-            .HasOperators("gin_trgm_ops")
+            .HasOperators("public.gin_trgm_ops")
             .HasDatabaseName("tag_label_name_trgm");
 
         builder.Navigation(label => label.DocumentTags)
