@@ -13,9 +13,13 @@ public sealed class DocumentTagConfiguration : IEntityTypeConfiguration<Document
 
         builder.HasKey(tag => new { tag.DocumentId, tag.TagId });
 
-        builder.Property(tag => tag.DocumentId)
+        var documentIdProperty = builder.Property(tag => tag.DocumentId)
             .HasColumnName("document_id")
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value));
+            .HasColumnType("uuid")
+            .HasConversion(EfConverters.DocumentIdConverter);
+
+        documentIdProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        documentIdProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(tag => tag.TagId)
             .HasColumnName("tag_id");

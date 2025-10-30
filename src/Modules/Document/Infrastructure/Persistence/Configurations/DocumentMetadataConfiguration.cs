@@ -12,9 +12,13 @@ public sealed class DocumentMetadataConfiguration : IEntityTypeConfiguration<Doc
 
         builder.HasKey(metadata => metadata.DocumentId);
 
-        builder.Property(metadata => metadata.DocumentId)
+        var documentIdProperty = builder.Property(metadata => metadata.DocumentId)
             .HasColumnName("document_id")
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value));
+            .HasColumnType("uuid")
+            .HasConversion(EfConverters.DocumentIdConverter);
+
+        documentIdProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        documentIdProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(metadata => metadata.Data)
             .HasColumnName("data")
