@@ -25,7 +25,7 @@ public sealed class GroupConfiguration : IEntityTypeConfiguration<Group>
             .HasConversion(
                 kind => kind.ToNormalizedString(),
                 value => GroupKindExtensions.FromString(value))
-            .HasDefaultValue(GroupKind.Temporary.ToNormalizedString())
+            .HasDefaultValue(GroupKind.Temporary)
             .IsRequired();
 
         builder.Property(group => group.ParentGroupId)
