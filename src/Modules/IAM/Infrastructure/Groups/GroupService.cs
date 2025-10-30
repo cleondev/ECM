@@ -280,7 +280,7 @@ public sealed class GroupService(
                     group.Name);
             }
 
-            if (assignment.Kind == GroupKind.Unit)
+            if (assignment.Kind is GroupKind.Unit or GroupKind.Team)
             {
                 unitTargetIds.Add(group.Id);
             }
@@ -291,7 +291,9 @@ public sealed class GroupService(
             .Where(member => member.UserId == user.Id && member.ValidToUtc == null)
             .ToListAsync(cancellationToken);
 
-        foreach (var membership in activeMemberships.Where(member => member.Group is not null && member.Group.Kind == GroupKind.Unit))
+        foreach (var membership in activeMemberships.Where(
+                     member => member.Group is not null
+                         && member.Group.Kind is GroupKind.Unit or GroupKind.Team))
         {
             if (!unitTargetIds.Contains(membership.GroupId))
             {
@@ -331,7 +333,9 @@ public sealed class GroupService(
                 .Select(member => (Guid?)member.GroupId)
                 .FirstOrDefault()
                 ?? refreshedMemberships
-                    .Where(member => member.Group is not null && member.Group.Kind == GroupKind.Unit)
+                    .Where(
+                        member => member.Group is not null
+                            && member.Group.Kind is GroupKind.Unit or GroupKind.Team)
                     .Select(member => (Guid?)member.GroupId)
                     .FirstOrDefault();
         }
