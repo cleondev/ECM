@@ -666,15 +666,12 @@ public sealed class CreateDocumentForm
 
     private static string? GetString(IFormCollection form, string propertyName)
     {
-        if (form.TryGetValue(propertyName, out var value) && !StringValues.IsNullOrEmpty(value))
+        foreach (var field in EnumerateFieldNames(propertyName))
         {
-            return value.ToString();
-        }
-
-        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-        if (form.TryGetValue(camelCase, out value) && !StringValues.IsNullOrEmpty(value))
-        {
-            return value.ToString();
+            if (form.TryGetValue(field, out var value) && !StringValues.IsNullOrEmpty(value))
+            {
+                return value.ToString();
+            }
         }
 
         return null;
@@ -853,15 +850,12 @@ public sealed class CreateDocumentsForm
 
     private static string? GetString(IFormCollection form, string propertyName)
     {
-        if (form.TryGetValue(propertyName, out var value) && !StringValues.IsNullOrEmpty(value))
+        foreach (var field in EnumerateFieldNames(propertyName))
         {
-            return value.ToString();
-        }
-
-        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-        if (form.TryGetValue(camelCase, out value) && !StringValues.IsNullOrEmpty(value))
-        {
-            return value.ToString();
+            if (form.TryGetValue(field, out var value) && !StringValues.IsNullOrEmpty(value))
+            {
+                return value.ToString();
+            }
         }
 
         return null;
@@ -925,8 +919,25 @@ public sealed class CreateDocumentsForm
 
         yield return propertyName;
         yield return camelCase;
+
+        foreach (var prefix in new[] { "meta", "Meta" })
+        {
+            yield return $"{prefix}[{propertyName}]";
+            yield return $"{prefix}[{camelCase}]";
+            yield return $"{prefix}.{propertyName}";
+            yield return $"{prefix}.{camelCase}";
+        }
+
         yield return $"{propertyName}[]";
         yield return $"{camelCase}[]";
+
+        foreach (var prefix in new[] { "meta", "Meta" })
+        {
+            yield return $"{prefix}[{propertyName}][]";
+            yield return $"{prefix}[{camelCase}][]";
+            yield return $"{prefix}.{propertyName}[]";
+            yield return $"{prefix}.{camelCase}[]";
+        }
     }
 
     private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)
