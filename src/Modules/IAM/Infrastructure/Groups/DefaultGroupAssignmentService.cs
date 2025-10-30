@@ -18,8 +18,6 @@ public sealed class DefaultGroupAssignmentService(
     ISystemClock clock,
     ILogger<DefaultGroupAssignmentService> logger) : IDefaultGroupAssignmentService
 {
-    private static readonly IReadOnlyList<string> DefaultGroupNames = GroupDefaults.Names;
-
     private readonly IamDbContext _context = context;
     private readonly ISystemClock _clock = clock;
     private readonly ILogger<DefaultGroupAssignmentService> _logger = logger;
@@ -30,22 +28,27 @@ public sealed class DefaultGroupAssignmentService(
 
         var now = _clock.UtcNow;
 
-        var existingGroups = await _context.Groups
-            .Where(group => DefaultGroupNames.Contains(group.Name))
-            .ToListAsync(cancellationToken);
-
-        foreach (var missingName in DefaultGroupNames.Except(existingGroups.Select(group => group.Name)))
+        var defaultGroupNames = new[]
         {
-            var group = Group.CreateSystemGroup(missingName, now);
-            existingGroups.Add(group);
-            await _context.Groups.AddAsync(group, cancellationToken);
-            _logger.LogInformation("Created default IAM group {GroupName}.", group.Name);
-        }
+            GroupDefaults.SystemName,
+            GroupDefaults.GuestName,
+            GroupDefaults.GuessUserName,
+        };
 
-        var groupIds = existingGroups.Select(group => group.Id).ToArray();
+        var existingGroups = await _context.Groups
+            .Where(group => defaultGroupNames.Contains(group.Name))
+            .ToDictionaryAsync(group => group.Name, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        var systemGroup = await EnsureSystemGroupAsync(existingGroups, now, cancellationToken);
+        var guestGroup = await EnsureGuestGroupAsync(existingGroups, now, cancellationToken);
+        var guessGroup = await EnsureGuessGroupAsync(existingGroups, systemGroup, now, cancellationToken);
+
+        var trackedGroups = new[] { systemGroup, guestGroup, guessGroup };
+
+        var groupIds = trackedGroups.Select(group => group.Id).ToArray();
 
         var existingMemberships = await _context.GroupMembers
-            .Where(member => member.UserId == user.Id && groupIds.Contains(member.GroupId))
+            .Where(member => member.UserId == user.Id && groupIds.Contains(member.GroupId) && member.ValidToUtc == null)
             .Select(member => member.GroupId)
             .ToListAsync(cancellationToken);
 
@@ -75,5 +78,65 @@ public sealed class DefaultGroupAssignmentService(
                 assignment.UserId,
                 assignment.GroupId);
         }
+    }
+
+    private async Task<Group> EnsureSystemGroupAsync(
+        IDictionary<string, Group> existingGroups,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (existingGroups.TryGetValue(GroupDefaults.SystemName, out var group))
+        {
+            return group;
+        }
+
+        group = Group.CreateSystemGroup(GroupDefaults.SystemName, now);
+        await _context.Groups.AddAsync(group, cancellationToken);
+        existingGroups[GroupDefaults.SystemName] = group;
+        _logger.LogInformation("Created default IAM group {GroupName}.", group.Name);
+
+        return group;
+    }
+
+    private async Task<Group> EnsureGuestGroupAsync(
+        IDictionary<string, Group> existingGroups,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (existingGroups.TryGetValue(GroupDefaults.GuestName, out var group))
+        {
+            return group;
+        }
+
+        group = Group.CreateSystemGroup(GroupDefaults.GuestName, now);
+        await _context.Groups.AddAsync(group, cancellationToken);
+        existingGroups[GroupDefaults.GuestName] = group;
+        _logger.LogInformation("Created default IAM group {GroupName}.", group.Name);
+
+        return group;
+    }
+
+    private async Task<Group> EnsureGuessGroupAsync(
+        IDictionary<string, Group> existingGroups,
+        Group systemGroup,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (existingGroups.TryGetValue(GroupDefaults.GuessUserName, out var group))
+        {
+            if (group.ParentGroupId != systemGroup.Id)
+            {
+                group.SetParent(systemGroup.Id);
+            }
+
+            return group;
+        }
+
+        group = Group.CreateGuessGroup(systemGroup.Id, now);
+        await _context.Groups.AddAsync(group, cancellationToken);
+        existingGroups[GroupDefaults.GuessUserName] = group;
+        _logger.LogInformation("Created default IAM group {GroupName}.", group.Name);
+
+        return group;
     }
 }
