@@ -31,7 +31,7 @@ public sealed class EffectiveAclFlatWriter : IEffectiveAclFlatWriter
     {
         ArgumentNullException.ThrowIfNull(entries);
 
-        var buffer = entries as EffectiveAclFlatWriteEntry[] ?? entries.ToArray();
+        var buffer = entries as EffectiveAclFlatWriteEntry[] ?? [.. entries];
         if (buffer.Length == 0)
         {
             return;

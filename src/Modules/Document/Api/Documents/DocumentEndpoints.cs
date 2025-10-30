@@ -656,7 +656,7 @@ public static class DocumentEndpoints
             .Tags.Select(documentTag =>
             {
                 var tag = documentTag.Tag;
-                var pathIds = tag?.PathIds ?? Array.Empty<Guid>();
+                var pathIds = tag?.PathIds ?? [];
 
                 return new DocumentTagResponse(
                     documentTag.TagId,
@@ -723,7 +723,7 @@ public static class DocumentEndpoints
             }
         }
 
-        return buffer.ToArray();
+        return [.. buffer];
     }
 
     private static Guid[] EnsurePrimaryGroup(Guid? primaryGroupId, IReadOnlyList<Guid> groupIds)
@@ -754,7 +754,7 @@ public static class DocumentEndpoints
             }
         }
 
-        return buffer.ToArray();
+        return [.. buffer];
     }
 
     private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("vi-VN");

@@ -18,7 +18,7 @@ public sealed class WebhookSubscription
     {
         Id = Guid.NewGuid();
         Name = name;
-        EventTypes = eventTypes.Distinct().ToArray();
+        EventTypes = [.. eventTypes.Distinct()];
         Url = url;
         Secret = secret;
         Description = description;

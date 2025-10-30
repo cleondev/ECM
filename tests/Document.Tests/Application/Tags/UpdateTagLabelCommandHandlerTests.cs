@@ -23,8 +23,8 @@ public class UpdateTagLabelCommandHandlerTests
         var handler = new UpdateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
         var ownerId = Guid.NewGuid();
-        var originalParent = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Root", 0, null, null, ownerId, false, now);
-        var newParent = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Folder", 1, null, null, ownerId, false, now);
+        var originalParent = TagLabel.Create(tagNamespace.Id, null, [], "Root", 0, null, null, ownerId, false, now);
+        var newParent = TagLabel.Create(tagNamespace.Id, null, [], "Folder", 1, null, null, ownerId, false, now);
         var tag = TagLabel.Create(tagNamespace.Id, originalParent.Id, originalParent.PathIds, "Leaf", 0, null, null, ownerId, false, now);
 
         repository.Seed(originalParent);
@@ -47,7 +47,7 @@ public class UpdateTagLabelCommandHandlerTests
         Assert.True(result.IsSuccess);
         var updated = Assert.IsType<TagLabelResult>(result.Value);
         Assert.Equal(newParent.Id, updated.ParentId);
-        Assert.Equal(new[] { newParent.Id, tag.Id }, updated.PathIds);
+        Assert.Equal([newParent.Id, tag.Id], updated.PathIds);
         Assert.Equal(3, updated.SortOrder);
         Assert.Equal("#fff", updated.Color);
         Assert.Equal("icon", updated.IconKey);
@@ -68,7 +68,7 @@ public class UpdateTagLabelCommandHandlerTests
         var handler = new UpdateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
         var ownerId = Guid.NewGuid();
-        var root = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Root", 0, null, null, ownerId, false, now);
+        var root = TagLabel.Create(tagNamespace.Id, null, [], "Root", 0, null, null, ownerId, false, now);
         var child = TagLabel.Create(tagNamespace.Id, root.Id, root.PathIds, "Child", 0, null, null, ownerId, false, now);
 
         repository.Seed(root);

@@ -82,7 +82,7 @@ public sealed class CreateTagLabelCommandHandler(
         }
 
         var createdAt = _clock.UtcNow;
-        var parentPath = parent?.PathIds ?? Array.Empty<Guid>();
+        var parentPath = parent?.PathIds ?? [];
         var tagLabel = TagLabel.Create(
             command.NamespaceId,
             parentId,

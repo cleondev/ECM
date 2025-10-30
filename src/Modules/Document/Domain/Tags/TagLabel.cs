@@ -14,7 +14,7 @@ public sealed class TagLabel : IHasDomainEvents
 
     private TagLabel()
     {
-        PathIds = Array.Empty<Guid>();
+        PathIds = [];
         Name = null!;
     }
 
@@ -75,7 +75,7 @@ public sealed class TagLabel : IHasDomainEvents
     public static TagLabel Create(
         Guid namespaceId,
         Guid? parentId,
-        IReadOnlyCollection<Guid>? parentPathIds,
+        Guid[]? parentPathIds,
         string name,
         int sortOrder,
         string? color,
@@ -85,7 +85,7 @@ public sealed class TagLabel : IHasDomainEvents
         DateTimeOffset createdAtUtc)
     {
         var tagId = Guid.NewGuid();
-        var parentPath = parentPathIds is null ? Array.Empty<Guid>() : parentPathIds.Where(id => id != Guid.Empty).ToArray();
+        var parentPath = parentPathIds is null ? [] : parentPathIds.Where(id => id != Guid.Empty).ToArray();
         var path = BuildPath(parentPath, tagId);
 
         var tagLabel = new TagLabel(
@@ -153,7 +153,7 @@ public sealed class TagLabel : IHasDomainEvents
     public void Update(
         string name,
         Guid? parentId,
-        IReadOnlyCollection<Guid>? parentPathIds,
+        Guid[]? parentPathIds, // Changed from IReadOnlyCollection<Guid>? to Guid[]?
         int sortOrder,
         string? color,
         string? iconKey,
@@ -188,7 +188,7 @@ public sealed class TagLabel : IHasDomainEvents
         }
         else if (PathIds.Length == 0 || PathIds[^1] != Id)
         {
-            PathIds = BuildPath(Array.Empty<Guid>(), Id);
+            PathIds = BuildPath([], Id);
         }
 
         ParentId = normalizedParentId;
@@ -230,9 +230,9 @@ public sealed class TagLabel : IHasDomainEvents
         _domainEvents.Add(domainEvent);
     }
 
-    private static Guid[] BuildPath(IReadOnlyCollection<Guid> parentPathIds, Guid tagId)
+    private static Guid[] BuildPath(Guid[] parentPathIds, Guid tagId)
     {
-        var buffer = new List<Guid>(parentPathIds.Count + 1);
+        var buffer = new List<Guid>(parentPathIds.Length + 1);
         foreach (var ancestorId in parentPathIds)
         {
             if (ancestorId == Guid.Empty)
@@ -249,7 +249,7 @@ public sealed class TagLabel : IHasDomainEvents
         }
 
         buffer.Add(tagId);
-        return buffer.ToArray();
+        return [.. buffer];
     }
 
     private static Guid? NormalizeParent(Guid? parentId)

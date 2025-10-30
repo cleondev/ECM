@@ -120,7 +120,7 @@ public sealed class UpdateTagLabelCommandHandler(
         tagLabel.Update(
             normalizedName,
             parentId,
-            parentId is null ? Array.Empty<Guid>() : parentPath,
+            parentId is null ? [] : parentPath,
             command.SortOrder ?? tagLabel.SortOrder,
             command.Color,
             command.IconKey,

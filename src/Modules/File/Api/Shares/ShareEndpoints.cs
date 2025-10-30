@@ -78,7 +78,7 @@ public static class ShareEndpoints
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["share"] = result.Errors.ToArray()
+                ["share"] = [.. result.Errors]
             });
         }
 

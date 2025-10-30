@@ -23,7 +23,7 @@ public class CreateTagLabelCommandHandlerTests
         var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
         var creatorId = Guid.NewGuid();
-        var parent = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Parent", 0, null, null, creatorId, false, now);
+        var parent = TagLabel.Create(tagNamespace.Id, null, [], "Parent", 0, null, null, creatorId, false, now);
         repository.Seed(parent);
 
         var command = new CreateTagLabelCommand(
@@ -42,7 +42,7 @@ public class CreateTagLabelCommandHandlerTests
         var tag = Assert.IsType<TagLabelResult>(result.Value);
         Assert.Equal(tagNamespace.Id, tag.NamespaceId);
         Assert.Equal(parent.Id, tag.ParentId);
-        Assert.Equal(new[] { parent.Id, tag.Id }, tag.PathIds);
+        Assert.Equal([parent.Id, tag.Id], tag.PathIds);
         Assert.Equal(5, tag.SortOrder);
         Assert.Equal("#FDE68A", tag.Color);
         Assert.Equal("lucide:tag", tag.IconKey);
@@ -80,7 +80,7 @@ public class CreateTagLabelCommandHandlerTests
         var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
         var creatorId = Guid.NewGuid();
-        var existing = TagLabel.Create(tagNamespace.Id, null, Array.Empty<Guid>(), "Duplicate", 0, null, null, creatorId, false, now);
+        var existing = TagLabel.Create(tagNamespace.Id, null, [], "Duplicate", 0, null, null, creatorId, false, now);
         repository.Seed(existing);
 
         var command = new CreateTagLabelCommand(tagNamespace.Id, null, "Duplicate", null, null, null, creatorId, false);

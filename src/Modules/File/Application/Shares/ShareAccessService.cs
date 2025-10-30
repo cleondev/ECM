@@ -48,7 +48,7 @@ public sealed class ShareAccessService(
 
         if (evaluationResult.IsFailure || evaluationResult.Value is null)
         {
-            return OperationResult<ShareInterstitialResponse>.Failure(evaluationResult.Errors.ToArray());
+            return OperationResult<ShareInterstitialResponse>.Failure([.. evaluationResult.Errors]);
         }
 
         var evaluation = evaluationResult.Value;
@@ -110,7 +110,7 @@ public sealed class ShareAccessService(
 
         if (evaluationResult.IsFailure || evaluationResult.Value is null)
         {
-            return OperationResult<bool>.Failure(evaluationResult.Errors.ToArray());
+            return OperationResult<bool>.Failure([.. evaluationResult.Errors]);
         }
 
         return OperationResult<bool>.Success(true);
@@ -136,7 +136,7 @@ public sealed class ShareAccessService(
 
         if (evaluationResult.IsFailure || evaluationResult.Value is null)
         {
-            return OperationResult<FileDownloadLink>.Failure(evaluationResult.Errors.ToArray());
+            return OperationResult<FileDownloadLink>.Failure([.. evaluationResult.Errors]);
         }
 
         var evaluation = evaluationResult.Value;
@@ -162,7 +162,7 @@ public sealed class ShareAccessService(
         var linkResult = await _fileAccess.GetDownloadLinkAsync(version.StorageKey, lifetime, cancellationToken);
         if (linkResult.IsFailure || linkResult.Value is null)
         {
-            return OperationResult<FileDownloadLink>.Failure(linkResult.Errors.ToArray());
+            return OperationResult<FileDownloadLink>.Failure([.. linkResult.Errors]);
         }
 
         await LogAccessEventAsync(share.Id, "download", true, remoteIp, userAgent, cancellationToken);

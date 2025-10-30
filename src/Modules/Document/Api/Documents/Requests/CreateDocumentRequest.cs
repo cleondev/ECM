@@ -142,7 +142,7 @@ public sealed class CreateDocumentRequest
                 }
             }
 
-            return buffer.ToArray();
+            return [.. buffer];
         }
 
         var raw = values[0];
@@ -175,7 +175,7 @@ public sealed class CreateDocumentRequest
 
         if (buffer.Count > 0)
         {
-            return buffer.ToArray();
+            return [.. buffer];
         }
 
         foreach (var segment in raw.Split(
@@ -188,7 +188,7 @@ public sealed class CreateDocumentRequest
             }
         }
 
-        return buffer.ToArray();
+        return [.. buffer];
     }
 
     private static IFormFile? GetFile(IFormCollection form, string propertyName)

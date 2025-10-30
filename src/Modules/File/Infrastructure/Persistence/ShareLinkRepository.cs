@@ -190,7 +190,7 @@ public sealed class ShareLinkRepository(FileDbContext context) : IShareLinkRepos
             FileSizeBytes = share.FileSizeBytes,
             FileCreatedAt = share.FileCreatedAt,
             WatermarkJson = share.WatermarkJson,
-            AllowedIps = share.AllowedIps.Select(ip => ip.ToString()).ToArray(),
+            AllowedIps = [.. share.AllowedIps.Select(ip => ip.ToString())],
             CreatedAt = share.CreatedAt,
             RevokedAt = share.RevokedAt,
         };
@@ -221,7 +221,7 @@ public sealed class ShareLinkRepository(FileDbContext context) : IShareLinkRepos
         entity.FileSizeBytes = share.FileSizeBytes;
         entity.FileCreatedAt = share.FileCreatedAt;
         entity.WatermarkJson = share.WatermarkJson;
-        entity.AllowedIps = share.AllowedIps.Select(ip => ip.ToString()).ToArray();
+        entity.AllowedIps = [.. share.AllowedIps.Select(ip => ip.ToString())];
         entity.CreatedAt = share.CreatedAt;
         entity.RevokedAt = share.RevokedAt;
     }
@@ -239,7 +239,7 @@ public sealed class ShareLinkRepository(FileDbContext context) : IShareLinkRepos
             values.Add("download");
         }
 
-        return values.ToArray();
+        return [.. values];
     }
 
     private static IReadOnlyCollection<IPAddress> ParseAllowedIps(string[]? values)

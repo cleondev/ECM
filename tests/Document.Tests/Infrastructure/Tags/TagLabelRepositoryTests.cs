@@ -29,7 +29,7 @@ public class TagLabelRepositoryTests
         var tagLabel = TagLabel.Create(
             tagNamespace.Id,
             parentId: null,
-            parentPathIds: Array.Empty<Guid>(),
+            parentPathIds: [],
             name: "reviewed",
             sortOrder: 0,
             color: null,
@@ -60,7 +60,7 @@ public class TagLabelRepositoryTests
         var tagLabel = TagLabel.Create(
             tagNamespace.Id,
             parentId: null,
-            parentPathIds: Array.Empty<Guid>(),
+            parentPathIds: [],
             name: "reviewed",
             sortOrder: 0,
             color: null,
