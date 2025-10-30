@@ -14,6 +14,9 @@ public sealed class CreateTagLabelCommandHandler(
     ISystemClock clock)
 {
     private static readonly Regex SlugPattern = new("^[a-z0-9_]+(-[a-z0-9_]+)*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex PathPattern = new(
+        "^[a-z0-9_]+(?:-[a-z0-9_]+)*(?:/[a-z0-9_]+(?:-[a-z0-9_]+)*)*$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private readonly ITagLabelRepository _tagLabelRepository = tagLabelRepository;
     private readonly ISystemClock _clock = clock;
@@ -41,9 +44,10 @@ public sealed class CreateTagLabelCommandHandler(
             return OperationResult<TagLabelResult>.Failure("Slug must contain lowercase letters, numbers, underscores or hyphens.");
         }
 
-        if (!SlugPattern.IsMatch(path))
+        if (!PathPattern.IsMatch(path))
         {
-            return OperationResult<TagLabelResult>.Failure("Path must contain lowercase letters, numbers, underscores or hyphens.");
+            return OperationResult<TagLabelResult>.Failure(
+                "Path must contain lowercase letters, numbers, underscores, hyphens, or forward slashes.");
         }
 
         if (!await _tagLabelRepository.NamespaceExistsAsync(namespaceSlug, cancellationToken).ConfigureAwait(false))
