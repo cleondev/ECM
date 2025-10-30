@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ECM.Document.Api.Tags;
 
@@ -147,6 +148,7 @@ public static class TagEndpoints
         CreateTagRequest request,
         CreateTagLabelCommandHandler handler,
         IUserLookupService userLookupService,
+        ILogger<TagEndpoints> logger,
         CancellationToken cancellationToken
     )
     {
@@ -179,6 +181,16 @@ public static class TagEndpoints
 
         if (result.IsFailure || result.Value is null)
         {
+            if (result.Errors.Count > 0)
+            {
+                logger.LogWarning(
+                    "Failed to create tag label for namespace {NamespaceSlug} and slug {Slug}. Errors: {Errors}",
+                    namespaceSlug,
+                    request.Slug,
+                    string.Join(", ", result.Errors)
+                );
+            }
+
             return TypedResults.ValidationProblem(
                 new Dictionary<string, string[]> { ["tag"] = [.. result.Errors] }
             );
