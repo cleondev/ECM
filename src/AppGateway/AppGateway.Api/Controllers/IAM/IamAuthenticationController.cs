@@ -144,17 +144,17 @@ public sealed class IamAuthenticationController(
             }
         }
 
-        foreach (var groupId in user.GroupIds?.Where(id => id != Guid.Empty).Distinct() ?? Array.Empty<Guid>())
+        foreach (var groupId in user.GroupIds?.Where(id => id != Guid.Empty).Distinct() ?? [])
         {
             identity.AddClaim(new Claim("group_id", groupId.ToString()));
         }
 
-        foreach (var role in user.Roles ?? Array.Empty<RoleSummaryDto>())
+        foreach (var role in user.Roles ?? [])
         {
             identity.AddClaim(new Claim(ClaimTypes.Role, role.Name));
         }
 
-        foreach (var group in user.Groups ?? Array.Empty<GroupSummaryDto>())
+        foreach (var group in user.Groups ?? [])
         {
             identity.AddClaim(new Claim("group", group.Name));
         }

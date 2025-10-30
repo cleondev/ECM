@@ -168,7 +168,7 @@ internal sealed class IndexStoreSearchReadProvider(ISearchIndexReader reader) : 
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return Array.Empty<string>();
+            return [];
         }
 
         return raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

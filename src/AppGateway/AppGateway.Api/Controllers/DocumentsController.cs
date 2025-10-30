@@ -49,7 +49,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
 
         var formCollection = Request.HasFormContentType ? Request.Form : null;
         var parsedGroupIds = formCollection is null
-            ? Array.Empty<Guid>()
+            ? []
             : ParseGroupIds(formCollection);
         var normalizedGroupIds = NormalizeGroupSelection(NormalizeGuid(request.GroupId), parsedGroupIds, out var normalizedGroupId);
 
@@ -115,7 +115,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var documentTypeId = request.DocumentTypeId;
         var flowDefinition = NormalizeOptional(request.FlowDefinition);
         var tagIds = request.TagIds.Count == 0
-            ? Array.Empty<Guid>()
+            ? []
             : request.TagIds.Where(id => id != Guid.Empty).Distinct().ToArray();
 
         var documents = new List<DocumentDto>();
@@ -417,7 +417,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     {
         if (form is null)
         {
-            return Array.Empty<Guid>();
+            return [];
         }
 
         return ParseGuidList(form, "GroupIds", "groupIds", "group_ids", "GroupIds[]", "groupIds[]", "group_ids[]");
@@ -439,7 +439,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             }
         }
 
-        return Array.Empty<Guid>();
+        return [];
     }
 
     private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)
@@ -506,7 +506,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return buffer;
         }
 
-        foreach (var segment in raw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var segment in raw.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             if (Guid.TryParse(segment, out var guid))
             {
@@ -609,7 +609,7 @@ public sealed class CreateDocumentForm
 
     public Guid? GroupId { get; init; }
 
-    public IReadOnlyCollection<Guid> GroupIds { get; init; } = Array.Empty<Guid>();
+    public IReadOnlyCollection<Guid> GroupIds { get; init; } = [];
 
     [StringLength(64)]
     public string? Sensitivity { get; init; }
@@ -634,7 +634,7 @@ public sealed class CreateDocumentsForm
 
     public Guid? GroupId { get; init; }
 
-    public IReadOnlyList<Guid> GroupIds { get; init; } = Array.Empty<Guid>();
+    public IReadOnlyList<Guid> GroupIds { get; init; } = [];
 
     public string? Sensitivity { get; init; }
 
@@ -642,9 +642,9 @@ public sealed class CreateDocumentsForm
 
     public string? FlowDefinition { get; init; }
 
-    public IReadOnlyList<Guid> TagIds { get; init; } = Array.Empty<Guid>();
+    public IReadOnlyList<Guid> TagIds { get; init; } = [];
 
-    public IReadOnlyList<IFormFile> Files { get; init; } = Array.Empty<IFormFile>();
+    public IReadOnlyList<IFormFile> Files { get; init; } = [];
 
     public static async ValueTask<CreateDocumentsForm?> BindAsync(HttpContext context)
     {
@@ -717,14 +717,14 @@ public sealed class CreateDocumentsForm
             }
         }
 
-        return Array.Empty<Guid>();
+        return [];
     }
 
     private static IReadOnlyList<IFormFile> GetFiles(IFormCollection form)
     {
         if (form.Files.Count == 0)
         {
-            return Array.Empty<IFormFile>();
+            return [];
         }
 
         var files = form.Files.GetFiles("Files");
@@ -826,7 +826,7 @@ public sealed class CreateDocumentsForm
             return buffer;
         }
 
-        foreach (var segment in raw.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var segment in raw.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             if (Guid.TryParse(segment, out var guid))
             {
