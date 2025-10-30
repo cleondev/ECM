@@ -98,6 +98,9 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                     b.HasKey("GroupId", "UserId")
                         .HasName("pk_group_members");
 
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_group_members_user_id");
+
                     b.HasIndex("GroupId", "ValidFromUtc", "ValidToUtc")
                         .HasDatabaseName("iam_group_members_group_validity_idx");
 
@@ -203,13 +206,13 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("is_active");
 
-                    b.Property<Guid?>("PrimaryGroupId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("primary_group_id");
-
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text")
                         .HasColumnName("password_hash");
+
+                    b.Property<Guid?>("PrimaryGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("primary_group_id");
 
                     b.HasKey("Id")
                         .HasName("pk_users");
@@ -305,7 +308,16 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_group_members_groups_group_id");
 
+                    b.HasOne("ECM.IAM.Domain.Users.User", "User")
+                        .WithMany("Groups")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_group_members_users_user_id");
+
                     b.Navigation("Group");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ECM.IAM.Domain.Users.UserRole", b =>
@@ -341,6 +353,8 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ECM.IAM.Domain.Users.User", b =>
                 {
+                    b.Navigation("Groups");
+
                     b.Navigation("Roles");
                 });
 #pragma warning restore 612, 618
