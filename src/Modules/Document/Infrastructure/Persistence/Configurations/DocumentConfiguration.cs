@@ -14,10 +14,14 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
 
         builder.HasKey(document => document.Id);
 
-        builder.Property(document => document.Id)
+        var idProperty = builder.Property(document => document.Id)
             .HasColumnName("id")
+            .HasColumnType("uuid")
             .ValueGeneratedNever()
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value));
+            .HasConversion(EfConverters.DocumentIdConverter);
+
+        idProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        idProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(document => document.Title)
             .HasColumnName("title")

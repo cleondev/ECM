@@ -1,10 +1,11 @@
 using System;
+using ECM.Document.Domain.Documents;
 
 namespace ECM.Document.Infrastructure.Persistence.ReadModels;
 
 public sealed class EffectiveAclFlatEntry
 {
-    public Guid DocumentId { get; set; }
+    public DocumentId DocumentId { get; set; }
 
     public Guid UserId { get; set; }
 
