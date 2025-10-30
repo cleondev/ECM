@@ -74,7 +74,7 @@ internal sealed class LandingRedirectMiddleware
             return new PathString("/");
         }
 
-        return path.Value!.EndsWith('/', StringComparison.Ordinal)
+        return path.Value!.EndsWith("/", StringComparison.Ordinal)
             ? path
             : path.Add("/");
     }
