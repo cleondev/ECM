@@ -184,13 +184,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       return
     }
 
-    const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
-      ".uppy-Dashboard-AddFiles",
-    )
-
-    if (!addFilesElement) {
-      return
-    }
+    let cleanup: (() => void) | undefined
 
     const triggerFileSelection = () => {
       const hiddenInput = dashboardRoot.querySelector<HTMLInputElement>(
@@ -209,67 +203,102 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       browseButton?.click()
     }
 
-    const shouldIgnoreEvent = (target: EventTarget | null) => {
-      if (!(target instanceof HTMLElement)) {
+    const attachInteractions = () => {
+      const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
+        ".uppy-Dashboard-AddFiles",
+      )
+
+      if (!addFilesElement) {
         return false
       }
 
-      return Boolean(
-        target.closest(
+      const shouldIgnoreEvent = (target: EventTarget | null) => {
+        if (!(target instanceof HTMLElement)) {
+          return false
+        }
+
+        const interactiveAncestor = target.closest(
           "button, a, input, label, [role='button'], [data-uppy-super-focusable]",
-        ),
-      )
-    }
+        )
 
-    const handleClick = (event: MouseEvent) => {
-      if (shouldIgnoreEvent(event.target)) {
-        return
+        if (!interactiveAncestor) {
+          return false
+        }
+
+        if (interactiveAncestor === addFilesElement) {
+          return false
+        }
+
+        return addFilesElement.contains(interactiveAncestor)
       }
 
-      event.preventDefault()
-      triggerFileSelection()
-    }
+      const handleClick = (event: MouseEvent) => {
+        if (shouldIgnoreEvent(event.target)) {
+          return
+        }
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreEvent(event.target)) {
-        return
+        event.preventDefault()
+        triggerFileSelection()
       }
 
-      if (event.key !== "Enter" && event.key !== " ") {
-        return
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (shouldIgnoreEvent(event.target)) {
+          return
+        }
+
+        if (event.key !== "Enter" && event.key !== " ") {
+          return
+        }
+
+        event.preventDefault()
+        triggerFileSelection()
       }
 
-      event.preventDefault()
-      triggerFileSelection()
-    }
-
-    const previousTabIndex = addFilesElement.getAttribute("tabindex")
-    const previousRole = addFilesElement.getAttribute("role")
-
-    if (previousTabIndex === null) {
-      addFilesElement.setAttribute("tabindex", "0")
-    }
-
-    if (previousRole === null) {
-      addFilesElement.setAttribute("role", "button")
-    }
-
-    addFilesElement.addEventListener("click", handleClick)
-    addFilesElement.addEventListener("keydown", handleKeyDown)
-
-    return () => {
-      addFilesElement.removeEventListener("click", handleClick)
-      addFilesElement.removeEventListener("keydown", handleKeyDown)
+      const previousTabIndex = addFilesElement.getAttribute("tabindex")
+      const previousRole = addFilesElement.getAttribute("role")
 
       if (previousTabIndex === null) {
-        addFilesElement.removeAttribute("tabindex")
+        addFilesElement.setAttribute("tabindex", "0")
       }
 
       if (previousRole === null) {
-        addFilesElement.removeAttribute("role")
-      } else {
-        addFilesElement.setAttribute("role", previousRole)
+        addFilesElement.setAttribute("role", "button")
       }
+
+      addFilesElement.addEventListener("click", handleClick)
+      addFilesElement.addEventListener("keydown", handleKeyDown)
+
+      cleanup = () => {
+        addFilesElement.removeEventListener("click", handleClick)
+        addFilesElement.removeEventListener("keydown", handleKeyDown)
+
+        if (previousTabIndex === null) {
+          addFilesElement.removeAttribute("tabindex")
+        }
+
+        if (previousRole === null) {
+          addFilesElement.removeAttribute("role")
+        } else {
+          addFilesElement.setAttribute("role", previousRole)
+        }
+      }
+
+      return true
+    }
+
+    const observer = new MutationObserver(() => {
+      if (attachInteractions()) {
+        observer.disconnect()
+      }
+    })
+
+    if (!attachInteractions()) {
+      observer.observe(dashboardRoot, { childList: true, subtree: true })
+    }
+
+    return () => {
+      observer.disconnect()
+      cleanup?.()
     }
   }, [open])
 
@@ -329,57 +358,57 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   const selectedGroupCount = metadata.groupIds?.length ?? 0
 
-    const buildUploadSummary = useCallback(
-      (result: ManagedUploadResult): UploadResultSummary => {
-        const failureMessages: string[] = []
-        let successCount = 0
+  const buildUploadSummary = useCallback(
+    (result: ManagedUploadResult): UploadResultSummary => {
+      const failureMessages: string[] = []
+      let successCount = 0
 
-        const successfulFiles = Array.isArray(result.successful) ? result.successful : []
-        const failedFiles = Array.isArray(result.failed) ? result.failed : []
+      const successfulFiles = Array.isArray(result.successful) ? result.successful : []
+      const failedFiles = Array.isArray(result.failed) ? result.failed : []
 
-        const firstResponse = successfulFiles[0]?.response?.body as
-          | DocumentBatchResponse
-          | Record<string, unknown>
-          | undefined
+      const firstResponse = successfulFiles[0]?.response?.body as
+        | DocumentBatchResponse
+        | Record<string, unknown>
+        | undefined
 
-        if (isDocumentBatchResponse(firstResponse)) {
-          successCount = firstResponse.documents.length
-          if (Array.isArray(firstResponse.failures)) {
-            for (const failure of firstResponse.failures) {
-              failureMessages.push(formatFailureMessage(failure.fileName, failure.message))
-            }
+      if (isDocumentBatchResponse(firstResponse)) {
+        successCount = firstResponse.documents.length
+        if (Array.isArray(firstResponse.failures)) {
+          for (const failure of firstResponse.failures) {
+            failureMessages.push(formatFailureMessage(failure.fileName, failure.message))
           }
-        } else if (firstResponse) {
-          successCount = 1
-        } else {
-          successCount = successfulFiles.length
+        }
+      } else if (firstResponse) {
+        successCount = 1
+      } else {
+        successCount = successfulFiles.length
+      }
+
+      const resolveErrorMessage = (error: unknown): string => {
+        if (typeof error === "string") {
+          return error
         }
 
-        const resolveErrorMessage = (error: unknown): string => {
-          if (typeof error === "string") {
-            return error
+        if (error && typeof error === "object" && "message" in error) {
+          const candidate = (error as { message?: unknown }).message
+          if (typeof candidate === "string") {
+            return candidate
           }
-
-          if (error && typeof error === "object" && "message" in error) {
-            const candidate = (error as { message?: unknown }).message
-            if (typeof candidate === "string") {
-              return candidate
-            }
-          }
-
-          return "Upload failed"
         }
 
-        for (const failed of failedFiles) {
-          const message = resolveErrorMessage(failed.error)
-          const fileName = failed.name ?? "Unknown file"
-          failureMessages.push(formatFailureMessage(fileName, message))
-        }
+        return "Upload failed"
+      }
 
-        return { successCount, failureMessages }
-      },
-      [],
-    )
+      for (const failed of failedFiles) {
+        const message = resolveErrorMessage(failed.error)
+        const fileName = failed.name ?? "Unknown file"
+        failureMessages.push(formatFailureMessage(fileName, message))
+      }
+
+      return { successCount, failureMessages }
+    },
+    [],
+  )
 
   const toggleGroupSelection = useCallback((groupId: string) => {
     setMetadata((prev) => {

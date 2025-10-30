@@ -240,7 +240,7 @@
   }
 
   .uppy-Dashboard-AddFiles {
-    @apply border-2 border-dashed border-muted-foreground/40 bg-background/80 rounded-xl;
+    @apply border-2 border-dashed border-muted-foreground/40 bg-background/80 rounded-xl cursor-pointer;
     min-height: 260px;
     display: flex;
     align-items: center;
@@ -274,7 +274,7 @@
 
   .uppy-Dashboard-AddFiles-title .uppy-Dashboard-browse,
   .uppy-Dashboard-AddFiles-info .uppy-Dashboard-browse {
-    @apply text-primary font-semibold underline decoration-primary/40 decoration-2 underline-offset-4;
+    @apply text-primary font-semibold underline decoration-primary/40 decoration-2 underline-offset-4 cursor-pointer;
   }
 
   .uppy-Dashboard-note {
