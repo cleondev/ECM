@@ -240,7 +240,7 @@
   }
 
   .uppy-Dashboard-AddFiles {
-    @apply border-2 border-dashed border-muted-foreground/40 bg-background/80 rounded-xl;
+    @apply border-2 border-dashed border-muted-foreground/40 bg-background/80 rounded-xl cursor-pointer;
     min-height: 260px;
     display: flex;
     align-items: center;
