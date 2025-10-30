@@ -68,6 +68,42 @@ public static class QueryCollectionExtensions
         return query.TryGetValue(keys, out T value, formatProvider) ? value : default;
     }
 
+    public static QueryValueParseResult<T> ParseValue<T>(this IQueryCollection query, IEnumerable<string> keys, IFormatProvider? formatProvider = null)
+        where T : IParsable<T>
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(keys);
+
+        foreach (var key in keys)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            if (!query.TryGetValue(key, out var values))
+            {
+                continue;
+            }
+
+            var raw = GetFirstValue(values);
+            if (raw is null)
+            {
+                continue;
+            }
+
+            var provider = formatProvider ?? CultureInfo.InvariantCulture;
+            if (T.TryParse(raw, provider, out var parsed))
+            {
+                return QueryValueParseResult<T>.Success(parsed);
+            }
+
+            return QueryValueParseResult<T>.Failure(raw);
+        }
+
+        return QueryValueParseResult<T>.Missing;
+    }
+
     public static string? GetValue(this IQueryCollection query, string key)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -189,5 +225,41 @@ public static class QueryCollectionExtensions
         }
 
         return null;
+    }
+}
+
+public readonly record struct QueryValueParseResult<T>
+{
+    private readonly T _value;
+
+    private QueryValueParseResult(bool isPresent, bool isValid, T value, string? rawValue)
+    {
+        IsPresent = isPresent;
+        IsValid = isValid;
+        RawValue = rawValue;
+        _value = value;
+    }
+
+    public static QueryValueParseResult<T> Missing { get; } = new(false, false, default!, null);
+
+    public static QueryValueParseResult<T> Success(T value) => new(true, true, value, null);
+
+    public static QueryValueParseResult<T> Failure(string rawValue)
+        => new(true, false, default!, rawValue);
+
+    public bool IsPresent { get; }
+
+    public bool IsValid { get; }
+
+    public string? RawValue { get; }
+
+    public T Value => IsValid
+        ? _value
+        : throw new InvalidOperationException("The value is not available because parsing failed.");
+
+    public bool TryGetValue(out T value)
+    {
+        value = _value;
+        return IsValid;
     }
 }

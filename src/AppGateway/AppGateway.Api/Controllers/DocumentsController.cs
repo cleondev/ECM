@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
@@ -426,47 +425,47 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var query = Request.Query;
 
         var page = defaults.Page;
-        if (TryReadInt(query, ["page", "Page"], out var parsedPage, out var pageError))
+        var pageResult = query.ParseValue<int>(["page", "Page"]);
+        if (pageResult.TryGetValue(out var parsedPage))
         {
-            if (pageError is null)
-            {
-                page = parsedPage;
-            }
-            else
-            {
-                ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.Page), pageError);
-            }
+            page = parsedPage;
+        }
+        else if (pageResult.IsPresent)
+        {
+            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.Page), FormatInvalidValue(pageResult.RawValue));
         }
 
         var pageSize = defaults.PageSize;
-        if (TryReadInt(query, ["page_size", "pageSize", "PageSize"], out var parsedPageSize, out var pageSizeError))
+        var pageSizeResult = query.ParseValue<int>(["page_size", "pageSize", "PageSize"]);
+        if (pageSizeResult.TryGetValue(out var parsedPageSize))
         {
-            if (pageSizeError is null)
-            {
-                pageSize = parsedPageSize;
-            }
-            else
-            {
-                ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.PageSize), pageSizeError);
-            }
+            pageSize = parsedPageSize;
+        }
+        else if (pageSizeResult.IsPresent)
+        {
+            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.PageSize), FormatInvalidValue(pageSizeResult.RawValue));
         }
 
-        var ownerId = TryReadGuid(query, ["owner_id", "ownerId", "OwnerId"], out var parsedOwnerId, out var ownerError)
-            ? parsedOwnerId
-            : null;
-
-        if (ownerError is not null)
+        Guid? ownerId = null;
+        var ownerResult = query.ParseValue<Guid>(["owner_id", "ownerId", "OwnerId"]);
+        if (ownerResult.TryGetValue(out var parsedOwnerId))
         {
-            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.OwnerId), ownerError);
+            ownerId = parsedOwnerId;
+        }
+        else if (ownerResult.IsPresent)
+        {
+            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.OwnerId), FormatInvalidValue(ownerResult.RawValue));
         }
 
-        var groupId = TryReadGuid(query, ["group_id", "groupId", "GroupId"], out var parsedGroupId, out var groupError)
-            ? parsedGroupId
-            : null;
-
-        if (groupError is not null)
+        Guid? groupId = null;
+        var groupResult = query.ParseValue<Guid>(["group_id", "groupId", "GroupId"]);
+        if (groupResult.TryGetValue(out var parsedGroupId))
         {
-            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.GroupId), groupError);
+            groupId = parsedGroupId;
+        }
+        else if (groupResult.IsPresent)
+        {
+            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.GroupId), FormatInvalidValue(groupResult.RawValue));
         }
 
         var groupIds = TryReadGuidArray(query, ["group_ids", "groupIds", "group_ids[]", "groupIds[]"], nameof(ListDocumentsRequestDto.GroupIds));
@@ -517,45 +516,11 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    private static bool TryReadGuid(IQueryCollection query, IEnumerable<string> keys, out Guid? value, out string? error)
+    private static string FormatInvalidValue(string? raw)
     {
-        if (!query.TryGetString(keys, out var raw))
-        {
-            value = null;
-            error = null;
-            return false;
-        }
-
-        if (Guid.TryParse(raw, out var parsed))
-        {
-            value = parsed;
-            error = null;
-            return true;
-        }
-
-        value = null;
-        error = $"The value '{raw}' is not valid.";
-        return false;
-    }
-
-    private static bool TryReadInt(IQueryCollection query, IEnumerable<string> keys, out int value, out string? error)
-    {
-        value = default;
-        error = null;
-
-        if (!query.TryGetString(keys, out var raw))
-        {
-            return false;
-        }
-
-        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
-        {
-            value = parsed;
-            return true;
-        }
-
-        error = $"The value '{raw}' is not valid.";
-        return true;
+        return string.IsNullOrWhiteSpace(raw)
+            ? "The provided value is not valid."
+            : $"The value '{raw}' is not valid.";
     }
 
     private static Guid? NormalizeGuid(Guid? value)
