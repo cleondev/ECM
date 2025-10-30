@@ -4,7 +4,7 @@ import { useRef } from "react"
 import type React from "react"
 
 import type { FileItem } from "@/lib/types"
-import { Download, Edit3, FileText, GitBranch, MoreVertical, Share2 } from "lucide-react"
+import { Download, Edit3, FileText, GitBranch, MoreVertical, Share2, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,7 @@ type FileCardProps = {
   onContextMenuOpen?: () => void
   onDownload?: () => void
   onShare?: () => void
+  onAssignTags?: () => void
   onOpenDetails?: (tab: "property" | "flow" | "form") => void
   actionsDisabled?: boolean
 }
@@ -43,6 +44,7 @@ export function FileCard({
   onContextMenuOpen,
   onDownload,
   onShare,
+  onAssignTags,
   onOpenDetails,
   actionsDisabled,
 }: FileCardProps) {
@@ -127,6 +129,10 @@ export function FileCard({
         <ContextMenuItem onSelect={() => onShare?.()} disabled={actionsDisabled || !file.latestVersionId}>
           <Share2 className="h-4 w-4" />
           Share
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onAssignTags?.()} disabled={actionsDisabled}>
+          <Tag className="h-4 w-4" />
+          Add Tags
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => onOpenDetails?.("property")} disabled={actionsDisabled}>

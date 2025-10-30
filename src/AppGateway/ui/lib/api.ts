@@ -1233,6 +1233,21 @@ export async function fetchUser(): Promise<User | null> {
   }
 }
 
+export async function applyTagsToDocument(documentId: string, tags: SelectedTag[]): Promise<void> {
+  if (!tags.length) {
+    return
+  }
+
+  const user = await fetchUser()
+  const userId = user?.id?.trim()
+
+  if (!userId) {
+    throw new Error("You must be signed in to assign tags to documents.")
+  }
+
+  await assignTagsToDocument(documentId, tags, userId)
+}
+
 function resolveRedirectLocation(location: string): string {
   if (/^https?:\/\//i.test(location)) {
     return location
