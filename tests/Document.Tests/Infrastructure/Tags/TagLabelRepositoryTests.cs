@@ -17,7 +17,7 @@ public class TagLabelRepositoryTests
             .Options;
 
         await using var context = new DocumentDbContext(options);
-        context.TagNamespaces.Add(new TagNamespace("system", "system", null, "System", DateTimeOffset.UtcNow));
+        context.TagNamespaces.Add(TagNamespace.Create("system", "system", null, "System", null, DateTimeOffset.UtcNow));
         await context.SaveChangesAsync();
 
         var repository = new TagLabelRepository(context);
@@ -38,7 +38,7 @@ public class TagLabelRepositoryTests
             .Options;
 
         await using var context = new DocumentDbContext(options);
-        context.TagNamespaces.Add(new TagNamespace("system", "system", null, "System", DateTimeOffset.UtcNow));
+        context.TagNamespaces.Add(TagNamespace.Create("system", "system", null, "System", null, DateTimeOffset.UtcNow));
 
         var tagLabel = TagLabel.Create("system", "reviewed", "reviewed", Guid.NewGuid(), DateTimeOffset.UtcNow);
         tagLabel.ClearDomainEvents();
