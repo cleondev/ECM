@@ -142,6 +142,11 @@ internal sealed class EcmApiClient(
                 if (string.IsNullOrWhiteSpace(content))
                 {
                     content = null;
+                }
+            }
+        }
+
+        return new PasswordUpdateResult(response.StatusCode, content, contentType);
     }
 
     private sealed record ShareLinkResponse(
@@ -156,10 +161,10 @@ internal sealed class EcmApiClient(
         if (!string.IsNullOrWhiteSpace(extension))
         {
             var trimmed = extension.Trim();
-            return trimmed.StartsWith('.', StringComparison.Ordinal) ? trimmed[1..] : trimmed;
+            return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed[1..] : trimmed;
         }
 
-        var lastDot = fileName.LastIndexOf('.', StringComparison.Ordinal);
+        var lastDot = fileName.LastIndexOf('.');
         if (lastDot >= 0 && lastDot < fileName.Length - 1)
         {
             return fileName[(lastDot + 1)..];
@@ -176,11 +181,6 @@ internal sealed class EcmApiClient(
         }
 
         return new Uri(value, UriKind.Relative);
-    }
-}
-        }
-
-        return new PasswordUpdateResult(response.StatusCode, content, contentType);
     }
 
     public async Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken = default)

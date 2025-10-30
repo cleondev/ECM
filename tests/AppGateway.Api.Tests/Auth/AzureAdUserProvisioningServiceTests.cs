@@ -226,6 +226,11 @@ public class AzureAdUserProvisioningServiceTests
 
         #region Unused members
 
+        public Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(
+            UpdateUserPasswordRequestDto request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

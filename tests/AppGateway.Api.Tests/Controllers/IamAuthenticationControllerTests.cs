@@ -4,10 +4,16 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AppGateway.Api.Auth;
 using AppGateway.Api.Controllers.IAM;
+using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
+using AppGateway.Contracts.IAM.Relations;
+using AppGateway.Contracts.Signatures;
+using AppGateway.Contracts.Tags;
+using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -197,7 +203,6 @@ public class IamAuthenticationControllerTests
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.Documents.DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
-            Guid versionId,
             CreateShareLinkRequestDto request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();

@@ -1,6 +1,6 @@
-using System;
+namespace AppGateway.Contracts.Documents;
 
-namespace AppGateway.Infrastructure.Ecm;
+using System;
 
 public sealed record DocumentFileContent(
     byte[] Content,
