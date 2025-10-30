@@ -20,8 +20,6 @@ internal static class StaticFileRedirectHelper
         if (TryResolveDirectory(requestPath, fileProvider, out var normalizedPath))
         {
             return UriHelper.BuildRelative(
-                scheme: null,
-                host: HostString.Empty,
                 pathBase: requestPathBase,
                 path: normalizedPath,
                 query: queryString,
@@ -38,8 +36,6 @@ internal static class StaticFileRedirectHelper
                 {
                     var combined = uiPath.Add(normalizedRemainder);
                     return UriHelper.BuildRelative(
-                        scheme: null,
-                        host: HostString.Empty,
                         pathBase: requestPathBase,
                         path: combined,
                         query: queryString,
