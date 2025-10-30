@@ -131,9 +131,7 @@ public static class DocumentEndpoints
             .AsQueryable();
 
         query = query.Where(document =>
-            accessibleDocumentIds.Contains(
-                EF.Property<Guid>(document, nameof(DomainDocument.Id))
-            )
+            accessibleDocumentIds.Contains(document.Id.Value)
         );
 
         if (!string.IsNullOrWhiteSpace(request.Query))
