@@ -6,6 +6,7 @@ public sealed record ShareLinkDto(
     Guid Id,
     string Code,
     string Url,
+    string ShortUrl,
     Guid OwnerUserId,
     Guid DocumentId,
     Guid? VersionId,
