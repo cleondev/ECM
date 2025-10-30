@@ -153,7 +153,7 @@ Schemas:
 
 * `doc.metadata(document_id, data jsonb)`
 
-* `doc.tag_namespace(namespace_slug, kind, owner_user_id)` / `doc.tag_label(id, namespace_slug, path)` / `doc.document_tag(document_id, tag_id)`
+* `doc.tag_namespace(id, scope, owner_user_id, owner_group_id, display_name, is_system, created_at)` / `doc.tag_label(id, namespace_id, parent_id, name, path_ids, sort_order, color, icon_key, is_active, is_system, created_by, created_at)` / `doc.document_tag(document_id, tag_id, applied_by, applied_at)`
 
 * `doc.signature_request(id, document_id, provider, status)` / `doc.signature_result(request_id, status, evidence_url)`
 
