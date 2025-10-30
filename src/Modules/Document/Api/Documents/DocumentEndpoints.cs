@@ -104,13 +104,11 @@ public static class DocumentEndpoints
             return TypedResults.Ok(emptyResponse);
         }
 
-        var now = DateTimeOffset.UtcNow;
-
         var accessibleEntriesQuery = context.EffectiveAclEntries
             .AsNoTracking()
             .Where(entry =>
                 entry.UserId == userId.Value
-                && (entry.ValidToUtc == null || entry.ValidToUtc >= now)
+                && entry.IsValid
             );
 
         var accessibleDocumentIdsQuery = accessibleEntriesQuery

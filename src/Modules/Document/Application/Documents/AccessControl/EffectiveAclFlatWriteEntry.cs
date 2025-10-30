@@ -6,6 +6,7 @@ public readonly record struct EffectiveAclFlatWriteEntry(
     Guid DocumentId,
     Guid UserId,
     DateTimeOffset? ValidToUtc,
+    bool IsValid,
     string Source,
     string IdempotencyKey)
 {
@@ -15,6 +16,7 @@ public readonly record struct EffectiveAclFlatWriteEntry(
             documentId,
             ownerId,
             ValidToUtc: null,
+            IsValid: true,
             Source: EffectiveAclFlatSources.Owner,
             IdempotencyKey: EffectiveAclFlatIdempotencyKeys.Owner);
     }

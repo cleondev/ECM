@@ -52,6 +52,7 @@ public sealed class EffectiveAclFlatWriter : IEffectiveAclFlatWriter
                     DocumentId = entry.DocumentId,
                     UserId = entry.UserId,
                     ValidToUtc = entry.ValidToUtc,
+                    IsValid = entry.IsValid,
                     Source = entry.Source,
                     IdempotencyKey = entry.IdempotencyKey,
                     UpdatedAtUtc = now,
@@ -62,6 +63,7 @@ public sealed class EffectiveAclFlatWriter : IEffectiveAclFlatWriter
             else
             {
                 entity.ValidToUtc = entry.ValidToUtc;
+                entity.IsValid = entry.IsValid;
                 entity.Source = entry.Source;
                 entity.UpdatedAtUtc = now;
             }
