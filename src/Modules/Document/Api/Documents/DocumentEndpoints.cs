@@ -11,6 +11,7 @@ using ECM.Document.Api.Documents.Requests;
 using ECM.Document.Api.Documents.Responses;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Queries;
+using ECM.Document.Domain.Documents;
 using ECM.Document.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Builder;
