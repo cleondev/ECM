@@ -668,7 +668,7 @@ public static class DocumentEndpoints
             .ThenBy(tag => tag.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        var groupIds = EnsurePrimaryGroup(document.GroupId, Array.Empty<Guid>());
+        var groupIds = EnsurePrimaryGroup(document.GroupId, []);
 
         return new DocumentResponse(
             document.Id.Value,
@@ -694,7 +694,7 @@ public static class DocumentEndpoints
     {
         if (groupIds is null)
         {
-            return Array.Empty<Guid>();
+            return [];
         }
 
         var buffer = new List<Guid>();
@@ -720,7 +720,7 @@ public static class DocumentEndpoints
     {
         if (groupIds is null)
         {
-            return primaryGroupId is { } fallback && fallback != Guid.Empty ? new[] { fallback } : Array.Empty<Guid>();
+            return primaryGroupId is { } fallback && fallback != Guid.Empty ? [fallback] : [];
         }
 
         var buffer = new List<Guid>(groupIds.Count + 1);

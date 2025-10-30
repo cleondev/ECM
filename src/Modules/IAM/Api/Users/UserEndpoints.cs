@@ -109,7 +109,7 @@ public static class UserEndpoints
             new CreateUserCommand(
                 request.Email,
                 request.DisplayName,
-                request.GroupIds ?? Array.Empty<Guid>(),
+                request.GroupIds ?? [],
                 request.PrimaryGroupId,
                 request.IsActive,
                 request.Password,
@@ -138,7 +138,7 @@ public static class UserEndpoints
             new UpdateUserCommand(
                 id,
                 request.DisplayName,
-                request.GroupIds ?? Array.Empty<Guid>(),
+                request.GroupIds ?? [],
                 request.PrimaryGroupId,
                 request.IsActive),
             cancellationToken);

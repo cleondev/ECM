@@ -67,9 +67,9 @@ internal static class Mapping
     {
         if (groupId.HasValue && groupId.Value != Guid.Empty)
         {
-            return new[] { groupId.Value };
+            return [groupId.Value];
         }
 
-        return Array.Empty<Guid>();
+        return [];
     }
 }

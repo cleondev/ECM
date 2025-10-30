@@ -15,7 +15,7 @@ public class CreateTagLabelCommandHandlerTests
     public async Task HandleAsync_WithHierarchicalPath_AllowsForwardSlashes()
     {
         var now = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
-        var repository = new FakeTagLabelRepository(new[] { "system" });
+        var repository = new FakeTagLabelRepository(["system"]);
         var clock = new FixedClock(now);
         var handler = new CreateTagLabelCommandHandler(repository, clock);
 
@@ -38,7 +38,7 @@ public class CreateTagLabelCommandHandlerTests
     [Fact]
     public async Task HandleAsync_WithInvalidCharactersInPath_ReturnsFailure()
     {
-        var repository = new FakeTagLabelRepository(new[] { "system" });
+        var repository = new FakeTagLabelRepository(["system"]);
         var clock = new FixedClock(DateTimeOffset.UtcNow);
         var handler = new CreateTagLabelCommandHandler(repository, clock);
 
@@ -52,10 +52,8 @@ public class CreateTagLabelCommandHandlerTests
         Assert.Null(repository.CapturedToken);
     }
 
-    private sealed class FixedClock : ISystemClock
+    private sealed class FixedClock(DateTimeOffset now) : ISystemClock
     {
-        public FixedClock(DateTimeOffset now) => UtcNow = now;
-
-        public DateTimeOffset UtcNow { get; }
+        public DateTimeOffset UtcNow { get; } = now;
     }
 }

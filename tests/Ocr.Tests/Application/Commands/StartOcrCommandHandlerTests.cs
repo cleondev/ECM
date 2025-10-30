@@ -27,7 +27,7 @@ public sealed class StartOcrCommandHandlerTests
             "Summary",
             "Content",
             new Dictionary<string, string> { ["key"] = "value" },
-            new[] { "tag-1", "tag-2" },
+            ["tag-1", "tag-2"],
             new Uri("https://files.local/documents/123")
         );
 

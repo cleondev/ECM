@@ -15,7 +15,7 @@ public sealed class DocumentUploadDefaultsOptions
 
     public Guid? GroupId { get; set; }
 
-    public IReadOnlyCollection<Guid> GroupIds { get; set; } = Array.Empty<Guid>();
+    public IReadOnlyCollection<Guid> GroupIds { get; set; } = [];
 
     public Guid? OwnerId { get; set; }
 

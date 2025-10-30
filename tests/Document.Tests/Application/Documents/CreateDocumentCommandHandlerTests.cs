@@ -37,7 +37,7 @@ public class CreateDocumentCommandHandlerTests
             ownerId,
             createdBy,
             _groups.GuestGroupId,
-            new[] { _groups.GuestGroupId },
+            [_groups.GuestGroupId],
             "  Confidential  ",
             documentTypeId);
 
@@ -52,7 +52,7 @@ public class CreateDocumentCommandHandlerTests
         Assert.Equal(ownerId, summary.OwnerId);
         Assert.Equal(createdBy, summary.CreatedBy);
         Assert.Equal(_groups.GuestGroupId, summary.GroupId);
-        Assert.Equal(new[] { _groups.GuestGroupId }, summary.GroupIds);
+        Assert.Equal([_groups.GuestGroupId], summary.GroupIds);
         Assert.Equal(now, summary.CreatedAtUtc);
         Assert.Equal(now, summary.UpdatedAtUtc);
         Assert.Equal(documentTypeId, summary.DocumentTypeId);
@@ -86,7 +86,7 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
-            Array.Empty<Guid>(),
+            [],
             null,
             null);
 
@@ -112,7 +112,7 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
-            Array.Empty<Guid>(),
+            [],
             null,
             null);
 
@@ -154,7 +154,7 @@ public class CreateDocumentCommandHandlerTests
 
     private sealed class FakeEffectiveAclFlatWriter : IEffectiveAclFlatWriter
     {
-        public List<EffectiveAclFlatWriteEntry> Entries { get; } = new();
+        public List<EffectiveAclFlatWriteEntry> Entries { get; } = [];
 
         public Task UpsertAsync(EffectiveAclFlatWriteEntry entry, CancellationToken cancellationToken = default)
         {

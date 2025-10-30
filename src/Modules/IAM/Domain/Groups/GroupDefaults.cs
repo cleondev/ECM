@@ -13,7 +13,7 @@ public static class GroupDefaults
 
     public static readonly Guid SystemId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
-    private static readonly IReadOnlyList<string> _names = new[] { GuestName, SystemName };
+    private static readonly IReadOnlyList<string> _names = [GuestName, SystemName];
 
     public static IReadOnlyList<string> Names => _names;
 

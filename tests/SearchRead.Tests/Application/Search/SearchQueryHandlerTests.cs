@@ -47,7 +47,7 @@ public class SearchQueryHandlerTests
         }
 
         public Task<IReadOnlyCollection<string>> SuggestAsync(string term, int limit, CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyCollection<string>>(Array.Empty<string>());
+            => Task.FromResult<IReadOnlyCollection<string>>([]);
 
         public Task<SearchFacetsResult> GetFacetsAsync(SearchFacetsQuery query, CancellationToken cancellationToken = default)
             => Task.FromResult(SearchFacetsResult.Empty);

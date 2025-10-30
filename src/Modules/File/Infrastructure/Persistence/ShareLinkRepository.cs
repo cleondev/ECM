@@ -123,7 +123,7 @@ public sealed class ShareLinkRepository(FileDbContext context) : IShareLinkRepos
         };
 
         var permissions = SharePermission.None;
-        foreach (var value in entity.Permissions ?? Array.Empty<string>())
+        foreach (var value in entity.Permissions ?? [])
         {
             if (string.Equals(value, "view", StringComparison.OrdinalIgnoreCase))
             {
@@ -246,7 +246,7 @@ public sealed class ShareLinkRepository(FileDbContext context) : IShareLinkRepos
     {
         if (values is null || values.Length == 0)
         {
-            return Array.Empty<IPAddress>();
+            return [];
         }
 
         var list = new List<IPAddress>(values.Length);

@@ -10,7 +10,7 @@ namespace Document.Tests.Application.Tags;
 
 internal sealed class FakeTagLabelRepository : ITagLabelRepository
 {
-    private readonly Dictionary<Guid, TagLabel> _tags = new();
+    private readonly Dictionary<Guid, TagLabel> _tags = [];
     private readonly HashSet<string> _namespaces = new(StringComparer.OrdinalIgnoreCase);
 
     public FakeTagLabelRepository(IEnumerable<string>? namespaces = null)

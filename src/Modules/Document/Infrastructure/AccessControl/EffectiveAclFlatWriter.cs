@@ -24,7 +24,7 @@ public sealed class EffectiveAclFlatWriter : IEffectiveAclFlatWriter
 
     public Task UpsertAsync(EffectiveAclFlatWriteEntry entry, CancellationToken cancellationToken = default)
     {
-        return UpsertAsync(new[] { entry }, cancellationToken);
+        return UpsertAsync([entry], cancellationToken);
     }
 
     public async Task UpsertAsync(IEnumerable<EffectiveAclFlatWriteEntry> entries, CancellationToken cancellationToken = default)
@@ -42,7 +42,7 @@ public sealed class EffectiveAclFlatWriter : IEffectiveAclFlatWriter
         foreach (var entry in buffer)
         {
             var entity = await _context.EffectiveAclEntries.FindAsync(
-                new object[] { entry.DocumentId, entry.UserId, entry.IdempotencyKey },
+                [entry.DocumentId, entry.UserId, entry.IdempotencyKey],
                 cancellationToken);
 
             if (entity is null)

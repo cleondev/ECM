@@ -191,7 +191,7 @@ public sealed class CreateShareLinkCommandHandler(
     {
         if (raw is null || raw.Count == 0)
         {
-            return Array.Empty<System.Net.IPAddress>();
+            return [];
         }
 
         var list = new List<System.Net.IPAddress>(raw.Count);

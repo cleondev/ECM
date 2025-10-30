@@ -93,7 +93,7 @@ public sealed class GroupService(
             .ToArray();
 
         var existingGroupsById = targetGroupIds.Length == 0
-            ? new Dictionary<Guid, Group>()
+            ? []
             : await _context.Groups
                 .Where(group => targetGroupIds.Contains(group.Id))
                 .ToDictionaryAsync(group => group.Id, cancellationToken);

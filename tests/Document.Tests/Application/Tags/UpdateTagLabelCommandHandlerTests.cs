@@ -17,7 +17,7 @@ public class UpdateTagLabelCommandHandlerTests
     {
         var createdAt = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
         var existingTag = TagLabel.Create("system", "operations", "operations", Guid.NewGuid(), createdAt);
-        var repository = new FakeTagLabelRepository(new[] { "system" });
+        var repository = new FakeTagLabelRepository(["system"]);
         repository.Seed(existingTag);
 
         var clock = new FixedClock(createdAt.AddMinutes(5));
@@ -48,7 +48,7 @@ public class UpdateTagLabelCommandHandlerTests
     {
         var createdAt = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
         var existingTag = TagLabel.Create("system", "ops", "ops", Guid.NewGuid(), createdAt);
-        var repository = new FakeTagLabelRepository(new[] { "system" });
+        var repository = new FakeTagLabelRepository(["system"]);
         repository.Seed(existingTag);
 
         var clock = new FixedClock(createdAt.AddMinutes(1));
@@ -66,10 +66,8 @@ public class UpdateTagLabelCommandHandlerTests
         Assert.Null(repository.CapturedToken);
     }
 
-    private sealed class FixedClock : ISystemClock
+    private sealed class FixedClock(DateTimeOffset now) : ISystemClock
     {
-        public FixedClock(DateTimeOffset now) => UtcNow = now;
-
-        public DateTimeOffset UtcNow { get; }
+        public DateTimeOffset UtcNow { get; } = now;
     }
 }

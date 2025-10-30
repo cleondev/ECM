@@ -471,7 +471,7 @@ internal sealed class CamundaWorkflowRepository : IWorkflowRepository
         }
 
         var dto = await response.Content.ReadFromJsonAsync<Dictionary<string, CamundaVariableDto>>(cancellationToken: cancellationToken)
-            ?? new Dictionary<string, CamundaVariableDto>();
+            ?? [];
 
         var variables = new Dictionary<string, object?>(dto.Count, StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in dto)

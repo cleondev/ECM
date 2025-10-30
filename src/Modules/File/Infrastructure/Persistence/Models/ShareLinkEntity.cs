@@ -16,7 +16,7 @@ public sealed class ShareLinkEntity
 
     public Guid? SubjectId { get; set; }
 
-    public string[] Permissions { get; set; } = Array.Empty<string>();
+    public string[] Permissions { get; set; } = [];
 
     public string? PasswordHash { get; set; }
 
@@ -40,7 +40,7 @@ public sealed class ShareLinkEntity
 
     public string? WatermarkJson { get; set; }
 
-    public string[] AllowedIps { get; set; } = Array.Empty<string>();
+    public string[] AllowedIps { get; set; } = [];
 
     public DateTimeOffset CreatedAt { get; set; }
 

@@ -66,7 +66,7 @@ public static class DocumentIntegrationEventMetadataMapper
             case JsonValueKind.String:
                 var text = element.GetString();
                 return string.IsNullOrWhiteSpace(text)
-                    ? Array.Empty<string>()
+                    ? []
                     : new[] { text.Trim() };
 
             case JsonValueKind.Number:
@@ -74,7 +74,7 @@ public static class DocumentIntegrationEventMetadataMapper
             case JsonValueKind.False:
                 var scalar = element.ToString();
                 return string.IsNullOrWhiteSpace(scalar)
-                    ? Array.Empty<string>()
+                    ? []
                     : new[] { scalar.Trim() };
 
             case JsonValueKind.Array:
@@ -93,7 +93,7 @@ public static class DocumentIntegrationEventMetadataMapper
                 return buffer;
 
             default:
-                return Array.Empty<string>();
+                return [];
         }
     }
 }

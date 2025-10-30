@@ -88,7 +88,7 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
                 name: "ix_share_link_doc",
                 schema: "file",
                 table: "share_link",
-                columns: new[] { "document_id", "version_id" });
+                columns: ["document_id", "version_id"]);
         }
 
         /// <inheritdoc />
