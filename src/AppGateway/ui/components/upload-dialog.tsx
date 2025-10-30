@@ -217,7 +217,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
     const attachInteractions = () => {
       const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
-        ".uppy-Dashboard-AddFiles",
+        // Note: Uppy spells this class without a hyphen before "Add".
+        ".uppy-DashboardAddFiles",
       )
 
       if (!addFilesElement) {
