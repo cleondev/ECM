@@ -253,7 +253,14 @@ public sealed class TagLabel : IHasDomainEvents
     }
 
     private static Guid? NormalizeParent(Guid? parentId)
-        => parentId is null or { } value when value == Guid.Empty ? null : parentId;
+    {
+        if (parentId is null)
+        {
+            return null;
+        }
+
+        return parentId.Value == Guid.Empty ? null : parentId;
+    }
 
     private static string? NormalizeOptional(string? value)
     {

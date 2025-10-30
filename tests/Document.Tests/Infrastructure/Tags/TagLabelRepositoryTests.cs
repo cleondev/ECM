@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Infrastructure.Persistence;
 using ECM.Document.Infrastructure.Tags;
@@ -17,16 +20,28 @@ public class TagLabelRepositoryTests
             .Options;
 
         await using var context = new DocumentDbContext(options);
-        context.TagNamespaces.Add(TagNamespace.Create("system", "system", null, "System", null, DateTimeOffset.UtcNow));
+        var now = DateTimeOffset.UtcNow;
+        var tagNamespace = TagNamespace.Create("global", null, null, "System", isSystem: true, createdAtUtc: now);
+        context.TagNamespaces.Add(tagNamespace);
         await context.SaveChangesAsync();
 
         var repository = new TagLabelRepository(context);
-        var tagLabel = TagLabel.Create("system", "reviewed", "reviewed", Guid.NewGuid(), DateTimeOffset.UtcNow);
+        var tagLabel = TagLabel.Create(
+            tagNamespace.Id,
+            parentId: null,
+            parentPathIds: Array.Empty<Guid>(),
+            name: "reviewed",
+            sortOrder: 0,
+            color: null,
+            iconKey: null,
+            createdBy: Guid.NewGuid(),
+            isSystem: false,
+            createdAtUtc: now);
 
         await repository.AddAsync(tagLabel, CancellationToken.None);
 
         var message = Assert.Single(context.OutboxMessages);
-        Assert.Equal("tag", message.Aggregate);
+        Assert.Equal("tag-label", message.Aggregate);
         Assert.Equal(DocumentEventNames.TagLabelCreated, message.Type);
     }
 
@@ -38,9 +53,21 @@ public class TagLabelRepositoryTests
             .Options;
 
         await using var context = new DocumentDbContext(options);
-        context.TagNamespaces.Add(TagNamespace.Create("system", "system", null, "System", null, DateTimeOffset.UtcNow));
+        var now = DateTimeOffset.UtcNow;
+        var tagNamespace = TagNamespace.Create("global", null, null, "System", isSystem: true, createdAtUtc: now);
+        context.TagNamespaces.Add(tagNamespace);
 
-        var tagLabel = TagLabel.Create("system", "reviewed", "reviewed", Guid.NewGuid(), DateTimeOffset.UtcNow);
+        var tagLabel = TagLabel.Create(
+            tagNamespace.Id,
+            parentId: null,
+            parentPathIds: Array.Empty<Guid>(),
+            name: "reviewed",
+            sortOrder: 0,
+            color: null,
+            iconKey: null,
+            createdBy: Guid.NewGuid(),
+            isSystem: false,
+            createdAtUtc: now);
         tagLabel.ClearDomainEvents();
         context.TagLabels.Add(tagLabel);
         await context.SaveChangesAsync();

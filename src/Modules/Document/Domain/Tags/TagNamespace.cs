@@ -95,5 +95,12 @@ public sealed class TagNamespace
     public IReadOnlyCollection<TagLabel> Labels => _labels.AsReadOnly();
 
     private static Guid? NormalizeOwner(Guid? identifier)
-        => identifier is null or { } value when value == Guid.Empty ? null : identifier;
+    {
+        if (identifier is null)
+        {
+            return null;
+        }
+
+        return identifier.Value == Guid.Empty ? null : identifier;
+    }
 }
