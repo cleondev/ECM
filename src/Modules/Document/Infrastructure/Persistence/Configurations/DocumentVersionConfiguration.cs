@@ -16,13 +16,16 @@ public sealed class DocumentVersionConfiguration : IEntityTypeConfiguration<Docu
 
         builder.Property(version => version.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
-        builder.Property(version => version.DocumentId)
+        var documentIdProperty = builder.Property(version => version.DocumentId)
             .HasColumnName("document_id")
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value))
+            .HasColumnType("uuid")
+            .HasConversion(EfConverters.DocumentIdConverter)
             .IsRequired();
+
+        documentIdProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        documentIdProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(version => version.VersionNo)
             .HasColumnName("version_no")

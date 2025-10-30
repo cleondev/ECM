@@ -9,8 +9,8 @@ Tài liệu này tổng hợp các thông tin cần thiết để đăng ký **A
 | **Tên ứng dụng** | `ECM Host API` | – | Có thể tùy chỉnh theo chuẩn đặt tên nội bộ. |
 | **Account type** | Accounts in this organizational directory only (Single tenant) | – | Phù hợp khi triển khai nội bộ trong 1 tenant. |
 | **Redirect URI (loại Web)** | `https://localhost:5001/signin-oidc` _(tùy chọn)_ | – | Chỉ cần khi sử dụng OpenID Connect interactive flow. Với API thuần bearer token có thể bỏ qua. |
-| **Identifier (App ID URI)** | `api://ecm-host` | `appsettings.json` (`AzureAd:Audience`) | Đảm bảo unique trong tenant, có thể đổi sang URI chuẩn của tổ chức. |
-| **Expose API → Scope mặc định** | `api://ecm-host/.default` | Suy ra từ App ID URI | Sử dụng cho client khi yêu cầu access token. |
+| **Identifier (App ID URI)** | `api://contoso.onmicrosoft.com/ecm-host` | `appsettings.json` (`AzureAd:Audience`) | Phải chứa verified domain/tenant ID/app ID theo chính sách mới của Entra. |
+| **Expose API → Scope mặc định** | `api://contoso.onmicrosoft.com/ecm-host/Access.All` | `Services:EcmScope` | Sử dụng cho delegated flow; client credentials tiếp tục dùng `/.default`. |
 | **Client ID (Application ID)** | Tự sinh sau khi đăng ký | – | Thay vào cấu hình `AzureAd:ClientId` của `ECM.Host`. |
 | **Tenant ID** | `<tenant-guid>` | `AzureAd:TenantId` | Điền GUID tenant thực tế. |
 | **Domain** | `<tenant-domain>.onmicrosoft.com` | `AzureAd:Domain` | Giúp SDK xác định authority. |
@@ -26,14 +26,15 @@ App Gateway đóng vai trò BFF và reverse proxy. Cần một ứng dụng Azur
 |------------|---------------|----------------|--------|
 | **Tên ứng dụng** | `ECM Gateway API` | – | Có thể đổi tên. |
 | **Account type** | Accounts in this organizational directory only | – | Giống ECM Host. |
-| **Identifier (App ID URI)** | `api://ecm-gateway` | `appsettings.json` (`AzureAd:Audience`) | Đồng bộ với cấu hình ứng dụng. |
+| **Identifier (App ID URI)** | `api://contoso.onmicrosoft.com/ecm-gateway` | `appsettings.json` (`AzureAd:Audience`) | Đồng bộ với cấu hình ứng dụng và tuân thủ chính sách Entra mới. |
 | **Client ID (Application ID)** | Tự sinh sau khi đăng ký | – | Gán vào `AzureAd:ClientId` của App Gateway. |
 | **Client secret** | Tạo tại **Certificates & secrets** | `AzureAd:ClientSecret` | Bắt buộc để thực hiện đăng nhập OpenID Connect server-side. Nên cấu hình qua biến môi trường hoặc Secret Manager. |
 | **Redirect URI (Web)** | `https://localhost:5090/signin-oidc` _(điều chỉnh theo môi trường)_ | `AzureAd:CallbackPath` | Cần trùng với cấu hình trong ứng dụng để Azure chuyển hướng sau khi xác thực. |
 | **Logout redirect URI** | `https://localhost:5090/signout-callback-oidc` | `AzureAd:SignedOutCallbackPath` | Đảm bảo người dùng được chuyển hướng đúng sau khi đăng xuất. |
 | **Tenant ID** | `<tenant-guid>` | `AzureAd:TenantId` | Trùng với tenant. |
 | **Domain** | `<tenant-domain>.onmicrosoft.com` | `AzureAd:Domain` | |
-| **API permissions** | Tối thiểu `ECM Host API/.default` (application permission) nếu Gateway gọi xuống ECM bằng chứng thực ứng dụng. | – | Cấp quyền thông qua mục **API permissions**. |
+| **API permissions** | Tối thiểu `ECM Host API/Access.All` (delegated). Thêm `ECM Host API/.default` nếu Gateway cần chứng thực ứng dụng. | – | Cấp quyền thông qua mục **API permissions** và grant admin consent. |
+| **Tenant cho downstream API** | `<tenant-guid>` | `appsettings.json` (`Services:EcmTenantId`, mặc định dùng `AzureAd:TenantId`) | Bắt buộc khi cho phép người dùng từ tenant khác đăng nhập (B2B). |
 
 > Cập nhật các giá trị vào `src/AppGateway/AppGateway.Api/appsettings.json` hoặc secret tương ứng sau khi đăng ký.【F:src/AppGateway/AppGateway.Api/appsettings.json†L27-L36】
 

@@ -15,8 +15,7 @@ public sealed class DocumentTypeConfiguration : IEntityTypeConfiguration<Documen
 
         builder.Property(type => type.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .ValueGeneratedNever();
 
         builder.Property(type => type.TypeKey)
             .HasColumnName("type_key")

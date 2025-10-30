@@ -4,9 +4,15 @@ namespace ECM.Document.Application.Tags.Results;
 
 public sealed record TagLabelResult(
     Guid Id,
-    string NamespaceSlug,
-    string Slug,
-    string Path,
+    Guid NamespaceId,
+    string? NamespaceDisplayName,
+    Guid? ParentId,
+    string Name,
+    Guid[] PathIds,
+    int SortOrder,
+    string? Color,
+    string? IconKey,
     bool IsActive,
+    bool IsSystem,
     Guid? CreatedBy,
     DateTimeOffset CreatedAtUtc);

@@ -1,4 +1,10 @@
 using Amazon.S3;
+using System;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Threading;
+using System.Threading.Tasks;
 using Amazon.S3.Model;
 using Amazon.S3.Util;
 
@@ -37,23 +43,123 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
         await _client.PutObjectAsync(request, cancellationToken);
     }
 
+    public Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey))
+        {
+            return Task.FromResult<Uri?>(null);
+        }
+
+        var expiresAt = DateTime.UtcNow.Add(lifetime);
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _options.BucketName,
+            Key = storageKey,
+            Expires = expiresAt,
+        };
+
+        var url = _client.GetPreSignedURL(request);
+        return Task.FromResult(Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null);
+    }
+
+    public Task<FileDownload?> DownloadAsync(string storageKey, CancellationToken cancellationToken = default)
+    {
+        return DownloadObjectAsync(storageKey, cancellationToken);
+    }
+
+    public Task<FileDownload?> DownloadThumbnailAsync(string storageKey, int width, int height, string fit, CancellationToken cancellationToken = default)
+    {
+        var normalizedFit = string.IsNullOrWhiteSpace(fit) ? "cover" : fit.Trim().ToLowerInvariant();
+        var thumbnailKey = $"thumbnails/{width}x{height}/{normalizedFit}/{storageKey}";
+        return DownloadObjectAsync(thumbnailKey, cancellationToken);
+    }
+
+    private async Task<FileDownload?> DownloadObjectAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _client.GetObjectAsync(new GetObjectRequest
+            {
+                BucketName = _options.BucketName,
+                Key = key,
+            }, cancellationToken);
+
+            await using var memoryStream = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(memoryStream, cancellationToken);
+
+            var contentType = string.IsNullOrWhiteSpace(response.Headers.ContentType)
+                ? "application/octet-stream"
+                : response.Headers.ContentType;
+
+            var fileName = response.Metadata.Keys.Contains("x-amz-meta-original-filename", StringComparer.OrdinalIgnoreCase)
+                ? response.Metadata["x-amz-meta-original-filename"]
+                : null;
+
+            var lastModified = response.LastModified == default
+                ? (DateTimeOffset?)null
+                : response.LastModified;
+
+            return new FileDownload(memoryStream.ToArray(), contentType, fileName, lastModified);
+        }
+        catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.NotFound || string.Equals(exception.ErrorCode, "NoSuchKey", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogDebug(exception, "Object {Key} not found in bucket {Bucket}.", key, _options.BucketName);
+            return null;
+        }
+    }
+
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
     {
         try
         {
-            var response = await AmazonS3Util.DoesS3BucketExistV2Async(_client, _options.BucketName);
-            if (!response)
+            if (await BucketExistsAsync(cancellationToken))
             {
-                await _client.PutBucketAsync(new PutBucketRequest
-                {
-                    BucketName = _options.BucketName,
-                    UseClientRegion = true,
-                }, cancellationToken);
+                return;
             }
+
+            await CreateBucketAsync(cancellationToken);
         }
-        catch (AmazonS3Exception exception) when (exception.ErrorCode == "BucketAlreadyOwnedByYou")
+        catch (AmazonS3Exception exception) when (exception.ErrorCode == "BucketAlreadyOwnedByYou" ||
+                                                 exception.StatusCode == HttpStatusCode.Conflict)
         {
             _logger.LogDebug("Bucket {Bucket} already exists.", _options.BucketName);
         }
+    }
+
+    private async Task<bool> BucketExistsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_options.ServiceUrl))
+            {
+                try
+                {
+                    var response = await _client.ListBucketsAsync(new ListBucketsRequest(), cancellationToken);
+                    return response.Buckets.Any(bucket => string.Equals(bucket.BucketName, _options.BucketName, StringComparison.Ordinal));
+                }
+                catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.Forbidden ||
+                                                          string.Equals(exception.ErrorCode, "AccessDenied", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug(exception, "Access denied when listing buckets for custom endpoint {ServiceUrl}. Falling back to direct bucket existence check.", _options.ServiceUrl);
+                }
+            }
+
+            return await AmazonS3Util.DoesS3BucketExistV2Async(_client, _options.BucketName);
+        }
+        catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.NotFound ||
+                                                  string.Equals(exception.ErrorCode, "NoSuchBucket", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+    }
+
+    private Task<PutBucketResponse> CreateBucketAsync(CancellationToken cancellationToken)
+    {
+        return _client.PutBucketAsync(new PutBucketRequest
+        {
+            BucketName = _options.BucketName,
+            BucketRegionName = _options.Region,
+            UseClientRegion = true,
+        }, cancellationToken);
     }
 }

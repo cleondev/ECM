@@ -8,16 +8,21 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Identity.Web" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Aspire/ECM.ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../../Modules/Abstractions/ECM.Abstractions.csproj" />
-    <ProjectReference Include="../../Modules/AccessControl/ECM.AccessControl.csproj" />
+    <ProjectReference Include="../../Modules/IAM/ECM.IAM.csproj" />
     <ProjectReference Include="../../Modules/Document/ECM.Document.csproj" />
     <ProjectReference Include="../../Modules/File/ECM.File.csproj" />
     <ProjectReference Include="../../Modules/Workflow/ECM.Workflow.csproj" />
     <ProjectReference Include="../../Modules/Signature/ECM.Signature.csproj" />
     <ProjectReference Include="../../Modules/SearchRead/ECM.SearchRead.csproj" />
+    <ProjectReference Include="../../Modules/Ocr/ECM.Ocr.csproj" />
   </ItemGroup>
 </Project>

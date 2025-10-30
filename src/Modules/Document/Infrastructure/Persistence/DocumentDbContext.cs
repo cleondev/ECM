@@ -4,9 +4,10 @@ using ECM.Document.Domain.Files;
 using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
-using ECM.Document.Infrastructure.Outbox;
+using ECM.Operations.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
+using ECM.Document.Infrastructure.Persistence.ReadModels;
 
 namespace ECM.Document.Infrastructure.Persistence;
 
@@ -33,6 +34,8 @@ public sealed class DocumentDbContext(DbContextOptions<DocumentDbContext> option
     public DbSet<SignatureResult> SignatureResults => Set<SignatureResult>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    public DbSet<EffectiveAclFlatEntry> EffectiveAclEntries => Set<EffectiveAclFlatEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

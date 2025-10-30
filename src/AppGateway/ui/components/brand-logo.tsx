@@ -1,0 +1,32 @@
+import Image from "next/image"
+
+import { cn } from "@/lib/utils"
+
+export type BrandLogoProps = {
+  className?: string
+  imageClassName?: string
+  textClassName?: string
+  size?: number
+  priority?: boolean
+}
+
+export function BrandLogo({
+  className,
+  imageClassName,
+  textClassName,
+  size = 32,
+  priority = false,
+}: BrandLogoProps) {
+  return (
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <Image
+        src="/logo/logo_256x256.png"
+        alt="ECM logo"
+        width={size}
+        height={size}
+        priority={priority}
+        className={cn("h-8 w-8", imageClassName)}
+      />
+    </span>
+  )
+}

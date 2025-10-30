@@ -15,7 +15,7 @@ CREATE TABLE doc.document (
     status          text NOT NULL,
     sensitivity     text NOT NULL DEFAULT 'Internal',
     owner_id        uuid NOT NULL REFERENCES iam.users(id),
-    department      text,
+    group_id        uuid,
     created_by      uuid NOT NULL REFERENCES iam.users(id),
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
@@ -24,6 +24,7 @@ CREATE TABLE doc.document (
 CREATE INDEX doc_document_type_idx ON doc.document (doc_type);
 CREATE INDEX doc_document_status_idx ON doc.document (status);
 CREATE INDEX doc_document_owner_idx ON doc.document (owner_id);
+CREATE INDEX doc_document_updated_at_id_idx ON doc.document (updated_at DESC, id DESC);
 CREATE INDEX doc_document_title_fts ON doc.document USING GIN (to_tsvector('simple', coalesce(title, '')));
 
 CREATE TABLE doc.version (
@@ -52,26 +53,33 @@ CREATE TABLE doc.file_object (
 );
 
 CREATE TABLE doc.tag_namespace (
-    namespace_slug  text PRIMARY KEY,
-    kind            text NOT NULL CHECK (kind IN ('system','user')),
-    owner_user_id   uuid REFERENCES iam.users(id),
-    display_name    text,
-    created_at      timestamptz NOT NULL DEFAULT now()
+    id               uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    scope            text NOT NULL CHECK (scope IN ('global','group','user')),
+    owner_user_id    uuid REFERENCES iam.users(id),
+    owner_group_id   uuid REFERENCES iam.groups(id),
+    display_name     text,
+    is_system        boolean NOT NULL DEFAULT false,
+    created_at       timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE doc.tag_label (
     id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    namespace_slug  text NOT NULL REFERENCES doc.tag_namespace(namespace_slug) ON DELETE CASCADE,
-    slug            text NOT NULL,
-    path            text NOT NULL,
+    namespace_id    uuid NOT NULL REFERENCES doc.tag_namespace(id) ON DELETE CASCADE,
+    parent_id       uuid REFERENCES doc.tag_label(id) ON DELETE RESTRICT,
+    name            text NOT NULL,
+    path_ids        uuid[] NOT NULL DEFAULT ARRAY[]::uuid[],
+    sort_order      int NOT NULL DEFAULT 0,
+    color           text,
+    icon_key        text,
     is_active       boolean NOT NULL DEFAULT true,
+    is_system       boolean NOT NULL DEFAULT false,
     created_by      uuid REFERENCES iam.users(id),
     created_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT uq_tag_path UNIQUE (namespace_slug, path),
-    CONSTRAINT chk_tag_path_format CHECK (path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$')
+    CONSTRAINT uq_tag_sibling_name UNIQUE (namespace_id, parent_id, name)
 );
-CREATE INDEX tag_label_ns_path_idx ON doc.tag_label (namespace_slug, path);
-CREATE INDEX tag_label_path_trgm ON doc.tag_label USING GIN (path gin_trgm_ops);
+CREATE INDEX tag_label_ns_parent_idx ON doc.tag_label (namespace_id, parent_id);
+CREATE INDEX tag_label_ns_path_gin ON doc.tag_label USING GIN (path_ids);
+CREATE INDEX tag_label_name_trgm ON doc.tag_label USING GIN (name gin_trgm_ops);
 
 CREATE TABLE doc.document_tag (
     document_id     uuid NOT NULL REFERENCES doc.document(id) ON DELETE CASCADE,
@@ -101,3 +109,16 @@ CREATE TABLE doc.signature_result (
     received_at     timestamptz NOT NULL DEFAULT now(),
     raw_response    jsonb NOT NULL DEFAULT '{}'::jsonb
 );
+
+CREATE TABLE doc.effective_acl_flat (
+    document_id     uuid NOT NULL REFERENCES doc.document(id) ON DELETE CASCADE,
+    user_id         uuid NOT NULL REFERENCES iam.users(id) ON DELETE CASCADE,
+    valid_to        timestamptz,
+    source          text NOT NULL,
+    idempotency_key text NOT NULL,
+    updated_at      timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (document_id, user_id, idempotency_key)
+);
+
+CREATE INDEX doc_effective_acl_flat_user_document_idx
+    ON doc.effective_acl_flat (user_id, valid_to, document_id);

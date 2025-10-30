@@ -21,10 +21,7 @@ public sealed class UploadFileCommandHandler(
 
     public async Task<OperationResult<FileUploadResult>> UploadAsync(FileUploadRequest request, CancellationToken cancellationToken = default)
     {
-        if (request is null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
+        ArgumentNullException.ThrowIfNull(request);
 
         var storageKey = _storageKeyGenerator.Generate(request.FileName);
         var createdAtUtc = _clock.UtcNow;

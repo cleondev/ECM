@@ -1,4 +1,4 @@
-using ECM.Document.Infrastructure.Outbox;
+using ECM.Operations.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,7 +8,7 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
 {
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
-        builder.ToTable("outbox", "ops");
+        builder.ToTable("outbox", "ops", tableBuilder => tableBuilder.ExcludeFromMigrations());
 
         builder.HasKey(message => message.Id);
 

@@ -1,4 +1,5 @@
 using AppGateway.Contracts.Signatures;
+using AppGateway.Api.Auth;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -7,8 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers;
 
 [ApiController]
-[Route("api/gateway/signatures")]
-[Authorize]
+[Route("api/signatures")]
+[Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
 public sealed class SignaturesController(IEcmApiClient client) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;

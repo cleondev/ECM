@@ -1,2 +1,0 @@
--- Placeholder for database initialization script.
--- TODO: Create schemas (document, workflow, ocr, search, audit) and enable required extensions.

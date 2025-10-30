@@ -1,0 +1,25 @@
+{
+  "StartupProject": "src/ECM/ECM.Host/ECM.Host.csproj",
+  "Contexts": {
+    "iam": {
+      "Context": "ECM.IAM.Infrastructure.Persistence.IamDbContext",
+      "Project": "src/Modules/IAM/ECM.IAM.csproj"
+    },
+    "document": {
+      "Context": "ECM.Document.Infrastructure.Persistence.DocumentDbContext",
+      "Project": "src/Modules/Document/ECM.Document.csproj"
+    },
+    "file": {
+      "Context": "ECM.File.Infrastructure.Persistence.FileDbContext",
+      "Project": "src/Modules/File/ECM.File.csproj"
+    },
+    "operations": {
+      "Context": "ECM.Operations.Infrastructure.Persistence.OperationsDbContext",
+      "Project": "src/Modules/Operations/ECM.Operations.csproj"
+    },
+    "ocr": {
+      "Context": "ECM.Ocr.Infrastructure.Persistence.OcrDbContext",
+      "Project": "src/Modules/Ocr/ECM.Ocr.csproj"
+    }
+  }
+}

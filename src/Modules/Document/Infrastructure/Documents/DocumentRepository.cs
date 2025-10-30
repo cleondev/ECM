@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Application.Documents.Repositories;
@@ -24,8 +25,21 @@ public sealed class DocumentRepository(DocumentDbContext context) : IDocumentRep
     public Task<DomainDocument?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default)
     {
         return _context.Documents
+            .Include(document => document.Versions)
+            .Include(document => document.Metadata)
             .Include(document => document.Tags)
+                .ThenInclude(documentTag => documentTag.Tag)
+                    .ThenInclude(tag => tag.Namespace)
             .FirstOrDefaultAsync(document => document.Id == documentId, cancellationToken);
+    }
+
+    public async Task DeleteAsync(DomainDocument document, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
+        _context.Documents.Remove(document);
+        await EnqueueOutboxMessagesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)

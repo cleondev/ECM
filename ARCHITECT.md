@@ -17,20 +17,22 @@
    ├─ File (MinIO adapter)
    ├─ Workflow
    ├─ Signature
-   └─ SearchRead
-       └─→ (bus.outbox → Redpanda)
+   ├─ SearchRead
+   └─ Ocr (Dot OCR adapter + API)
+        └─→ (bus.outbox → Redpanda)
 
 Background Workers:
    - OutboxDispatcher  → publish domain events
    - SearchIndexer     → consume → build FTS/KV/Vector
    - Notify            → consume → email/webhook
+   - Ocr              → trigger Dot OCR service, emit ocr.* events via external engine
    - OCR (Python)      → extract, label, emit ocr.* events
 ```
 
 **Principles**
 
-- Modular monolith: 5 domain modules, độc lập về code + schema.
-- PostgreSQL schemas per module (`doc`, `file`, `wf`, `sign`, `search`).
+- Modular monolith: domain modules độc lập về code + schema.
+- PostgreSQL schemas per module (`doc`, `file`, `wf`, `sign`, `search`, `ocr`).
 - RLS kiểm soát quyền đọc theo RBAC/ReBAC/ABAC.
 - Outbox pattern bảo đảm event reliable + idempotent consumers.
 - Search hybrid (FTS + pgvector + KV).
@@ -43,9 +45,9 @@ Background Workers:
 | Project / Folder | Lang              | Purpose                                                          | Key Components                                                     |
 | ---------------- | ----------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
 | **AppGateway**   | .NET 9 + JS       | Edge Gateway (BFF, Auth, serve UI)                               | `/ui` (SPA), reverse proxy, auth, BFF endpoints                    |
-| **ECM**          | .NET 9            | Core nghiệp vụ (Document, File, Workflow, Signature, SearchRead) | Modular monolith: Domain/Application/Infrastructure/Api per module |
-| **Workers**      | .NET 9            | Background processing                                            | OutboxDispatcher, SearchIndexer, Notify                            |
-| **Ocr**          | Python            | OCR engine + labeling UI                                         | Tesseract/PaddleOCR, FastAPI, labeling tool                        |
+| **ECM**          | .NET 9            | Core nghiệp vụ (Document, File, Workflow, Signature, SearchRead, Ocr) | Modular monolith: Domain/Application/Infrastructure/Api per module |
+| **Workers**      | .NET 9            | Background processing                                            | OutboxDispatcher, SearchIndexer, Notify, Ocr                       |
+| **Ocr**          | Python            | OCR engine + labeling UI (Dot OCR service lives ngoài monolith)  | Tesseract/PaddleOCR, FastAPI, labeling tool                        |
 | **Aspire**       | .NET 9            | Orchestration / Observability                                    | AppHost + ServiceDefaults                                          |
 | **deploy**       | YAML              | Docker Compose (DEV infra)                                       | Postgres, MinIO, Redpanda                                          |
 | **docs**         | Markdown / Drawio | Documentation                                                    | Architecture, API, Data model                                      |
@@ -85,29 +87,29 @@ src/
 │    ├── File/{Domain,Application,Infrastructure,Api}
 │    ├── Workflow/{Domain,Application,Infrastructure,Api}
 │    ├── Signature/{Domain,Application,Infrastructure,Api}
-│    └── SearchRead/{Application,Infrastructure,Api}
+│    ├── SearchRead/{Application,Infrastructure,Api}
+│    └── Ocr/{Domain,Application,Infrastructure,Api}
 │
 ├── Workers/
 │   ├── OutboxDispatcher.Worker/
 │   ├── SearchIndexer.Worker/
-│   └── Notify.Worker/
+│   ├── Notify.Worker/
+│   └── Ocr.Worker/
 │
 ├── Ocr/
 │   ├── ocr-engine/
 │   └── labeling-ui/
 │
 ├── Aspire/
-│   ├── ECM.AppHost/
-│   │   ├── Program.cs
-│   │   ├── appsettings.json
-│   │   └── Properties/
-│   └── ECM.ServiceDefaults/
-│       ├── Extensions/
-│       └── Observability/
+│   └── ECM.AppHost/
+│       ├── Program.cs
+│       ├── appsettings.json
+│       └── Properties/
 │
 └── Shared/
     ├── Contracts/
     ├── Messaging/
+    ├── ServiceDefaults/
     ├── Utilities/
     └── Extensions/
 ```
@@ -132,23 +134,26 @@ Schemas:
 
 ### Core Tables
 
-* `iam.users(id, email, display_name, department, is_active, created_at)` — người dùng hệ thống
+* `iam.users(id, email, display_name, primary_group_id, is_active, created_at)` — người dùng hệ thống; `primary_group_id` trỏ tới **unit group** chính (thay cho `department`), quyền đơn vị nội bộ được suy ra từ thành viên nhóm `iam.group_members`
 
 * `iam.roles(id, name)` — vai trò định nghĩa sẵn (Admin, Editor, Viewer, …)
 
 * `iam.user_roles(user_id, role_id)` — ánh xạ người dùng ↔ vai trò (RBAC)
 
-* `iam.relations(subject_id, object_type, object_id, relation)` — quan hệ ReBAC (ai có quyền gì với đối tượng nào)
+* `iam.groups(id, name, kind, created_by, created_at)` — nhóm động (team, workflow, tạm thời); `kind` nhận các giá trị `system|unit|temporary|guess`. Migrations seed sẵn các group hệ thống `guest`, `system` và `Guess User` (parent = `system`) để gán quyền mặc định, đồng thời hỗ trợ tạo **unit group** tương ứng với dữ liệu department cũ.
+* `iam.group_members(group_id, user_id, role, valid_from, valid_to)` — thành viên nhóm với thời hạn hiệu lực; user mới được provisioning tự động gia nhập `guest`, `system` và `Guess User` thông qua `GroupService`.
+* `iam.relations(subject_type, subject_id, object_type, object_id, relation, valid_from, valid_to)` — quan hệ ReBAC cho user/group với thời gian hiệu lực
 
 * `doc.document(id, title, type_id, status, sensitivity, owner_id, created_at, updated_at)`
 
 * `doc.version(id, document_id, storage_key, bytes, sha256, created_by)`
+* `doc.effective_acl_flat(document_id, user_id, valid_to, source, idempotency_key, updated_at)` — read-model phẳng để truy vấn quyền truy cập theo user
 
 * `doc.document_type(id, type_key, type_name, is_active)`
 
 * `doc.metadata(document_id, data jsonb)`
 
-* `doc.tag_namespace(namespace_slug, kind, owner_user_id)` / `doc.tag_label(id, namespace_slug, path)` / `doc.document_tag(document_id, tag_id)`
+* `doc.tag_namespace(id, scope, owner_user_id, owner_group_id, display_name, is_system, created_at)` / `doc.tag_label(id, namespace_id, parent_id, name, path_ids, sort_order, color, icon_key, is_active, is_system, created_by, created_at)` / `doc.document_tag(document_id, tag_id, applied_by, applied_at)`
 
 * `doc.signature_request(id, document_id, provider, status)` / `doc.signature_result(request_id, status, evidence_url)`
 
@@ -158,9 +163,9 @@ Schemas:
 
 * `ocr.result / ocr.page_text / ocr.annotation / ocr.extraction`
 
-* `ops.outbox / ops.audit_event / ops.retention_policy / ops.retention_candidate`
+* `ops.outbox / ops.outbox_deadletter / ops.audit_event / ops.notification / ops.webhook / ops.webhook_delivery / ops.retention_policy / ops.retention_candidate`
 
-RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (department).
+RLS function `doc.fn_can_read_document(row)` = RBAC + ReBAC + ABAC (group). Worker materialize `doc.effective_acl_flat` để phục vụ API liệt kê tài liệu nhanh và chỉ trả quyền còn hiệu lực.
 
 
 ---
@@ -198,9 +203,10 @@ Modules ghi sự kiện vào `ops.outbox`; **Outbox Dispatcher** đọc và publ
 ### Flow ví dụ
 
 ```
-document.created → search-indexer, notify, audit
-version.created → ocr-engine → ocr.extraction.updated → search-indexer
-workflow.task.assigned → notify
+document.uploaded → worker-ocr → Dot OCR service → ocr.completed → worker-search-indexer
+document.created → worker-search-indexer, worker-notify, audit
+version.created → ocr-engine → ocr.extraction.updated → worker-search-indexer
+workflow.task.assigned → worker-notify
 signature.completed → audit
 ```
 
@@ -223,14 +229,17 @@ signature.completed → audit
 
 ### Search (hybrid)
 
-- `GET /search?q=&mode=hybrid&filters=department:Credit,doc_type:Contract`
+- `GET /search?q=&mode=hybrid&filters=group_ids:11111111-1111-1111-1111-111111111111|22222222-2222-2222-2222-222222222222,doc_type:Contract`
   - Combines FTS rank + cosine similarity from `search.embedding` + KV filters.
 
 ### OCR
 
-- `POST /ocr/process` (optional trigger)
-- Labeling UI endpoints (annotation CRUD)
-- Resolver promotes `ocr.extraction` and emits `ocr.extraction.updated`
+- `GET /api/ocr/samples/{sampleId}/results` → proxy kết quả OCR của sample từ Dot OCR.
+- `GET /api/ocr/samples/{sampleId}/boxes` → danh sách box/bounding box của sample.
+- `GET /api/ocr/samples/{sampleId}/boxes/{boxId}/results` → kết quả chi tiết cho một boxing.
+- `PUT /api/ocr/samples/{sampleId}/boxes/{boxId}` → cập nhật giá trị/nhãn cho box.
+- `Ocr.Worker` (Kafka consumer) lắng nghe `ecm.document.uploaded` → gọi Dot OCR service khởi chạy xử lý.
+- `src/Ocr/*` (Python) vẫn đảm nhiệm engine + labeling UI, phát hành `ocr.*` events khi hoàn tất.
 
 ---
 
@@ -249,14 +258,14 @@ open http://localhost:8080   # Gateway
 ```
 
 **DB init**: put full DDL into `deploy/init/db-init.sql` (RLS + schemas).  
-**Outbox**: dispatcher will publish events to topics; consumers update read models.
+**Operations module (Outbox)**: dispatcher will publish events to topics; consumers update read models.
 
 ---
 
 ## 9) Security & RLS
 
-- API layer sets:  
-  `SET LOCAL app.user_id = '<uuid>'; SET LOCAL app.user_department = '<text>';`
+- API layer sets:
+  `SET LOCAL app.user_id = '<uuid>'; SET LOCAL app.user_group_id = '<uuid>';`
 - `authz.fn_can_read(doc_row)` enforces combined RBAC/ReBAC/ABAC at DB layer.
 - OCR service account can write `ocr.annotation`, resolver writes `ocr.extraction`, but **cannot** mutate user metadata directly.
 

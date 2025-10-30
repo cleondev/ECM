@@ -1,11 +1,16 @@
 using System;
-using AppGateway.Infrastructure.AccessControl;
+using System.Net.Http;
+using AppGateway.Infrastructure.IAM;
 using AppGateway.Infrastructure.Ecm;
 
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 
 namespace AppGateway.Infrastructure;
 
@@ -16,11 +21,37 @@ public static class DependencyInjection
     public static IServiceCollection AddGatewayInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var baseAddress = configuration.GetValue<string>("Services:Ecm") ?? "http://localhost:8080";
+        var scope = configuration.GetValue<string>("Services:EcmScope") ?? "api://istsvn.onmicrosoft.com/ecm-host/Access.All";
+        var tenantId = configuration.GetValue<string>("Services:EcmTenantId") ?? configuration.GetValue<string>("AzureAd:TenantId");
+        var authenticationScheme = configuration.GetValue<string>("Services:EcmAuthenticationScheme");
 
         services.AddHttpClient(HttpClientName, client => client.BaseAddress = new Uri(baseAddress))
-                .AddStandardResilienceHandler();
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    AllowAutoRedirect = false
+                })
+                .AddStandardResilienceHandler()
+                .Configure(options =>
+                {
+                    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(120);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(180);
+                });
 
-        services.Configure<AccessControlOptions>(configuration.GetSection("AccessControl"));
+        services.Configure<IamOptions>(configuration.GetSection("IAM"));
+        services.Configure<EcmApiClientOptions>(options =>
+        {
+            options.Scope = scope;
+            options.TenantId = tenantId;
+            if (!string.IsNullOrWhiteSpace(authenticationScheme))
+            {
+                options.AuthenticationScheme = authenticationScheme!;
+            }
+            else
+            {
+                options.AuthenticationScheme = OpenIdConnectDefaults.AuthenticationScheme;
+            }
+        });
 
         services.AddHttpContextAccessor();
 
@@ -28,7 +59,16 @@ public static class DependencyInjection
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
             var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-            return new EcmApiClient(factory.CreateClient(HttpClientName), accessor);
+            var tokenAcquisition = sp.GetRequiredService<ITokenAcquisition>();
+            var options = sp.GetRequiredService<IOptions<EcmApiClientOptions>>();
+            var logger = sp.GetRequiredService<ILogger<EcmApiClient>>();
+
+            return new EcmApiClient(
+                factory.CreateClient(HttpClientName),
+                accessor,
+                tokenAcquisition,
+                options,
+                logger);
         });
 
         return services;

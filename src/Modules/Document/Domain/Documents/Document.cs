@@ -35,7 +35,7 @@ public sealed class Document : IHasDomainEvents
         Guid createdBy,
         DateTimeOffset createdAtUtc,
         DateTimeOffset updatedAtUtc,
-        string? department,
+        Guid? groupId,
         Guid? typeId)
         : this()
     {
@@ -46,7 +46,7 @@ public sealed class Document : IHasDomainEvents
         Sensitivity = sensitivity;
         OwnerId = ownerId;
         CreatedBy = createdBy;
-        Department = department;
+        GroupId = groupId;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = updatedAtUtc;
         TypeId = typeId;
@@ -64,7 +64,7 @@ public sealed class Document : IHasDomainEvents
 
     public Guid OwnerId { get; private set; }
 
-    public string? Department { get; private set; }
+    public Guid? GroupId { get; private set; }
 
     public Guid CreatedBy { get; private set; }
 
@@ -93,7 +93,7 @@ public sealed class Document : IHasDomainEvents
         Guid ownerId,
         Guid createdBy,
         DateTimeOffset now,
-        string? department = null,
+        Guid? groupId = null,
         string? sensitivity = null,
         Guid? typeId = null)
     {
@@ -119,7 +119,7 @@ public sealed class Document : IHasDomainEvents
             createdBy,
             now,
             now,
-            string.IsNullOrWhiteSpace(department) ? null : department.Trim(),
+            NormalizeGroupId(groupId),
             typeId);
 
         document.Raise(new DocumentCreatedDomainEvent(
@@ -160,9 +160,9 @@ public sealed class Document : IHasDomainEvents
         UpdatedAtUtc = updatedAtUtc;
     }
 
-    public void UpdateDepartment(string? department, DateTimeOffset updatedAtUtc)
+    public void UpdateGroupId(Guid? groupId, DateTimeOffset updatedAtUtc)
     {
-        Department = string.IsNullOrWhiteSpace(department) ? null : department.Trim();
+        GroupId = NormalizeGroupId(groupId);
         UpdatedAtUtc = updatedAtUtc;
     }
 
@@ -266,6 +266,11 @@ public sealed class Document : IHasDomainEvents
     internal void AddSignatureRequest(SignatureRequest request)
     {
         _signatureRequests.Add(request);
+    }
+
+    private static Guid? NormalizeGroupId(Guid? groupId)
+    {
+        return groupId is null || groupId == Guid.Empty ? null : groupId;
     }
 
     private void Raise(IDomainEvent domainEvent)

@@ -7,12 +7,15 @@ using ECM.SearchIndexer.Application.Indexing;
 using ECM.SearchIndexer.Application.Indexing.Abstractions;
 using ECM.SearchIndexer.Domain.Indexing;
 using Microsoft.Extensions.Logging.Abstractions;
+using TestFixtures;
 using Xunit;
 
 namespace SearchIndexer.Tests;
 
 public class SearchIndexingEventProcessorTests
 {
+    private readonly DefaultGroupFixture _groups = new();
+
     [Fact]
     public async Task HandleDocumentUploadedAsync_SchedulesBasicIndexing()
     {
@@ -23,12 +26,12 @@ public class SearchIndexingEventProcessorTests
         var @event = new DocumentUploadedIntegrationEvent(
             Guid.NewGuid(),
             DateTimeOffset.UtcNow,
-            Guid.NewGuid(),
+            _groups.GuestGroupId,
             "Quarterly Report",
             "Summary",
             "Initial content",
-            new Dictionary<string, string> { { "category", "finance" } },
-            ["q1", "internal"]);
+            new Dictionary<string, string> { { "category", _groups.GuestGroupName } },
+            ["q1", _groups.GuestGroupName]);
 
         var result = await processor.HandleDocumentUploadedAsync(@event);
 
@@ -49,12 +52,12 @@ public class SearchIndexingEventProcessorTests
         var @event = new OcrCompletedIntegrationEvent(
             Guid.NewGuid(),
             DateTimeOffset.UtcNow,
-            Guid.NewGuid(),
+            _groups.SystemGroupId,
             "Scanned Contract",
             "Signed contract",
             "Full OCR extracted text",
             null,
-            ["legal"]);
+            ["legal", _groups.SystemGroupName]);
 
         await processor.HandleOcrCompletedAsync(@event);
 

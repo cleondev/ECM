@@ -1,101 +1,68 @@
-# Azure Pipelines – Triển khai ECM lên các máy chủ Linux
+# Azure Pipelines – Build & Deploy ECM bằng Docker
 
-Tài liệu này mô tả pipeline Azure DevOps mới được thêm vào repo (`azure-pipelines.yml`) nhằm build, kiểm thử và triển khai ECM lên các máy chủ Linux thông qua các agent Azure DevOps.
+Pipeline `azure-pipelines.yml` được dùng để build các Docker image của ECM, push lên Harbor registry nội bộ và triển khai stack Docker Compose trên server sản xuất thông qua SSH.
 
 ## Kiến trúc tổng quan
 
-Pipeline được chia thành hai stage chính:
+Pipeline bao gồm hai stage chạy nối tiếp trên self-hosted agent pool `ECM_CI`:
 
-1. **Build & Test** – chạy trên `ubuntu-latest` (Microsoft-hosted agent):
-   - Cài đặt .NET SDK 9 và Node.js 20.
-   - `dotnet restore`, `dotnet build` và `dotnet test` cho toàn bộ solution `ECM.sln`.
-   - Build SPA của App Gateway (`src/AppGateway/ui`).
-   - `dotnet publish` cho các service chính (ECM.Host, AppGateway.Api, các worker).
-   - Đóng gói output, kèm manifest và script triển khai `deploy/scripts/linux-deploy.sh`, sau đó publish artifact `drop`.
+1. **Build & Push Docker Images**
+   - Checkout toàn bộ repo (không cắt lịch sử) để có thể tính toán tag theo branch và build context chính xác.
+   - Cài .NET 9 SDK và Node.js 20 cho các bước build.
+   - Đăng nhập Harbor bằng service account (`HARBOR_USER`/`HARBOR_PASS`).
+   - Build lần lượt các image (`appgateway-api`, `ecm-host`, `notify-worker`, `outbox-worker`, `searchindexer-worker`).
+   - Push các image vừa build lên registry `harbor.local:8443/ecm` với tag `$(Build.SourceBranchName)-$(Build.BuildId)`.
 
-2. **Deploy** – chạy lần lượt trên từng agent Linux được khai báo:
-   - Tải artifact `drop`.
-   - Gọi script `linux-deploy.sh` để đồng bộ mã nguồn đã publish tới thư mục đích và restart các service đã cấu hình.
+2. **Deploy to App Server**
+   - Dùng task `SSH@0` để kết nối tới máy chủ (service connection `ecm-appserver-ssh`).
+   - Trên server, script sẽ chuyển tới thư mục `/data/ecm`, đăng nhập lại Harbor, kéo các image mới và chạy `docker compose up -d --remove-orphans` để cập nhật stack.
 
-Mỗi máy chủ Linux nên cài một self-hosted agent và gán vào pool riêng (ví dụ `linux-staging`, `linux-production`).
+## Biến và secret
 
-## Tham số hóa máy đích
+Pipeline sử dụng variable group `ECM-SECRETS` để tập trung các thông tin nhạy cảm. Trong bước SSH deploy, script khai báo ba helper `choose_secret`, `require_env` và `optional_env` để:
 
-Đầu file `azure-pipelines.yml` khai báo tham số `linuxServers` dạng object. Mỗi phần tử mô tả một đích triển khai:
+1. Đọc giá trị đã có sẵn trên máy chủ (nếu có) và giữ nguyên.
+2. Bổ sung giá trị từ Azure Variable Group/Key Vault theo chuẩn `ECM_*__*`.
+3. Báo lỗi ngay khi thiếu biến bắt buộc và chỉ cảnh báo với biến tùy chọn.
 
-```yaml
-parameters:
-- name: linuxServers
-  type: object
-  default:
-    - name: staging-app
-      displayName: 'Staging App Host'
-      environment: 'staging'
-      pool: 'linux-staging'
-      deployPath: '/opt/ecm'
-      services: 'ecm-host,ecm-gateway'
-      preDeployScript: ''
-      postDeployScript: ''
-      useSudo: 'auto'
-```
+Các biến môi trường được export thành hai nhóm:
 
-| Thuộc tính         | Ý nghĩa                                                                                         |
-|--------------------|--------------------------------------------------------------------------------------------------|
-| `name`             | Định danh duy nhất (dùng đặt tên job).                                                           |
-| `displayName`      | Tên hiển thị trên giao diện pipeline.                                                           |
-| `environment`      | Azure DevOps Environment phục vụ tracking deployment.                                           |
-| `pool`             | Tên agent pool (mỗi pool tương ứng một/nhóm server Linux).                                      |
-| `deployPath`       | Thư mục trên server để đồng bộ artifact (`/opt/ecm`, `/var/www/ecm`, ...).                       |
-| `services`         | Danh sách dịch vụ systemd cần restart sau khi copy (phân tách bằng dấu phẩy).                    |
-| `preDeployScript`  | Lệnh shell chạy trước khi copy (ví dụ backup, thông báo maintenance).                            |
-| `postDeployScript` | Lệnh shell chạy sau khi copy (ví dụ migrate DB, warmup).                                         |
-| `useSudo`          | `auto` (mặc định), `always` hoặc `never` để điều khiển việc sử dụng `sudo` trong script deploy.  |
+**1. Nhóm tương thích với stack Docker Compose cũ**
 
-Khi cần thêm/loại bỏ server, cập nhật danh sách trên (hoặc override tham số khi queue build).
+| Biến môi trường | Secret/nguồn ưu tiên | Ghi chú |
+|-----------------|----------------------|--------|
+| `MINIO_ENDPOINT` | `ECM_FileStorage__ServiceUrl` | Endpoint MinIO/S3 dạng URL. |
+| `MINIO_ACCESS_KEY` | `ECM_FileStorage__AccessKeyId` | Access key MinIO/S3. |
+| `MINIO_SECRET_KEY` | `ECM_FileStorage__SecretAccessKey` | Secret key MinIO/S3. |
+| `REDPANDA_BROKERS` | `ECM_Kafka__BootstrapServers` | Danh sách broker cho các dịch vụ nền tảng. |
+| `Kafka__BootstrapServers` | `ECM_Kafka__BootstrapServers` hoặc giá trị của `REDPANDA_BROKERS` | Worker .NET sử dụng chuẩn `Kafka__*`. |
+| `Services__Ecm` | `Services__Ecm` | URL reverse proxy tới `ECM.Host`. |
+| `AzureAd__ClientSecret` | `AzureAd__ClientSecret` → `ECM_AzureAd__ClientSecret` | Bắt buộc cho App Gateway thực hiện OpenID Connect. |
 
-## Script triển khai trên agent Linux
+**2. Nhóm cấu hình chuẩn ECM (được .NET đọc trực tiếp)**
 
-`deploy/scripts/linux-deploy.sh` được copy vào artifact và chạy trực tiếp trên agent (vì agent nằm ngay trên server đích):
+| Biến môi trường | Bắt buộc | Ghi chú |
+|-----------------|----------|--------|
+| `ECM_Database__Connections__iam`, `doc`, `wf`, `search`, `ocr`, `ops` → `ConnectionStrings__IAM`, `Document`, `File`, `Workflow`, `Search`, `Ocr`, `Operations` | ✔️ | Chuỗi kết nối cho từng module. Pipeline copy từ secret tiền tố `ECM_` sang `ConnectionStrings__<Module>` tương ứng (secret `doc` được dùng chung cho Document và File; `ops` cho Operations). |
+| `ECM_FileStorage__BucketName`, `ECM_FileStorage__ServiceUrl`, `ECM_FileStorage__AccessKeyId`, `ECM_FileStorage__SecretAccessKey` | ✔️ | Thông tin lưu trữ file cho module File. Các giá trị tương ứng cũng được export dưới dạng `FileStorage__*` để giữ tương thích. |
+| `ECM_Workflow__Camunda__BaseUrl` | ✔️ | Endpoint Camunda REST cho module Workflow. |
+| `ECM_Workflow__Camunda__TenantId` | ⚠️ (tùy chọn) | Nếu bỏ trống, repository sẽ làm việc ở chế độ multi-tenant mặc định của Camunda. Pipeline sẽ log cảnh báo nhưng không dừng job. |
+| `ECM_AzureAd__ClientSecret` | ⚠️ (tùy chọn) | Chỉ cần khi ECM Host phải gọi API bảo vệ bằng client credential. Nếu không cung cấp, script sẽ copy giá trị từ `AzureAd__ClientSecret` (nếu có). |
 
-- Nhận đường dẫn artifact (`$(Pipeline.Workspace)/drop`).
-- Dựa trên biến môi trường `ECM_DEPLOY_ROOT` để xác định thư mục triển khai.
-- Đồng bộ file bằng `rsync` (nếu có) hoặc `cp -a` + `rm -rf`.
-- Thực thi `ECM_DEPLOY_PRE_SCRIPT`/`ECM_DEPLOY_POST_SCRIPT` nếu có.
-- Restart các service trong `ECM_DEPLOY_SERVICES` bằng `systemctl`.
+Nếu một biến bắt buộc không được resolve, job Deploy sẽ dừng với thông báo `[deploy] Thiếu biến môi trường bắt buộc`. Các biến tùy chọn thiếu sẽ được liệt kê dưới dạng cảnh báo để bạn theo dõi.
 
-Nếu muốn chạy mà không cần quyền `sudo`, đặt `useSudo: 'never'` trong tham số server. Nếu muốn luôn dùng `sudo`, đặt `useSudo: 'always'`.
+Ngoài các biến trên, hãy đảm bảo variable group còn chứa `HARBOR_USER` và `HARBOR_PASS` (phục vụ bước build/push image). Những thông tin khác mà `docker compose` sử dụng riêng có thể tiếp tục export trong script hoặc quản lý trực tiếp trong Azure Variable Group.
 
-## Cấu hình self-hosted agent Linux (tóm tắt)
+## Tùy biến pipeline
 
-1. Tạo **Agent Pool** mới trên Azure DevOps (ví dụ `linux-staging`).
-2. Tại mỗi server Linux:
-   - Cài đặt .NET runtime cần thiết (nếu service yêu cầu), Node (tùy nhu cầu), và agent Azure DevOps theo hướng dẫn của Microsoft.
-   - Đăng ký agent vào pool tương ứng.
-   - Đảm bảo agent chạy với quyền đủ để ghi vào `deployPath` và restart service (có thể thêm user vào `sudoers`).
-3. Khởi tạo các service systemd chạy ECM (ví dụ `ecm-host.service`, `ecm-gateway.service`) để pipeline có thể restart.
+- **Đổi server triển khai**: cập nhật `displayName`, `sshEndpoint` và đường dẫn `cd /data/ecm` trong task `SSH@0` cho phù hợp.
+- **Tag hoặc registry khác**: thay đổi biến `REGISTRY` hoặc logic đặt `TAG` trong stage Build.
+- **Bổ sung service**: thêm dòng `docker build`/`docker push` trong stage Build, đồng thời cập nhật `docker compose` trên server.
+- **Quản lý nhiều môi trường**: nhân bản job `SSH@0` hoặc tách thành nhiều stage Deploy khác nhau (ví dụ Staging, Production) với service connection và secret group riêng.
 
-## Tùy biến bổ sung
+## Quy trình vận hành
 
-- **Trigger**: mặc định pipeline chạy khi push lên `main`. Nếu cần branch khác, cập nhật block `trigger` hoặc tạo pipeline mới tham chiếu file này.
-- **Project publish**: biến `publishProjects` dùng để liệt kê `.csproj` cần `dotnet publish`. Thêm/bớt project bằng cách chỉnh sửa danh sách.
-- **Artifact manifest**: `manifest.json` chứa `buildNumber`, `sourceVersion`, ... có thể mở rộng để lưu thông tin versioning khác.
-
-## Quy trình triển khai mẫu
-
-1. Push code lên `main` → pipeline auto chạy stage Build.
-2. Artifact `drop` được tạo, chứa cấu trúc:
-   ```
-   drop/
-     AppGateway.Api/
-     ECM.Host/
-     Notify.Worker/
-     OutboxDispatcher.Worker/
-     SearchIndexer.Worker/
-     AppGateway.Api/wwwroot/
-     manifest.json
-     tools/linux-deploy.sh
-   ```
-3. Stage Deploy chạy trên từng agent Linux và cập nhật code tại `deployPath`.
-4. Service được restart theo cấu hình (`ecm-host`, `ecm-gateway`, ...).
-
-Theo dõi tiến trình/nhật ký tại tab **Environments** hoặc trực tiếp trong mỗi job của stage Deploy.
+1. Push code lên branch mục tiêu (ví dụ `main`).
+2. Stage Build chạy, build & push các image với tag `branch-buildId`.
+3. Stage Deploy đăng nhập vào server, đồng bộ image và khởi động lại dịch vụ Docker Compose.
+4. Kiểm tra nhật ký `docker compose` hoặc log pipeline để xác nhận deployment thành công.

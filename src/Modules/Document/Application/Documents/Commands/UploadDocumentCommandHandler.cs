@@ -1,8 +1,8 @@
 using System;
-using System.Linq;
 using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
 using ECM.Document.Domain.Documents;
@@ -14,22 +14,21 @@ namespace ECM.Document.Application.Documents.Commands;
 public sealed class UploadDocumentCommandHandler(
     IDocumentRepository repository,
     IFileStorageGateway fileStorage,
-    ISystemClock clock)
+    ISystemClock clock,
+    IEffectiveAclFlatWriter aclWriter)
 {
     private readonly IDocumentRepository _repository = repository;
     private readonly IFileStorageGateway _fileStorage = fileStorage;
     private readonly ISystemClock _clock = clock;
+    private readonly IEffectiveAclFlatWriter _aclWriter = aclWriter;
 
-    public async Task<OperationResult<DocumentWithVersionSummary>> HandleAsync(UploadDocumentCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<DocumentWithVersionResult>> HandleAsync(UploadDocumentCommand command, CancellationToken cancellationToken = default)
     {
-        if (command is null)
-        {
-            throw new ArgumentNullException(nameof(command));
-        }
+        ArgumentNullException.ThrowIfNull(command);
 
         if (command.FileSize <= 0)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure("File size must be greater than zero.");
+            return OperationResult<DocumentWithVersionResult>.Failure("File size must be greater than zero.");
         }
 
         DocumentTitle title;
@@ -39,7 +38,7 @@ public sealed class UploadDocumentCommandHandler(
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure(exception.Message);
+            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
         }
 
         var now = _clock.UtcNow;
@@ -54,13 +53,13 @@ public sealed class UploadDocumentCommandHandler(
                 command.OwnerId,
                 command.CreatedBy,
                 now,
-                command.Department,
+                command.GroupId,
                 command.Sensitivity,
                 command.DocumentTypeId);
         }
         catch (ArgumentException exception)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure(exception.Message);
+            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
         }
 
         var uploadRequest = new FileUploadRequest(
@@ -72,7 +71,7 @@ public sealed class UploadDocumentCommandHandler(
         var uploadResult = await _fileStorage.UploadAsync(uploadRequest, cancellationToken);
         if (uploadResult.IsFailure || uploadResult.Value is null)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure([.. uploadResult.Errors]);
+            return OperationResult<DocumentWithVersionResult>.Failure([.. uploadResult.Errors]);
         }
 
         DocumentVersion version;
@@ -88,12 +87,16 @@ public sealed class UploadDocumentCommandHandler(
         }
         catch (Exception exception) when (exception is ArgumentException or ArgumentOutOfRangeException)
         {
-            return OperationResult<DocumentWithVersionSummary>.Failure(exception.Message);
+            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
         }
 
         await _repository.AddAsync(document, cancellationToken);
 
-        return OperationResult<DocumentWithVersionSummary>.Success(
-            DocumentSummaryMapper.ToSummary(document, version));
+        var ownerEntry = EffectiveAclFlatWriteEntry.ForOwner(document.Id, document.OwnerId);
+        await _aclWriter.UpsertAsync(ownerEntry, cancellationToken);
+
+        return OperationResult<DocumentWithVersionResult>.Success(
+            document.ToResult(version));
     }
+
 }

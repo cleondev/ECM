@@ -1,10 +1,11 @@
 using System;
 using ECM.SearchIndexer.Application;
 using ECM.SearchIndexer.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using ServiceDefaults;
-using SearchIndexer.Messaging;
+using Workers.Shared.Messaging;
 
 namespace SearchIndexer;
 
@@ -27,6 +28,23 @@ public static class Program
             builder.Services.AddSearchIndexerApplication();
             builder.Services.AddSearchIndexerInfrastructure();
             builder.Services.Configure<KafkaConsumerOptions>(builder.Configuration.GetSection(KafkaConsumerOptions.SectionName));
+            builder.Services.PostConfigure<KafkaConsumerOptions>(options =>
+            {
+                options.GroupId ??= "search-indexer";
+
+                if (!string.IsNullOrWhiteSpace(options.BootstrapServers))
+                {
+                    return;
+                }
+
+                var connectionString = builder.Configuration.GetConnectionString("kafka");
+                var bootstrapServers = KafkaConnectionStringParser.ExtractBootstrapServers(connectionString);
+
+                if (!string.IsNullOrWhiteSpace(bootstrapServers))
+                {
+                    options.BootstrapServers = bootstrapServers;
+                }
+            });
             builder.Services.AddSingleton<IKafkaConsumer, KafkaConsumer>();
             builder.Services.AddHostedService<SearchIndexingIntegrationEventListener>();
 

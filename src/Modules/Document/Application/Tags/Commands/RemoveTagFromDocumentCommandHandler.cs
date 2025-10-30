@@ -37,7 +37,7 @@ public sealed class RemoveTagFromDocumentCommandHandler(
             return OperationResult<bool>.Failure("Document was not found.");
         }
 
-        var removed = false;
+        bool removed;
         try
         {
             removed = document.RemoveTag(command.TagId, _clock.UtcNow);

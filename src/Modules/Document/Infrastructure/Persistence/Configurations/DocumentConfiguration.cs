@@ -14,11 +14,14 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
 
         builder.HasKey(document => document.Id);
 
-        builder.Property(document => document.Id)
+        var idProperty = builder.Property(document => document.Id)
             .HasColumnName("id")
-            .ValueGeneratedOnAdd()
-            .HasConversion(id => id.Value, value => DocumentId.FromGuid(value))
-            .HasDefaultValueSql("uuid_generate_v4()");
+            .HasColumnType("uuid")
+            .ValueGeneratedNever()
+            .HasConversion(EfConverters.DocumentIdConverter);
+
+        idProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
+        idProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
         builder.Property(document => document.Title)
             .HasColumnName("title")
@@ -42,8 +45,8 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
             .HasColumnName("owner_id")
             .IsRequired();
 
-        builder.Property(document => document.Department)
-            .HasColumnName("department");
+        builder.Property(document => document.GroupId)
+            .HasColumnName("group_id");
 
         builder.Property(document => document.CreatedBy)
             .HasColumnName("created_by")
@@ -101,6 +104,10 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
 
         builder.HasIndex(document => document.TypeId)
             .HasDatabaseName("IX_document_type_id");
+
+        builder.HasIndex(document => new { document.UpdatedAtUtc, document.Id })
+            .HasDatabaseName("doc_document_updated_at_id_idx")
+            .IsDescending(true, true);
 
         builder.Navigation(document => document.Versions)
             .UsePropertyAccessMode(PropertyAccessMode.Field);

@@ -24,4 +24,10 @@ public sealed class WorkflowInstance(Guid id, Guid documentId, WorkflowDefinitio
         Status = WorkflowStatus.Completed;
         CompletedAtUtc = completedAtUtc;
     }
+
+    public void MarkCancelled(DateTimeOffset cancelledAtUtc)
+    {
+        Status = WorkflowStatus.Cancelled;
+        CompletedAtUtc = cancelledAtUtc;
+    }
 }

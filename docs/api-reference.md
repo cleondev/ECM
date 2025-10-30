@@ -1,0 +1,239 @@
+# ECM API Reference Overview
+
+Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng nhóm chức năng. Mỗi bảng bên dưới tuân theo định dạng **METHOD /path – mô tả – tham số chính** để có thể chuyển đổi nhanh vào tài liệu OpenAPI hoặc dùng trong quá trình phát triển front-end.
+
+> **Lưu ý chung**
+>
+> * Các tham số phân trang thống nhất: `page` (mặc định `1`) và `pageSize` (mặc định `24`).
+> * Các API liệt kê hỗ trợ tham số `sort` theo cú pháp `field:asc,field2:desc` trừ khi ghi chú khác.
+> * Tham số `q` là tìm kiếm toàn văn trên tên hoặc tiêu đề đối tượng tương ứng.
+> * Lọc theo nhóm sử dụng `group_id` (một nhóm) hoặc `group_ids` (nhiều nhóm). Các giá trị là **UUID của group** do module IAM quản lý, thay thế hoàn toàn cho trường `department` cũ.
+
+## 1. IAM
+
+### Users
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /api/iam/users` | Liệt kê người dùng trong module IAM. | – |
+| `GET /api/iam/users/{id}` | Chi tiết người dùng theo ID. | `id` |
+| `GET /api/iam/users/by-email` | Tìm người dùng theo email. | Query `email` |
+| `POST /api/iam/users` | Tạo người dùng mới, tự động gán group hệ thống (`guest`, `system`, `Guess User`) và gán thêm vai trò tùy chọn. | Body `{email, displayName, groupIds[]?, primaryGroupId?, isActive?, password?, roleIds[]}` |
+| `PUT /api/iam/users/{id}` | Cập nhật hồ sơ cơ bản hoặc trạng thái hoạt động. | `id`, body `{displayName, groupIds[]?, primaryGroupId?, isActive?}` |
+| `POST /api/iam/users/{id}/roles` | Gán thêm một vai trò cho người dùng. | `id`, body `{roleId}` |
+| `DELETE /api/iam/users/{id}/roles/{roleId}` | Hủy gán vai trò khỏi người dùng. | `id`, `roleId` |
+
+> **Lưu ý:** Các group hệ thống `guest`, `system` và `Guess User` sẽ được tạo tự động nếu chưa tồn tại. Mọi user mới đều được gán vào ba group này và `primary_group_id` mặc định trỏ về `Guess User` ngay sau khi provisioning thành công.
+>
+> * `primaryGroupId` đại diện cho **unit group** chính của người dùng. Khi chưa truyền tham số này, IAM sẽ giữ nguyên giá trị cũ hoặc để trống.
+> * `groupIds[]` cho phép gán bổ sung các nhóm khác (ví dụ project, workflow). Các tenant trước đây dùng `department` phải tạo group tương ứng rồi map người dùng sang `groupIds`/`primaryGroupId`.
+
+### Authentication
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `POST /api/iam/auth/login` | Đăng nhập tài khoản nội bộ bằng email + password, trả về hồ sơ người dùng khi thành công. | Body `{email, password}` |
+
+### Profile
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /api/iam/profile` | Lấy hồ sơ của người dùng đang đăng nhập (theo email trong token). | – |
+| `PUT /api/iam/profile` | Cập nhật hồ sơ cá nhân (tên hiển thị, danh sách group). | Body `{displayName, groupIds[]?, primaryGroupId?}` |
+
+### Roles
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /api/iam/roles` | Danh sách vai trò. | – |
+| `GET /api/iam/roles/{id}` | Chi tiết vai trò theo ID. | `id` |
+| `POST /api/iam/roles` | Tạo vai trò mới. | Body `{name}` |
+| `PUT /api/iam/roles/{id}` | Đổi tên vai trò. | `id`, body `{name}` |
+| `DELETE /api/iam/roles/{id}` | Xóa vai trò. | `id` |
+
+### Relations (ReBAC)
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /api/iam/relations/subjects/{subjectType}/{subjectId}` | Liệt kê quan hệ truy cập theo subject. | `subjectType=user|group`, `subjectId` |
+| `GET /api/iam/relations/objects/{objectType}/{objectId}` | Liệt kê quan hệ truy cập theo object. | `objectType`, `objectId` |
+| `POST /api/iam/relations` | Tạo quan hệ truy cập mới. | Body `{subjectType=user|group, subjectId, objectType, objectId, relation, validFromUtc?, validToUtc?}` |
+| `DELETE /api/iam/relations/subjects/{subjectType}/{subjectId}/objects/{objectType}/{objectId}` | Xóa quan hệ truy cập. | `subjectType=user|group`, `subjectId`, `objectType`, `objectId`, query `relation` |
+
+> **Ghi chú:**
+> * Response quan hệ trả về `validFromUtc` và `validToUtc`; tài liệu chỉ hiển thị khi `validToUtc` trống hoặc lớn hơn hiện tại.
+> * Khi grant cho nhóm, worker sẽ fan-out sang từng thành viên còn hiệu lực (dựa trên `iam.group_members`).
+
+## 2. Share (ReBAC)
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /share/relations` | Truy vấn quan hệ chia sẻ (ReBAC). | `object_type`, `object_id`, `page`, `pageSize` |
+| `POST /share/relations` | Tạo quan hệ chia sẻ. | Body `{subject_id, subject_type, object_type, object_id, relation}` |
+| `DELETE /share/relations` | Xóa quan hệ chia sẻ. | Body giống `POST` |
+| `POST /links` | Tạo liên kết chia sẻ tạm thời. | Body `{object, object_id, expires_in, password?}` |
+| `GET /links/{id}` | Lấy metadata của liên kết chia sẻ. | `id` |
+| `DELETE /links/{id}` | Hủy liên kết chia sẻ. | `id` |
+
+## 3. Tags & Folders
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /tags/namespaces` | Danh sách namespace tag theo phạm vi. | `q`, `scope?=global|group|user`, `ownerGroupId?`, `ownerUserId?`, `page`, `pageSize` |
+| `POST /tags/namespaces` | Tạo namespace tag mới. | Body `{displayName, scope, ownerGroupId?, ownerUserId?, isSystem?}` |
+| `GET /tags/namespaces/{id}` | Chi tiết namespace (scope, quyền sở hữu). | `id` |
+| `PATCH /tags/namespaces/{id}` | Cập nhật namespace (tên hiển thị, quyền sở hữu). | `id`, body `{displayName?, ownerGroupId?, ownerUserId?}` |
+| `DELETE /tags/namespaces/{id}` | Xóa namespace (trừ namespace hệ thống). | `id` |
+| `GET /tags/namespaces/{id}/labels` | Lấy cây label trong namespace. | `id`, `parentId?`, `includeInactive?`, `depth?` |
+| `POST /tags/namespaces/{id}/labels` | Tạo label mới trong namespace. | `id`, body `{name, parentId?, color?, iconKey?, sortOrder?}` |
+| `PATCH /tags/labels/{id}` | Đổi tên, màu, icon hoặc bật/tắt nhãn. | `id`, body `{name?, color?, iconKey?, isActive?}` |
+| `POST /tags/labels/{id}/move` | Di chuyển nhánh hoặc reorder sibling. | `id`, body `{parentId?, sortOrder?}` |
+| `DELETE /tags/labels/{id}` | Xóa nhãn (trừ nhãn hệ thống). | `id` |
+| `GET /documents/{id}/tags` | Lấy tag của tài liệu. | `id` |
+| `POST /documents/{id}/tags` | Gán tag cho tài liệu. | `id`, body `{tagIds[]?, tagId?}` |
+| `DELETE /documents/{id}/tags/{tagId}` | Bỏ gán tag khỏi tài liệu. | `id`, `tagId` |
+| `GET /facets/tags` | Thống kê tài liệu theo tag. | `q`, `folder`, `doc_type`, `status`, `sensitivity`, `tagIds[]?` |
+
+> **Ghi chú:**
+> * Trường `scope` của namespace quyết định phạm vi hiển thị: `global` (mọi người), `group` (thành viên unit group), `user` (chủ sở hữu).
+> * Namespace hoặc nhãn có `isSystem=true` chỉ đọc, API trả lỗi khi cố gắng sửa/xóa.
+> * Backend sử dụng `parentId` + `pathIds` để quản lý cây; khi di chuyển nhánh, trigger sẽ cập nhật `pathIds` giúp truy vấn `WHERE path_ids @> ARRAY[tagId]`.
+
+| `GET /folders` | Danh sách thư mục hệ thống. | – |
+| `GET /folders/{name}/documents` | Liệt kê tài liệu trong thư mục. | `name`, `page`, `pageSize`, `sort`, `q` |
+
+## 4. Document (Cards & Metadata)
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /documents` | Liệt kê tài liệu theo bộ lọc. | `q`, `page`, `pageSize`, `sort`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `group_ids[]`, `tags[]` |
+| `POST /documents` | Tạo tài liệu mới. | Body `{title?, doc_type?, status?, owner_id?, created_by?, group_id?, group_ids[]?, sensitivity?, type_id?, file}` |
+| `GET /documents/{id}` | Chi tiết tài liệu (owner, badges, version). | `id` |
+| `PATCH /documents/{id}` | Cập nhật thông tin cơ bản. | `id`, body |
+| `DELETE /documents/{id}` | Xóa mềm (mặc định) hoặc xóa hẳn khi `hard=true`. | `id`, query `hard?` |
+| `GET /documents/{id}/metadata` | Lấy metadata dạng key-value. | `id` |
+| `PUT /documents/{id}/metadata` | Ghi đè metadata. | `id`, body `{data}` |
+| `GET /documents/{id}/history` | Lịch sử thay đổi thuộc tính. | `id`, `page`, `pageSize` |
+| `PUT /documents/{id}/folder` | Cập nhật thư mục chứa tài liệu. | `id`, body `{folder}` |
+
+> **Ghi chú:**
+> * Khi thiếu các trường metadata trong body, dịch vụ sẽ tự động suy luận tiêu đề từ tên file, ghép `doc_type`, `status`, `sensitivity` theo cấu hình `DocumentUploadDefaults` và lấy `created_by`/`owner_id` từ người dùng hiện tại (hoặc cấu hình dự phòng). Vì vậy popup upload cũ chỉ cần gửi `file` vẫn tương thích.
+> * Quyền đọc trong API `GET /documents` dựa trên read-model `doc.effective_acl_flat`: chỉ trả về tài liệu khi `valid_to` đang còn hiệu lực.
+> * Để lọc nhiều đơn vị, có thể truyền `group_ids` dạng chuỗi phân tách bằng dấu phẩy (`GET /documents?group_ids=1111...,2222...`) hoặc lặp `group_ids[]=uuid`.
+
+## 5. Document Types
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /document-types` | Danh sách loại tài liệu. | `page`, `pageSize`, `active?` |
+| `POST /document-types` | Tạo loại tài liệu. | Body loại tài liệu |
+| `PATCH /document-types/{id}` | Cập nhật loại tài liệu. | `id`, body |
+| `DELETE /document-types/{id}` | Xóa loại tài liệu. | `id` |
+
+## 6. Versions & Files
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /documents/{id}/versions` | Liệt kê phiên bản tài liệu. | `id`, `page`, `pageSize` |
+| `POST /documents/{id}/versions:init` | Khởi tạo upload phiên bản mới, trả presigned URL. | `id`, body `{mime_type, bytes, sha256}` |
+| `POST /documents/{id}/versions/{versionId}/complete` | Hoàn tất upload phiên bản. | `id`, `versionId` |
+| `GET /versions/{versionId}` | Chi tiết phiên bản. | `versionId` |
+| `DELETE /versions/{versionId}` | Xóa phiên bản (theo policy). | `versionId` |
+| `POST /versions/{versionId}/promote` | Đặt phiên bản làm hiện hành. | `versionId` |
+| `GET /files/download/{versionId}` | Tải file (redirect signed URL). | `versionId` |
+| `POST /files/share/{versionId}` | Tạo link chia sẻ tạm thời. | `versionId`, body `{isPublic, expiresInMinutes}` |
+| `GET /files/preview/{versionId}` | Stream preview (PDF/image/video). | `versionId` |
+| `GET /files/thumbnails/{versionId}` | Lấy thumbnail. | `versionId`, `w`, `h`, `fit=cover|contain` |
+
+## 7. Workflow
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /wf/definitions` | Danh sách định nghĩa workflow. | `page`, `pageSize`, `active?` |
+| `POST /wf/definitions` | Tạo định nghĩa workflow. | Body `{name, spec}` |
+| `GET /wf/definitions/{id}` | Chi tiết định nghĩa. | `id` |
+| `PATCH /wf/definitions/{id}` | Cập nhật định nghĩa. | `id`, body |
+| `DELETE /wf/definitions/{id}` | Xóa định nghĩa. | `id` |
+| `POST /wf/instances` | Khởi chạy workflow cho tài liệu. | Body `{definition_id, document_id, variables?}` |
+| `GET /wf/instances` | Liệt kê phiên chạy workflow. | `document_id`, `state`, `created_by`, `page`, `pageSize` |
+| `GET /wf/instances/{id}` | Chi tiết trạng thái workflow. | `id` |
+| `POST /wf/instances/{id}/cancel` | Hủy workflow. | `id`, body `{reason?}` |
+| `GET /wf/tasks` | Nhiệm vụ theo người dùng. | `assignee_id=me|uuid`, `state=open|done`, `document_id?`, `page`, `pageSize` |
+| `GET /wf/tasks/{id}` | Chi tiết nhiệm vụ (form, variables). | `id` |
+| `POST /wf/tasks/{id}/claim` | Nhận xử lý nhiệm vụ. | `id` |
+| `POST /wf/tasks/{id}/complete` | Hoàn tất nhiệm vụ với hành động. | `id`, body `{action, comment, outputs?}` |
+| `POST /wf/tasks/{id}/reassign` | Chuyển giao nhiệm vụ. | `id`, body `{assignee_id}` |
+
+## 8. Dynamic Forms
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /forms` | Liệt kê form động. | `page`, `pageSize`, `q`, `active?` |
+| `POST /forms` | Tạo form. | Body `{name, schema_json, ui_schema?}` |
+| `GET /forms/{id}` | Chi tiết form. | `id` |
+| `PATCH /forms/{id}` | Cập nhật form. | `id`, body |
+| `DELETE /forms/{id}` | Xóa form. | `id` |
+| `GET /forms/data` | Tìm dữ liệu form đã lưu. | `form_id?`, `instance_id?`, `document_id?`, `page`, `pageSize` |
+| `POST /forms/data` | Upsert dữ liệu form. | Body `{form_id, instance_id?, document_id?, data}` |
+| `DELETE /forms/data/{id}` | Xóa dữ liệu form. | `id` |
+
+## 9. Search (FTS / Vector / Hybrid)
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /search` | Tìm kiếm tài liệu. | `q`, `mode=fts|vector|hybrid`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `group_ids[]`, `tags[]`, `page`, `pageSize`, `sort` |
+| `GET /search/suggest` | Autocomplete gợi ý. | `q`, `limit?` |
+| `GET /search/facets` | Thống kê facet. | `q`, `doc_type`, `status`, `sensitivity`, `owner_id`, `group_id`, `group_ids[]`, `tags[]` |
+
+> **Ví dụ:** `GET /search?q=contract&group_ids[]=11111111-1111-1111-1111-111111111111&group_ids[]=33333333-3333-3333-3333-333333333333`
+
+## 10. OCR
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `POST /ocr/process` | Kích hoạt xử lý OCR cho phiên bản. | Body `{document_id, version_id, force?}` |
+| `GET /ocr/result` | Trạng thái kết quả OCR. | `document_id`, `version_id` |
+| `GET /ocr/pages` | Lấy văn bản theo trang. | `document_id`, `version_id`, `page`, `pageSize` |
+| `GET /ocr/annotations` | Danh sách annotation OCR. | `document_id`, `version_id`, `page`, `pageSize` |
+| `POST /ocr/annotations` | Lưu annotation thủ công. | Body annotation |
+| `DELETE /ocr/annotations/{id}` | Xóa annotation. | `id` |
+| `GET /ocr/extractions` | Xem dữ liệu trường đã trích xuất. | `document_id`, `version_id` |
+
+## 11. Audit, Activity & Retention
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /audit` | Tra cứu nhật ký hành động. | `object_type`, `object_id`, `page`, `pageSize`, `actor?`, `action?` |
+| `GET /retention/policies` | Danh sách chính sách lưu trữ. | `page`, `pageSize`, `q`, `active?` |
+| `POST /retention/policies` | Tạo chính sách lưu trữ. | Body policy |
+| `PATCH /retention/policies/{id}` | Cập nhật chính sách lưu trữ. | `id`, body |
+| `DELETE /retention/policies/{id}` | Xóa chính sách lưu trữ. | `id` |
+| `GET /retention/candidates` | Danh sách đối tượng sắp hết hạn. | `due_before`, `page`, `pageSize` |
+| `POST /retention/execute` | Thực thi policy (hủy hoặc đóng hồ sơ). | Body `{policy_id?, document_ids?}` |
+
+## 12. Notifications, Operations & Webhooks
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /notifications` | Danh sách thông báo của người dùng. | `page`, `pageSize`, `unread?` |
+| `POST /notifications/{id}/read` | Đánh dấu đã đọc. | `id` |
+| `GET /webhooks` | Danh sách webhook đã đăng ký. | `page`, `pageSize` |
+| `POST /webhooks` | Đăng ký webhook mới. | Body `{event_types[], url, secret}` |
+| `DELETE /webhooks/{id}` | Gỡ webhook. | `id` |
+| `GET /outbox/events` | Tra cứu sự kiện đẩy đi (debug/admin). | `type?`, `since?`, `page`, `pageSize` |
+
+## 13. System
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `GET /health` | Kiểm tra sức khỏe hệ thống và phụ thuộc. | – |
+| `GET /config/ui` | Lấy cấu hình UI (feature flags, limits). | – |
+| `GET /stats/overview` | Số liệu tổng quan về tài liệu, dung lượng, tiến độ phê duyệt. | – |
+
+---
+
+### Ghi chú bổ sung
+
+* Khi chuẩn hóa OpenAPI, nên mô tả rõ schema của từng payload (ví dụ cấu trúc body tạo người dùng, format của `metadata`).
+* Với endpoint khởi tạo upload (`POST /documents/{id}/versions:init`), tùy công cụ OpenAPI có thể đổi thành `/documents/{id}/versions:initiate` hoặc `/documents/{id}/versions/init` để tránh ký tự đặc biệt.
+* Các endpoint xóa (`DELETE`) nên ghi chú thêm hành vi (soft-delete, hard-delete) bằng extension `x-notes` hoặc mô tả chi tiết.

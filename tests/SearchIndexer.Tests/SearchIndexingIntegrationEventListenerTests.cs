@@ -10,8 +10,9 @@ using ECM.SearchIndexer.Domain.Indexing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using SearchIndexer;
-using SearchIndexer.Messaging;
 using Shared.Contracts.Messaging;
+using TestFixtures;
+using Workers.Shared.Messaging;
 using Xunit;
 
 namespace SearchIndexer.Tests;
@@ -19,6 +20,7 @@ namespace SearchIndexer.Tests;
 public class SearchIndexingIntegrationEventListenerTests
 {
     private static readonly JsonSerializerOptions CachedWebOptions = new(JsonSerializerDefaults.Web);
+    private readonly DefaultGroupFixture _groups = new();
 
     [Fact]
     public async Task HandleDocumentUploadedAsync_DeserializesAndDispatchesEvent()
@@ -31,8 +33,9 @@ public class SearchIndexingIntegrationEventListenerTests
             provider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<SearchIndexingIntegrationEventListener>.Instance);
 
-        var documentId = Guid.NewGuid();
-        string[] tags = ["hr", "employee"];
+        var documentId = _groups.GuestGroupId;
+        string[] tags = [_groups.GuestGroupName, "employee"];
+        var groupIds = new[] { _groups.GuestGroupId };
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -43,8 +46,9 @@ public class SearchIndexingIntegrationEventListenerTests
                 title = "Onboarding Checklist",
                 summary = "Steps for new hires",
                 content = "Detailed onboarding plan",
-                metadata = new Dictionary<string, string> { { "department", "hr" } },
-                tags
+                metadata = new Dictionary<string, string> { { "source", "upload" } },
+                tags,
+                groupIds
             }
         }, CachedWebOptions);
 
@@ -59,6 +63,8 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Basic, scheduler.LastRecord.IndexingType);
+        Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var groups));
+        Assert.Equal(_groups.GuestGroupId.ToString(), groups);
     }
 
     [Fact]
@@ -72,8 +78,9 @@ public class SearchIndexingIntegrationEventListenerTests
             provider.GetRequiredService<IServiceScopeFactory>(),
             NullLogger<SearchIndexingIntegrationEventListener>.Instance);
 
-        var documentId = Guid.NewGuid();
-        string[] tags = ["legal"];
+        var documentId = _groups.SystemGroupId;
+        string[] tags = ["legal", _groups.SystemGroupName];
+        var groupIds = new[] { Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb") };
         var payload = JsonSerializer.Serialize(new
         {
             eventId = Guid.NewGuid(),
@@ -84,8 +91,13 @@ public class SearchIndexingIntegrationEventListenerTests
                 title = "Signed Contract",
                 summary = "Customer contract",
                 content = "OCR extracted body",
-                metadata = new Dictionary<string, string> { { "source", "ocr" } },
-                tags
+                metadata = new
+                {
+                    groupIds,
+                    source = "ocr"
+                },
+                tags,
+                groupIds
             }
         }, CachedWebOptions);
 
@@ -100,6 +112,8 @@ public class SearchIndexingIntegrationEventListenerTests
         Assert.NotNull(scheduler.LastRecord);
         Assert.Equal(documentId, scheduler.LastRecord!.DocumentId);
         Assert.Equal(SearchIndexingType.Advanced, scheduler.LastRecord.IndexingType);
+        Assert.True(scheduler.LastRecord.Metadata.TryGetValue("groupIds", out var ocrGroups));
+        Assert.Equal(string.Join(',', groupIds), ocrGroups);
     }
 
     private static ServiceProvider BuildServiceProvider(IIndexingJobScheduler scheduler)

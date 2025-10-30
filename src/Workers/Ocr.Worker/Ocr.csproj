@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..\..</DockerfileContext>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
+    <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../../Modules/Ocr/ECM.Ocr.csproj" />
+    <ProjectReference Include="../../Modules/Document/ECM.Document.csproj" />
+    <ProjectReference Include="../../Modules/File/ECM.File.csproj" />
+    <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
+    <ProjectReference Include="../Shared/Workers.Shared.csproj" />
+  </ItemGroup>
+</Project>

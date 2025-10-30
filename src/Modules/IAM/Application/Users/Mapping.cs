@@ -1,0 +1,48 @@
+using System;
+using System.Linq;
+using ECM.IAM.Application.Groups;
+using ECM.IAM.Application.Roles;
+using ECM.IAM.Domain.Users;
+using ECM.IAM.Domain.Groups;
+
+namespace ECM.IAM.Application.Users;
+
+internal static class Mapping
+{
+    public static UserSummaryResult ToResult(this User user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+
+        var roles = user.Roles
+            .Select(link => link.ToResult())
+            .ToArray();
+
+        var groups = user.Groups
+            .Select(member => new GroupSummaryResult(
+                member.GroupId,
+                member.Group?.Name ?? string.Empty,
+                member.Group is not null ? member.Group.Kind : GroupKind.Temporary,
+                member.Role,
+                member.Group?.ParentGroupId))
+            .ToArray();
+
+        var groupIds = user.Groups
+            .Select(member => member.GroupId)
+            .Distinct()
+            .ToArray();
+
+        var hasPassword = !string.IsNullOrWhiteSpace(user.PasswordHash);
+
+        return new UserSummaryResult(
+            user.Id,
+            user.Email,
+            user.DisplayName,
+            user.IsActive,
+            user.CreatedAtUtc,
+            user.PrimaryGroupId,
+            groupIds,
+            roles,
+            groups,
+            hasPassword);
+    }
+}

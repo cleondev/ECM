@@ -1,3 +1,4 @@
+using ECM.Modules.Abstractions.Persistence;
 using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -7,15 +8,22 @@ namespace ECM.Document.Infrastructure.Persistence;
 
 public sealed class DocumentDbContextFactory : IDesignTimeDbContextFactory<DocumentDbContext>
 {
+    private const string ConnectionStringName = "Document";
+
     public DocumentDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DocumentDbContext>();
-        var connectionString = "Host=localhost;Port=5432;Database=ecm;Username=postgres;Password=postgres";
+        var configuration = DesignTimeDbContextFactoryHelper.BuildConfiguration<DocumentDbContextFactory>();
+        var connectionString = DesignTimeDbContextFactoryHelper.ResolveConnectionString<DocumentDbContextFactory>(
+            configuration,
+            ConnectionStringName);
 
         optionsBuilder
             .UseNpgsql(
                 connectionString,
-                builder => builder.MigrationsAssembly(typeof(DocumentDbContext).Assembly.FullName))
+                builder => builder
+                    .MigrationsAssembly(typeof(DocumentDbContext).Assembly.FullName)
+                    .MigrationsHistoryTable("__EFMigrationsHistory", "doc"))
             .UseSnakeCaseNamingConvention();
 
         return new DocumentDbContext(optionsBuilder.Options);

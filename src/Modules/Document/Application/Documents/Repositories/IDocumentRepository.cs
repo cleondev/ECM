@@ -9,5 +9,7 @@ public interface IDocumentRepository
 
     Task<DomainDocument?> GetAsync(DocumentId documentId, CancellationToken cancellationToken = default);
 
+    Task DeleteAsync(DomainDocument document, CancellationToken cancellationToken = default);
+
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

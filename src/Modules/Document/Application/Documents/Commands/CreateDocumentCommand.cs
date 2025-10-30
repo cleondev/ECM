@@ -1,3 +1,5 @@
+using System;
+
 namespace ECM.Document.Application.Documents.Commands;
 
 public sealed record CreateDocumentCommand(
@@ -6,6 +8,6 @@ public sealed record CreateDocumentCommand(
     string Status,
     Guid OwnerId,
     Guid CreatedBy,
-    string? Department,
+    Guid? GroupId,
     string? Sensitivity,
     Guid? DocumentTypeId);

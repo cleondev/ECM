@@ -16,3 +16,5 @@ obj/
 .DS_Store
 Thumbs.db
 /.vs
+/src/AppGateway/ui/dist
+/src/AppGateway/ui/dist/index.html

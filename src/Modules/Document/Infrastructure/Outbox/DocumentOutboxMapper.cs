@@ -3,6 +3,7 @@ using System.Text.Json;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Domain.Documents.Events;
 using ECM.Document.Domain.Tags.Events;
+using ECM.Operations.Infrastructure.Persistence;
 using Shared.Contracts.Documents;
 
 namespace ECM.Document.Infrastructure.Outbox;
@@ -25,6 +26,7 @@ internal static class DocumentOutboxMapper
             DocumentTagAssignedDomainEvent tagAssigned => Map(tagAssigned),
             DocumentTagRemovedDomainEvent tagRemoved => Map(tagRemoved),
             TagLabelCreatedDomainEvent tagCreated => Map(tagCreated),
+            TagLabelUpdatedDomainEvent tagUpdated => Map(tagUpdated),
             TagLabelDeletedDomainEvent tagDeleted => Map(tagDeleted),
             _ => null
         };
@@ -35,6 +37,8 @@ internal static class DocumentOutboxMapper
         var contract = new DocumentCreatedContract(
             domainEvent.DocumentId.Value,
             domainEvent.Title,
+            domainEvent.OwnerId,
+            domainEvent.CreatedBy,
             domainEvent.OccurredAtUtc);
 
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
@@ -86,15 +90,21 @@ internal static class DocumentOutboxMapper
     {
         var contract = new TagLabelCreatedContract(
             domainEvent.TagId,
-            domainEvent.NamespaceSlug,
-            domainEvent.Path,
+            domainEvent.NamespaceId,
+            domainEvent.ParentId,
+            domainEvent.Name,
+            [.. domainEvent.PathIds],
+            domainEvent.SortOrder,
+            domainEvent.Color,
+            domainEvent.IconKey,
+            domainEvent.IsSystem,
             domainEvent.CreatedBy,
             domainEvent.OccurredAtUtc);
 
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
 
         return new OutboxMessage(
-            aggregate: "tag",
+            aggregate: "tag-label",
             aggregateId: domainEvent.TagId,
             type: DocumentEventNames.TagLabelCreated,
             payload: payload,
@@ -105,16 +115,40 @@ internal static class DocumentOutboxMapper
     {
         var contract = new TagLabelDeletedContract(
             domainEvent.TagId,
-            domainEvent.NamespaceSlug,
-            domainEvent.Path,
+            domainEvent.NamespaceId,
             domainEvent.OccurredAtUtc);
 
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
 
         return new OutboxMessage(
-            aggregate: "tag",
+            aggregate: "tag-label",
             aggregateId: domainEvent.TagId,
             type: DocumentEventNames.TagLabelDeleted,
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+
+    private static OutboxMessage Map(TagLabelUpdatedDomainEvent domainEvent)
+    {
+        var contract = new TagLabelUpdatedContract(
+            domainEvent.TagId,
+            domainEvent.NamespaceId,
+            domainEvent.ParentId,
+            domainEvent.Name,
+            [.. domainEvent.PathIds],
+            domainEvent.SortOrder,
+            domainEvent.Color,
+            domainEvent.IconKey,
+            domainEvent.IsActive,
+            domainEvent.UpdatedBy,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "tag-label",
+            aggregateId: domainEvent.TagId,
+            type: DocumentEventNames.TagLabelUpdated,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }

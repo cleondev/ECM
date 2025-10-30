@@ -16,5 +16,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\SearchIndexer\ECM.SearchIndexer.csproj" />
     <ProjectReference Include="..\..\src\Workers\SearchIndexer.Worker\SearchIndexer.csproj" />
+    <ProjectReference Include="..\..\src\Workers\Shared\Workers.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\TestFixtures\DefaultGroupFixture.cs" Link="TestFixtures/DefaultGroupFixture.cs" />
   </ItemGroup>
 </Project>

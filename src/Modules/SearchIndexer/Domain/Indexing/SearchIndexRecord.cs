@@ -13,7 +13,7 @@ public sealed record class SearchIndexRecord
 
     public IDictionary<string, string> Metadata { get; init; } = new Dictionary<string, string>();
 
-    public IList<string> Tags { get; init; } = new List<string>();
+    public IList<string> Tags { get; init; } = [];
 
     public SearchIndexingType IndexingType { get; init; } = SearchIndexingType.Basic;
 

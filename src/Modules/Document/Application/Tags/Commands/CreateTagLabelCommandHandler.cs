@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application;
@@ -11,68 +11,114 @@ namespace ECM.Document.Application.Tags.Commands;
 
 public sealed class CreateTagLabelCommandHandler(
     ITagLabelRepository tagLabelRepository,
+    ITagNamespaceRepository tagNamespaceRepository,
     ISystemClock clock)
 {
-    private static readonly Regex SlugPattern = new("^[a-z0-9_]+(-[a-z0-9_]+)*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
     private readonly ITagLabelRepository _tagLabelRepository = tagLabelRepository;
+    private readonly ITagNamespaceRepository _tagNamespaceRepository = tagNamespaceRepository;
     private readonly ISystemClock _clock = clock;
 
-    public async Task<OperationResult<TagLabelResult>> HandleAsync(CreateTagLabelCommand command, CancellationToken cancellationToken = default)
+    public async Task<OperationResult<TagLabelResult>> HandleAsync(
+        CreateTagLabelCommand command,
+        CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(command.NamespaceSlug))
+        if (command.NamespaceId == Guid.Empty)
         {
-            return OperationResult<TagLabelResult>.Failure("Namespace slug is required.");
+            return OperationResult<TagLabelResult>.Failure("Namespace identifier is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(command.Slug))
+        if (string.IsNullOrWhiteSpace(command.Name))
         {
-            return OperationResult<TagLabelResult>.Failure("Tag slug is required.");
+            return OperationResult<TagLabelResult>.Failure("Tag name is required.");
         }
 
-        var namespaceSlug = command.NamespaceSlug.Trim().ToLowerInvariant();
-        var slug = command.Slug.Trim().ToLowerInvariant();
-        var path = string.IsNullOrWhiteSpace(command.Path)
-            ? slug
-            : command.Path.Trim().ToLowerInvariant();
-
-        if (!SlugPattern.IsMatch(slug))
+        if (command.CreatedBy is null || command.CreatedBy == Guid.Empty)
         {
-            return OperationResult<TagLabelResult>.Failure("Slug must contain lowercase letters, numbers, underscores or hyphens.");
+            return OperationResult<TagLabelResult>.Failure("A valid creator identifier is required.");
         }
 
-        if (!SlugPattern.IsMatch(path))
-        {
-            return OperationResult<TagLabelResult>.Failure("Path must contain lowercase letters, numbers, underscores or hyphens.");
-        }
+        var tagNamespace = await _tagNamespaceRepository
+            .GetAsync(command.NamespaceId, cancellationToken)
+            .ConfigureAwait(false);
 
-        if (!await _tagLabelRepository.NamespaceExistsAsync(namespaceSlug, cancellationToken).ConfigureAwait(false))
+        if (tagNamespace is null)
         {
             return OperationResult<TagLabelResult>.Failure("Tag namespace does not exist.");
         }
 
-        var existingTag = await _tagLabelRepository
-            .GetByNamespaceAndPathAsync(namespaceSlug, path, cancellationToken)
+        var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
+            ? null
+            : tagNamespace.DisplayName.Trim();
+
+        var normalizedName = command.Name.Trim();
+        var parentId = NormalizeGuid(command.ParentId);
+
+        TagLabel? parent = null;
+        if (parentId is not null)
+        {
+            parent = await _tagLabelRepository
+                .GetByIdAsync(parentId.Value, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (parent is null)
+            {
+                return OperationResult<TagLabelResult>.Failure("Parent tag was not found.");
+            }
+
+            if (parent.NamespaceId != command.NamespaceId)
+            {
+                return OperationResult<TagLabelResult>.Failure("Parent tag belongs to a different namespace.");
+            }
+        }
+
+        var duplicateExists = await _tagLabelRepository
+            .ExistsWithNameAsync(
+                command.NamespaceId,
+                parentId,
+                normalizedName,
+                excludeTagId: null,
+                cancellationToken)
             .ConfigureAwait(false);
 
-        if (existingTag is not null)
+        if (duplicateExists)
         {
-            return OperationResult<TagLabelResult>.Failure("Tag with the provided namespace and path already exists.");
+            return OperationResult<TagLabelResult>.Failure("A tag with the same name already exists at this level.");
         }
 
         var createdAt = _clock.UtcNow;
-        var tagLabel = TagLabel.Create(namespaceSlug, slug, path, command.CreatedBy, createdAt);
+        var parentPath = parent?.PathIds ?? [];
+        var tagLabel = TagLabel.Create(
+            command.NamespaceId,
+            parentId,
+            parentPath,
+            normalizedName,
+            command.SortOrder ?? 0,
+            command.Color,
+            command.IconKey,
+            command.CreatedBy,
+            command.IsSystem,
+            createdAt);
+
         await _tagLabelRepository.AddAsync(tagLabel, cancellationToken).ConfigureAwait(false);
 
         var result = new TagLabelResult(
             tagLabel.Id,
-            tagLabel.NamespaceSlug,
-            tagLabel.Slug,
-            tagLabel.Path,
+            tagLabel.NamespaceId,
+            namespaceDisplayName,
+            tagLabel.ParentId,
+            tagLabel.Name,
+            tagLabel.PathIds,
+            tagLabel.SortOrder,
+            tagLabel.Color,
+            tagLabel.IconKey,
             tagLabel.IsActive,
+            tagLabel.IsSystem,
             tagLabel.CreatedBy,
             tagLabel.CreatedAtUtc);
 
         return OperationResult<TagLabelResult>.Success(result);
     }
+
+    private static Guid? NormalizeGuid(Guid? value)
+        => value.HasValue && value.Value != Guid.Empty ? value : null;
 }

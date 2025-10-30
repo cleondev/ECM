@@ -9,6 +9,7 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 - [Thiết lập hạ tầng phát triển](#thiết-lập-hạ-tầng-phát-triển)
   - [Cách 1: Dịch vụ đã cài trên server](#cách-1-dịch-vụ-đã-cài-trên-server)
   - [Cách 2: Docker Compose cho môi trường local](#cách-2-docker-compose-cho-môi-trường-local)
+  - [Init nhanh biến môi trường](#init-nhanh-biến-môi-trường)
 - [Khởi tạo cơ sở dữ liệu (EF Core migrations)](#khởi-tạo-cơ-sở-dữ-liệu-ef-core-migrations)
 - [Làm việc với solution .NET](#làm-việc-với-solution-net)
 - [SPA của App Gateway](#spa-của-app-gateway)
@@ -21,8 +22,7 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 /ECM.sln                # Solution gộp tất cả project .NET
 /src
   ├── Aspire
-  │   ├── ECM.AppHost         # Điểm khởi chạy Aspire (DistributedApplication)
-  │   └── ECM.ServiceDefaults # Cấu hình chia sẻ cho mọi service .NET
+  │   └── ECM.AppHost         # Điểm khởi chạy Aspire (DistributedApplication)
   ├── AppGateway
   │   ├── AppGateway.Api/     # BFF + reverse proxy host (ASP.NET Core)
   │   ├── AppGateway.Infrastructure/
@@ -31,12 +31,17 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
   ├── ECM
   │   ├── ECM.Host/           # Modular monolith host (nạp các module domain)
   │   └── ECM.BuildingBlocks/ # Shared kernel, outbox, event abstractions
-  ├── Modules/                # Các module độc lập: Document, File, Workflow, Signature, SearchRead
-  ├── Workers                 # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify)
+  ├── Modules/                # Các module độc lập: IAM, Document, File, Operations, Workflow, Signature, SearchRead, Ocr
+  ├── Workers                 # Nhóm background worker (OutboxDispatcher, SearchIndexer, Notify, Ocr)
   ├── Ocr
   │   ├── ocr-engine          # Service Python cho OCR
   │   └── labeling-ui         # UI gán nhãn dữ liệu OCR
-  └── Shared                  # Contracts, messaging, utilities, extensions dùng chung
+  └── Shared
+      ├── Contracts/          # DTOs và message contract dùng chung
+      ├── Extensions/         # Extension method chia sẻ
+      ├── Messaging/          # Hạ tầng messaging
+      ├── ServiceDefaults/    # Cấu hình mặc định cho mọi service .NET
+      └── Utilities/          # Tiện ích dùng chung
 /tests                  # Test project (xUnit) cho shared libraries
 /deploy                 # Tập tin phục vụ khởi tạo hạ tầng DEV (Docker Compose, init scripts)
 /docs                   # Tài liệu kiến trúc, API, quy trình
@@ -45,6 +50,8 @@ Bộ khởi tạo cho hệ thống ECM (Enterprise Content Management) được 
 ## Yêu cầu hệ thống
 
 ### Runtime
+
+> ⚠️ **Quan trọng:** Hệ thống chạy trên .NET 9. Không được hạ cấp về .NET 8 vì sẽ làm hỏng toàn bộ quá trình build và chạy dịch vụ.
 
 - **.NET SDK 9** – dùng để build và chạy toàn bộ service .NET.
 - **Node.js ≥ 20** (kèm `npm`) – phục vụ phát triển/bundling SPA tại `src/AppGateway/ui` (Vite 5 yêu cầu Node 18 trở lên).
@@ -74,14 +81,21 @@ Tùy bối cảnh mà lựa chọn chạy hạ tầng nền tảng trực tiếp
    - Có thể cấu hình tại `src/ECM/ECM.Host/appsettings.json` hoặc thông qua biến môi trường.
    - Các biến cấu hình quan trọng:
 
-     ```bash
-     export ConnectionStrings__Document="Host=<host>;Port=5432;Database=ecm;Username=<db-user>;Password=<db-pass>"
-     export ConnectionStrings__postgres="Host=<host>;Port=5432;Database=ecm;Username=<db-user>;Password=<db-pass>"
-     export FileStorage__ServiceUrl="http://<minio-host>:9000"
-     export FileStorage__AccessKeyId=<minio-access-key>
-     export FileStorage__SecretAccessKey=<minio-secret>
-     export Kafka__BootstrapServers=<redpanda-host>:9092
-     ```
+    ```bash
+    export ConnectionStrings__IAM="Host=<host>;Port=5432;Database=ecm_iam;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Document="Host=<host>;Port=5432;Database=ecm_doc;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__File="Host=<host>;Port=5432;Database=ecm_doc;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Workflow="Host=<host>;Port=5432;Database=ecm_wf;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Search="Host=<host>;Port=5432;Database=ecm_search;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Ocr="Host=<host>;Port=5432;Database=ecm_ocr;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Operations="Host=<host>;Port=5432;Database=ecm_ops;Username=<db-user>;Password=<db-pass>"
+    export FileStorage__ServiceUrl="http://<minio-host>:9000"
+    export FileStorage__AccessKeyId=<minio-access-key>
+    export FileStorage__SecretAccessKey=<minio-secret>
+    export Shares__PublicBaseUrl="https://ecm.company"
+    export Shares__DefaultPresignLifetime="00:10:00"
+    export Kafka__BootstrapServers=<redpanda-host>:9092
+    ```
 
    - Với nhiều môi trường, nên sử dụng `dotnet user-secrets` hoặc trình quản lý secrets tương ứng thay vì commit trực tiếp.
 
@@ -118,33 +132,50 @@ Các script khởi tạo (schema DB mẫu, bucket/object, topic) nằm trong `de
 
 > **Lưu ý:** Nếu muốn tái tạo dữ liệu sạch, hãy xóa các volume `pgdata`, `minio-data` trước khi `up` trở lại.
 
+### Init nhanh biến môi trường
+
+Để không phải gõ lại từng biến cấu hình, repo cung cấp sẵn script `deploy/scripts/init-all.sh` (Bash) và `deploy/scripts/init-all.ps1` (PowerShell). Các script này dựa trên thông số mặc định của `deploy/compose.yml` (PostgreSQL user/password `ecm`, MinIO `minio/miniominio`, Redpanda `localhost:9092`).
+
+- **macOS/Linux (Bash/zsh):**
+
+  ```bash
+  source deploy/scripts/init-all.sh
+  ```
+
+- **Windows (PowerShell):**
+
+  ```powershell
+  .\deploy\scripts\init-all.ps1
+  ```
+
+Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__IAM`, `ConnectionStrings__Document`, `ConnectionStrings__File`, `ConnectionStrings__Workflow`, `ConnectionStrings__Search`, `ConnectionStrings__Ocr`, `ConnectionStrings__Operations`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_NAME_PREFIX`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
+
 ## Khởi tạo cơ sở dữ liệu (EF Core migrations)
 
 Các module sử dụng Entity Framework Core để quản lý schema. Bộ khởi tạo hiện bao gồm module Document với migrations có sẵn tại `src/Modules/Document/Infrastructure/Migrations`.
 
-1. **Cài công cụ `dotnet-ef`** (cùng major version 8.x với EF Core trong solution):
+1. **Cài công cụ `dotnet-ef`** (cùng major version 9.x với EF Core trong solution):
 
    ```bash
-   dotnet tool install --global dotnet-ef --version 8.0.8
-   # Nếu đã cài, có thể cập nhật: dotnet tool update --global dotnet-ef --version 8.0.8
+   dotnet tool install --global dotnet-ef --version 9.0.10
+   # Nếu đã cài, có thể cập nhật: dotnet tool update --global dotnet-ef --version 9.0.10
    ```
 
 2. **Đảm bảo kết nối cơ sở dữ liệu** hoạt động (theo một trong hai cách ở trên) và cấu hình biến môi trường `ConnectionStrings__Document`. Ví dụ với môi trường local chạy docker compose:
 
    ```bash
-   export ConnectionStrings__Document="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-   export ConnectionStrings__postgres="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   export ConnectionStrings__Document="Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm"
    ```
 
    Trên PowerShell (Windows):
 
    ```powershell
-   $Env:ConnectionStrings__Document = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-   $Env:ConnectionStrings__postgres = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+   $Env:ConnectionStrings__Document = "Host=localhost;Port=5432;Database=ecm_doc;Username=ecm;Password=ecm"
    ```
 
    > **Mẹo:** với môi trường server, thay `localhost` bằng địa chỉ thực tế và thông tin user/password tương ứng.
-   > **Lưu ý:** file `appsettings.json` mẫu trong `ECM.Host` dùng user `postgres`. Nếu chạy Docker Compose với user `ecm`, hãy override bằng biến môi trường như trên hoặc chỉnh sửa file cấu hình cho trùng khớp.
+   > **Lưu ý:** `Database` (ví dụ `ecm_doc`) và `Username` (ví dụ `ecm`) là hai tham số khác nhau của connection string — đừng hoán đổi chúng khi cấu hình.
+   > **Ghi chú:** file `appsettings.json` mẫu trong `ECM.Host` dùng user `postgres`. Nếu chạy Docker Compose với user `ecm`, hãy override bằng biến môi trường như trên hoặc chỉnh sửa file cấu hình cho trùng khớp.
 
 3. **Chạy migrate để khởi tạo schema** (từ thư mục gốc repo):
 
@@ -164,6 +195,23 @@ Các module sử dụng Entity Framework Core để quản lý schema. Bộ kh�
 
 Trong trường hợp cần seed dữ liệu mẫu hoặc tạo topic/bucket, tham khảo thêm các script trong `deploy/init`.
 
+### Nhóm IAM mặc định
+
+Module IAM đi kèm ba group hệ thống để phục vụ việc khởi tạo quyền mặc định:
+
+- **`guest`** – đại diện cho mọi user mới tạo, dùng cho các quyền đọc cơ bản.
+- **`system`** – nhóm nội bộ để các worker, automation hoặc account dịch vụ có thể nhận thêm đặc quyền.
+- **`Guess User`** (`kind = guess`) – group mặc định dùng để đặt `primary_group_id` cho user mới, nằm dưới group `system`.
+
+Khi tạo user qua API hoặc cơ chế provisioning, dịch vụ IAM tự động đảm bảo cả ba group tồn tại (sẽ tạo nếu thiếu), gán user vào đó và đánh dấu `primary_group_id` trỏ về `Guess User`. Nếu tổ chức cần workflow riêng, có thể thay đổi membership sau khi người dùng đã được tạo.
+
+> ✅ **Thay đổi chính:** Trường `department` đã bị loại bỏ. Thay vào đó, IAM dùng **unit group** (`kind = unit`) làm đơn vị tổ chức chính. Mỗi user có thể:
+>
+> * Chỉ định `primary_group_id` (unit group chính) – phục vụ các policy phụ thuộc đơn vị.
+> * Gán thêm `group_ids[]` cho các nhóm tạm thời/project/workflow.
+>
+> Khi nâng cấp hệ thống, chạy migration `RemoveDepartmentFromUsers` (xem [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)) để chuyển đổi dữ liệu `department` cũ thành unit group tương ứng và thêm quan hệ thành viên. Sau khi hoàn tất, các API lọc theo đơn vị sử dụng `group_id` hoặc `group_ids` (ví dụ `GET /documents?group_ids=<uuid1>,<uuid2>`).
+
 ## Làm việc với solution .NET
 
 ### Khôi phục và build
@@ -182,7 +230,19 @@ Aspire AppHost giúp orchestration các project .NET và kết nối tới hạ 
 dotnet run --project src/Aspire/ECM.AppHost
 ```
 
-Các project sẽ được khởi chạy kèm cấu hình connection string từ AppHost (`ecm` monolith, gateway, worker...). Aspire Dashboard mặc định trên `http://localhost:18888`.
+Các project sẽ được khởi chạy kèm cấu hình connection string từ AppHost (`app-ecm` monolith, `svc-app-gateway`, các worker tiền tố `worker-`...). Aspire Dashboard mặc định trên `http://localhost:18888`.
+
+Khi mở Aspire Dashboard, bạn sẽ nhìn thấy các resource của hệ thống cùng URL đã được AppHost gán sẵn:
+
+| Ứng dụng (resource) | Chức năng | URL từ Aspire Dashboard |
+|---------------------|-----------|-------------------------|
+| `Aspire Dashboard`  | Quan sát trạng thái toàn bộ ứng dụng Aspire | `http://localhost:18888` |
+| `app-ecm`           | Monolith ECM.Host chạy nghiệp vụ chính | `http://localhost:8080` |
+| `svc-app-gateway`   | BFF + reverse proxy phục vụ UI | `http://localhost:5090` |
+| `worker-search-indexer`    | Worker cập nhật chỉ mục tìm kiếm | – (background worker, không expose HTTP) |
+| `worker-ocr`        | Worker gọi Dot OCR service | – (background worker, không expose HTTP) |
+| `worker-outbox-dispatcher` | Worker đọc outbox và đẩy sự kiện ra Kafka | – (background worker, không expose HTTP) |
+| `worker-notify`     | Worker gửi thông báo (email/webhook) | – (background worker, không expose HTTP) |
 
 ### Chạy thủ công từng service
 
@@ -208,26 +268,116 @@ Các project sẽ được khởi chạy kèm cấu hình connection string từ
 
   Lặp lại tương tự cho các worker khác trong thư mục `src/Workers`.
 
-### Cấu hình worker OutboxDispatcher & SearchIndexer
+### Cấu hình worker OutboxDispatcher, SearchIndexer & Ocr
 
 Các background worker không đọc cấu hình từ `appsettings` chung của monolith mà mong đợi biến môi trường tương ứng khi chạy độc
 lập (hoặc thông qua Aspire AppHost). Một số thiết lập quan trọng:
 
-- **OutboxDispatcher** cần kết nối PostgreSQL để đọc bảng `ops.outbox`. Worker lần lượt tìm các connection string theo thứ tự
-  `ConnectionStrings__Outbox` → `ConnectionStrings__Ops` → `ConnectionStrings__postgres`. Vì vậy, hãy đảm bảo **ít nhất một** biến
-  sau được gán:
+- **OutboxDispatcher** cần kết nối PostgreSQL để đọc bảng `ops.outbox`. Worker sử dụng `ConnectionStrings__Operations`, hãy đảm
+  bảo biến này trỏ tới đúng database/schema:
 
   ```bash
-  export ConnectionStrings__Outbox="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-  # hoặc dùng key Ops/postgres tuỳ môi trường
-  export ConnectionStrings__Ops="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
-  export ConnectionStrings__postgres="Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  export ConnectionStrings__Operations="Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
   ```
 
   > PowerShell:
   >
   > ```powershell
-  > $Env:ConnectionStrings__Outbox = "Host=localhost;Port=5432;Database=ecm;Username=ecm;Password=ecm"
+  > $Env:ConnectionStrings__Operations = "Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
+  > ```
+
+- **SearchIndexer** nghe các sự kiện từ Kafka/Redpanda. Cấu hình được bind vào section `Kafka` của worker, tương ứng với các biến môi trường `Kafka__*`. Tối thiểu cần thiết lập `BootstrapServers`; các tham số khác (group id, client id, offset...) có thể để mặc định hoặc override khi cần:
+
+  ```bash
+  export Kafka__BootstrapServers=localhost:9092
+  # tuỳ chọn:
+  export Kafka__GroupId=search-indexer
+  export Kafka__EnableAutoCommit=true
+  export Kafka__AutoOffsetReset=Earliest
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:Kafka__BootstrapServers = "localhost:9092"
+  > ```
+
+- **Ocr.Worker** cũng sử dụng Kafka để lắng nghe `ecm.document.uploaded` và gọi Dot OCR service. Ngoài cấu hình Kafka giống bên trên, cần cấp URL dịch vụ thông qua `Ocr__Dot__BaseUrl` (và các tham số tuỳ chọn như `Ocr__Dot__ApiKey`, `Ocr__Dot__TimeoutSeconds` nếu cần):
+
+  ```bash
+  export Kafka__BootstrapServers=localhost:9092
+  export Ocr__Dot__BaseUrl=http://localhost:7075/
+  # tuỳ chọn
+  export Ocr__Dot__ApiKey=<token>
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:Kafka__BootstrapServers = "localhost:9092"
+  > $Env:Ocr__Dot__BaseUrl = "http://localhost:7075/"
+  > ```
+
+Aspire AppHost giúp orchestration các project .NET và kết nối tới hạ tầng Docker.
+
+```bash
+dotnet run --project src/Aspire/ECM.AppHost
+```
+
+Các project sẽ được khởi chạy kèm cấu hình connection string từ AppHost (`app-ecm` monolith, `svc-app-gateway`, các worker tiền tố `worker-`...). Aspire Dashboard mặc định trên `http://localhost:18888`.
+
+Khi mở Aspire Dashboard, bạn sẽ nhìn thấy các resource của hệ thống cùng URL đã được AppHost gán sẵn:
+
+| Ứng dụng (resource) | Chức năng | URL từ Aspire Dashboard |
+|---------------------|-----------|-------------------------|
+| `Aspire Dashboard`  | Quan sát trạng thái toàn bộ ứng dụng Aspire | `http://localhost:18888` |
+| `app-ecm`           | Monolith ECM.Host chạy nghiệp vụ chính | `http://localhost:8080` |
+| `svc-app-gateway`   | BFF + reverse proxy phục vụ UI | `http://localhost:5090` |
+| `worker-search-indexer`    | Worker cập nhật chỉ mục tìm kiếm | – (background worker, không expose HTTP) |
+| `worker-ocr`        | Worker gọi Dot OCR service | – (background worker, không expose HTTP) |
+| `worker-outbox-dispatcher` | Worker đọc outbox và đẩy sự kiện ra Kafka | – (background worker, không expose HTTP) |
+| `worker-notify`     | Worker gửi thông báo (email/webhook) | – (background worker, không expose HTTP) |
+
+### Chạy thủ công từng service
+
+- Monolith ECM:
+
+  ```bash
+  dotnet run --project src/ECM/ECM.Host/ECM.Host.csproj
+  ```
+
+- App Gateway (BFF + reverse proxy):
+
+  ```bash
+  dotnet run --project src/AppGateway/AppGateway.Api/AppGateway.Api.csproj
+  ```
+
+  Đảm bảo biến cấu hình `Services__Ecm` trỏ tới địa chỉ của monolith (ví dụ `http://localhost:8080`). Có thể đặt trong `appsettings.Development.json` hoặc thông qua biến môi trường.
+
+- Background workers (ví dụ Outbox Dispatcher):
+
+  ```bash
+  dotnet run --project src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.Worker.csproj
+  ```
+
+  Lặp lại tương tự cho các worker khác trong thư mục `src/Workers`.
+
+### Cấu hình worker OutboxDispatcher, SearchIndexer & Ocr
+
+Các background worker không đọc cấu hình từ `appsettings` chung của monolith mà mong đợi biến môi trường tương ứng khi chạy độc
+lập (hoặc thông qua Aspire AppHost). Một số thiết lập quan trọng:
+
+- **OutboxDispatcher** cần kết nối PostgreSQL để đọc bảng `ops.outbox`. Worker sử dụng `ConnectionStrings__Operations`, hãy đảm
+  bảo biến này trỏ tới đúng database/schema:
+
+  ```bash
+  export ConnectionStrings__Operations="Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
+  ```
+
+  > PowerShell:
+  >
+  > ```powershell
+  > $Env:ConnectionStrings__Operations = "Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm"
   > ```
 
 - **SearchIndexer** nghe các sự kiện từ Kafka/Redpanda. Cấu hình được bind vào section `Kafka` của worker, tương ứng với các biến
@@ -293,3 +443,7 @@ dotnet test ECM.sln --filter FullyQualifiedName~Document
 
 - [ARCHITECT.md](ARCHITECT.md) – mô tả kiến trúc tổng thể và các nguyên tắc thiết kế.
 - [docs/README.md](docs/README.md) – điểm bắt đầu để khám phá tài liệu chi tiết hơn.
+- [docs/ocr-integration.md](docs/ocr-integration.md) – hướng dẫn tích hợp Dot OCR (module + worker).
+- [docs/environment-configuration.md](docs/environment-configuration.md) – hướng dẫn ánh xạ biến môi trường, Azure secrets và thiết lập DEV local.
+- [docs/share-links.md](docs/share-links.md) – kiến trúc và quy trình cho tính năng chia sẻ tài liệu qua link rút gọn.
+- [docs/changelog.md](docs/changelog.md) – tổng hợp thay đổi ảnh hưởng tới client team (breaking change, hợp đồng API).

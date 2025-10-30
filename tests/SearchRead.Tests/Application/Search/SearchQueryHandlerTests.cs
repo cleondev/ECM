@@ -15,7 +15,7 @@ public class SearchQueryHandlerTests
     {
         var provider = new FakeSearchReadProvider();
         var handler = new SearchQueryHandler(provider);
-        var query = new SearchQuery("document", "hr", 10);
+        var query = new SearchQuery("document", Guid.NewGuid().ToString(), 10);
         var expectedResults = new[]
         {
             new SearchResult(Guid.NewGuid(), "Employee contract", 0.93),
@@ -45,5 +45,11 @@ public class SearchQueryHandlerTests
             ReceivedCancellationToken = cancellationToken;
             return Task.FromResult(Results);
         }
+
+        public Task<IReadOnlyCollection<string>> SuggestAsync(string term, int limit, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<string>>([]);
+
+        public Task<SearchFacetsResult> GetFacetsAsync(SearchFacetsQuery query, CancellationToken cancellationToken = default)
+            => Task.FromResult(SearchFacetsResult.Empty);
     }
 }

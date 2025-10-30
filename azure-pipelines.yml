@@ -1,204 +1,491 @@
-# Azure DevOps pipeline for building and deploying ECM to Linux servers
-# The pipeline is multi-stage: Build (restore, test, publish) and Deploy (per-target deployment).
-
-parameters:
-- name: linuxServers
-  type: object
-  displayName: Linux deployment targets
-  default:
-    - name: staging-app
-      displayName: 'Staging App Host'
-      environment: 'staging'
-      pool: 'linux-staging'
-      deployPath: '/opt/ecm'
-      services: 'ecm-host,ecm-gateway'
-      preDeployScript: ''
-      postDeployScript: ''
-      useSudo: 'auto'
-    - name: production-app
-      displayName: 'Production App Host'
-      environment: 'production'
-      pool: 'linux-production'
-      deployPath: '/opt/ecm'
-      services: 'ecm-host,ecm-gateway'
-      preDeployScript: ''
-      postDeployScript: ''
-      useSudo: 'auto'
-
 trigger:
   branches:
     include:
       - main
-
-pr:
-  branches:
-    include:
-      - main
       - develop
-      - feature/*
-      - bugfix/*
+      - 'feature/*'
 
 variables:
-  buildConfiguration: 'Release'
-  dotnetVersion: '9.0.x'
-  nodeVersion: '20.x'
-  artifactName: 'drop'
-  publishRoot: '$(Build.ArtifactStagingDirectory)/publish'
-  publishProjects: |
-    src/ECM/ECM.Host/ECM.Host.csproj
-    src/AppGateway/AppGateway.Api/AppGateway.Api.csproj
-    src/Workers/OutboxDispatcher.Worker/OutboxDispatcher.Worker.csproj
-    src/Workers/SearchIndexer.Worker/SearchIndexer.Worker.csproj
-    src/Workers/Notify.Worker/Notify.Worker.csproj
+  - group: ECM-SECRETS
 
 stages:
+# ==================== Build & Push ====================
 - stage: Build
-  displayName: Build & Test
+  displayName: 'Build & Push Docker Images'
   jobs:
-  - job: Build
-    displayName: Build & Publish Artifacts
+  - job: build_and_push
     pool:
-      vmImage: 'ubuntu-latest'
+      name: 'ECM_CI'
     steps:
+    # --- Notify: Build starting ---
+    - script: |
+        set -euo pipefail
+
+        webhook_url="${WEBHOOK_URL:-}"
+
+        if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$\(*\) ]]; then
+          echo "Webhook URL is not configured. Skipping build start notification."
+          exit 0
+        fi
+
+        # Convert multiline text -> JSON-safe text with <br> for line breaks
+        # 1) escape backslashes and quotes  2) replace \n -> <br>
+        raw="${BUILD_START_TEXT}"
+        esc="$(printf '%s' "$raw" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/<br>/g')"
+        payload="{\"text\":\"$esc\"}"
+
+        if curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null; then
+          echo "Sent build start notification."
+        else
+          echo "Failed to send build start notification." >&2
+        fi
+      displayName: '📢 Notify: Build stage is starting'
+      condition: always()
+      env:
+        WEBHOOK_URL: $(Team_WebHook_Url)
+        BUILD_START_TEXT: |
+          **Deployment Notice**
+
+          Pipeline **$(Build.DefinitionName)** is starting stage **$(System.StageDisplayName)**.
+
+          **Time**: $(Date:yyyy-MM-dd HH:mm:ss)
+          **Triggered by**: $(Build.RequestedFor)
+          **Branch**: $(Build.SourceBranchName)
+
+          Please prepare for the upcoming deployment.
+
     - checkout: self
-      clean: true
+      fetchDepth: 0
 
     - task: UseDotNet@2
-      displayName: 'Install .NET SDK'
       inputs:
-        packageType: 'sdk'
-        version: '$(dotnetVersion)'
-        performMultiLevelLookup: true
+        version: '9.x'
 
     - task: NodeTool@0
-      displayName: 'Install Node.js'
       inputs:
-        versionSpec: '$(nodeVersion)'
+        versionSpec: '20.x'
 
+    # --- Build & Push images ---
     - script: |
         set -euo pipefail
-        dotnet restore ECM.sln
-      displayName: 'Restore .NET dependencies'
 
-    - script: |
-        set -euo pipefail
-        dotnet build ECM.sln --configuration $(buildConfiguration) --no-restore
-      displayName: 'Build solution'
+        echo "= Login Harbor..."
+        echo "$HARBOR_PASS" | docker login harbor.local:8443 -u "$HARBOR_USER" --password-stdin
 
-    - script: |
-        set -euo pipefail
-        results_dir="$(Agent.TempDirectory)/test-results"
-        mkdir -p "$results_dir"
-        dotnet test ECM.sln --configuration $(buildConfiguration) --no-build \
-          --results-directory "$results_dir" \
-          --logger "trx;LogFileName=test-results.trx"
-        echo "##vso[task.setvariable variable=TestResultsDir]$results_dir"
-      displayName: 'Run tests'
+        TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
+        REGISTRY="harbor.local:8443/ecm"
 
-    - script: |
-        set -euo pipefail
-        pushd src/AppGateway/ui
-        npm install
-        npm run build
-        popd
-      displayName: 'Build App Gateway UI'
+        echo "= Build AppGateway.Api + UI"
+        docker build -f src/AppGateway/AppGateway.Api/Dockerfile -t "$REGISTRY/appgateway-api:$TAG" .
 
-    - script: |
-        set -euo pipefail
-        publish_root="$(publishRoot)"
-        rm -rf "$publish_root"
-        mkdir -p "$publish_root"
-        while IFS= read -r project; do
-          [[ -z "$project" ]] && continue
-          project_path="$(echo "$project" | xargs)"
-          [[ -z "$project_path" ]] && continue
-          project_name="$(basename "$project_path" .csproj)"
-          output_dir="$publish_root/$project_name"
-          echo "Publishing $project_path -> $output_dir"
-          dotnet publish "$project_path" --configuration $(buildConfiguration) --no-build --output "$output_dir"
-        done <<< "$(publishProjects)"
+        echo "= Build ECM.Host"
+        docker build -f src/ECM/ECM.Host/Dockerfile -t "$REGISTRY/ecm-host:$TAG" .
 
-        # Copy built SPA into AppGateway publish output when available
-        if [[ -d "src/AppGateway/ui/dist" ]]; then
-          gateway_publish="$publish_root/AppGateway.Api/wwwroot"
-          mkdir -p "$gateway_publish"
-          cp -a src/AppGateway/ui/dist/. "$gateway_publish"/
-        fi
-      displayName: 'Publish .NET services'
+        echo "= Build Workers"
+        docker build -f src/Workers/Notify.Worker/Dockerfile -t "$REGISTRY/notify-worker:$TAG" .
+        docker build -f src/Workers/OutboxDispatcher.Worker/Dockerfile -t "$REGISTRY/outbox-worker:$TAG" .
+        docker build -f src/Workers/SearchIndexer.Worker/Dockerfile -t "$REGISTRY/searchindexer-worker:$TAG" .
 
-    - script: |
-        set -euo pipefail
-        publish_root="$(publishRoot)"
-        manifest_path="$publish_root/manifest.json"
-        cat <<JSON > "$manifest_path"
-        {
-          "buildNumber": "$(Build.BuildNumber)",
-          "sourceVersion": "$(Build.SourceVersion)",
-          "configuration": "$(buildConfiguration)",
-          "createdUtc": "$(Build.BuildCreatedDate)",
-          "artifactName": "$(artifactName)"
-        }
-        JSON
-        mkdir -p "$publish_root/tools"
-        cp deploy/scripts/linux-deploy.sh "$publish_root/tools/"
-        chmod +x "$publish_root/tools/linux-deploy.sh"
-      displayName: 'Add deployment manifest & tools'
+        echo "= Push all images"
+        docker push "$REGISTRY/appgateway-api:$TAG"
+        docker push "$REGISTRY/ecm-host:$TAG"
+        docker push "$REGISTRY/notify-worker:$TAG"
+        docker push "$REGISTRY/outbox-worker:$TAG"
+        docker push "$REGISTRY/searchindexer-worker:$TAG"
+      displayName: 'Build & Push Docker Images'
+      env:
+        HARBOR_USER: $(HARBOR_USER)
+        HARBOR_PASS: $(HARBOR_PASS)
 
-    - task: PublishTestResults@2
-      displayName: 'Publish test results'
-      inputs:
-        testResultsFormat: 'VSTest'
-        testResultsFiles: '**/test-results.trx'
-        searchFolder: '$(TestResultsDir)'
-      condition: succeededOrFailed()
-
-    - task: PublishPipelineArtifact@1
-      displayName: 'Publish deployment artifact'
-      inputs:
-        targetPath: '$(publishRoot)'
-        artifact: '$(artifactName)'
-        publishLocation: 'pipeline'
-
+# ==================== Deploy ====================
 - stage: Deploy
-  displayName: Deploy to Linux servers
+  displayName: Deploy to App Server
   dependsOn: Build
-  condition: succeeded()
   jobs:
-  - ${{ each server in parameters.linuxServers }}:
-    - deployment: Deploy_${{ replace(server.name, '-', '_') }}
-      displayName: Deploy to ${{ server.displayName }}
-      environment: ${{ server.environment }}
-      pool:
-        name: ${{ server.pool }}
-        demands:
-          - agent.os -equals Linux
-      strategy:
-        runOnce:
-          deploy:
-            steps:
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download build artifact'
-              inputs:
-                buildType: 'current'
-                artifactName: '$(artifactName)'
-                targetPath: '$(Pipeline.Workspace)/$(artifactName)'
+  - job: deploy
+    pool:
+      name: 'ECM_CI'
+    steps:
+    # --- Notify: Deploy starting (Base64 template + date '+%d-%M-%Y %H:%M:%S') ---
+    - script: |
+        set -euo pipefail
 
-            - task: Bash@3
-              displayName: 'Deploy artifact to ${{ server.displayName }}'
-              inputs:
-                targetType: 'inline'
-                script: |
-                  set -euo pipefail
-                  artifact_dir="$(Pipeline.Workspace)/$(artifactName)"
-                  tool_path="$artifact_dir/tools/linux-deploy.sh"
-                  if [[ ! -x "$tool_path" ]]; then
-                    echo "Deployment tool not found at $tool_path" >&2
-                    exit 1
-                  fi
-                  "$tool_path" "$artifact_dir"
-              env:
-                ECM_DEPLOY_ROOT: ${{ server.deployPath }}
-                ECM_DEPLOY_SERVICES: ${{ server.services }}
-                ECM_DEPLOY_PRE_SCRIPT: ${{ server.preDeployScript }}
-                ECM_DEPLOY_POST_SCRIPT: ${{ server.postDeployScript }}
-                ECM_DEPLOY_USE_SUDO: ${{ server.useSudo }}
+        webhook_url="${WEBHOOK_URL:-}"
+        if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$\(*\) ]]; then
+          echo "Webhook URL is not configured. Skipping start notification."
+          exit 0
+        fi
+
+        # Decode template from secret
+        template="$(printf %s "${DEPLOY_BEFORE_B64:-}" | base64 -d || true)"
+        if [ -z "$template" ]; then
+          echo "Missing DEPLOY_BEFORE_B64; skip notification."
+          exit 0
+        fi
+
+        now="$(date '+%d-%M-%Y %H:%M:%S')"   # %M = phút
+        triggered_by="${BUILD_REQUESTED_FOR:-$(Build.RequestedFor)}"
+        branch="${BUILD_SOURCEBRANCHNAME:-$(Build.SourceBranchName)}"
+
+        # Replace placeholders
+        msg="${template/__TIME__/$now}"
+        msg="${msg/__TRIGGERED_BY__/$triggered_by}"
+        msg="${msg/__BRANCH__/$branch}"
+
+        # Escape for JSON + convert newlines to <br> to force visible line breaks
+        esc="$(printf '%s' "$msg" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/<br>/g')"
+        payload="{\"text\":\"$esc\"}"
+
+        curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null \
+          && echo "Sent deployment start notification." \
+          || { echo "Failed to send start notification." >&2; }
+      displayName: '📢 Notify: Deployment is about to start'
+      condition: always()
+      env:
+        WEBHOOK_URL: $(Team_WebHook_Url)
+        DEPLOY_BEFORE_B64: $(DEPLOY_BEFORE_B64)
+        BUILD_REQUESTED_FOR: $(Build.RequestedFor)
+        BUILD_SOURCEBRANCHNAME: $(Build.SourceBranchName)
+
+    # --- Deploy via SSH ---
+    - task: SSH@0
+      displayName: "Deploy to 172.20.1.24"
+      inputs:
+        sshEndpoint: "ecm-appserver-ssh"
+        runOptions: "inline"
+        failOnStdErr: false
+        inline: |
+          set -euo pipefail
+          cd /data/ecm
+
+          # ---------- Helpers ----------
+          choose_secret() {
+            local var_name="$1"
+            shift
+
+            local current="${!var_name:-}"
+            if [[ -n "$current" && "$current" != \$\(*\) ]]; then
+              printf -v "$var_name" '%s' "$current"
+              return
+            fi
+
+            local candidate
+            for candidate in "$@"; do
+              if [[ -z "$candidate" || "$candidate" == \$\(*\) ]]; then
+                continue
+              fi
+              printf -v "$var_name" '%s' "$candidate"
+              return
+            done
+
+            printf -v "$var_name" ''
+          }
+
+          require_env() {
+            local var_name="$1"
+            local description="$2"
+            shift 2
+
+            choose_secret "$var_name" "$@"
+
+            local resolved="${!var_name:-}"
+            if [[ -n "$resolved" ]]; then
+              export "$var_name"="$resolved"
+            else
+              missing+=("$description")
+            fi
+          }
+
+          optional_env() {
+            local var_name="$1"
+            local description="$2"
+            shift 2
+
+            choose_secret "$var_name" "$@"
+
+            local resolved="${!var_name:-}"
+            if [[ -n "$resolved" ]]; then
+              export "$var_name"="$resolved"
+            else
+              optional_missing+=("$description")
+            fi
+          }
+
+          # Mask a value for safe logging
+          mask_value() {
+            local v="${1:-}"
+            local n=${#v}
+            if (( n == 0 )); then
+              echo ""
+              return
+            fi
+            if (( n <= 8 )); then
+              echo "********"
+            else
+              # show last 4 chars + length
+              echo "****${v: -4} (len=${n})"
+            fi
+          }
+
+          # Log presence of a variable safely
+          log_var() {
+            local var_name="$1"
+            local val="${!var_name:-}"
+            if [[ -n "$val" ]]; then
+              echo "[OK] ${var_name}=$(mask_value "$val")"
+            else
+              echo "[MISSING] ${var_name}"
+            fi
+          }
+
+          # ---------- Resolve inputs ----------
+          IMAGE_TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
+
+          missing=()
+          optional_missing=()
+
+          require_env MINIO_ENDPOINT \
+            "MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl" \
+            '$(ECM_FileStorage__ServiceUrl)'
+          require_env MINIO_ACCESS_KEY \
+            "MINIO_ACCESS_KEY / ECM_FileStorage__AccessKeyId" \
+            '$(ECM_FileStorage__AccessKeyId)'
+          require_env MINIO_SECRET_KEY \
+            "MINIO_SECRET_KEY / ECM_FileStorage__SecretAccessKey" \
+            '$(ECM_FileStorage__SecretAccessKey)'
+
+          require_env REDPANDA_BROKERS \
+            "REDPANDA_BROKERS / ECM_Kafka__BootstrapServers" \
+            '$(ECM_Kafka__BootstrapServers)'
+          require_env Kafka__BootstrapServers \
+            "Kafka__BootstrapServers / ECM_Kafka__BootstrapServers | REDPANDA_BROKERS" \
+            "${REDPANDA_BROKERS:-}" \
+            '$(ECM_Kafka__BootstrapServers)'
+
+          require_env Services__Ecm \
+            "Services__Ecm" \
+            '$(Services__Ecm)'
+
+          require_env AzureAd__ClientSecret \
+            "AzureAd__ClientSecret / ECM_AzureAd__ClientSecret" \
+            '$(AzureAd__ClientSecret)' \
+            '$(ECM_AzureAd__ClientSecret)'
+          optional_env ECM_AzureAd__ClientSecret \
+            "ECM_AzureAd__ClientSecret / AzureAd__ClientSecret" \
+            '$(ECM_AzureAd__ClientSecret)' \
+            "${AzureAd__ClientSecret:-}"
+
+          require_env HARBOR_USER \
+            "HARBOR_USER" \
+            '$(HARBOR_USER)'
+          require_env HARBOR_PASS \
+            "HARBOR_PASS" \
+            '$(HARBOR_PASS)'
+
+          module_mappings=(
+            IAM:iam
+            Document:doc
+            File:doc
+            Workflow:wf
+            Search:search
+            Ocr:ocr
+            Operations:ops
+          )
+
+          require_env ECM_Database__Connections__iam \
+            "ECM_Database__Connections__iam / ConnectionStrings__IAM" \
+            '$(ECM_Database__Connections__iam)' \
+            '$(ConnectionStrings__IAM)'
+          if [[ -n "${ECM_Database__Connections__iam:-}" ]]; then
+            export ConnectionStrings__IAM="${ECM_Database__Connections__iam}"
+          fi
+
+          require_env ECM_Database__Connections__doc \
+            "ECM_Database__Connections__doc / ConnectionStrings__Document" \
+            '$(ECM_Database__Connections__doc)' \
+            '$(ConnectionStrings__Document)' \
+            '$(ConnectionStrings__File)'
+          if [[ -n "${ECM_Database__Connections__doc:-}" ]]; then
+            export ConnectionStrings__Document="${ECM_Database__Connections__doc}"
+            export ConnectionStrings__File="${ECM_Database__Connections__doc}"
+          fi
+
+          require_env ECM_Database__Connections__wf \
+            "ECM_Database__Connections__wf / ConnectionStrings__Workflow" \
+            '$(ECM_Database__Connections__wf)' \
+            '$(ConnectionStrings__Workflow)'
+          if [[ -n "${ECM_Database__Connections__wf:-}" ]]; then
+            export ConnectionStrings__Workflow="${ECM_Database__Connections__wf}"
+          fi
+
+          require_env ECM_Database__Connections__search \
+            "ECM_Database__Connections__search / ConnectionStrings__Search" \
+            '$(ECM_Database__Connections__search)' \
+            '$(ConnectionStrings__Search)'
+          if [[ -n "${ECM_Database__Connections__search:-}" ]]; then
+            export ConnectionStrings__Search="${ECM_Database__Connections__search}"
+          fi
+
+          require_env ECM_Database__Connections__ocr \
+            "ECM_Database__Connections__ocr / ConnectionStrings__Ocr" \
+            '$(ECM_Database__Connections__ocr)' \
+            '$(ConnectionStrings__Ocr)'
+          if [[ -n "${ECM_Database__Connections__ocr:-}" ]]; then
+            export ConnectionStrings__Ocr="${ECM_Database__Connections__ocr}"
+          fi
+
+          require_env ECM_Database__Connections__ops \
+            "ECM_Database__Connections__ops / ConnectionStrings__Operations" \
+            '$(ECM_Database__Connections__ops)' \
+            '$(ConnectionStrings__Operations)'
+          if [[ -n "${ECM_Database__Connections__ops:-}" ]]; then
+            export ConnectionStrings__Operations="${ECM_Database__Connections__ops}"
+          fi
+
+          require_env ECM_FileStorage__BucketName "ECM_FileStorage__BucketName" '$(ECM_FileStorage__BucketName)'
+          require_env ECM_FileStorage__ServiceUrl "ECM_FileStorage__ServiceUrl" '$(ECM_FileStorage__ServiceUrl)'
+          require_env ECM_FileStorage__AccessKeyId "ECM_FileStorage__AccessKeyId" '$(ECM_FileStorage__AccessKeyId)'
+          require_env ECM_FileStorage__SecretAccessKey "ECM_FileStorage__SecretAccessKey" '$(ECM_FileStorage__SecretAccessKey)'
+
+          if [[ -n "${ECM_FileStorage__BucketName:-}" ]]; then
+            export FileStorage__BucketName="${ECM_FileStorage__BucketName}"
+          fi
+          if [[ -n "${ECM_FileStorage__ServiceUrl:-}" ]]; then
+            export FileStorage__ServiceUrl="${ECM_FileStorage__ServiceUrl}"
+          fi
+          if [[ -n "${ECM_FileStorage__AccessKeyId:-}" ]]; then
+            export FileStorage__AccessKeyId="${ECM_FileStorage__AccessKeyId}"
+          fi
+          if [[ -n "${ECM_FileStorage__SecretAccessKey:-}" ]]; then
+            export FileStorage__SecretAccessKey="${ECM_FileStorage__SecretAccessKey}"
+          fi
+
+          require_env ECM_Workflow__Camunda__BaseUrl "ECM_Workflow__Camunda__BaseUrl" '$(ECM_Workflow__Camunda__BaseUrl)'
+          optional_env ECM_Workflow__Camunda__TenantId "ECM_Workflow__Camunda__TenantId" '$(ECM_Workflow__Camunda__TenantId)'
+
+          if [[ -n "${ECM_Workflow__Camunda__BaseUrl:-}" ]]; then
+            export Workflow__Camunda__BaseUrl="${ECM_Workflow__Camunda__BaseUrl}"
+          fi
+          if [[ -n "${ECM_Workflow__Camunda__TenantId:-}" ]]; then
+            export Workflow__Camunda__TenantId="${ECM_Workflow__Camunda__TenantId}"
+          fi
+
+          if [[ -n "${AzureAd__ClientSecret:-}" ]]; then
+            export ECM_AzureAd__ClientSecret="${ECM_AzureAd__ClientSecret:-${AzureAd__ClientSecret}}"
+          fi
+
+          # ---------- Diagnostics: log each config safely ----------
+          echo "---- Diagnostics: resolved configuration (masked) ----"
+          # Core connections
+          
+          for mapping in "${module_mappings[@]}"; do
+            module="${mapping%%:*}"
+            schema="${mapping##*:}"
+
+            log_var "ECM_Database__Connections__${schema}"
+            log_var "ConnectionStrings__${module}"
+          done
+
+          # Storage
+          log_var ECM_FileStorage__BucketName
+          log_var ECM_FileStorage__ServiceUrl
+          log_var ECM_FileStorage__AccessKeyId
+          log_var ECM_FileStorage__SecretAccessKey
+          log_var MINIO_ENDPOINT
+          log_var MINIO_ACCESS_KEY
+          log_var MINIO_SECRET_KEY
+
+          # Messaging
+          log_var REDPANDA_BROKERS
+          log_var Kafka__BootstrapServers
+
+          # Services / Auth
+          log_var Services__Ecm
+          log_var ECM_Workflow__Camunda__BaseUrl
+          log_var ECM_Workflow__Camunda__TenantId
+          log_var AzureAd__ClientSecret
+          log_var ECM_AzureAd__ClientSecret
+
+          # Harbor (deploy side)
+          HARBOR_USER_VAL="${HARBOR_USER:-}"
+          HARBOR_PASS_VAL="${HARBOR_PASS:-}"
+          if [[ -n "$HARBOR_USER_VAL" ]]; then echo "[OK] HARBOR_USER=$(mask_value "$HARBOR_USER_VAL")"; else echo "[MISSING] HARBOR_USER"; fi
+          if [[ -n "$HARBOR_PASS_VAL" ]]; then echo "[OK] HARBOR_PASS=$(mask_value "$HARBOR_PASS_VAL")"; else echo "[MISSING] HARBOR_PASS"; fi
+
+          echo "---- End diagnostics ----"
+
+          # ---------- Fail fast if required env missing ----------
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            echo "[deploy] ❌ Thiếu biến môi trường bắt buộc:"
+            for item in "${missing[@]}"; do
+              echo " - $item"
+            done
+            exit 1
+          fi
+
+          if [[ ${#optional_missing[@]} -gt 0 ]]; then
+            echo "[deploy] ⚠️ Thiếu biến môi trường tùy chọn:"
+            for item in "${optional_missing[@]}"; do
+              echo " - $item"
+            done
+          fi
+
+          export IMAGE_TAG
+
+          echo "= Login Harbor"
+          echo "$HARBOR_PASS" | docker login harbor.local:8443 -u "$HARBOR_USER" --password-stdin
+
+          echo "+ Pulling images..."
+          docker compose pull 2>&1
+
+          echo "= Updating services..."
+          docker compose up -d --remove-orphans 2>&1
+
+          echo "' Done."
+
+    # --- Notify: Deploy completed (Base64 template) ---
+    - script: |
+        set -euo pipefail
+
+        webhook_url="${WEBHOOK_URL:-}"
+        if [ -z "$webhook_url" ] || [[ "$webhook_url" == \$\(*\) ]]; then
+          echo "Webhook URL is not configured. Skipping completion notification."
+          exit 0
+        fi
+
+        template="$(printf %s "${DEPLOY_AFTER_B64:-}" | base64 -d || true)"
+        if [ -z "$template" ]; then
+          echo "Missing DEPLOY_AFTER_B64; skip notification."
+          exit 0
+        fi
+
+        deploy_time="$(date '+%H:%M:%S')"
+        deployed_by="${AGENT_MACHINENAME:-$(Agent.MachineName)}"
+        from_ref="HEAD"
+        changeset="${BUILD_SOURCEVERSION:-$(Build.SourceVersion)}"
+        commit_msg="${BUILD_SOURCEVERSIONMESSAGE:-$(Build.SourceVersionMessage)}"
+        repo_path="${BUILD_SOURCESDIRECTORY:-$(Build.SourcesDirectory)}"
+
+        msg="${template/__DEPLOY_TIME__/$deploy_time}"
+        msg="${msg/__DEPLOYED_BY__/$deployed_by}"
+        msg="${msg/__FROM__/$from_ref}"
+        msg="${msg/__CHANGESET__/$changeset}"
+        msg="${msg/__COMMIT_MSG__/$commit_msg}"
+        msg="${msg/__REPO_PATH__/$repo_path}"
+
+        # Escape + chuyển newline thành <br> để hiển thị đúng
+        esc="$(printf '%s' "$msg" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/<br>/g')"
+        payload="{\"text\":\"$esc\"}"
+
+        curl -sS -X POST -H 'Content-Type: application/json' -d "$payload" "$webhook_url" > /dev/null \
+          && echo "Sent deployment completion notification." \
+          || { echo "Failed to send completion notification." >&2; }
+      displayName: '✅ Notify: Deployment completed'
+      condition: succeeded()
+      env:
+        WEBHOOK_URL: $(Team_WebHook_Url)
+        DEPLOY_AFTER_B64: $(DEPLOY_AFTER_B64)
+        AGENT_MACHINENAME: $(Agent.MachineName)
+        BUILD_SOURCEVERSION: $(Build.SourceVersion)
+        BUILD_SOURCEVERSIONMESSAGE: $(Build.SourceVersionMessage)
+        BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)

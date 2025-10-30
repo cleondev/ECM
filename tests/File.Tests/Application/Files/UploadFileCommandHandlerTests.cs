@@ -58,6 +58,15 @@ public class UploadFileCommandHandlerTests
             Uploads.Add((storageKey, contentType));
             return Task.CompletedTask;
         }
+
+        public Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default)
+            => Task.FromResult<Uri?>(new Uri($"https://files.test/{storageKey}"));
+
+        public Task<FileDownload?> DownloadAsync(string storageKey, CancellationToken cancellationToken = default)
+            => Task.FromResult<FileDownload?>(null);
+
+        public Task<FileDownload?> DownloadThumbnailAsync(string storageKey, int width, int height, string fit, CancellationToken cancellationToken = default)
+            => Task.FromResult<FileDownload?>(null);
     }
 
     private sealed class FakeStorageKeyGenerator : IStorageKeyGenerator

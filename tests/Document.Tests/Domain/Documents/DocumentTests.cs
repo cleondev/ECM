@@ -21,8 +21,7 @@ public class DocumentTests
             "  Draft  ",
             ownerId,
             createdBy,
-            now,
-            "   ");
+            now);
 
         Assert.Equal(title, document.Title);
         Assert.Equal("Policy", document.DocType);
@@ -30,16 +29,17 @@ public class DocumentTests
         Assert.Equal("Internal", document.Sensitivity);
         Assert.Equal(ownerId, document.OwnerId);
         Assert.Equal(createdBy, document.CreatedBy);
-        Assert.Null(document.Department);
+        Assert.Null(document.GroupId);
         Assert.Equal(now, document.CreatedAtUtc);
         Assert.Equal(now, document.UpdatedAtUtc);
         Assert.Null(document.TypeId);
     }
 
     [Fact]
-    public void Create_WithProvidedSensitivity_TrimsValue()
+    public void Create_WithProvidedSensitivityAndGroupId_AssignsValues()
     {
         var now = DateTimeOffset.UtcNow;
+        var groupId = Guid.NewGuid();
         var document = DomainDocument.Create(
             DocumentTitle.Create("Procedure"),
             "Guide",
@@ -47,11 +47,11 @@ public class DocumentTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             now,
-            department: " Operations ",
+            groupId: groupId,
             sensitivity: "  Confidential  ");
 
         Assert.Equal("Confidential", document.Sensitivity);
-        Assert.Equal("Operations", document.Department);
+        Assert.Equal(groupId, document.GroupId);
     }
 
     [Theory]
@@ -160,7 +160,7 @@ public class DocumentTests
     }
 
     [Fact]
-    public void UpdateDepartment_WithWhitespace_SetsDepartmentToNull()
+    public void UpdateGroupId_WithEmptyGuid_SetsGroupIdToNull()
     {
         var document = DomainDocument.Create(
             DocumentTitle.Create("Doc"),
@@ -169,17 +169,17 @@ public class DocumentTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             DateTimeOffset.UtcNow,
-            department: "Finance");
+            groupId: Guid.NewGuid());
 
         var updatedAt = DateTimeOffset.UtcNow.AddMinutes(10);
-        document.UpdateDepartment("   ", updatedAt);
+        document.UpdateGroupId(Guid.Empty, updatedAt);
 
-        Assert.Null(document.Department);
+        Assert.Null(document.GroupId);
         Assert.Equal(updatedAt, document.UpdatedAtUtc);
     }
 
     [Fact]
-    public void UpdateDepartment_WithValue_TrimsWhitespace()
+    public void UpdateGroupId_WithValue_SetsProperty()
     {
         var document = DomainDocument.Create(
             DocumentTitle.Create("Doc"),
@@ -190,9 +190,10 @@ public class DocumentTests
             DateTimeOffset.UtcNow);
 
         var updatedAt = DateTimeOffset.UtcNow.AddMinutes(15);
-        document.UpdateDepartment("  Legal  ", updatedAt);
+        var groupId = Guid.NewGuid();
+        document.UpdateGroupId(groupId, updatedAt);
 
-        Assert.Equal("Legal", document.Department);
+        Assert.Equal(groupId, document.GroupId);
         Assert.Equal(updatedAt, document.UpdatedAtUtc);
     }
 
