@@ -24,6 +24,7 @@ internal static class UserResponseMapper
             summary.Email,
             summary.DisplayName,
             summary.IsActive,
+            summary.HasPassword,
             summary.CreatedAtUtc,
             summary.PrimaryGroupId,
             summary.GroupIds,

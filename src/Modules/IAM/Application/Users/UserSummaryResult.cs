@@ -14,4 +14,5 @@ public sealed record UserSummaryResult(
     Guid? PrimaryGroupId,
     IReadOnlyCollection<Guid> GroupIds,
     IReadOnlyCollection<RoleSummaryResult> Roles,
-    IReadOnlyCollection<GroupSummaryResult> Groups);
+    IReadOnlyCollection<GroupSummaryResult> Groups,
+    bool HasPassword);
