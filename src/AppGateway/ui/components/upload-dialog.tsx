@@ -156,6 +156,29 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     }
   }, [open, uppy, clearAutoCloseTimeout])
 
+  const openFileDialog = useCallback(() => {
+    const dashboardRoot = dashboardRootRef.current
+
+    if (!dashboardRoot) {
+      return
+    }
+
+    const hiddenInput = dashboardRoot.querySelector<HTMLInputElement>(
+      ".uppy-Dashboard-input",
+    )
+
+    if (hiddenInput) {
+      hiddenInput.click()
+      return
+    }
+
+    const browseButton = dashboardRoot.querySelector<HTMLButtonElement>(
+      ".uppy-Dashboard-browse",
+    )
+
+    browseButton?.click()
+  }, [])
+
   useEffect(() => {
     if (!open) {
       return
@@ -168,27 +191,9 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
     let cleanup: (() => void) | undefined
 
-    const triggerFileSelection = () => {
-      const hiddenInput = dashboardRoot.querySelector<HTMLInputElement>(
-        ".uppy-Dashboard-input",
-      )
-
-      if (hiddenInput) {
-        hiddenInput.click()
-        return
-      }
-
-      const browseButton = dashboardRoot.querySelector<HTMLButtonElement>(
-        ".uppy-Dashboard-browse",
-      )
-
-      browseButton?.click()
-    }
-
     const attachInteractions = () => {
       const addFilesElement = dashboardRoot.querySelector<HTMLDivElement>(
-        // Note: Uppy spells this class without a hyphen before "Add".
-        ".uppy-DashboardAddFiles",
+        ".uppy-Dashboard-AddFiles",
       )
 
       if (!addFilesElement) {
@@ -221,7 +226,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
         }
 
         event.preventDefault()
-        triggerFileSelection()
+        openFileDialog()
       }
 
       const handleKeyDown = (event: KeyboardEvent) => {
@@ -234,7 +239,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
         }
 
         event.preventDefault()
-        triggerFileSelection()
+        openFileDialog()
       }
 
       const previousTabIndex = addFilesElement.getAttribute("tabindex")
@@ -283,7 +288,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       observer.disconnect()
       cleanup?.()
     }
-  }, [open])
+  }, [open, openFileDialog])
 
   useEffect(() => {
     return () => {
@@ -607,6 +612,17 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden gap-6">
             <div className="flex flex-col gap-3" ref={dashboardRootRef}>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={openFileDialog}
+                  className="gap-2"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  Browse files
+                </Button>
+              </div>
               <Dashboard
                 uppy={uppy}
                 width="100%"
