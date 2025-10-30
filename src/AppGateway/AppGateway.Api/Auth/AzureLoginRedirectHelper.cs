@@ -74,7 +74,8 @@ internal static class AzureLoginRedirectHelper
             return null;
         }
 
-        var path = PathString.FromUriComponent(trimmed);
+        var (pathSegment, suffix) = SplitPathAndSuffix(trimmed);
+        var path = PathString.FromUriComponent(pathSegment);
 
         if (!path.HasValue)
         {
@@ -88,14 +89,18 @@ internal static class AzureLoginRedirectHelper
 
         if (path == RootPath)
         {
-            return "/";
+            return suffix.Length > 0
+                ? string.Concat("/", suffix)
+                : "/";
         }
 
         var normalized = path.Value!;
 
-        return normalized.Length > 1
+        var normalizedPath = normalized.Length > 1
             ? normalized.TrimEnd('/')
             : normalized;
+
+        return string.Concat(normalizedPath, suffix);
     }
 
     private static string FallbackDefault(string defaultPath, bool allowRoot)
@@ -137,7 +142,37 @@ internal static class AzureLoginRedirectHelper
             return target;
         }
 
-        var combined = pathBase.Add(PathString.FromUriComponent(target));
-        return combined.Value ?? target;
+        var (pathSegment, suffix) = SplitPathAndSuffix(target);
+        var combined = pathBase.Add(PathString.FromUriComponent(pathSegment));
+        var combinedPath = combined.Value ?? pathSegment;
+
+        return string.Concat(combinedPath, suffix);
+    }
+
+    private static (string PathSegment, string Suffix) SplitPathAndSuffix(string value)
+    {
+        var queryIndex = value.IndexOf('?');
+        var fragmentIndex = value.IndexOf('#');
+
+        int suffixIndex;
+        if (queryIndex < 0)
+        {
+            suffixIndex = fragmentIndex;
+        }
+        else if (fragmentIndex < 0)
+        {
+            suffixIndex = queryIndex;
+        }
+        else
+        {
+            suffixIndex = Math.Min(queryIndex, fragmentIndex);
+        }
+
+        if (suffixIndex < 0)
+        {
+            return (value, string.Empty);
+        }
+
+        return (value[..suffixIndex], value[suffixIndex..]);
     }
 }
