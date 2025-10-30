@@ -575,7 +575,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <a href="/profile/" className="cursor-pointer">
+              <a href="/me/" className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </a>

@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { fetchCurrentUserProfile, updateCurrentUserProfile, updateUserAvatar, fetchGroups } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import type { Group, User } from "@/lib/types"
@@ -39,8 +38,8 @@ import {
 import { cn } from "@/lib/utils"
 
 const APP_HOME_ROUTE = "/app/"
-const PROFILE_ROUTE = "/profile/"
-const SIGN_IN_ROUTE = `/signin/?redirectUri=${encodeURIComponent(PROFILE_ROUTE)}`
+const ME_ROUTE = "/me/"
+const SIGN_IN_ROUTE = `/signin/?redirectUri=${encodeURIComponent(ME_ROUTE)}`
 
 type ProfileFormState = {
   displayName: string
@@ -73,7 +72,8 @@ export default function ProfilePage() {
   const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
-  const { isAuthenticated, isChecking } = useAuthGuard(PROFILE_ROUTE)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(() => !cachedSnapshot?.user)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
     const locationSnapshot =
@@ -108,25 +108,25 @@ export default function ProfilePage() {
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated || isChecking) {
-      console.debug(
-        "[profile] Bỏ qua việc tải hồ sơ vì isAuthenticated=%s, isChecking=%s",
-        isAuthenticated,
-        isChecking,
-      )
-      return
-    }
-
     let mounted = true
 
     const loadProfile = async () => {
       console.debug("[profile] Bắt đầu tải hồ sơ người dùng trong trang profile.")
+
+      if (mounted) {
+        setIsLoadingProfile(true)
+        setFeedback(null)
+      }
+
       try {
         const profile = await fetchCurrentUserProfile()
         if (!mounted) return
 
         if (!profile) {
           console.warn("[profile] API trả về null, chuyển hướng tới trang đăng nhập.")
+          setUser(null)
+          setIsRedirecting(true)
+          setIsLoadingProfile(false)
           router.replace(SIGN_IN_ROUTE)
           return
         }
@@ -157,6 +157,10 @@ export default function ProfilePage() {
           type: "error",
           message: "Không thể tải hồ sơ người dùng. Vui lòng thử lại.",
         })
+      } finally {
+        if (mounted) {
+          setIsLoadingProfile(false)
+        }
       }
     }
 
@@ -165,7 +169,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false
     }
-  }, [isAuthenticated, isChecking, router])
+  }, [router])
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -350,22 +354,29 @@ export default function ProfilePage() {
     }
   }, [user?.createdAtUtc])
 
-  if (isChecking) {
+  if (isRedirecting) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-muted-foreground">Đang kiểm tra trạng thái đăng nhập…</div>
+        <div className="text-muted-foreground">Đang chuyển hướng tới trang đăng nhập…</div>
       </div>
     )
   }
 
-  if (!isAuthenticated) {
-    return null
+  if (isLoadingProfile && !user) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-muted-foreground">Đang tải hồ sơ người dùng…</div>
+      </div>
+    )
   }
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-muted-foreground">Loading...</div>
+      <div className="flex h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+        <div className="text-base text-muted-foreground">
+          Không thể tải hồ sơ người dùng. Vui lòng thử lại hoặc quay về trang chủ.
+        </div>
+        <Button onClick={() => router.replace(APP_HOME_ROUTE)}>Quay về trang quản lý tập tin</Button>
       </div>
     )
   }
