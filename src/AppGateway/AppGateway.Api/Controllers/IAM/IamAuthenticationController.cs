@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Roles;
@@ -28,6 +29,8 @@ public sealed class IamAuthenticationController(
     private readonly IEcmApiClient _client = client;
     private readonly IUserProvisioningService _provisioningService = provisioningService;
     private readonly ILogger<IamAuthenticationController> _logger = logger;
+    private const string PasswordLoginInvalidProfileMessage =
+        "Password login principal had an invalid stored profile. Signing out.";
 
     [HttpGet("check-login")]
     [AllowAnonymous]
@@ -46,6 +49,23 @@ public sealed class IamAuthenticationController(
         if (User.Identity?.IsAuthenticated != true)
         {
             return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
+        }
+
+        if (IsPasswordLoginPrincipal(User))
+        {
+            var profile = GetProfileFromPrincipal(User, out var invalidProfileClaim);
+
+            if (profile is not null)
+            {
+                return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, profile));
+            }
+
+            if (invalidProfileClaim)
+            {
+                _logger.LogWarning(PasswordLoginInvalidProfileMessage);
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
+            }
         }
 
         try
@@ -129,6 +149,8 @@ public sealed class IamAuthenticationController(
         identity.AddClaim(new Claim(ClaimTypes.Name, user.DisplayName));
         identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         identity.AddClaim(new Claim("preferred_username", user.Email));
+        identity.AddClaim(new Claim(PasswordLoginClaims.MarkerClaimType, PasswordLoginClaims.MarkerClaimValue));
+        identity.AddClaim(new Claim(PasswordLoginClaims.ProfileClaimType, JsonSerializer.Serialize(user)));
 
         if (user.PrimaryGroupId.HasValue && user.PrimaryGroupId.Value != Guid.Empty)
         {
@@ -161,6 +183,30 @@ public sealed class IamAuthenticationController(
 
         return new ClaimsPrincipal(identity);
     }
+
+    private static bool IsPasswordLoginPrincipal(ClaimsPrincipal principal)
+        => principal.HasClaim(PasswordLoginClaims.MarkerClaimType, PasswordLoginClaims.MarkerClaimValue);
+
+    private static UserSummaryDto? GetProfileFromPrincipal(ClaimsPrincipal principal, out bool invalidProfileClaim)
+    {
+        invalidProfileClaim = false;
+
+        var claim = principal.FindFirst(PasswordLoginClaims.ProfileClaimType);
+        if (claim is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<UserSummaryDto>(claim.Value);
+        }
+        catch (JsonException)
+        {
+            invalidProfileClaim = true;
+            return null;
+        }
+    }
 }
 
 public sealed class PasswordLoginRequest
@@ -170,4 +216,11 @@ public sealed class PasswordLoginRequest
     public string Password { get; init; } = string.Empty;
 
     public string? RedirectUri { get; init; }
+}
+
+internal static class PasswordLoginClaims
+{
+    internal const string MarkerClaimType = "appgateway:password-login";
+    internal const string MarkerClaimValue = "true";
+    internal const string ProfileClaimType = "appgateway:password-login:profile";
 }
