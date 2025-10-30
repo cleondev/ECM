@@ -97,10 +97,13 @@ function TagTreeItem({
   const isSelected = selectedTag?.id === tag.id
   const isNamespace = tag.kind === "namespace"
   const canSelect = !isNamespace
-  const canManage = tag.kind === "label"
-  const canAddChild = tag.kind === "namespace" || tag.kind === "label"
+  const canManage = tag.kind === "label" && !tag.isSystem
+  const canAddChild = tag.kind === "namespace" || (tag.kind === "label" && !tag.isSystem)
 
-  const displayIcon = tag.icon && tag.icon.trim() !== "" ? tag.icon : DEFAULT_TAG_ICON
+  const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
+  const indicatorStyle = tag.color
+    ? { backgroundColor: tag.color, borderColor: tag.color }
+    : undefined
 
   const tagActions: TagAction[] = [
     ...(canManage
@@ -171,7 +174,7 @@ function TagTreeItem({
                 type="button"
                 onClick={() => {
                   if (canSelect) {
-                    onTagClick({ id: tag.id, name: tag.name })
+                    onTagClick({ id: tag.id, name: tag.name, namespaceId: tag.namespaceId })
                   }
                 }}
                 className="flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:cursor-default"
@@ -186,8 +189,9 @@ function TagTreeItem({
                   <span
                     className={cn(
                       "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
-                      tag.color ? ["leftbar-tag-indicator--custom", tag.color] : null,
+                      tag.color ? "leftbar-tag-indicator--custom" : null,
                     )}
+                    style={indicatorStyle}
                   />
                   <span className="text-xs flex-shrink-0">{displayIcon}</span>
                   <span className="truncate text-sm text-foreground" title={tag.name}>
@@ -346,7 +350,12 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     } else if (dialogMode === "add-child" && parentTag) {
       await createTag(data, parentTag)
     } else {
-      await createTag(data)
+      const namespaceNode = tagTree.find((node) => node.kind === "namespace")
+      if (!namespaceNode) {
+        console.warn("[sidebar] Unable to determine namespace for new tag creation")
+        return
+      }
+      await createTag(data, namespaceNode)
     }
     const updatedTags = await fetchTags()
     setTagTree(updatedTags)

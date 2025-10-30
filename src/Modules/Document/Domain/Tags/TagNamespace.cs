@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace ECM.Document.Domain.Tags;
 
@@ -8,17 +9,16 @@ public sealed class TagNamespace
 
     private TagNamespace()
     {
-        NamespaceSlug = null!;
-        Kind = null!;
+        Scope = null!;
     }
 
     private TagNamespace(
         Guid id,
-        string namespaceSlug,
-        string kind,
+        string scope,
         Guid? ownerUserId,
+        Guid? ownerGroupId,
         string? displayName,
-        string? description,
+        bool isSystem,
         DateTimeOffset createdAtUtc)
         : this()
     {
@@ -27,14 +27,9 @@ public sealed class TagNamespace
             throw new ArgumentException("Namespace identifier is required.", nameof(id));
         }
 
-        if (string.IsNullOrWhiteSpace(namespaceSlug))
+        if (string.IsNullOrWhiteSpace(scope))
         {
-            throw new ArgumentException("Namespace slug is required.", nameof(namespaceSlug));
-        }
-
-        if (string.IsNullOrWhiteSpace(kind))
-        {
-            throw new ArgumentException("Namespace kind is required.", nameof(kind));
+            throw new ArgumentException("Namespace scope is required.", nameof(scope));
         }
 
         if (createdAtUtc == default)
@@ -42,46 +37,63 @@ public sealed class TagNamespace
             throw new ArgumentException("Creation timestamp is required.", nameof(createdAtUtc));
         }
 
-        var normalizedKind = kind.Trim();
-        if (!string.Equals(normalizedKind, "system", StringComparison.Ordinal)
-            && !string.Equals(normalizedKind, "user", StringComparison.Ordinal))
+        var normalizedScope = scope.Trim().ToLowerInvariant();
+        if (!string.Equals(normalizedScope, "global", StringComparison.Ordinal)
+            && !string.Equals(normalizedScope, "group", StringComparison.Ordinal)
+            && !string.Equals(normalizedScope, "user", StringComparison.Ordinal))
         {
-            throw new ArgumentException("Namespace kind must be either 'system' or 'user'.", nameof(kind));
+            throw new ArgumentException("Namespace scope must be one of: global, group, user.", nameof(scope));
+        }
+
+        var normalizedOwnerUserId = NormalizeOwner(ownerUserId);
+        var normalizedOwnerGroupId = NormalizeOwner(ownerGroupId);
+
+        if (string.Equals(normalizedScope, "user", StringComparison.Ordinal) && normalizedOwnerUserId is null)
+        {
+            throw new ArgumentException("User namespaces must specify the owning user identifier.", nameof(ownerUserId));
+        }
+
+        if (string.Equals(normalizedScope, "group", StringComparison.Ordinal) && normalizedOwnerGroupId is null)
+        {
+            throw new ArgumentException("Group namespaces must specify the owning group identifier.", nameof(ownerGroupId));
         }
 
         Id = id;
-        NamespaceSlug = namespaceSlug.Trim();
-        Kind = normalizedKind;
-        OwnerUserId = ownerUserId;
+        Scope = normalizedScope;
+        OwnerUserId = normalizedOwnerUserId;
+        OwnerGroupId = normalizedOwnerGroupId;
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
-        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        IsSystem = isSystem;
         CreatedAtUtc = createdAtUtc;
     }
 
     public static TagNamespace Create(
-        string namespaceSlug,
-        string kind,
+        string scope,
         Guid? ownerUserId,
+        Guid? ownerGroupId,
         string? displayName,
-        string? description,
+        bool isSystem,
         DateTimeOffset createdAtUtc)
     {
-        return new TagNamespace(Guid.NewGuid(), namespaceSlug, kind, ownerUserId, displayName, description, createdAtUtc);
+        return new TagNamespace(Guid.NewGuid(), scope, ownerUserId, ownerGroupId, displayName, isSystem, createdAtUtc);
     }
 
     public Guid Id { get; private set; }
 
-    public string NamespaceSlug { get; private set; }
-
-    public string Kind { get; private set; }
+    public string Scope { get; private set; }
 
     public Guid? OwnerUserId { get; private set; }
 
+    public Guid? OwnerGroupId { get; private set; }
+
     public string? DisplayName { get; private set; }
 
-    public string? Description { get; private set; }
+    public bool IsSystem { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public IReadOnlyCollection<TagLabel> Labels => _labels.AsReadOnly();
+
+    private static Guid? NormalizeOwner(Guid? identifier)
+        => identifier is null or { } value when value == Guid.Empty ? null : identifier;
 }

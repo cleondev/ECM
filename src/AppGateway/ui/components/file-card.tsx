@@ -100,8 +100,13 @@ export function FileCard({
 
             <div className="flex flex-wrap gap-1.5 mt-auto">
               {file.tags.slice(0, 2).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs max-w-full truncate">
-                  {tag}
+                <Badge
+                  key={tag.id}
+                  variant={tag.color ? "secondary" : "outline"}
+                  className="text-xs max-w-full truncate"
+                  style={tag.color ? { backgroundColor: tag.color, borderColor: tag.color } : undefined}
+                >
+                  {tag.name}
                 </Badge>
               ))}
               {file.tags.length > 2 && (

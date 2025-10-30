@@ -66,16 +66,18 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 schema: "doc",
                 columns: table => new
                 {
-                    namespace_slug = table.Column<string>(type: "text", nullable: false),
-                    kind = table.Column<string>(type: "text", nullable: false),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    scope = table.Column<string>(type: "text", nullable: false),
                     owner_user_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    owner_group_id = table.Column<Guid>(type: "uuid", nullable: true),
                     display_name = table.Column<string>(type: "text", nullable: true),
+                    is_system = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_tag_namespace", x => x.namespace_slug);
-                    table.CheckConstraint("chk_tag_namespace_kind", "kind IN ('system','user')");
+                    table.PrimaryKey("pk_tag_namespace", x => x.id);
+                    table.CheckConstraint("chk_tag_namespace_scope", "scope IN ('global','group','user')");
                 });
 
             migrationBuilder.CreateTable(
@@ -113,23 +115,34 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
-                    namespace_slug = table.Column<string>(type: "text", nullable: false),
-                    slug = table.Column<string>(type: "text", nullable: false),
-                    path = table.Column<string>(type: "text", nullable: false),
+                    namespace_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    parent_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    path_ids = table.Column<Guid[]>(type: "uuid[]", nullable: false),
+                    sort_order = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    color = table.Column<string>(type: "text", nullable: true),
+                    icon_key = table.Column<string>(type: "text", nullable: true),
                     is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    is_system = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     created_by = table.Column<Guid>(type: "uuid", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_tag_label", x => x.id);
-                    table.CheckConstraint("chk_tag_path_format", "path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$'");
                     table.ForeignKey(
-                        name: "fk_tag_label_tag_namespace_namespace_slug",
-                        column: x => x.namespace_slug,
+                        name: "fk_tag_label_parent",
+                        column: x => x.parent_id,
+                        principalSchema: "doc",
+                        principalTable: "tag_label",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_tag_label_tag_namespace_namespace_id",
+                        column: x => x.namespace_id,
                         principalSchema: "doc",
                         principalTable: "tag_namespace",
-                        principalColumn: "namespace_slug",
+                        principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -348,23 +361,50 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 column: "version_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_tag_label_created_by",
+                name: "tag_namespace_scope_owner_idx",
                 schema: "doc",
-                table: "tag_label",
-                column: "created_by");
+                table: "tag_namespace",
+                columns: ["scope", "owner_user_id", "owner_group_id"]);
 
             migrationBuilder.CreateIndex(
-                name: "IX_tag_label_namespace_slug",
+                name: "IX_tag_label_namespace_id",
                 schema: "doc",
                 table: "tag_label",
-                column: "namespace_slug");
+                column: "namespace_id");
 
             migrationBuilder.CreateIndex(
-                name: "tag_label_ns_path_idx",
+                name: "IX_tag_label_parent_id",
                 schema: "doc",
                 table: "tag_label",
-                columns: ["namespace_slug", "path"],
+                column: "parent_id");
+
+            migrationBuilder.CreateIndex(
+                name: "tag_label_ns_parent_idx",
+                schema: "doc",
+                table: "tag_label",
+                columns: ["namespace_id", "parent_id"]);
+
+            migrationBuilder.CreateIndex(
+                name: "uq_tag_sibling_name",
+                schema: "doc",
+                table: "tag_label",
+                columns: ["namespace_id", "parent_id", "name"],
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "tag_label_ns_path_gin",
+                schema: "doc",
+                table: "tag_label",
+                column: "path_ids")
+                .Annotation("Npgsql:IndexMethod", "gin");
+
+            migrationBuilder.CreateIndex(
+                name: "tag_label_name_trgm",
+                schema: "doc",
+                table: "tag_label",
+                column: "name")
+                .Annotation("Npgsql:IndexMethod", "gin")
+                .Annotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_version_created_by",

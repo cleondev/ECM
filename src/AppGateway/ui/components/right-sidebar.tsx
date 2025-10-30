@@ -45,7 +45,7 @@ function createEditableState(file: FileItem | null): EditableFileState {
     description: file?.description ?? "",
     owner: file?.owner ?? "",
     folder: file?.folder ?? "",
-    tags: file ? file.tags.join(", ") : "",
+    tags: file ? file.tags.map((tag) => tag.name).join(", ") : "",
     status: file?.status ?? DEFAULT_FILE_STATUS,
   }
 }
@@ -139,7 +139,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
     }
   }
 
-  const getTagColor = (tagName: string): string => {
+  const getTagColor = (tagName: string): string | null => {
     const findTag = (tags: TagNode[]): string | null => {
       for (const tag of tags) {
         if ((!tag.kind || tag.kind === "label") && tag.name === tagName && tag.color) {
@@ -152,7 +152,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
       }
       return null
     }
-    return findTag(tagTree) || "bg-secondary"
+    return findTag(tagTree)
   }
 
   if (!selectedFile) {
@@ -326,11 +326,25 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
                         User Defined
                       </p>
                       <div className="flex flex-wrap gap-1.5 px-1">
-                        {selectedFile.tags.map((tag) => (
-                          <Badge key={tag} className={cn("text-xs", getTagColor(tag))}>
-                            {tag}
-                          </Badge>
-                        ))}
+                        {selectedFile.tags.map((tag) => {
+                          const color = tag.color ?? getTagColor(tag.name)
+                          const style = color
+                            ? {
+                                backgroundColor: color,
+                                borderColor: color,
+                              }
+                            : undefined
+                          return (
+                            <Badge
+                              key={tag.id}
+                              className="text-xs"
+                              style={style}
+                              variant={color ? "secondary" : "outline"}
+                            >
+                              {tag.name}
+                            </Badge>
+                          )
+                        })}
                       </div>
                     </div>
                   </div>

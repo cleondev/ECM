@@ -4,10 +4,14 @@ namespace ECM.Document.Api.Documents.Responses;
 
 public sealed record DocumentTagResponse(
     Guid Id,
-    string NamespaceSlug,
-    string Slug,
-    string Path,
+    Guid NamespaceId,
+    Guid? ParentId,
+    string Name,
+    Guid[] PathIds,
+    int SortOrder,
+    string? Color,
+    string? IconKey,
     bool IsActive,
-    string DisplayName,
+    bool IsSystem,
     Guid? AppliedBy,
     DateTimeOffset AppliedAtUtc);

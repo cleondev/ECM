@@ -22,7 +22,7 @@ import {
   mockGroups,
   mockNotifications,
 } from "./mock-data"
-import { normalizeRedirectTarget, slugify } from "./utils"
+import { normalizeRedirectTarget } from "./utils"
 import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapshot } from "./auth-state"
 
 const SIMULATED_DELAY = 800 // milliseconds
@@ -68,11 +68,15 @@ export type DocumentVersionResponse = {
 
 export type DocumentTagResponse = {
   id: string
-  namespaceSlug: string
-  slug: string
-  path: string
+  namespaceId: string
+  parentId?: string | null
+  name: string
+  pathIds: string[]
+  sortOrder: number
+  color?: string | null
+  iconKey?: string | null
   isActive: boolean
-  displayName: string
+  isSystem: boolean
   appliedBy?: string | null
   appliedAtUtc: string
 }
@@ -128,10 +132,15 @@ type SharePresignResponse = {
 
 type TagLabelResponse = {
   id: string
-  namespaceSlug: string
-  slug: string
-  path: string
+  namespaceId: string
+  parentId?: string | null
+  name: string
+  pathIds: string[]
+  sortOrder: number
+  color?: string | null
+  iconKey?: string | null
   isActive: boolean
+  isSystem: boolean
   createdBy?: string | null
   createdAtUtc: string
 }
@@ -157,18 +166,18 @@ function createGatewayUrl(path: string): string {
 const jsonHeaders = { Accept: "application/json" }
 
 const TAG_COLOR_PALETTE = [
-  "bg-blue-200 dark:bg-blue-900",
-  "bg-purple-200 dark:bg-purple-900",
-  "bg-green-200 dark:bg-green-900",
-  "bg-red-200 dark:bg-red-900",
-  "bg-yellow-200 dark:bg-yellow-900",
-  "bg-pink-200 dark:bg-pink-900",
-  "bg-orange-200 dark:bg-orange-900",
-  "bg-teal-200 dark:bg-teal-900",
-  "bg-cyan-200 dark:bg-cyan-900",
-  "bg-indigo-200 dark:bg-indigo-900",
-  "bg-violet-200 dark:bg-violet-900",
-  "bg-fuchsia-200 dark:bg-fuchsia-900",
+  "#60A5FA",
+  "#A78BFA",
+  "#34D399",
+  "#F87171",
+  "#FBBF24",
+  "#F472B6",
+  "#FB923C",
+  "#2DD4BF",
+  "#22D3EE",
+  "#6366F1",
+  "#8B5CF6",
+  "#EC4899",
 ]
 
 function colorForKey(key: string): string {
@@ -186,119 +195,133 @@ function colorForKey(key: string): string {
   return TAG_COLOR_PALETTE[paletteIndex]
 }
 
-function formatNamespaceName(slug: string): string {
-  if (!slug) {
-    return "Tags"
-  }
-
-  return slug
-    .split(/[\s_-]+/)
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(" ")
-}
-
 function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
   if (!labels?.length) {
     return []
   }
 
-  const namespaces = new Map<string, TagNode>()
+  const labelNodes = new Map<string, TagNode>()
+  const namespaceNodes = new Map<string, TagNode>()
+  const namespaceOrder = new Map<string, number>()
 
   const sortedLabels = [...labels].sort((a, b) => {
-    const aDepth = (a.path || a.slug || a.id || "").split("/").filter(Boolean).length
-    const bDepth = (b.path || b.slug || b.id || "").split("/").filter(Boolean).length
-    const depthComparison = aDepth - bDepth
-    if (depthComparison !== 0) {
-      return depthComparison
+    const depthA = a.pathIds?.length ?? 0
+    const depthB = b.pathIds?.length ?? 0
+    if (depthA !== depthB) {
+      return depthA - depthB
     }
 
-    const aKey = a.slug || a.path || a.id
-    const bKey = b.slug || b.path || b.id
-    return aKey.localeCompare(bKey)
+    const sortOrderA = Number.isFinite(a.sortOrder) ? a.sortOrder : 0
+    const sortOrderB = Number.isFinite(b.sortOrder) ? b.sortOrder : 0
+    if (sortOrderA !== sortOrderB) {
+      return sortOrderA - sortOrderB
+    }
+
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
   })
 
-  for (const label of sortedLabels) {
-    const namespaceSlug = label.namespaceSlug || "user"
-    if (!namespaces.has(namespaceSlug)) {
-      namespaces.set(namespaceSlug, {
-        id: `ns:${namespaceSlug}`,
-        name: formatNamespaceName(namespaceSlug),
-        color: colorForKey(namespaceSlug),
-        kind: "namespace",
-        namespaceSlug,
-        children: [],
-      })
+  const ensureNamespace = (namespaceId: string): TagNode => {
+    const existing = namespaceNodes.get(namespaceId)
+    if (existing) {
+      return existing
     }
 
-    const namespaceNode = namespaces.get(namespaceSlug)!
-    const segments = (label.path || label.slug || label.id || "")
-      .split("/")
-      .map((segment) => segment.trim())
-      .filter(Boolean)
-
-    if (segments.length === 0) {
-      segments.push(label.slug || label.id)
+    const index = namespaceOrder.size + 1
+    const label = `Namespace ${index}`
+    const namespaceNode: TagNode = {
+      id: `ns:${namespaceId}`,
+      namespaceId,
+      name: label,
+      namespaceLabel: label,
+      kind: "namespace",
+      color: colorForKey(namespaceId),
+      isActive: true,
+      isSystem: false,
+      sortOrder: index,
+      children: [],
     }
 
-    let currentNode = namespaceNode
-    let accumulatedPath = ""
-
-    for (let index = 0; index < segments.length; index += 1) {
-      const segment = segments[index]
-      accumulatedPath = accumulatedPath ? `${accumulatedPath}/${segment}` : segment
-      const isLeaf = index === segments.length - 1
-
-      if (!currentNode.children) {
-        currentNode.children = []
-      }
-
-      let childNode = currentNode.children.find((child) => child.path === accumulatedPath)
-
-      if (!childNode) {
-        childNode = {
-          id: isLeaf ? label.id : `path:${namespaceSlug}:${accumulatedPath}`,
-          name: segment,
-          color: colorForKey(accumulatedPath),
-          kind: isLeaf ? "label" : "namespace",
-          namespaceSlug,
-          slug: isLeaf ? label.slug : segment,
-          path: accumulatedPath,
-          isActive: isLeaf ? label.isActive : true,
-          children: [],
-        }
-
-        currentNode.children.push(childNode)
-      }
-
-      if (isLeaf) {
-        childNode.id = label.id
-        childNode.name = segment
-        childNode.color = colorForKey(label.slug || label.path || label.id)
-        childNode.kind = "label"
-        childNode.namespaceSlug = label.namespaceSlug
-        childNode.slug = label.slug
-        childNode.path = accumulatedPath
-        childNode.isActive = label.isActive
-      }
-
-      currentNode = childNode
-    }
+    namespaceOrder.set(namespaceId, index)
+    namespaceNodes.set(namespaceId, namespaceNode)
+    return namespaceNode
   }
 
-  const sortAndPrune = (node: TagNode) => {
-    if (node.children && node.children.length > 0) {
-      node.children.sort((a, b) => a.name.localeCompare(b.name))
-      node.children.forEach(sortAndPrune)
-    } else if (node.children) {
-      delete node.children
+  sortedLabels.forEach((label) => {
+    const node: TagNode = {
+      id: label.id,
+      namespaceId: label.namespaceId,
+      parentId: label.parentId ?? null,
+      name: label.name,
+      color: label.color ?? null,
+      iconKey: label.iconKey ?? null,
+      sortOrder: Number.isFinite(label.sortOrder) ? label.sortOrder : 0,
+      pathIds: label.pathIds ?? [],
+      isActive: label.isActive,
+      isSystem: label.isSystem,
+      kind: "label",
+      children: [],
     }
+
+    labelNodes.set(label.id, node)
+  })
+
+  const roots: TagNode[] = []
+
+  sortedLabels.forEach((label) => {
+    const node = labelNodes.get(label.id)
+    if (!node) {
+      return
+    }
+
+    const parentId = label.parentId
+    if (parentId && labelNodes.has(parentId)) {
+      const parentNode = labelNodes.get(parentId)!
+      if (!parentNode.children) {
+        parentNode.children = []
+      }
+      parentNode.children.push(node)
+    } else {
+      const namespaceNode = ensureNamespace(label.namespaceId)
+      if (!namespaceNode.children) {
+        namespaceNode.children = []
+      }
+      namespaceNode.children.push(node)
+      if (!roots.includes(namespaceNode)) {
+        roots.push(namespaceNode)
+      }
+    }
+  })
+
+  const sortChildren = (nodes: TagNode[]) => {
+    nodes.forEach((node) => {
+      if (node.children && node.children.length > 0) {
+        node.children.sort((a, b) => {
+          const orderA = Number.isFinite(a.sortOrder) ? a.sortOrder ?? 0 : 0
+          const orderB = Number.isFinite(b.sortOrder) ? b.sortOrder ?? 0 : 0
+          if (orderA !== orderB) {
+            return orderA - orderB
+          }
+          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+        })
+        sortChildren(node.children)
+      } else if (node.children) {
+        node.children = []
+      }
+    })
   }
 
-  const result = Array.from(namespaces.values())
-  result.forEach(sortAndPrune)
-  result.sort((a, b) => a.name.localeCompare(b.name))
-  return result
+  sortChildren(roots)
+
+  roots.sort((a, b) => {
+    const orderA = namespaceOrder.get(a.namespaceId) ?? 0
+    const orderB = namespaceOrder.get(b.namespaceId) ?? 0
+    if (orderA !== orderB) {
+      return orderA - orderB
+    }
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+  })
+
+  return roots
 }
 
 function mapGroupSummaryToGroup(data: GroupSummaryResponse): Group {
@@ -311,14 +334,12 @@ function mapGroupSummaryToGroup(data: GroupSummaryResponse): Group {
 
 function normalizeMockTagTree(nodes: TagNode[]): TagNode[] {
   return nodes.map((node) => {
-    const children = node.children ? normalizeMockTagTree(node.children) : undefined
-    const normalizedChildren = children && children.length > 0 ? children : undefined
-
+    const children = node.children ? normalizeMockTagTree(node.children) : []
     return {
       ...node,
-      color: node.color || colorForKey(node.slug || node.path || node.name),
-      kind: node.kind || (normalizedChildren ? "namespace" : "label"),
-      children: normalizedChildren,
+      color: node.color ?? colorForKey(node.id),
+      kind: node.kind ?? (children.length > 0 ? "namespace" : "label"),
+      children,
     }
   })
 }
@@ -409,21 +430,19 @@ function formatDocumentTimestamp(value?: string | null): string {
 
 function mapDocumentToFileItem(document: DocumentResponse): FileItem {
   const latestVersion = document.latestVersion
-  const tagNames = document.tags?.map((tag) => {
-    if (tag.displayName) {
-      return tag.displayName
-    }
-
-    if (tag.path) {
-      const segments = tag.path.split("/").filter(Boolean)
-      if (segments.length > 0) {
-        return segments[segments.length - 1]
-      }
-      return tag.path
-    }
-
-    return tag.slug || tag.id
-  }) ?? []
+  const tags =
+    document.tags?.map((tag) => ({
+      id: tag.id,
+      namespaceId: tag.namespaceId,
+      parentId: tag.parentId ?? null,
+      name: tag.name,
+      color: tag.color ?? null,
+      iconKey: tag.iconKey ?? null,
+      sortOrder: tag.sortOrder,
+      pathIds: tag.pathIds ?? [],
+      isActive: tag.isActive,
+      isSystem: tag.isSystem,
+    })) ?? []
   const updatedAtUtc = document.updatedAtUtc ?? document.createdAtUtc
   const displayModified = document.updatedAtFormatted || formatDocumentTimestamp(updatedAtUtc)
   return {
@@ -433,7 +452,7 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     size: formatFileSize(latestVersion?.bytes ?? null),
     modified: displayModified,
     modifiedAtUtc: updatedAtUtc,
-    tags: tagNames,
+    tags,
     folder: "All Files",
     owner: document.ownerId,
     description: "",
@@ -746,14 +765,14 @@ function filterAndPaginate(files: FileItem[], params?: FileQueryParams): Paginat
     filtered = filtered.filter(
       (file) =>
         file.name.toLowerCase().includes(searchLower) ||
-        file.tags.some((tag) => tag.toLowerCase().includes(searchLower)),
+        file.tags.some((tag) => tag.name.toLowerCase().includes(searchLower)),
     )
   }
 
   if (params?.tagLabel) {
     const normalizedTag = params.tagLabel.toLowerCase()
     filtered = filtered.filter((file) =>
-      file.tags.some((tag) => tag.toLowerCase() === normalizedTag),
+      file.tags.some((tag) => tag.name.toLowerCase() === normalizedTag),
     )
   }
 
@@ -922,36 +941,29 @@ export async function fetchGroups(): Promise<Group[]> {
   }
 }
 
-export async function createTag(data: TagUpdateData, parent?: TagNode | string): Promise<TagNode> {
-  const parentValue = typeof parent === "string" ? parent : parent?.id
-  const parentNode = typeof parent === "object" ? parent : undefined
-
+export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<TagNode> {
   try {
     const normalizedName = data.name.trim()
     if (!normalizedName) {
       throw new Error("Tag name is required")
     }
 
-    const namespaceSlug = parentValue?.startsWith("ns:")
-      ? parentValue.slice(3)
-      : parentValue && parentValue.length > 0
-        ? parentValue
-        : parentNode?.namespaceSlug
-          ? parentNode.namespaceSlug
-          : "user"
-
-    const slug = slugify(normalizedName)
-    if (!slug) {
-      throw new Error("Tag name must include alphanumeric characters")
+    const namespaceId = parent?.namespaceId
+    if (!namespaceId) {
+      throw new Error("A target namespace is required to create a tag")
     }
-    const parentPath = parentNode?.path
-    const path = parentPath ? `${parentPath}/${slug}` : slug
+
+    const parentId = parent?.kind === "label" ? parent.id : null
 
     const payload = {
-      NamespaceSlug: namespaceSlug,
-      Slug: slug,
-      Path: path,
+      NamespaceId: namespaceId,
+      ParentId: parentId,
+      Name: normalizedName,
+      SortOrder: null as number | null,
+      Color: data.color ?? null,
+      IconKey: data.iconKey?.trim() ? data.iconKey.trim() : null,
       CreatedBy: null as string | null,
+      IsSystem: false,
     }
 
     const response = await gatewayRequest<TagLabelResponse>("/api/tags", {
@@ -961,38 +973,35 @@ export async function createTag(data: TagUpdateData, parent?: TagNode | string):
 
     const mapped: TagNode = {
       id: response.id,
-      name: normalizedName,
-      color: colorForKey(response.path || response.slug),
-      kind: "label",
-      namespaceSlug: response.namespaceSlug,
-      slug: response.slug,
-      path: response.path,
+      namespaceId: response.namespaceId,
+      parentId: response.parentId ?? null,
+      name: response.name,
+      color: response.color ?? colorForKey(response.id),
+      iconKey: response.iconKey ?? null,
+      sortOrder: response.sortOrder,
+      pathIds: response.pathIds ?? [],
       isActive: response.isActive,
-      icon: data.icon,
+      isSystem: response.isSystem,
+      kind: "label",
+      children: [],
     }
 
     return mapped
   } catch (error) {
     console.warn("[ui] Failed to create tag via gateway, using mock response:", error)
-    const fallbackSlug = slugify(data.name) || data.name
-    const fallbackParentPath = parentNode?.path
-    const fallbackPath = fallbackParentPath ? `${fallbackParentPath}/${fallbackSlug}` : fallbackSlug
-
     return {
       id: Date.now().toString(),
+      namespaceId: parent?.namespaceId ?? "",
+      parentId: parent?.kind === "label" ? parent.id : null,
       name: data.name,
-      color: data.color,
-      icon: data.icon,
-      kind: "label",
-      namespaceSlug:
-        parentNode?.namespaceSlug
-          ? parentNode.namespaceSlug
-          : parentValue?.startsWith("ns:")
-            ? parentValue.slice(3)
-            : undefined,
-      slug: fallbackSlug,
-      path: fallbackPath,
+      color: data.color ?? colorForKey(data.name),
+      iconKey: data.iconKey ?? null,
+      sortOrder: null,
+      pathIds: parent?.pathIds ? [...parent.pathIds, Date.now().toString()] : [],
       isActive: true,
+      isSystem: false,
+      kind: "label",
+      children: [],
     }
   }
 }
@@ -1004,18 +1013,14 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
       throw new Error("Tag name is required")
     }
 
-    const slug = slugify(normalizedName)
-    if (!slug) {
-      throw new Error("Tag name must include alphanumeric characters")
-    }
-
-    const namespaceSlug = tag.namespaceSlug ?? "user"
-    const parentPath = tag.path?.split("/").slice(0, -1).join("/") || undefined
-    const path = parentPath ? `${parentPath}/${slug}` : slug
     const payload = {
-      NamespaceSlug: namespaceSlug,
-      Slug: slug,
-      Path: path,
+      NamespaceId: tag.namespaceId,
+      ParentId: tag.parentId ?? null,
+      Name: normalizedName,
+      SortOrder: tag.sortOrder ?? null,
+      Color: data.color ?? null,
+      IconKey: data.iconKey?.trim() ? data.iconKey.trim() : null,
+      IsActive: tag.isActive ?? true,
       UpdatedBy: null as string | null,
     }
 
@@ -1026,28 +1031,25 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
 
     return {
       id: response.id,
-      name: normalizedName,
-      color: colorForKey(response.path || response.slug || response.id),
-      kind: "label",
-      namespaceSlug: response.namespaceSlug,
-      slug: response.slug,
-      path: response.path,
+      namespaceId: response.namespaceId,
+      parentId: response.parentId ?? null,
+      name: response.name,
+      color: response.color ?? colorForKey(response.id),
+      iconKey: response.iconKey ?? null,
+      sortOrder: response.sortOrder,
+      pathIds: response.pathIds ?? [],
       isActive: response.isActive,
-      icon: data.icon ?? tag.icon,
+      isSystem: response.isSystem,
+      kind: "label",
+      children: tag.children,
     }
   } catch (error) {
     console.warn("[ui] Failed to update tag via gateway, using mock response:", error)
-    const fallbackSlug = slugify(data.name) || data.name
-    const fallbackParentPath = tag.path?.split("/").slice(0, -1).join("/") || undefined
-    const fallbackPath = fallbackParentPath ? `${fallbackParentPath}/${fallbackSlug}` : fallbackSlug
-
     return {
       ...tag,
       name: data.name,
-      color: data.color,
-      icon: data.icon,
-      slug: fallbackSlug,
-      path: fallbackPath,
+      color: data.color ?? tag.color,
+      iconKey: data.iconKey ?? tag.iconKey,
     }
   }
 }

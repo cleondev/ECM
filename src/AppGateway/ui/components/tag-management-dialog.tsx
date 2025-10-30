@@ -19,18 +19,18 @@ type TagManagementDialogProps = {
 }
 
 const colorOptions = [
-  { name: "Blue", value: "bg-blue-200 dark:bg-blue-900" },
-  { name: "Purple", value: "bg-purple-200 dark:bg-purple-900" },
-  { name: "Green", value: "bg-green-200 dark:bg-green-900" },
-  { name: "Red", value: "bg-red-200 dark:bg-red-900" },
-  { name: "Yellow", value: "bg-yellow-200 dark:bg-yellow-900" },
-  { name: "Pink", value: "bg-pink-200 dark:bg-pink-900" },
-  { name: "Orange", value: "bg-orange-200 dark:bg-orange-900" },
-  { name: "Teal", value: "bg-teal-200 dark:bg-teal-900" },
-  { name: "Cyan", value: "bg-cyan-200 dark:bg-cyan-900" },
-  { name: "Indigo", value: "bg-indigo-200 dark:bg-indigo-900" },
-  { name: "Violet", value: "bg-violet-200 dark:bg-violet-900" },
-  { name: "Fuchsia", value: "bg-fuchsia-200 dark:bg-fuchsia-900" },
+  { name: "Sky", value: "#60A5FA" },
+  { name: "Violet", value: "#A78BFA" },
+  { name: "Emerald", value: "#34D399" },
+  { name: "Rose", value: "#F87171" },
+  { name: "Amber", value: "#FBBF24" },
+  { name: "Pink", value: "#F472B6" },
+  { name: "Orange", value: "#FB923C" },
+  { name: "Teal", value: "#2DD4BF" },
+  { name: "Cyan", value: "#22D3EE" },
+  { name: "Indigo", value: "#6366F1" },
+  { name: "Fuchsia", value: "#EC4899" },
+  { name: "Slate", value: "#94A3B8" },
 ]
 
 const DEFAULT_TAG_ICON = "📁"
@@ -60,7 +60,7 @@ const iconOptions = [
   "🎪",
 ]
 
-const DEFAULT_TAG_COLOR = "bg-blue-200 dark:bg-blue-900"
+const DEFAULT_TAG_COLOR = "#60A5FA"
 
 export function TagManagementDialog({
   open,
@@ -72,18 +72,23 @@ export function TagManagementDialog({
 }: TagManagementDialogProps) {
   const [tagName, setTagName] = useState("")
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR)
-  const [tagIcon, setTagIcon] = useState(DEFAULT_TAG_ICON)
+  const [tagIcon, setTagIcon] = useState<string>(NO_ICON_VALUE)
   const [applyColorToChildren, setApplyColorToChildren] = useState(false)
+
+  const previewIcon = tagIcon && tagIcon !== NO_ICON_VALUE ? tagIcon : DEFAULT_TAG_ICON
+  const previewStyle = {
+    backgroundColor: tagColor || DEFAULT_TAG_COLOR,
+  }
 
   useEffect(() => {
     if (mode === "edit" && editingTag) {
       setTagName(editingTag.name)
       setTagColor(editingTag.color ?? DEFAULT_TAG_COLOR)
-      setTagIcon(editingTag.icon ?? DEFAULT_TAG_ICON)
+      setTagIcon(editingTag.iconKey ?? NO_ICON_VALUE)
     } else {
       setTagName("")
       setTagColor(DEFAULT_TAG_COLOR)
-      setTagIcon(DEFAULT_TAG_ICON)
+      setTagIcon(NO_ICON_VALUE)
     }
     setApplyColorToChildren(false)
   }, [mode, editingTag, open])
@@ -92,7 +97,7 @@ export function TagManagementDialog({
     onSave({
       name: tagName,
       color: tagColor,
-      icon: tagIcon,
+      iconKey: tagIcon && tagIcon !== NO_ICON_VALUE ? tagIcon : null,
       applyColorToChildren,
     })
     onOpenChange(false)
@@ -117,20 +122,18 @@ export function TagManagementDialog({
         <div className="space-y-4">
           <Label className="text-xs text-muted-foreground block">Preview</Label>
           <div className="p-4 border border-border rounded-lg bg-muted/30">
-            <div className={cn("flex items-center gap-2 px-3 py-2 rounded-md w-fit", tagColor)}>
-              {tagIcon && <span className="text-base">{tagIcon}</span>}
-              <span className="text-sm font-medium text-foreground">{tagName || "Tag Name"}</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md w-fit text-foreground" style={previewStyle}>
+              <span className="text-base">{previewIcon}</span>
+              <span className="text-sm font-medium">{tagName || "Tag Name"}</span>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="tag-name">Tag Name</Label>
             <div className="flex items-center gap-2">
-              {tagIcon && (
-                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                  <span className="text-lg">{tagIcon}</span>
-                </div>
-              )}
+              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
+                <span className="text-lg">{previewIcon}</span>
+              </div>
               <Input
                 id="tag-name"
                 value={tagName}
@@ -147,14 +150,15 @@ export function TagManagementDialog({
               {colorOptions.map((color) => (
                 <button
                   key={color.value}
+                  type="button"
                   onClick={() => setTagColor(color.value)}
                   className={cn(
                     "w-full aspect-square rounded-md border-2 transition-all",
-                    color.value,
                     tagColor === color.value
                       ? "border-foreground scale-110 ring-2 ring-offset-2 ring-foreground"
-                      : "border-transparent hover:border-muted-foreground",
+                      : "border-border hover:border-muted-foreground",
                   )}
+                  style={{ backgroundColor: color.value }}
                   title={color.name}
                 />
               ))}

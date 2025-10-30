@@ -324,6 +324,10 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Color")
+                        .HasColumnType("text")
+                        .HasColumnName("color");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
@@ -334,51 +338,79 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
+                    b.Property<string>("IconKey")
+                        .HasColumnType("text")
+                        .HasColumnName("icon_key");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("is_active");
 
-                    b.Property<string>("NamespaceSlug")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("namespace_slug");
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_system");
 
-                    b.Property<string>("Path")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("path");
+                        .HasColumnName("name");
 
-                    b.Property<string>("Slug")
+                    b.Property<Guid>("NamespaceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("namespace_id");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.Property<Guid[]>("PathIds")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("slug");
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("path_ids");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("sort_order");
 
                     b.HasKey("Id")
                         .HasName("pk_tag_label");
 
-                    b.HasIndex("CreatedBy")
-                        .HasDatabaseName("IX_tag_label_created_by");
+                    b.HasIndex("NamespaceId")
+                        .HasDatabaseName("IX_tag_label_namespace_id");
 
-                    b.HasIndex("NamespaceSlug")
-                        .HasDatabaseName("IX_tag_label_namespace_slug");
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("IX_tag_label_parent_id");
 
-                    b.HasIndex("NamespaceSlug", "Path")
+                    b.HasIndex("NamespaceId", "ParentId")
+                        .HasDatabaseName("tag_label_ns_parent_idx");
+
+                    b.HasIndex("NamespaceId", "ParentId", "Name")
                         .IsUnique()
-                        .HasDatabaseName("tag_label_ns_path_idx");
+                        .HasDatabaseName("uq_tag_sibling_name");
 
-                    b.ToTable("tag_label", "doc", t =>
-                        {
-                            t.HasCheckConstraint("chk_tag_path_format", "path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$'");
-                        });
+                    b.HasIndex("Name")
+                        .HasDatabaseName("tag_label_name_trgm")
+                        .HasAnnotation("Npgsql:IndexMethod", "gin")
+                        .HasAnnotation("Npgsql:IndexOperators", new[] { "gin_trgm_ops" });
+
+                    b.HasIndex("PathIds")
+                        .HasDatabaseName("tag_label_ns_path_gin")
+                        .HasAnnotation("Npgsql:IndexMethod", "gin");
+
+                    b.ToTable("tag_label", "doc");
                 });
 
             modelBuilder.Entity("ECM.Document.Domain.Tags.TagNamespace", b =>
                 {
-                    b.Property<string>("NamespaceSlug")
-                        .HasColumnType("text")
-                        .HasColumnName("namespace_slug");
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
@@ -390,21 +422,34 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("display_name");
 
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("kind");
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_system");
+
+                    b.Property<Guid?>("OwnerGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_group_id");
 
                     b.Property<Guid?>("OwnerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
 
-                    b.HasKey("NamespaceSlug")
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("scope");
+
+                    b.HasKey("Id")
                         .HasName("pk_tag_namespace");
+
+                    b.HasIndex("Scope", "OwnerUserId", "OwnerGroupId")
+                        .HasDatabaseName("tag_namespace_scope_owner_idx");
 
                     b.ToTable("tag_namespace", "doc", t =>
                         {
-                            t.HasCheckConstraint("chk_tag_namespace_kind", "kind IN ('system','user')");
+                            t.HasCheckConstraint("chk_tag_namespace_scope", "scope IN ('global','group','user')");
                         });
                 });
 
@@ -631,12 +676,18 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ECM.Document.Domain.Tags.TagLabel", b =>
                 {
+                    b.HasOne("ECM.Document.Domain.Tags.TagLabel", "Parent")
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_tag_label_parent");
+
                     b.HasOne("ECM.Document.Domain.Tags.TagNamespace", "Namespace")
                         .WithMany("Labels")
-                        .HasForeignKey("NamespaceSlug")
+                        .HasForeignKey("NamespaceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_tag_label_tag_namespace_namespace_slug");
+                        .HasConstraintName("fk_tag_label_tag_namespace_namespace_id");
 
                     b.Navigation("Namespace");
                 });

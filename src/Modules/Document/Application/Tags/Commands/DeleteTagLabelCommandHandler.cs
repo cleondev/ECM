@@ -27,6 +27,16 @@ public sealed class DeleteTagLabelCommandHandler(
             return OperationResult<bool>.Failure("Tag label was not found.");
         }
 
+        if (tagLabel.IsSystem)
+        {
+            return OperationResult<bool>.Failure("System tags cannot be deleted.");
+        }
+
+        if (await _tagLabelRepository.HasChildrenAsync(command.TagId, cancellationToken).ConfigureAwait(false))
+        {
+            return OperationResult<bool>.Failure("Cannot delete a tag that still has child tags.");
+        }
+
         tagLabel.MarkDeleted(_clock.UtcNow);
         await _tagLabelRepository.RemoveAsync(tagLabel, cancellationToken).ConfigureAwait(false);
         return OperationResult<bool>.Success(true);
