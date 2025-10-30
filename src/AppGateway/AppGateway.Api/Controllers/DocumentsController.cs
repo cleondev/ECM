@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
@@ -18,6 +18,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using Shared.Extensions.Http;
+using Shared.Extensions.Primitives;
 
 namespace AppGateway.Api.Controllers;
 
@@ -31,9 +33,16 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
 
     [HttpGet]
     [ProducesResponseType(typeof(DocumentListDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<DocumentListDto>> GetAsync([FromQuery] ListDocumentsRequestDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<DocumentListDto>> GetAsync(CancellationToken cancellationToken)
     {
-        var documents = await _client.GetDocumentsAsync(request ?? ListDocumentsRequestDto.Default, cancellationToken);
+        var request = BindListDocumentsRequest();
+
+        if (!TryValidateModel(request))
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var documents = await _client.GetDocumentsAsync(request, cancellationToken);
         return Ok(documents);
     }
 
@@ -390,6 +399,144 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         }
     }
 
+    private ListDocumentsRequestDto BindListDocumentsRequest()
+    {
+        var defaults = ListDocumentsRequestDto.Default;
+        var query = Request.Query;
+
+        var page = defaults.Page;
+        if (TryReadInt(query, ["page", "Page"], out var parsedPage, out var pageError))
+        {
+            if (pageError is null)
+            {
+                page = parsedPage;
+            }
+            else
+            {
+                ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.Page), pageError);
+            }
+        }
+
+        var pageSize = defaults.PageSize;
+        if (TryReadInt(query, ["page_size", "pageSize", "PageSize"], out var parsedPageSize, out var pageSizeError))
+        {
+            if (pageSizeError is null)
+            {
+                pageSize = parsedPageSize;
+            }
+            else
+            {
+                ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.PageSize), pageSizeError);
+            }
+        }
+
+        var ownerId = TryReadGuid(query, ["owner_id", "ownerId", "OwnerId"], out var parsedOwnerId, out var ownerError)
+            ? parsedOwnerId
+            : null;
+
+        if (ownerError is not null)
+        {
+            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.OwnerId), ownerError);
+        }
+
+        var groupId = TryReadGuid(query, ["group_id", "groupId", "GroupId"], out var parsedGroupId, out var groupError)
+            ? parsedGroupId
+            : null;
+
+        if (groupError is not null)
+        {
+            ModelState.TryAddModelError(nameof(ListDocumentsRequestDto.GroupId), groupError);
+        }
+
+        var groupIds = TryReadGuidArray(query, ["group_ids", "groupIds", "group_ids[]", "groupIds[]"], nameof(ListDocumentsRequestDto.GroupIds));
+        var tags = TryReadGuidArray(query, ["tags[]", "tags"], nameof(ListDocumentsRequestDto.Tags));
+
+        return new ListDocumentsRequestDto
+        {
+            Page = page,
+            PageSize = pageSize,
+            DocType = ReadQueryString(query, ["doc_type", "docType", nameof(ListDocumentsRequestDto.DocType)]),
+            Status = ReadQueryString(query, ["status", nameof(ListDocumentsRequestDto.Status)]),
+            Sensitivity = ReadQueryString(query, ["sensitivity", nameof(ListDocumentsRequestDto.Sensitivity)]),
+            Query = ReadQueryString(query, ["q", "query", nameof(ListDocumentsRequestDto.Query)]),
+            OwnerId = ownerId,
+            GroupId = groupId,
+            GroupIds = groupIds,
+            Tags = tags,
+            Sort = ReadQueryString(query, ["sort", nameof(ListDocumentsRequestDto.Sort)]),
+        };
+    }
+
+    private Guid[]? TryReadGuidArray(IQueryCollection query, IEnumerable<string> keys, string propertyName)
+    {
+        if (!query.TryGetValues(keys, out var values))
+        {
+            return null;
+        }
+
+        var parsed = values.ParseGuidValues();
+        if (parsed.HasInvalidValues)
+        {
+            foreach (var invalid in parsed.InvalidValues)
+            {
+                ModelState.TryAddModelError(propertyName, $"The value '{invalid}' is not valid.");
+            }
+        }
+
+        return parsed.HasValues ? parsed.Values.ToArray() : Array.Empty<Guid>();
+    }
+
+    private static string? ReadQueryString(IQueryCollection query, IEnumerable<string> keys)
+    {
+        if (!query.TryGetString(keys, out var value))
+        {
+            return null;
+        }
+
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static bool TryReadGuid(IQueryCollection query, IEnumerable<string> keys, out Guid? value, out string? error)
+    {
+        if (!query.TryGetString(keys, out var raw))
+        {
+            value = null;
+            error = null;
+            return false;
+        }
+
+        if (Guid.TryParse(raw, out var parsed))
+        {
+            value = parsed;
+            error = null;
+            return true;
+        }
+
+        value = null;
+        error = $"The value '{raw}' is not valid.";
+        return false;
+    }
+
+    private static bool TryReadInt(IQueryCollection query, IEnumerable<string> keys, out int value, out string? error)
+    {
+        value = default;
+        error = null;
+
+        if (!query.TryGetString(keys, out var raw))
+        {
+            return false;
+        }
+
+        if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            value = parsed;
+            return true;
+        }
+
+        error = $"The value '{raw}' is not valid.";
+        return true;
+    }
+
     private static Guid? NormalizeGuid(Guid? value)
     {
         return value is null || value == Guid.Empty ? null : value;
@@ -426,80 +573,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return "Untitled document";
     }
 
-    private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)
-    {
-        var buffer = new List<Guid>();
-        var seen = new HashSet<Guid>();
 
-        void Add(Guid value)
-        {
-            if (value == Guid.Empty)
-            {
-                return;
-            }
-
-            if (seen.Add(value))
-            {
-                buffer.Add(value);
-            }
-        }
-
-        if (values.Count > 1)
-        {
-            foreach (var value in values)
-            {
-                if (Guid.TryParse(value, out var guid))
-                {
-                    Add(guid);
-                }
-            }
-
-            return buffer;
-        }
-
-        var raw = values[0];
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return buffer;
-        }
-
-        if (raw.TrimStart().StartsWith("[", StringComparison.Ordinal))
-        {
-            try
-            {
-                var parsed = JsonSerializer.Deserialize<string[]>(raw);
-                if (parsed is not null)
-                {
-                    foreach (var candidate in parsed)
-                    {
-                        if (Guid.TryParse(candidate, out var guid))
-                        {
-                            Add(guid);
-                        }
-                    }
-                }
-            }
-            catch (JsonException)
-            {
-                // fall through to delimiter parsing
-            }
-        }
-
-        if (buffer.Count > 0)
-        {
-            return buffer;
-        }
-
-        foreach (var segment in raw.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (Guid.TryParse(segment, out var guid))
-            {
-                Add(guid);
-            }
-        }
-
-        return buffer;
-    }
 
     private static IReadOnlyList<Guid> NormalizeGroupSelection(Guid? groupId, IReadOnlyCollection<Guid> groupIds, out Guid? primaryGroupId)
     {
@@ -666,15 +740,12 @@ public sealed class CreateDocumentForm
 
     private static string? GetString(IFormCollection form, string propertyName)
     {
-        if (form.TryGetValue(propertyName, out var value) && !StringValues.IsNullOrEmpty(value))
+        foreach (var field in EnumerateFieldNames(propertyName))
         {
-            return value.ToString();
-        }
-
-        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-        if (form.TryGetValue(camelCase, out value) && !StringValues.IsNullOrEmpty(value))
-        {
-            return value.ToString();
+            if (form.TryGetValue(field, out var value) && !StringValues.IsNullOrEmpty(value))
+            {
+                return value.ToString();
+            }
         }
 
         return null;
@@ -700,89 +771,14 @@ public sealed class CreateDocumentForm
                 continue;
             }
 
-            var parsed = ParseGuidValues(values);
-            if (parsed.Count > 0)
+            var parsed = values.ParseGuidValues();
+            if (parsed.Values.Count > 0)
             {
-                return parsed;
+                return parsed.Values;
             }
         }
 
         return [];
-    }
-
-    private static IReadOnlyCollection<Guid> ParseGuidValues(StringValues values)
-    {
-        var buffer = new List<Guid>();
-        var seen = new HashSet<Guid>();
-
-        void Add(Guid value)
-        {
-            if (value == Guid.Empty)
-            {
-                return;
-            }
-
-            if (seen.Add(value))
-            {
-                buffer.Add(value);
-            }
-        }
-
-        if (values.Count > 1)
-        {
-            foreach (var value in values)
-            {
-                if (Guid.TryParse(value, out var guid))
-                {
-                    Add(guid);
-                }
-            }
-
-            return buffer;
-        }
-
-        var raw = values[0];
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return buffer;
-        }
-
-        if (raw.TrimStart().StartsWith("[", StringComparison.Ordinal))
-        {
-            try
-            {
-                var parsed = JsonSerializer.Deserialize<string[]>(raw);
-                if (parsed is not null)
-                {
-                    foreach (var candidate in parsed)
-                    {
-                        if (Guid.TryParse(candidate, out var guid))
-                        {
-                            Add(guid);
-                        }
-                    }
-                }
-            }
-            catch (JsonException)
-            {
-                // fall through to delimiter parsing
-            }
-        }
-
-        if (buffer.Count > 0)
-        {
-            return buffer;
-        }
-
-        foreach (var segment in raw.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (Guid.TryParse(segment, out var guid))
-            {
-                Add(guid);
-            }
-        }
-
-        return buffer;
     }
 
     private static IEnumerable<string> EnumerateFieldNames(string propertyName)
@@ -853,15 +849,12 @@ public sealed class CreateDocumentsForm
 
     private static string? GetString(IFormCollection form, string propertyName)
     {
-        if (form.TryGetValue(propertyName, out var value) && !StringValues.IsNullOrEmpty(value))
+        foreach (var field in EnumerateFieldNames(propertyName))
         {
-            return value.ToString();
-        }
-
-        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-        if (form.TryGetValue(camelCase, out value) && !StringValues.IsNullOrEmpty(value))
-        {
-            return value.ToString();
+            if (form.TryGetValue(field, out var value) && !StringValues.IsNullOrEmpty(value))
+            {
+                return value.ToString();
+            }
         }
 
         return null;
@@ -887,10 +880,10 @@ public sealed class CreateDocumentsForm
                 continue;
             }
 
-            var parsed = ParseGuidValues(values);
-            if (parsed.Count > 0)
+            var parsed = values.ParseGuidValues();
+            if (parsed.Values.Count > 0)
             {
-                return parsed;
+                return parsed.Values;
             }
         }
 
@@ -925,82 +918,26 @@ public sealed class CreateDocumentsForm
 
         yield return propertyName;
         yield return camelCase;
+
+        foreach (var prefix in new[] { "meta", "Meta" })
+        {
+            yield return $"{prefix}[{propertyName}]";
+            yield return $"{prefix}[{camelCase}]";
+            yield return $"{prefix}.{propertyName}";
+            yield return $"{prefix}.{camelCase}";
+        }
+
         yield return $"{propertyName}[]";
         yield return $"{camelCase}[]";
+
+        foreach (var prefix in new[] { "meta", "Meta" })
+        {
+            yield return $"{prefix}[{propertyName}][]";
+            yield return $"{prefix}[{camelCase}][]";
+            yield return $"{prefix}.{propertyName}[]";
+            yield return $"{prefix}.{camelCase}[]";
+        }
     }
 
-    private static IReadOnlyList<Guid> ParseGuidValues(StringValues values)
-    {
-        var buffer = new List<Guid>();
-        var seen = new HashSet<Guid>();
 
-        void Add(Guid value)
-        {
-            if (value == Guid.Empty)
-            {
-                return;
-            }
-
-            if (seen.Add(value))
-            {
-                buffer.Add(value);
-            }
-        }
-
-        if (values.Count > 1)
-        {
-            foreach (var value in values)
-            {
-                if (Guid.TryParse(value, out var guid))
-                {
-                    Add(guid);
-                }
-            }
-
-            return buffer;
-        }
-
-        var raw = values[0];
-        if (string.IsNullOrWhiteSpace(raw))
-        {
-            return buffer;
-        }
-
-        if (raw.TrimStart().StartsWith("[", StringComparison.Ordinal))
-        {
-            try
-            {
-                var parsed = JsonSerializer.Deserialize<string[]>(raw);
-                if (parsed is not null)
-                {
-                    foreach (var candidate in parsed)
-                    {
-                        if (Guid.TryParse(candidate, out var guid))
-                        {
-                            Add(guid);
-                        }
-                    }
-                }
-            }
-            catch (JsonException)
-            {
-                // fall through to delimiter parsing
-            }
-        }
-
-        if (buffer.Count > 0)
-        {
-            return buffer;
-        }
-
-        foreach (var segment in raw.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (Guid.TryParse(segment, out var guid))
-            {
-                Add(guid);
-            }
-        }
-
-        return buffer;
-    }
 }
