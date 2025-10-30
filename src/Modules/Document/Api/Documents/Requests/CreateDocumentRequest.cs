@@ -148,7 +148,7 @@ public sealed class CreateDocumentRequest
         var raw = values[0];
         if (string.IsNullOrWhiteSpace(raw))
         {
-            return Array.Empty<Guid>();
+            return [];
         }
 
         if (raw.TrimStart().StartsWith("[", StringComparison.Ordinal))
@@ -179,7 +179,7 @@ public sealed class CreateDocumentRequest
         }
 
         foreach (var segment in raw.Split(
-                     new[] { ',', ';' },
+                     [',', ';'],
                      StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             if (Guid.TryParse(segment, out var guid))

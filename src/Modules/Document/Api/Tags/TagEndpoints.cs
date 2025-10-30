@@ -1,3 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
+using ECM.Abstractions.Users;
+using ECM.Document.Api.Documents.Extensions;
 using ECM.Document.Api.Tags.Requests;
 using ECM.Document.Api.Tags.Responses;
 using ECM.Document.Application.Tags.Commands;
@@ -60,17 +67,25 @@ public static class TagEndpoints
         Results<Ok<TagLabelResponse>, ValidationProblem, NotFound>
     > UpdateTagAsync(
         Guid tagId,
+        ClaimsPrincipal principal,
         UpdateTagRequest request,
         UpdateTagLabelCommandHandler handler,
+        IUserLookupService userLookupService,
         CancellationToken cancellationToken
     )
     {
+        var namespaceSlug = TagNamespaceSlugResolver.Resolve(request.NamespaceSlug, principal);
+        var claimedUserId = await principal
+            .GetUserObjectIdAsync(userLookupService, cancellationToken)
+            .ConfigureAwait(false);
+        var updatedBy = NormalizeGuid(request.UpdatedBy) ?? claimedUserId;
+
         var command = new UpdateTagLabelCommand(
             tagId,
-            request.NamespaceSlug,
+            namespaceSlug,
             request.Slug,
             request.Path,
-            request.UpdatedBy
+            updatedBy
         );
         var result = await handler.HandleAsync(command, cancellationToken);
 
@@ -128,16 +143,37 @@ public static class TagEndpoints
     }
 
     private static async Task<Results<Created<TagLabelResponse>, ValidationProblem>> CreateTagAsync(
+        ClaimsPrincipal principal,
         CreateTagRequest request,
         CreateTagLabelCommandHandler handler,
+        IUserLookupService userLookupService,
         CancellationToken cancellationToken
     )
     {
+        var namespaceSlug = TagNamespaceSlugResolver.Resolve(request.NamespaceSlug, principal);
+        var claimedUserId = await principal
+            .GetUserObjectIdAsync(userLookupService, cancellationToken)
+            .ConfigureAwait(false);
+        var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId;
+
+        if (createdBy is null)
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    ["createdBy"] =
+                    [
+                        "The creator could not be determined from the request or user context.",
+                    ],
+                }
+            );
+        }
+
         var command = new CreateTagLabelCommand(
-            request.NamespaceSlug,
+            namespaceSlug,
             request.Slug,
             request.Path,
-            request.CreatedBy
+            createdBy
         );
         var result = await handler.HandleAsync(command, cancellationToken);
 
@@ -160,6 +196,9 @@ public static class TagEndpoints
 
         return TypedResults.Created($"/api/ecm/tags/{response.Id}", response);
     }
+
+    private static Guid? NormalizeGuid(Guid? value)
+        => value.HasValue && value.Value != Guid.Empty ? value : null;
 
     private static async Task<Results<NoContent, ValidationProblem>> DeleteTagAsync(
         Guid tagId,

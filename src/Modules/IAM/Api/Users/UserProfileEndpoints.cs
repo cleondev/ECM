@@ -113,7 +113,7 @@ public static class UserProfileEndpoints
             new UpdateUserProfileCommand(
                 email,
                 request.DisplayName ?? string.Empty,
-                request.GroupIds ?? Array.Empty<Guid>(),
+                request.GroupIds ?? [],
                 request.PrimaryGroupId),
             cancellationToken);
 

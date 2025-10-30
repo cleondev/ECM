@@ -86,11 +86,11 @@ public class AzureAdUserProvisioningServiceTests
         client.LastCreateRequest!.RoleIds.Should().ContainSingle().Which.Should().Be(role.Id);
         client.LastCreateRequest!.GroupIds
             .Should()
-            .BeEquivalentTo(new[]
-            {
+            .BeEquivalentTo(
+            [
                 GroupDefaultIds.System,
                 GroupDefaultIds.Guest
-            });
+            ]);
         client.LastCreateRequest!.PrimaryGroupId.Should().BeNull();
     }
 
@@ -110,7 +110,7 @@ public class AzureAdUserProvisioningServiceTests
             createdUser.Email,
             createdUser.DisplayName,
             primaryGroupId: primaryGroupId,
-            groupIds: new[] { additionalGroupId });
+            groupIds: [additionalGroupId]);
 
         var result = await service.EnsureUserExistsAsync(principal, CancellationToken.None);
 
@@ -118,7 +118,7 @@ public class AzureAdUserProvisioningServiceTests
         client.LastCreateRequest.Should().NotBeNull();
         client.LastCreateRequest!.GroupIds
             .Should()
-            .Contain(new[] { GroupDefaultIds.System, GroupDefaultIds.Guest, additionalGroupId, primaryGroupId });
+            .Contain([GroupDefaultIds.System, GroupDefaultIds.Guest, additionalGroupId, primaryGroupId]);
         client.LastCreateRequest!.PrimaryGroupId.Should().Be(primaryGroupId);
     }
 
@@ -197,7 +197,7 @@ public class AzureAdUserProvisioningServiceTests
     }
 
     private static UserSummaryDto CreateUserSummary()
-        => new(Guid.NewGuid(), "user@example.com", "User", true, DateTimeOffset.UtcNow, null, Array.Empty<Guid>(), [], []);
+        => new(Guid.NewGuid(), "user@example.com", "User", true, DateTimeOffset.UtcNow, null, [], [], []);
 
     private sealed class FakeEcmApiClient : IEcmApiClient
     {

@@ -9,5 +9,5 @@ public sealed record DocumentListDto(
     int TotalPages,
     IReadOnlyCollection<DocumentDto> Items)
 {
-    public static readonly DocumentListDto Empty = new(1, 0, 0, 0, Array.Empty<DocumentDto>());
+    public static readonly DocumentListDto Empty = new(1, 0, 0, 0, []);
 }

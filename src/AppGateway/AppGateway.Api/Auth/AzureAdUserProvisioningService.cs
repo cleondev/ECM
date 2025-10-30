@@ -104,7 +104,7 @@ public sealed class AzureAdUserProvisioningService(
             var created = await _client.CreateUserAsync(request, cancellationToken);
             if (created is not null)
             {
-                var createdRoles = created.Roles ?? Array.Empty<RoleSummaryDto>();
+                var createdRoles = created.Roles ?? [];
                 var roleDescription = createdRoles.Count > 0
                     ? string.Join(", ", createdRoles.Select(role => role.Name))
                     : "<none>";
@@ -181,7 +181,7 @@ public sealed class AzureAdUserProvisioningService(
             }
         }
 
-        return ids.Count > 0 ? ids.ToArray() : Array.Empty<Guid>();
+        return ids.Count > 0 ? ids.ToArray() : [];
     }
 
     private static (IReadOnlyCollection<Guid> GroupIds, Guid? PrimaryGroupId) BuildGroupSelection(

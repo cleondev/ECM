@@ -67,7 +67,7 @@ public sealed class ShareLink
         FileSizeBytes = fileSizeBytes;
         FileCreatedAt = fileCreatedAt;
         WatermarkJson = watermarkJson;
-        AllowedIps = allowedIps ?? Array.Empty<IPAddress>();
+        AllowedIps = allowedIps ?? [];
         CreatedAt = createdAt;
         RevokedAt = revokedAt;
     }
@@ -207,7 +207,7 @@ public sealed class ShareLink
 
     public void UpdateAllowedIps(IEnumerable<IPAddress>? allowedIps)
     {
-        AllowedIps = allowedIps?.ToArray() ?? Array.Empty<IPAddress>();
+        AllowedIps = allowedIps?.ToArray() ?? [];
     }
 
     private static SharePermission NormalizePermissions(SharePermission permissions)

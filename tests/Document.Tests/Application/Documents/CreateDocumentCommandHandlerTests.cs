@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
@@ -23,7 +24,8 @@ public class CreateDocumentCommandHandlerTests
         var now = new DateTimeOffset(2024, 01, 15, 8, 30, 0, TimeSpan.Zero);
         var repository = new FakeDocumentRepository();
         var clock = new FixedClock(now);
-        var handler = new CreateDocumentCommandHandler(repository, clock);
+        var aclWriter = new FakeEffectiveAclFlatWriter();
+        var handler = new CreateDocumentCommandHandler(repository, clock, aclWriter);
 
         var ownerId = _groups.GuestGroupId;
         var createdBy = _groups.SystemGroupId;
@@ -35,7 +37,7 @@ public class CreateDocumentCommandHandlerTests
             ownerId,
             createdBy,
             _groups.GuestGroupId,
-            new[] { _groups.GuestGroupId },
+            [_groups.GuestGroupId],
             "  Confidential  ",
             documentTypeId);
 
@@ -50,7 +52,7 @@ public class CreateDocumentCommandHandlerTests
         Assert.Equal(ownerId, summary.OwnerId);
         Assert.Equal(createdBy, summary.CreatedBy);
         Assert.Equal(_groups.GuestGroupId, summary.GroupId);
-        Assert.Equal(new[] { _groups.GuestGroupId }, summary.GroupIds);
+        Assert.Equal([_groups.GuestGroupId], summary.GroupIds);
         Assert.Equal(now, summary.CreatedAtUtc);
         Assert.Equal(now, summary.UpdatedAtUtc);
         Assert.Equal(documentTypeId, summary.DocumentTypeId);
@@ -60,6 +62,14 @@ public class CreateDocumentCommandHandlerTests
         Assert.Equal(now, storedDocument.CreatedAtUtc);
         Assert.Equal(now, storedDocument.UpdatedAtUtc);
         Assert.Equal(CancellationToken.None, repository.CapturedToken);
+
+        Assert.Collection(
+            aclWriter.Entries,
+            entry =>
+            {
+                Assert.Equal(storedDocument.Id.Value, entry.DocumentId);
+                Assert.Equal(storedDocument.OwnerId, entry.UserId);
+            });
     }
 
     [Fact]
@@ -67,7 +77,7 @@ public class CreateDocumentCommandHandlerTests
     {
         var repository = new FakeDocumentRepository();
         var clock = new FixedClock(DateTimeOffset.UtcNow);
-        var handler = new CreateDocumentCommandHandler(repository, clock);
+        var handler = new CreateDocumentCommandHandler(repository, clock, new FakeEffectiveAclFlatWriter());
 
         var command = new CreateDocumentCommand(
             "   ",
@@ -76,7 +86,7 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
-            Array.Empty<Guid>(),
+            [],
             null,
             null);
 
@@ -93,7 +103,7 @@ public class CreateDocumentCommandHandlerTests
     {
         var repository = new FakeDocumentRepository();
         var clock = new FixedClock(DateTimeOffset.UtcNow);
-        var handler = new CreateDocumentCommandHandler(repository, clock);
+        var handler = new CreateDocumentCommandHandler(repository, clock, new FakeEffectiveAclFlatWriter());
 
         var command = new CreateDocumentCommand(
             "Project Plan",
@@ -102,7 +112,7 @@ public class CreateDocumentCommandHandlerTests
             Guid.NewGuid(),
             Guid.NewGuid(),
             null,
-            Array.Empty<Guid>(),
+            [],
             null,
             null);
 
@@ -140,5 +150,22 @@ public class CreateDocumentCommandHandlerTests
     private sealed class FixedClock(DateTimeOffset now) : ISystemClock
     {
         public DateTimeOffset UtcNow { get; } = now;
+    }
+
+    private sealed class FakeEffectiveAclFlatWriter : IEffectiveAclFlatWriter
+    {
+        public List<EffectiveAclFlatWriteEntry> Entries { get; } = [];
+
+        public Task UpsertAsync(EffectiveAclFlatWriteEntry entry, CancellationToken cancellationToken = default)
+        {
+            Entries.Add(entry);
+            return Task.CompletedTask;
+        }
+
+        public Task UpsertAsync(IEnumerable<EffectiveAclFlatWriteEntry> entries, CancellationToken cancellationToken = default)
+        {
+            Entries.AddRange(entries);
+            return Task.CompletedTask;
+        }
     }
 }

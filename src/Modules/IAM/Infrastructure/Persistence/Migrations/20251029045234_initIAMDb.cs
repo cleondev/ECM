@@ -142,7 +142,7 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 name: "iam_group_members_group_validity_idx",
                 schema: "iam",
                 table: "group_members",
-                columns: new[] { "group_id", "valid_from", "valid_to" });
+                columns: ["group_id", "valid_from", "valid_to"]);
 
             migrationBuilder.CreateIndex(
                 name: "ix_groups_name",
@@ -161,13 +161,13 @@ namespace ECM.IAM.Infrastructure.Persistence.Migrations
                 name: "iam_relations_object_idx",
                 schema: "iam",
                 table: "relations",
-                columns: new[] { "object_type", "object_id" });
+                columns: ["object_type", "object_id"]);
 
             migrationBuilder.CreateIndex(
                 name: "iam_relations_object_subject_idx",
                 schema: "iam",
                 table: "relations",
-                columns: new[] { "object_type", "relation", "subject_type", "subject_id", "object_id" });
+                columns: ["object_type", "relation", "subject_type", "subject_id", "object_id"]);
 
             migrationBuilder.CreateIndex(
                 name: "ix_roles_name",
