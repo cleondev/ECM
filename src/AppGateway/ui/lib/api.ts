@@ -133,6 +133,7 @@ type SharePresignResponse = {
 type TagLabelResponse = {
   id: string
   namespaceId: string
+  namespaceDisplayName?: string | null
   parentId?: string | null
   name: string
   pathIds: string[]
@@ -220,14 +221,23 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
   })
 
-  const ensureNamespace = (namespaceId: string): TagNode => {
+  const ensureNamespace = (
+    namespaceId: string,
+    namespaceDisplayName?: string | null,
+  ): TagNode => {
     const existing = namespaceNodes.get(namespaceId)
+    const normalizedLabel = namespaceDisplayName?.trim()
+
     if (existing) {
+      if (normalizedLabel && normalizedLabel !== existing.namespaceLabel) {
+        existing.name = normalizedLabel
+        existing.namespaceLabel = normalizedLabel
+      }
       return existing
     }
 
     const index = namespaceOrder.size + 1
-    const label = `Namespace ${index}`
+    const label = normalizedLabel || `Namespace ${index}`
     const namespaceNode: TagNode = {
       id: `ns:${namespaceId}`,
       namespaceId,
@@ -281,7 +291,7 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
       }
       parentNode.children.push(node)
     } else {
-      const namespaceNode = ensureNamespace(label.namespaceId)
+      const namespaceNode = ensureNamespace(label.namespaceId, label.namespaceDisplayName)
       if (!namespaceNode.children) {
         namespaceNode.children = []
       }

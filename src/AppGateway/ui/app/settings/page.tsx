@@ -35,10 +35,10 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command"
-import { cn } from "@/lib/utils"
+import { cn, createSignInRedirectPath } from "@/lib/utils"
 
-const LANDING_PAGE_ROUTE = "/"
 const APP_HOME_ROUTE = "/app/"
+const SETTINGS_ROUTE = "/app/settings/"
 
 type ProfileFormState = {
   displayName: string
@@ -65,12 +65,21 @@ export default function SettingsPage() {
   useEffect(() => {
     let mounted = true
 
+    const redirectToSignIn = () => {
+      const target =
+        typeof window === "undefined"
+          ? SETTINGS_ROUTE
+          : `${window.location.pathname}${window.location.search}${window.location.hash}`
+      const signInPath = createSignInRedirectPath(target, SETTINGS_ROUTE)
+      window.location.href = signInPath
+    }
+
     fetchCurrentUserProfile()
       .then((data) => {
         if (!mounted) return
 
         if (!data) {
-          window.location.href = LANDING_PAGE_ROUTE
+          redirectToSignIn()
           return
         }
 
@@ -88,7 +97,7 @@ export default function SettingsPage() {
       })
       .catch(() => {
         if (!mounted) return
-        window.location.href = LANDING_PAGE_ROUTE
+        redirectToSignIn()
       })
 
     return () => {

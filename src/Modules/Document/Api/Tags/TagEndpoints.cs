@@ -113,6 +113,7 @@ public static class TagEndpoints
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
+            result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,
@@ -133,15 +134,21 @@ public static class TagEndpoints
         CancellationToken cancellationToken
     )
     {
-        var tags = await context
-            .TagLabels.AsNoTracking()
-            .OrderBy(label => label.NamespaceId)
-            .ThenBy(label => label.ParentId.HasValue ? 1 : 0)
-            .ThenBy(label => label.SortOrder)
-            .ThenBy(label => label.Name)
-            .Select(label => new TagLabelResponse(
+        var tagRecords = await (
+            from label in context.TagLabels.AsNoTracking()
+            join ns in context.TagNamespaces.AsNoTracking()
+                on label.NamespaceId equals ns.Id into namespaceGroup
+            from ns in namespaceGroup.DefaultIfEmpty()
+            orderby label.NamespaceId,
+                label.ParentId.HasValue ? 1 : 0,
+                label.SortOrder,
+                label.Name
+            select new
+            {
                 label.Id,
                 label.NamespaceId,
+                NamespaceDisplayName = ns != null ? ns.DisplayName : null,
+                NamespaceScope = ns != null ? ns.Scope : null,
                 label.ParentId,
                 label.Name,
                 label.PathIds,
@@ -151,9 +158,27 @@ public static class TagEndpoints
                 label.IsActive,
                 label.IsSystem,
                 label.CreatedBy,
-                label.CreatedAtUtc
+                label.CreatedAtUtc,
+            }
+        ).ToArrayAsync(cancellationToken);
+
+        var tags = tagRecords
+            .Select(record => new TagLabelResponse(
+                record.Id,
+                record.NamespaceId,
+                NormalizeNamespaceDisplayName(record.NamespaceDisplayName, record.NamespaceScope),
+                record.ParentId,
+                record.Name,
+                record.PathIds,
+                record.SortOrder,
+                record.Color,
+                record.IconKey,
+                record.IsActive,
+                record.IsSystem,
+                record.CreatedBy,
+                record.CreatedAtUtc
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
 
         return TypedResults.Ok(tags);
     }
@@ -217,6 +242,7 @@ public static class TagEndpoints
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
+            result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,
@@ -231,6 +257,9 @@ public static class TagEndpoints
 
         return TypedResults.Created($"/api/ecm/tags/{response.Id}", response);
     }
+
+    private static string? NormalizeNamespaceDisplayName(string? displayName, string? fallback)
+        => string.IsNullOrWhiteSpace(displayName) ? fallback : displayName.Trim();
 
     private static Guid? NormalizeGuid(Guid? value)
         => value.HasValue && value.Value != Guid.Empty ? value : null;
