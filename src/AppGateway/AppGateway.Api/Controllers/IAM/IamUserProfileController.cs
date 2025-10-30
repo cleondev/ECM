@@ -47,4 +47,39 @@ public sealed class IamUserProfileController(IEcmApiClient client) : ControllerB
 
         return Ok(profile);
     }
+
+    [HttpPut("password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdatePasswordAsync(
+        [FromBody] UpdateUserPasswordRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _client.UpdateCurrentUserPasswordAsync(request, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return NoContent();
+        }
+
+        if (result.IsNotFound)
+        {
+            return NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(result.Content))
+        {
+            return StatusCode((int)result.StatusCode);
+        }
+
+        return new ContentResult
+        {
+            Content = result.Content,
+            ContentType = string.IsNullOrWhiteSpace(result.ContentType)
+                ? "application/json"
+                : result.ContentType,
+            StatusCode = (int)result.StatusCode
+        };
+    }
 }

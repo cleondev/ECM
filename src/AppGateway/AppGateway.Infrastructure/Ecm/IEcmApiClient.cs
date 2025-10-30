@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Contracts.IAM.Relations;
@@ -31,6 +32,8 @@ public interface IEcmApiClient
     Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto request, CancellationToken cancellationToken = default);
 
     Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto request, CancellationToken cancellationToken = default);
+
+    Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto request, CancellationToken cancellationToken = default);
 
     Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto request, CancellationToken cancellationToken = default);
 
@@ -87,4 +90,11 @@ public interface IEcmApiClient
     Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto request, CancellationToken cancellationToken = default);
 
     Task<SignatureReceiptDto?> CreateSignatureRequestAsync(SignatureRequestDto request, CancellationToken cancellationToken = default);
+}
+
+public sealed record PasswordUpdateResult(HttpStatusCode StatusCode, string? Content = null, string? ContentType = null)
+{
+    public bool IsSuccess => StatusCode == HttpStatusCode.NoContent;
+
+    public bool IsNotFound => StatusCode == HttpStatusCode.NotFound;
 }

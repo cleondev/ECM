@@ -121,6 +121,34 @@ internal sealed class EcmApiClient(
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
+    public async Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto requestDto, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Put, "api/iam/profile/password", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        string? content = null;
+        string? contentType = null;
+
+        if (response.Content is not null)
+        {
+            contentType = response.Content.Headers.ContentType?.ToString();
+
+            if (response.StatusCode != HttpStatusCode.NoContent)
+            {
+                content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    content = null;
+                }
+            }
+        }
+
+        return new PasswordUpdateResult(response.StatusCode, content, contentType);
+    }
+
     public async Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Post, $"api/iam/users/{userId}/roles", cancellationToken);
