@@ -9,9 +9,8 @@ import {
   getCachedAuthSnapshot,
   updateCachedAuthSnapshot,
 } from "@/lib/auth-state"
-import { normalizeRedirectTarget } from "@/lib/utils"
+import { createSignInRedirectPath, normalizeRedirectTarget } from "@/lib/utils"
 
-const LANDING_REDIRECT = "/"
 const APP_HOME_FALLBACK = "/app/"
 
 type AuthGuardState = {
@@ -58,7 +57,9 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
       )
       clearCachedAuthSnapshot()
       setIsAuthenticated(false)
-      router.replace(LANDING_REDIRECT)
+      const signInPath = createSignInRedirectPath(normalizedTargetPath, APP_HOME_FALLBACK)
+      console.debug("[auth] Chuyển hướng tới trang đăng nhập:", signInPath)
+      router.replace(signInPath)
     }
 
     const verify = async () => {

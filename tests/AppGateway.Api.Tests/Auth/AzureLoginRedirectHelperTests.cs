@@ -51,4 +51,17 @@ public static class AzureLoginRedirectHelperTests
 
         result.Should().Be("/app/settings?tab=notifications#alerts");
     }
+
+    [Fact]
+    public static void ResolveRedirectPath_AllowsRedirectsOutsideMainApp()
+    {
+        var context = new DefaultHttpContext();
+
+        var result = AzureLoginRedirectHelper.ResolveRedirectPath(
+            context,
+            "/settings/?tab=billing#payments",
+            "/app");
+
+        result.Should().Be("/settings?tab=billing#payments");
+    }
 }
