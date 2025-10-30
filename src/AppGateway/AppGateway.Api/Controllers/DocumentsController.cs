@@ -242,7 +242,28 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         [FromBody] CreateShareLinkRequestDto request,
         CancellationToken cancellationToken)
     {
-        var link = await _client.CreateDocumentShareLinkAsync(versionId, request, cancellationToken);
+        if (request.DocumentId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(request.DocumentId), "Document identifier is required.");
+        }
+
+        var effectiveVersionId = request.VersionId == Guid.Empty ? versionId : request.VersionId;
+        if (effectiveVersionId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(request.VersionId), "Version identifier is required.");
+        }
+        else if (effectiveVersionId != versionId)
+        {
+            ModelState.AddModelError(nameof(request.VersionId), "Version identifier does not match the route parameter.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var normalizedRequest = request with { VersionId = versionId };
+        var link = await _client.CreateDocumentShareLinkAsync(normalizedRequest, cancellationToken);
         if (link is null)
         {
             return NotFound();

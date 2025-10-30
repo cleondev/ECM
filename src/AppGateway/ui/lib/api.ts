@@ -121,6 +121,7 @@ export type DocumentBatchResponse = {
 
 type ShareLinkResponse = {
   url: string
+  shortUrl: string
   expiresAtUtc: string
   isPublic: boolean
 }
@@ -414,6 +415,25 @@ function formatFileSize(bytes?: number | null): string {
   return `${gigaBytes.toFixed(1)} GB`
 }
 
+function extractFileExtension(fileName: string): string | null {
+  if (!fileName) {
+    return null
+  }
+
+  const trimmed = fileName.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  const lastDot = trimmed.lastIndexOf(".")
+  if (lastDot === -1 || lastDot === trimmed.length - 1) {
+    return null
+  }
+
+  const extension = trimmed.slice(lastDot + 1).toLowerCase()
+  return extension.length > 0 ? extension : null
+}
+
 const displayDateFormatter = new Intl.DateTimeFormat("vi-VN", {
   day: "2-digit",
   month: "2-digit",
@@ -473,6 +493,8 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     latestVersionId: latestVersion?.id,
     latestVersionNumber: latestVersion?.versionNo,
     latestVersionStorageKey: latestVersion?.storageKey,
+    latestVersionMimeType: latestVersion?.mimeType,
+    latestVersionCreatedAtUtc: latestVersion?.createdAtUtc,
     sizeBytes: latestVersion?.bytes,
   }
 }
@@ -1274,29 +1296,47 @@ export async function signOut(redirectUri?: string): Promise<void> {
   }
 }
 
-export async function createShareLink(versionId: string, options: ShareOptions): Promise<ShareLink> {
+export async function createShareLink(file: FileItem, options: ShareOptions): Promise<ShareLink> {
   try {
+    if (!file.latestVersionId) {
+      throw new Error("A latest file version is required to create a share link.")
+    }
+
     const normalizedMinutes = Number.isFinite(options.expiresInMinutes)
       ? Math.min(10080, Math.max(1, Math.round(options.expiresInMinutes)))
       : 1440
 
     const payload = {
+      documentId: file.id,
+      versionId: file.latestVersionId,
+      fileName: file.name,
+      fileExtension: extractFileExtension(file.name),
+      fileContentType: file.latestVersionMimeType ?? "application/octet-stream",
+      fileSizeBytes: file.sizeBytes ?? 0,
+      fileCreatedAtUtc: file.latestVersionCreatedAtUtc ?? null,
       isPublic: options.isPublic,
       expiresInMinutes: normalizedMinutes,
     }
 
-    const response = await gatewayRequest<ShareLinkResponse>(`/api/documents/files/share/${versionId}`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    })
+    const response = await gatewayRequest<ShareLinkResponse>(
+      `/api/documents/files/share/${file.latestVersionId}`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    )
 
     return {
       url: normalizeShareLinkUrl(response.url),
+      shortUrl: normalizeShareShortUrl(response.shortUrl),
       expiresAtUtc: response.expiresAtUtc,
       isPublic: response.isPublic,
     }
   } catch (error) {
-    console.error(`[ui] Failed to create share link for version ${versionId}:`, error)
+    console.error(
+      `[ui] Failed to create share link for version ${file.latestVersionId ?? "(unknown)"}:`,
+      error,
+    )
     throw error
   }
 }
@@ -1309,11 +1349,7 @@ function normalizeShareLinkUrl(url: string): string {
   try {
     const origin = typeof window === "undefined" ? "http://localhost" : window.location.origin
     const parsed = new URL(url, origin)
-
-    const queryCode = parsed.searchParams.get("code")
-    const pathSegments = parsed.pathname.split("/").filter(Boolean)
-    const pathCode = !queryCode && pathSegments.length >= 2 && pathSegments[0] === "s" ? pathSegments[1] : null
-    const code = queryCode ?? pathCode
+    const code = extractShareCode(parsed)
 
     if (!code) {
       return url
@@ -1331,13 +1367,76 @@ function normalizeShareLinkUrl(url: string): string {
   } catch (error) {
     console.warn("[ui] Failed to normalize share link URL", error)
 
-    const fallbackMatch = url.match(/\/s\/([^/?#]+)/)
-    if (fallbackMatch?.[1]) {
-      return `/s/?code=${encodeURIComponent(fallbackMatch[1])}`
+    const fallbackCode = extractShareCodeFromString(url)
+    if (fallbackCode) {
+      return `/s/?code=${encodeURIComponent(fallbackCode)}`
     }
 
     return url
   }
+}
+
+function normalizeShareShortUrl(url: string): string {
+  if (!url) {
+    return url
+  }
+
+  try {
+    const origin = typeof window === "undefined" ? "http://localhost" : window.location.origin
+    const parsed = new URL(url, origin)
+    const code = extractShareCode(parsed)
+
+    if (!code) {
+      return url
+    }
+
+    parsed.pathname = `/s/${encodeURIComponent(code)}`
+    parsed.search = ""
+    parsed.hash = ""
+
+    if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
+      return parsed.pathname
+    }
+
+    return parsed.toString()
+  } catch (error) {
+    console.warn("[ui] Failed to normalize short share link URL", error)
+
+    const fallbackCode = extractShareCodeFromString(url)
+    if (fallbackCode) {
+      return `/s/${encodeURIComponent(fallbackCode)}`
+    }
+
+    return url
+  }
+}
+
+function extractShareCode(parsed: URL): string | null {
+  const queryCode = parsed.searchParams.get("code")
+  if (queryCode) {
+    return queryCode
+  }
+
+  const segments = parsed.pathname.split("/").filter(Boolean)
+  if (segments.length >= 2 && segments[0] === "s") {
+    return segments[1]
+  }
+
+  return null
+}
+
+function extractShareCodeFromString(raw: string): string | null {
+  const pathMatch = raw.match(/\/s\/([^/?#]+)/)
+  if (pathMatch?.[1]) {
+    return decodeURIComponent(pathMatch[1])
+  }
+
+  const queryMatch = raw.match(/[?&]code=([^&#]+)/)
+  if (queryMatch?.[1]) {
+    return decodeURIComponent(queryMatch[1])
+  }
+
+  return null
 }
 
 function normalizeShareInterstitial(dto: ShareInterstitialResponseDto): ShareInterstitial {

@@ -294,7 +294,6 @@ public class AzureAdUserProvisioningServiceTests
             => throw new NotSupportedException();
 
         public Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
-            Guid versionId,
             CreateShareLinkRequestDto request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();

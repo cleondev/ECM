@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -52,24 +52,30 @@ export function ShareDialog({
 }: ShareDialogProps) {
   const [isPublic, setIsPublic] = useState(true)
   const [expiresInMinutes, setExpiresInMinutes] = useState<number>(DEFAULT_DURATION)
-  const [copied, setCopied] = useState(false)
+  const [copiedShort, setCopiedShort] = useState(false)
+  const [copiedFull, setCopiedFull] = useState(false)
+
+  const resetCopyState = useCallback(() => {
+    setCopiedShort(false)
+    setCopiedFull(false)
+  }, [])
 
   useEffect(() => {
     if (!open) {
-      setCopied(false)
+      resetCopyState()
       return
     }
 
-    setCopied(false)
+    resetCopyState()
     setIsPublic(true)
     setExpiresInMinutes(DEFAULT_DURATION)
-  }, [open, file?.id])
+  }, [open, file?.id, resetCopyState])
 
   useEffect(() => {
     if (!result) {
-      setCopied(false)
+      resetCopyState()
     }
-  }, [result?.url])
+  }, [resetCopyState, result?.shortUrl, result?.url])
 
   const formattedExpiry = useMemo(() => {
     if (!result?.expiresAtUtc) {
@@ -96,27 +102,28 @@ export function ShareDialog({
       return
     }
 
-    setCopied(false)
+    resetCopyState()
     await onConfirm({ isPublic, expiresInMinutes })
   }
 
-  const handleCopy = async () => {
-    if (!result?.url) {
+  const handleCopy = async (value: string | null | undefined, type: "short" | "full") => {
+    if (!value) {
       return
     }
 
     try {
-      await navigator.clipboard.writeText(result.url)
-      setCopied(true)
+      await navigator.clipboard.writeText(value)
+      setCopiedShort(type === "short")
+      setCopiedFull(type === "full")
     } catch (err) {
       console.error("[ui] Failed to copy share link to clipboard:", err)
-      setCopied(false)
+      resetCopyState()
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-3xl sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Share file</DialogTitle>
           <DialogDescription>
@@ -181,15 +188,37 @@ export function ShareDialog({
           ) : null}
 
           {result ? (
-            <div className="space-y-2">
-              <Label className="font-medium">Share link</Label>
-              <div className="flex items-center gap-2">
-                <Input value={result.url} readOnly className="flex-1" />
-                <Button variant="outline" size="icon" onClick={handleCopy}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  <span className="sr-only">Copy link</span>
-                </Button>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="font-medium">Short link</Label>
+                <div className="flex items-center gap-2">
+                  <Input value={result.shortUrl} readOnly className="flex-1" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleCopy(result.shortUrl, "short")}
+                  >
+                    {copiedShort ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    <span className="sr-only">Copy short link</span>
+                  </Button>
+                </div>
               </div>
+
+              <div className="space-y-2">
+                <Label className="font-medium text-muted-foreground">Full link</Label>
+                <div className="flex items-center gap-2">
+                  <Input value={result.url} readOnly className="flex-1" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleCopy(result.url, "full")}
+                  >
+                    {copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    <span className="sr-only">Copy full link</span>
+                  </Button>
+                </div>
+              </div>
+
               {formattedExpiry ? (
                 <p className="text-xs text-muted-foreground">Link expires on {formattedExpiry}</p>
               ) : null}

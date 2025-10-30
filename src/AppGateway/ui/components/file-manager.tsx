@@ -142,7 +142,7 @@ export function FileManager() {
     setShareError(null)
 
     try {
-      const link = await createShareLink(selectedFile.latestVersionId, options)
+      const link = await createShareLink(selectedFile, options)
       setShareResult(link)
     } catch (error) {
       console.error("[ui] Failed to create share link:", error)
