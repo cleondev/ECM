@@ -344,13 +344,25 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     setIsTagDialogOpen(true)
   }
 
+  const resolveNamespaceNode = async (): Promise<TagNode | null> => {
+    const existing = tagTree.find((node) => node.kind === "namespace")
+    if (existing) {
+      return existing
+    }
+
+    const refreshed = await fetchTags()
+    setTagTree(refreshed)
+
+    return refreshed.find((node) => node.kind === "namespace") ?? null
+  }
+
   const handleSaveTag = async (data: TagUpdateData) => {
     if (dialogMode === "edit" && editingTag) {
       await updateTag(editingTag, data)
     } else if (dialogMode === "add-child" && parentTag) {
       await createTag(data, parentTag)
     } else {
-      const namespaceNode = tagTree.find((node) => node.kind === "namespace")
+      const namespaceNode = await resolveNamespaceNode()
       if (!namespaceNode) {
         console.warn("[sidebar] Unable to determine namespace for new tag creation")
         return
