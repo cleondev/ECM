@@ -513,12 +513,22 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   useEffect(() => {
     const tagIds = selectedTags.map((tag) => tag.id)
 
+    const normalizedGroupIds = Array.from(
+      new Set(
+        (metadata.groupIds ?? [])
+          .map((value) => value?.trim())
+          .filter((value): value is string => Boolean(value)),
+      ),
+    )
+
+    const serializedGroupIds = normalizedGroupIds.join(",")
+
     uppy.setMeta({
       Title: metadata.title?.trim() || "",
       DocType: metadata.docType?.trim() || "General",
       Status: metadata.status?.trim() || "Draft",
       PrimaryGroupId: metadata.primaryGroupId || "",
-      GroupIds: JSON.stringify(metadata.groupIds ?? []),
+      GroupIds: serializedGroupIds,
       Sensitivity: metadata.sensitivity?.trim() || "Internal",
       Description: metadata.description?.trim() || "",
       Notes: metadata.notes?.trim() || "",
