@@ -50,13 +50,13 @@ public sealed record GroupAssignment(
         Guid? parentGroupId = null)
         => new GroupAssignment(groupId, identifier, GroupKindExtensions.FromString(kind), parentGroupId, role).Normalize();
 
-    public static GroupAssignment ForExistingGroup(Guid groupId)
+    public static GroupAssignment ForExistingGroup(Guid groupId, GroupKind kind = GroupKind.System)
     {
         if (groupId == Guid.Empty)
         {
             throw new ArgumentException("Group id is required.", nameof(groupId));
         }
 
-        return new GroupAssignment(groupId, null, GroupKind.System);
+        return new GroupAssignment(groupId, null, kind);
     }
 }

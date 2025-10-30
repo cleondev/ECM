@@ -140,8 +140,8 @@ Schemas:
 
 * `iam.user_roles(user_id, role_id)` — ánh xạ người dùng ↔ vai trò (RBAC)
 
-* `iam.groups(id, name, kind, created_by, created_at)` — nhóm động (team, workflow, tạm thời); `kind` nhận các giá trị `system|unit|temporary`. Migrations seed sẵn hai group hệ thống `guest` và `system` để gán quyền mặc định, đồng thời hỗ trợ tạo **unit group** tương ứng với dữ liệu department cũ.
-* `iam.group_members(group_id, user_id, role, valid_from, valid_to)` — thành viên nhóm với thời hạn hiệu lực; user mới được provisioning tự động gia nhập `guest` và `system` thông qua `DefaultGroupAssignmentService`.
+* `iam.groups(id, name, kind, created_by, created_at)` — nhóm động (team, workflow, tạm thời); `kind` nhận các giá trị `system|unit|temporary|guess`. Migrations seed sẵn các group hệ thống `guest`, `system` và `Guess User` (parent = `system`) để gán quyền mặc định, đồng thời hỗ trợ tạo **unit group** tương ứng với dữ liệu department cũ.
+* `iam.group_members(group_id, user_id, role, valid_from, valid_to)` — thành viên nhóm với thời hạn hiệu lực; user mới được provisioning tự động gia nhập `guest`, `system` và `Guess User` thông qua `GroupService`.
 * `iam.relations(subject_type, subject_id, object_type, object_id, relation, valid_from, valid_to)` — quan hệ ReBAC cho user/group với thời gian hiệu lực
 
 * `doc.document(id, title, type_id, status, sensitivity, owner_id, created_at, updated_at)`

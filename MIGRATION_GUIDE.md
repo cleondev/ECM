@@ -90,7 +90,7 @@ ef-miglist-all
 - SQL script xuất vào `deploy/artifacts/ef-<module>.sql`.
 - Dùng `-Configuration Release` khi cần build Release.
 - Sửa `ecm.settings.json` nếu thay đổi cấu trúc dự án.
-- Script IAM (`database/01_iam.sql`) seed sẵn hai group hệ thống `guest` và `system`. Khi migrate trên môi trường mới hãy giữ nguyên các bản ghi này để user mới có quyền mặc định.
+- Script IAM (`database/01_iam.sql`) seed sẵn các group hệ thống `guest`, `system` và `Guess User`. Khi migrate trên môi trường mới hãy giữ nguyên các bản ghi này để user mới có quyền mặc định và `primary_group_id` hợp lệ.
 
 ## Chuyển đổi `department` sang unit group
 

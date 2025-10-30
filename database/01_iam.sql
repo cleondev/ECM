@@ -37,10 +37,11 @@ CREATE TABLE iam.groups (
 CREATE UNIQUE INDEX ix_groups_name
     ON iam.groups (name);
 
-INSERT INTO iam.groups (id, name, kind, created_at)
+INSERT INTO iam.groups (id, name, kind, parent_group_id, created_at)
 VALUES
-    ('11111111-1111-1111-1111-111111111111', 'guest', 'system', now()),
-    ('22222222-2222-2222-2222-222222222222', 'system', 'system', now())
+    ('11111111-1111-1111-1111-111111111111', 'guest', 'system', null, now()),
+    ('22222222-2222-2222-2222-222222222222', 'system', 'system', null, now()),
+    ('33333333-3333-3333-3333-333333333333', 'Guess User', 'guess', '22222222-2222-2222-2222-222222222222', now())
 ON CONFLICT (name) DO NOTHING;
 
 CREATE INDEX ix_groups_parent_group_id

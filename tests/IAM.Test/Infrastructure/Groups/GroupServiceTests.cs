@@ -96,6 +96,34 @@ public class GroupServiceTests
     }
 
     [Fact]
+    public async Task EnsureUserGroupsAsync_CreatesGuessGroupAndSetsAsPrimary()
+    {
+        var clock = new FixedClock(new DateTimeOffset(2025, 3, 10, 12, 0, 0, TimeSpan.Zero));
+        var options = new DbContextOptionsBuilder<IamDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new IamDbContext(options);
+        var service = new GroupService(context, clock, NullLogger<GroupService>.Instance);
+
+        var user = User.Create("guess.user@example.com", "Guess User", clock.UtcNow);
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+
+        await service.EnsureUserGroupsAsync(user, Array.Empty<GroupAssignment>(), null, CancellationToken.None);
+
+        var systemGroup = await context.Groups.SingleAsync(group => group.Id == GroupDefaults.SystemId);
+        var guessGroup = await context.Groups.SingleAsync(group => group.Kind == GroupKind.Guess);
+
+        Assert.Equal(systemGroup.Id, guessGroup.ParentGroupId);
+        Assert.Equal(GroupDefaults.GuessUserName, guessGroup.Name);
+        Assert.Equal(guessGroup.Id, user.PrimaryGroupId);
+
+        var membership = await context.GroupMembers.SingleAsync(member => member.GroupId == guessGroup.Id && member.UserId == user.Id);
+        Assert.Null(membership.ValidToUtc);
+    }
+
+    [Fact]
     public async Task EnsureUserGroupsAsync_SetsPrimaryGroup_WhenProvided()
     {
         var clock = new FixedClock(new DateTimeOffset(2025, 3, 10, 12, 0, 0, TimeSpan.Zero));
