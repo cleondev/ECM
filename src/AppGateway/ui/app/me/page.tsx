@@ -39,8 +39,8 @@ import {
 import { cn } from "@/lib/utils"
 
 const APP_HOME_ROUTE = "/app/"
-const PROFILE_ROUTE = "/profile/"
-const SIGN_IN_ROUTE = `/signin/?redirectUri=${encodeURIComponent(PROFILE_ROUTE)}`
+const ME_ROUTE = "/me/"
+const SIGN_IN_ROUTE = `/signin/?redirectUri=${encodeURIComponent(ME_ROUTE)}`
 
 type ProfileFormState = {
   displayName: string
@@ -73,7 +73,7 @@ export default function ProfilePage() {
   const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
-  const { isAuthenticated, isChecking } = useAuthGuard(PROFILE_ROUTE)
+  const { isAuthenticated, isChecking } = useAuthGuard(ME_ROUTE)
 
   useEffect(() => {
     const locationSnapshot =
