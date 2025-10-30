@@ -64,3 +64,11 @@ export function normalizeRedirectTarget(
 
   return normalizedCandidate ?? normalizedFallback
 }
+
+export function createSignInRedirectPath(
+  candidate: MaybeString,
+  fallback: string = "/app/",
+): string {
+  const normalizedTarget = normalizeRedirectTarget(candidate, fallback)
+  return `/signin/?redirectUri=${encodeURIComponent(normalizedTarget)}`
+}

@@ -4,6 +4,7 @@ public enum GroupKind
 {
     System,
     Unit,
+    Team,
     Temporary,
     Guess,
 }

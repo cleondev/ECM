@@ -39,14 +39,16 @@ public class DefaultGroupAssignmentServiceTests
             .Select(group => group.Name)
             .ToListAsync();
 
-        Assert.Equal(new[] { _groups.GuestGroupName, _groups.SystemGroupName }, groupNames);
+        Assert.Equal(
+            new[] { _groups.GuessGroupName, _groups.GuestGroupName, _groups.SystemGroupName },
+            groupNames);
 
         var parentGroupIds = await context.Groups
             .OrderBy(group => group.Name)
             .Select(group => group.ParentGroupId)
             .ToListAsync();
 
-        Assert.All(parentGroupIds, Assert.Null);
+        Assert.Equal(new Guid?[] { _groups.SystemGroupId, null, null }, parentGroupIds);
 
         var assignedGroupNames = await context.GroupMembers
             .Include(member => member.Group)
@@ -55,7 +57,9 @@ public class DefaultGroupAssignmentServiceTests
             .OrderBy(name => name)
             .ToListAsync();
 
-        Assert.Equal(new[] { _groups.GuestGroupName, _groups.SystemGroupName }, assignedGroupNames);
+        Assert.Equal(
+            new[] { _groups.GuessGroupName, _groups.GuestGroupName, _groups.SystemGroupName },
+            assignedGroupNames);
     }
 
     [Fact]
@@ -80,7 +84,7 @@ public class DefaultGroupAssignmentServiceTests
             .Where(member => member.UserId == user.Id)
             .ToListAsync();
 
-        Assert.Equal(2, assignments.Count);
+        Assert.Equal(3, assignments.Count);
         Assert.All(assignments, assignment => Assert.Null(assignment.ValidToUtc));
     }
 

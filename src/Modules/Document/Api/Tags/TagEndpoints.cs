@@ -113,6 +113,7 @@ public static class TagEndpoints
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
+            result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,
@@ -142,6 +143,9 @@ public static class TagEndpoints
             .Select(label => new TagLabelResponse(
                 label.Id,
                 label.NamespaceId,
+                label.Namespace != null
+                    ? (label.Namespace.DisplayName ?? label.Namespace.Scope)
+                    : null,
                 label.ParentId,
                 label.Name,
                 label.PathIds,
@@ -217,6 +221,7 @@ public static class TagEndpoints
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
+            result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
             result.Value.PathIds,
