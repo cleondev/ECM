@@ -271,4 +271,4 @@ public static class TagEndpoints
     }
 }
 
-file sealed class TagEndpointsLoggingCategory;
+internal sealed class TagEndpointsLoggingCategory;
