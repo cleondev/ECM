@@ -5,6 +5,7 @@ namespace ECM.Document.Application.Tags.Results;
 public sealed record TagLabelResult(
     Guid Id,
     Guid NamespaceId,
+    string? NamespaceDisplayName,
     Guid? ParentId,
     string Name,
     Guid[] PathIds,

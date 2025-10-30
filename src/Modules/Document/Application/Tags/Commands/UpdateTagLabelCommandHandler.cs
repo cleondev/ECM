@@ -59,14 +59,18 @@ public sealed class UpdateTagLabelCommandHandler(
             return OperationResult<TagLabelResult>.Failure("Tag belongs to a different namespace.");
         }
 
-        var namespaceExists = await _tagNamespaceRepository
+        var tagNamespace = await _tagNamespaceRepository
             .GetAsync(command.NamespaceId, cancellationToken)
             .ConfigureAwait(false);
 
-        if (namespaceExists is null)
+        if (tagNamespace is null)
         {
             return OperationResult<TagLabelResult>.Failure("Tag namespace does not exist.");
         }
+
+        var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
+            ? tagNamespace.Scope
+            : tagNamespace.DisplayName.Trim();
 
         var normalizedName = command.Name.Trim();
         var parentId = NormalizeGuid(command.ParentId);
@@ -133,6 +137,7 @@ public sealed class UpdateTagLabelCommandHandler(
         var result = new TagLabelResult(
             tagLabel.Id,
             tagLabel.NamespaceId,
+            namespaceDisplayName,
             tagLabel.ParentId,
             tagLabel.Name,
             tagLabel.PathIds,
