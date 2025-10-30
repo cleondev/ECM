@@ -1,4 +1,57 @@
--- Sample data for ECM document and tagging features.
+-- Initialization data for ECM document and tagging features.
+--
+-- This script combines the default tag namespaces and the demo sample data so
+-- that environments only need to execute a single seed file. All statements are
+-- idempotent to support repeated executions.
+
+-- Ensure the system-wide and guest team tag namespaces exist.
+DO $$
+DECLARE
+    v_guest_group_id uuid;
+BEGIN
+    SELECT id
+      INTO v_guest_group_id
+      FROM iam.groups
+     WHERE name = 'guest'
+     ORDER BY created_at
+     LIMIT 1;
+
+    IF v_guest_group_id IS NULL THEN
+        RAISE EXCEPTION 'Không tìm thấy nhóm guest mặc định. Không thể tạo namespace Teams.';
+    END IF;
+
+    INSERT INTO doc.tag_namespace (id, scope, display_name, is_system, created_at)
+    VALUES (
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        'global',
+        'System',
+        true,
+        now()
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET
+        scope = EXCLUDED.scope,
+        display_name = EXCLUDED.display_name,
+        is_system = EXCLUDED.is_system;
+
+    INSERT INTO doc.tag_namespace (id, scope, owner_group_id, display_name, is_system, created_at)
+    VALUES (
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        'group',
+        v_guest_group_id,
+        'Teams',
+        false,
+        now()
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET
+        scope = EXCLUDED.scope,
+        owner_group_id = EXCLUDED.owner_group_id,
+        display_name = EXCLUDED.display_name,
+        is_system = EXCLUDED.is_system;
+END $$;
+
+-- Sample data for the demo team and contract document scenario.
 --
 -- The values below are deterministic so the script can be executed multiple
 -- times without creating duplicate rows. Each INSERT uses ON CONFLICT to keep
