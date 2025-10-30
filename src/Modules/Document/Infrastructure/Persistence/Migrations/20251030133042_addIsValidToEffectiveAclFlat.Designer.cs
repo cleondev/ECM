@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECM.Document.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DocumentDbContext))]
-    [Migration("20251101000000_addIsValidToEffectiveAclFlat")]
+    [Migration("20251030133042_addIsValidToEffectiveAclFlat")]
     partial class addIsValidToEffectiveAclFlat
     {
         /// <inheritdoc />
@@ -531,8 +531,8 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsValid")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasColumnName("is_valid")
-                        .HasDefaultValue(true);
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_valid");
 
                     b.Property<string>("Source")
                         .IsRequired()

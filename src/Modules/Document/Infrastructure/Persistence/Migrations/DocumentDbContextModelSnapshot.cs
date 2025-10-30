@@ -528,8 +528,8 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsValid")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
-                        .HasColumnName("is_valid")
-                        .HasDefaultValue(true);
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_valid");
 
                     b.Property<string>("Source")
                         .IsRequired()
