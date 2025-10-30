@@ -58,9 +58,6 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
         return Task.FromResult(match);
     }
 
-    public Task<bool> NamespaceExistsAsync(string namespaceSlug, CancellationToken cancellationToken = default)
-        => Task.FromResult(_namespaces.Contains(namespaceSlug));
-
     public Task<TagLabel> AddAsync(TagLabel tagLabel, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tagLabel);

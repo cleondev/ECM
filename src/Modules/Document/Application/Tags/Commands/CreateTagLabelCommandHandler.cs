@@ -1,3 +1,4 @@
+using System;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ namespace ECM.Document.Application.Tags.Commands;
 
 public sealed class CreateTagLabelCommandHandler(
     ITagLabelRepository tagLabelRepository,
+    ITagNamespaceRepository tagNamespaceRepository,
     ISystemClock clock)
 {
     private static readonly Regex SlugPattern = new("^[a-z0-9_]+(-[a-z0-9_]+)*$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
@@ -19,6 +21,7 @@ public sealed class CreateTagLabelCommandHandler(
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private readonly ITagLabelRepository _tagLabelRepository = tagLabelRepository;
+    private readonly ITagNamespaceRepository _tagNamespaceRepository = tagNamespaceRepository;
     private readonly ISystemClock _clock = clock;
 
     public async Task<OperationResult<TagLabelResult>> HandleAsync(CreateTagLabelCommand command, CancellationToken cancellationToken = default)
@@ -50,7 +53,7 @@ public sealed class CreateTagLabelCommandHandler(
                 "Path must contain lowercase letters, numbers, underscores, hyphens, or forward slashes.");
         }
 
-        if (!await _tagLabelRepository.NamespaceExistsAsync(namespaceSlug, cancellationToken).ConfigureAwait(false))
+        if (!await EnsureNamespaceExistsAsync(namespaceSlug, command.CreatedBy, cancellationToken).ConfigureAwait(false))
         {
             return OperationResult<TagLabelResult>.Failure("Tag namespace does not exist.");
         }
@@ -78,5 +81,41 @@ public sealed class CreateTagLabelCommandHandler(
             tagLabel.CreatedAtUtc);
 
         return OperationResult<TagLabelResult>.Success(result);
+    }
+
+    private async Task<bool> EnsureNamespaceExistsAsync(
+        string namespaceSlug,
+        Guid? ownerUserId,
+        CancellationToken cancellationToken)
+    {
+        if (await _tagNamespaceRepository.ExistsAsync(namespaceSlug, cancellationToken).ConfigureAwait(false))
+        {
+            return true;
+        }
+
+        if (!TryGetUserNamespaceDisplayName(namespaceSlug, out var displayName))
+        {
+            return false;
+        }
+
+        var createdAt = _clock.UtcNow;
+        await _tagNamespaceRepository
+            .EnsureUserNamespaceAsync(namespaceSlug, ownerUserId, displayName, createdAt, cancellationToken)
+            .ConfigureAwait(false);
+
+        return await _tagNamespaceRepository.ExistsAsync(namespaceSlug, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool TryGetUserNamespaceDisplayName(string namespaceSlug, out string? displayName)
+    {
+        const string Prefix = "user/";
+        if (namespaceSlug.StartsWith(Prefix, StringComparison.Ordinal) && namespaceSlug.Length > Prefix.Length)
+        {
+            displayName = namespaceSlug[Prefix.Length..];
+            return true;
+        }
+
+        displayName = null;
+        return false;
     }
 }
