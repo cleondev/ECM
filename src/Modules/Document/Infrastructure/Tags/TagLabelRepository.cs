@@ -17,6 +17,7 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
 
     public Task<TagLabel?> GetByIdAsync(Guid tagId, CancellationToken cancellationToken = default)
         => _context.TagLabels
+            .Include(label => label.Namespace)
             .Include(label => label.Parent)
             .FirstOrDefaultAsync(label => label.Id == tagId, cancellationToken);
 
