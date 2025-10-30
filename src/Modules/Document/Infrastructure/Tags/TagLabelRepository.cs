@@ -1,4 +1,7 @@
+using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Application.Tags.Repositories;
 using ECM.Document.Domain.Tags;
@@ -13,10 +16,33 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
     private readonly DocumentDbContext _context = context;
 
     public Task<TagLabel?> GetByIdAsync(Guid tagId, CancellationToken cancellationToken = default)
-        => _context.TagLabels.FirstOrDefaultAsync(label => label.Id == tagId, cancellationToken);
+        => _context.TagLabels
+            .Include(label => label.Parent)
+            .FirstOrDefaultAsync(label => label.Id == tagId, cancellationToken);
 
-    public Task<TagLabel?> GetByNamespaceAndPathAsync(string namespaceSlug, string path, CancellationToken cancellationToken = default)
-        => _context.TagLabels.FirstOrDefaultAsync(label => label.NamespaceSlug == namespaceSlug && label.Path == path, cancellationToken);
+    public Task<bool> ExistsWithNameAsync(
+        Guid namespaceId,
+        Guid? parentId,
+        string name,
+        Guid? excludeTagId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.TagLabels.AsNoTracking().Where(label => label.NamespaceId == namespaceId && label.Name == name);
+
+        query = parentId.HasValue
+            ? query.Where(label => label.ParentId == parentId.Value)
+            : query.Where(label => label.ParentId == null);
+
+        if (excludeTagId.HasValue)
+        {
+            query = query.Where(label => label.Id != excludeTagId.Value);
+        }
+
+        return query.AnyAsync(cancellationToken);
+    }
+
+    public Task<bool> HasChildrenAsync(Guid tagId, CancellationToken cancellationToken = default)
+        => _context.TagLabels.AsNoTracking().AnyAsync(label => label.ParentId == tagId, cancellationToken);
 
     public async Task<TagLabel> AddAsync(TagLabel tagLabel, CancellationToken cancellationToken = default)
     {

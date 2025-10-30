@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,7 +10,6 @@ using ECM.Document.Api.Tags.Requests;
 using ECM.Document.Api.Tags.Responses;
 using ECM.Document.Application.Tags.Commands;
 using ECM.Document.Infrastructure.Persistence;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -75,7 +75,6 @@ public static class TagEndpoints
         CancellationToken cancellationToken
     )
     {
-        var namespaceSlug = TagNamespaceSlugResolver.Resolve(request.NamespaceSlug, principal);
         var claimedUserId = await principal
             .GetUserObjectIdAsync(userLookupService, cancellationToken)
             .ConfigureAwait(false);
@@ -83,9 +82,13 @@ public static class TagEndpoints
 
         var command = new UpdateTagLabelCommand(
             tagId,
-            namespaceSlug,
-            request.Slug,
-            request.Path,
+            request.NamespaceId,
+            request.ParentId,
+            request.Name,
+            request.SortOrder,
+            request.Color,
+            request.IconKey,
+            request.IsActive,
             updatedBy
         );
         var result = await handler.HandleAsync(command, cancellationToken);
@@ -109,10 +112,15 @@ public static class TagEndpoints
 
         var response = new TagLabelResponse(
             result.Value.Id,
-            result.Value.NamespaceSlug,
-            result.Value.Slug,
-            result.Value.Path,
+            result.Value.NamespaceId,
+            result.Value.ParentId,
+            result.Value.Name,
+            result.Value.PathIds,
+            result.Value.SortOrder,
+            result.Value.Color,
+            result.Value.IconKey,
             result.Value.IsActive,
+            result.Value.IsSystem,
             result.Value.CreatedBy,
             result.Value.CreatedAtUtc
         );
@@ -127,14 +135,21 @@ public static class TagEndpoints
     {
         var tags = await context
             .TagLabels.AsNoTracking()
-            .OrderBy(label => label.NamespaceSlug)
-            .ThenBy(label => label.Path)
+            .OrderBy(label => label.NamespaceId)
+            .ThenBy(label => label.ParentId.HasValue ? 1 : 0)
+            .ThenBy(label => label.SortOrder)
+            .ThenBy(label => label.Name)
             .Select(label => new TagLabelResponse(
                 label.Id,
-                label.NamespaceSlug,
-                label.Slug,
-                label.Path,
+                label.NamespaceId,
+                label.ParentId,
+                label.Name,
+                label.PathIds,
+                label.SortOrder,
+                label.Color,
+                label.IconKey,
                 label.IsActive,
+                label.IsSystem,
                 label.CreatedBy,
                 label.CreatedAtUtc
             ))
@@ -152,7 +167,6 @@ public static class TagEndpoints
         CancellationToken cancellationToken
     )
     {
-        var namespaceSlug = TagNamespaceSlugResolver.Resolve(request.NamespaceSlug, principal);
         var claimedUserId = await principal
             .GetUserObjectIdAsync(userLookupService, cancellationToken)
             .ConfigureAwait(false);
@@ -172,10 +186,14 @@ public static class TagEndpoints
         }
 
         var command = new CreateTagLabelCommand(
-            namespaceSlug,
-            request.Slug,
-            request.Path,
-            createdBy
+            request.NamespaceId,
+            request.ParentId,
+            request.Name,
+            request.SortOrder,
+            request.Color,
+            request.IconKey,
+            createdBy,
+            request.IsSystem
         );
         var result = await handler.HandleAsync(command, cancellationToken);
 
@@ -184,9 +202,9 @@ public static class TagEndpoints
             if (result.Errors.Count > 0)
             {
                 logger.LogWarning(
-                    "Failed to create tag label for namespace {NamespaceSlug} and slug {Slug}. Errors: {Errors}",
-                    namespaceSlug,
-                    request.Slug,
+                    "Failed to create tag label for namespace {NamespaceId} and name {Name}. Errors: {Errors}",
+                    request.NamespaceId,
+                    request.Name,
                     string.Join(", ", result.Errors)
                 );
             }
@@ -198,10 +216,15 @@ public static class TagEndpoints
 
         var response = new TagLabelResponse(
             result.Value.Id,
-            result.Value.NamespaceSlug,
-            result.Value.Slug,
-            result.Value.Path,
+            result.Value.NamespaceId,
+            result.Value.ParentId,
+            result.Value.Name,
+            result.Value.PathIds,
+            result.Value.SortOrder,
+            result.Value.Color,
+            result.Value.IconKey,
             result.Value.IsActive,
+            result.Value.IsSystem,
             result.Value.CreatedBy,
             result.Value.CreatedAtUtc
         );

@@ -90,8 +90,14 @@ internal static class DocumentOutboxMapper
     {
         var contract = new TagLabelCreatedContract(
             domainEvent.TagId,
-            domainEvent.NamespaceSlug,
-            domainEvent.Path,
+            domainEvent.NamespaceId,
+            domainEvent.ParentId,
+            domainEvent.Name,
+            domainEvent.PathIds.ToArray(),
+            domainEvent.SortOrder,
+            domainEvent.Color,
+            domainEvent.IconKey,
+            domainEvent.IsSystem,
             domainEvent.CreatedBy,
             domainEvent.OccurredAtUtc);
 
@@ -109,8 +115,7 @@ internal static class DocumentOutboxMapper
     {
         var contract = new TagLabelDeletedContract(
             domainEvent.TagId,
-            domainEvent.NamespaceSlug,
-            domainEvent.Path,
+            domainEvent.NamespaceId,
             domainEvent.OccurredAtUtc);
 
         var payload = JsonSerializer.Serialize(contract, SerializerOptions);
@@ -127,8 +132,14 @@ internal static class DocumentOutboxMapper
     {
         var contract = new TagLabelUpdatedContract(
             domainEvent.TagId,
-            domainEvent.NamespaceSlug,
-            domainEvent.Path,
+            domainEvent.NamespaceId,
+            domainEvent.ParentId,
+            domainEvent.Name,
+            domainEvent.PathIds.ToArray(),
+            domainEvent.SortOrder,
+            domainEvent.Color,
+            domainEvent.IconKey,
+            domainEvent.IsActive,
             domainEvent.UpdatedBy,
             domainEvent.OccurredAtUtc);
 

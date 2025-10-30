@@ -11,23 +11,6 @@ namespace Document.Tests.Application.Tags;
 internal sealed class FakeTagLabelRepository : ITagLabelRepository
 {
     private readonly Dictionary<Guid, TagLabel> _tags = [];
-    private readonly HashSet<string> _namespaces = new(StringComparer.OrdinalIgnoreCase);
-
-    public FakeTagLabelRepository(IEnumerable<string>? namespaces = null)
-    {
-        if (namespaces is null)
-        {
-            return;
-        }
-
-        foreach (var name in namespaces)
-        {
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                _namespaces.Add(name);
-            }
-        }
-    }
 
     public CancellationToken? CapturedToken { get; private set; }
 
@@ -37,7 +20,6 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
     {
         ArgumentNullException.ThrowIfNull(tagLabel);
         _tags[tagLabel.Id] = tagLabel;
-        _namespaces.Add(tagLabel.NamespaceSlug);
     }
 
     public Task<TagLabel?> GetByIdAsync(Guid tagId, CancellationToken cancellationToken = default)
@@ -46,23 +28,32 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
         return Task.FromResult(tagLabel);
     }
 
-    public Task<TagLabel?> GetByNamespaceAndPathAsync(
-        string namespaceSlug,
-        string path,
+    public Task<bool> ExistsWithNameAsync(
+        Guid namespaceId,
+        Guid? parentId,
+        string name,
+        Guid? excludeTagId,
         CancellationToken cancellationToken = default)
     {
-        var match = _tags.Values.FirstOrDefault(tag =>
-            string.Equals(tag.NamespaceSlug, namespaceSlug, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(tag.Path, path, StringComparison.OrdinalIgnoreCase));
+        var exists = _tags.Values.Any(tag =>
+            tag.NamespaceId == namespaceId
+            && tag.ParentId == parentId
+            && string.Equals(tag.Name, name, StringComparison.OrdinalIgnoreCase)
+            && (!excludeTagId.HasValue || tag.Id != excludeTagId.Value));
 
-        return Task.FromResult(match);
+        return Task.FromResult(exists);
+    }
+
+    public Task<bool> HasChildrenAsync(Guid tagId, CancellationToken cancellationToken = default)
+    {
+        var hasChildren = _tags.Values.Any(tag => tag.ParentId == tagId);
+        return Task.FromResult(hasChildren);
     }
 
     public Task<TagLabel> AddAsync(TagLabel tagLabel, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(tagLabel);
         _tags[tagLabel.Id] = tagLabel;
-        _namespaces.Add(tagLabel.NamespaceSlug);
         CapturedToken = cancellationToken;
         return Task.FromResult(tagLabel);
     }
@@ -71,7 +62,6 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
     {
         ArgumentNullException.ThrowIfNull(tagLabel);
         _tags[tagLabel.Id] = tagLabel;
-        _namespaces.Add(tagLabel.NamespaceSlug);
         CapturedToken = cancellationToken;
         return Task.FromResult(tagLabel);
     }

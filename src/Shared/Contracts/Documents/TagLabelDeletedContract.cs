@@ -1,7 +1,8 @@
+using System;
+
 namespace Shared.Contracts.Documents;
 
 public sealed record TagLabelDeletedContract(
     Guid TagId,
-    string NamespaceSlug,
-    string Path,
+    Guid NamespaceId,
     DateTimeOffset DeletedAtUtc);

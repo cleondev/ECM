@@ -656,29 +656,26 @@ public static class DocumentEndpoints
             .Tags.Select(documentTag =>
             {
                 var tag = documentTag.Tag;
-                var path = tag?.Path ?? string.Empty;
-                var displayName = !string.IsNullOrWhiteSpace(path)
-                    ? path.Split(
-                            '/',
-                            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-                        )
-                        .LastOrDefault()
-                    ?? path
-                    : tag?.Slug ?? documentTag.TagId.ToString();
+                var pathIds = tag?.PathIds ?? Array.Empty<Guid>();
 
                 return new DocumentTagResponse(
                     documentTag.TagId,
-                    tag?.NamespaceSlug ?? string.Empty,
-                    tag?.Slug ?? string.Empty,
-                    path,
+                    tag?.NamespaceId ?? Guid.Empty,
+                    tag?.ParentId,
+                    tag?.Name ?? string.Empty,
+                    pathIds,
+                    tag?.SortOrder ?? 0,
+                    tag?.Color,
+                    tag?.IconKey,
                     tag?.IsActive ?? false,
-                    displayName,
+                    tag?.IsSystem ?? false,
                     documentTag.AppliedBy,
                     documentTag.AppliedAtUtc
                 );
             })
-            .OrderBy(tag => tag.NamespaceSlug)
-            .ThenBy(tag => tag.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(tag => tag.NamespaceId)
+            .ThenBy(tag => tag.SortOrder)
+            .ThenBy(tag => tag.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         var groupIds = EnsurePrimaryGroup(document.GroupId, []);
