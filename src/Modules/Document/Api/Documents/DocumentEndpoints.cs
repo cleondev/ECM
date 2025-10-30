@@ -681,7 +681,12 @@ public static class DocumentEndpoints
 
     private static Guid[] BuildGroupIds(Guid? primaryGroupId)
     {
-        return primaryGroupId is { } value and not Guid.Empty ? [value] : [];
+        if (primaryGroupId is not Guid value || value == Guid.Empty)
+        {
+            return [];
+        }
+
+        return [value];
     }
 
     private static readonly CultureInfo DisplayCulture = CultureInfo.GetCultureInfo("vi-VN");
