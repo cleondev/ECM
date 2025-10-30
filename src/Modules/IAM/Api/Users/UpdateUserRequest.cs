@@ -6,7 +6,7 @@ public sealed class UpdateUserRequest
 {
     public string DisplayName { get; init; } = string.Empty;
 
-    public IReadOnlyCollection<Guid> GroupIds { get; init; } = Array.Empty<Guid>();
+    public IReadOnlyCollection<Guid> GroupIds { get; init; } = [];
 
     public Guid? PrimaryGroupId { get; init; }
 

@@ -13,5 +13,5 @@ public sealed class DefaultGroupFixture
 
     public string SystemGroupName { get; } = "system";
 
-    public IReadOnlyCollection<string> DefaultGroupNames => new[] { GuestGroupName, SystemGroupName };
+    public IReadOnlyCollection<string> DefaultGroupNames => [GuestGroupName, SystemGroupName];
 }

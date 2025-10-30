@@ -1,9 +1,11 @@
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.BuildingBlocks.Infrastructure.Configuration;
 using ECM.BuildingBlocks.Infrastructure.Time;
+using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Tags.Repositories;
+using ECM.Document.Infrastructure.AccessControl;
 using ECM.Document.Infrastructure.Documents;
 using ECM.Document.Infrastructure.Documents.Queries;
 using ECM.Document.Infrastructure.Tags;
@@ -36,6 +38,7 @@ public static class DocumentInfrastructureModuleExtensions
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IDocumentVersionReadService, DocumentVersionReadService>();
         services.AddScoped<ITagLabelRepository, TagLabelRepository>();
+        services.AddScoped<IEffectiveAclFlatWriter, EffectiveAclFlatWriter>();
 
         return services;
     }

@@ -64,7 +64,7 @@ public class StartWorkflowCommandHandlerTests
         }
 
         public Task<IReadOnlyCollection<WorkflowDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyCollection<WorkflowDefinition>>(Array.Empty<WorkflowDefinition>());
+            => Task.FromResult<IReadOnlyCollection<WorkflowDefinition>>([]);
 
         public Task<WorkflowDefinition?> GetDefinitionByIdAsync(string definitionId, CancellationToken cancellationToken = default)
             => Task.FromResult<WorkflowDefinition?>(null);
@@ -76,7 +76,7 @@ public class StartWorkflowCommandHandlerTests
             => Task.FromResult(OperationResult.Success());
 
         public Task<IReadOnlyCollection<WorkflowTask>> GetTasksAsync(WorkflowTaskQuery query, CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyCollection<WorkflowTask>>(Array.Empty<WorkflowTask>());
+            => Task.FromResult<IReadOnlyCollection<WorkflowTask>>([]);
 
         public Task<WorkflowTask?> GetTaskAsync(string taskId, CancellationToken cancellationToken = default)
             => Task.FromResult<WorkflowTask?>(null);

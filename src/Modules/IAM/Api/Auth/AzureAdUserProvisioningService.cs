@@ -192,7 +192,7 @@ public sealed class AzureAdUserProvisioningService(
             }
         }
 
-        return ids.Count > 0 ? ids.ToArray() : Array.Empty<Guid>();
+        return ids.Count > 0 ? ids.ToArray() : [];
     }
 
     private static IReadOnlyCollection<GroupAssignment> BuildAssignments(

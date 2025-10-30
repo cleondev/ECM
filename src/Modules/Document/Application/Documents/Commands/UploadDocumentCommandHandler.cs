@@ -4,6 +4,7 @@ using System.Linq;
 using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
+using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
 using ECM.Document.Domain.Documents;
@@ -15,11 +16,13 @@ namespace ECM.Document.Application.Documents.Commands;
 public sealed class UploadDocumentCommandHandler(
     IDocumentRepository repository,
     IFileStorageGateway fileStorage,
-    ISystemClock clock)
+    ISystemClock clock,
+    IEffectiveAclFlatWriter aclWriter)
 {
     private readonly IDocumentRepository _repository = repository;
     private readonly IFileStorageGateway _fileStorage = fileStorage;
     private readonly ISystemClock _clock = clock;
+    private readonly IEffectiveAclFlatWriter _aclWriter = aclWriter;
 
     public async Task<OperationResult<DocumentWithVersionResult>> HandleAsync(UploadDocumentCommand command, CancellationToken cancellationToken = default)
     {
@@ -92,6 +95,9 @@ public sealed class UploadDocumentCommandHandler(
         }
 
         await _repository.AddAsync(document, cancellationToken);
+
+        var ownerEntry = EffectiveAclFlatWriteEntry.ForOwner(document.Id.Value, document.OwnerId);
+        await _aclWriter.UpsertAsync(ownerEntry, cancellationToken);
 
         return OperationResult<DocumentWithVersionResult>.Success(
             document.ToResult(version));

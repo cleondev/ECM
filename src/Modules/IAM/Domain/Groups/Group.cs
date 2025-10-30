@@ -9,7 +9,7 @@ public sealed class Group
     {
         Name = null!;
         Kind = GroupKind.Temporary;
-        Members = new List<GroupMember>();
+        Members = [];
     }
 
     private Group(Guid id, string name, GroupKind kind, Guid? parentGroupId, Guid? createdBy, DateTimeOffset createdAtUtc)

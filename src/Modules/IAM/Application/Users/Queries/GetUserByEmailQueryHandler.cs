@@ -17,6 +17,6 @@ public sealed class GetUserByEmailQueryHandler(IUserRepository repository)
         }
 
         var user = await _repository.GetByEmailAsync(query.Email, cancellationToken);
-        return user is null ? null : user.ToResult();
+        return user?.ToResult();
     }
 }

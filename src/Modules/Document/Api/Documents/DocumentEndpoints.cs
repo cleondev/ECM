@@ -113,7 +113,7 @@ public static class DocumentEndpoints
             .AsQueryable();
 
         var now = DateTimeOffset.UtcNow;
-        var authorizedDocuments = context
+        var authorizedDocumentIds = context
             .EffectiveAclEntries.AsNoTracking()
             .Where(entry =>
                 entry.UserId == userId.Value
@@ -121,13 +121,7 @@ public static class DocumentEndpoints
             )
             .Select(entry => entry.DocumentId);
 
-        query = query
-            .Join(
-                authorizedDocuments,
-                document => document.Id.Value,
-                authorizedDocumentId => authorizedDocumentId,
-                (document, _) => document
-            );
+        query = query.Where(document => authorizedDocumentIds.Contains(document.Id.Value));
 
         if (!string.IsNullOrWhiteSpace(request.Query))
         {
@@ -674,7 +668,7 @@ public static class DocumentEndpoints
             .ThenBy(tag => tag.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        var groupIds = EnsurePrimaryGroup(document.GroupId, Array.Empty<Guid>());
+        var groupIds = EnsurePrimaryGroup(document.GroupId, []);
 
         return new DocumentResponse(
             document.Id.Value,
@@ -700,7 +694,7 @@ public static class DocumentEndpoints
     {
         if (groupIds is null)
         {
-            return Array.Empty<Guid>();
+            return [];
         }
 
         var buffer = new List<Guid>();
@@ -726,7 +720,7 @@ public static class DocumentEndpoints
     {
         if (groupIds is null)
         {
-            return primaryGroupId is { } fallback && fallback != Guid.Empty ? new[] { fallback } : Array.Empty<Guid>();
+            return primaryGroupId is { } fallback && fallback != Guid.Empty ? [fallback] : [];
         }
 
         var buffer = new List<Guid>(groupIds.Count + 1);

@@ -16,6 +16,7 @@ import {
   LogOut,
   User,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
@@ -34,8 +35,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 
 const DEFAULT_TAG_ICON = "📁"
+
+type TagAction = {
+  key: string
+  label: string
+  icon: LucideIcon
+  onSelect: () => void
+  className?: string
+}
 
 type LeftSidebarProps = {
   selectedFolder: string
@@ -87,139 +102,170 @@ function TagTreeItem({
 
   const displayIcon = tag.icon && tag.icon.trim() !== "" ? tag.icon : DEFAULT_TAG_ICON
 
-  return (
-    <div>
-      <div
-        className={cn(
-          "w-full flex items-center gap-1 px-2 py-0.5 rounded-md text-sm transition-colors group min-w-0",
-          isSelected
-            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-            : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-        )}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
-      >
-        {hasChildren && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              setIsExpanded(!isExpanded)
-            }}
-            className="p-0 hover:bg-transparent flex-shrink-0"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-3 w-3 text-muted-foreground" />
-            )}
-          </button>
-        )}
-        {!hasChildren && <div className="w-3 flex-shrink-0" />}
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <button
-            type="button"
-            onClick={() => {
-              if (canSelect) {
-                onTagClick({ id: tag.id, name: tag.name })
-              }
-            }}
-            className="flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:cursor-default"
-            disabled={!canSelect}
-          >
-            <div
-              className={cn(
-                "flex items-center gap-2 flex-1 min-w-0 rounded px-1.5 py-0.5 transition-colors",
-                canSelect ? "hover:bg-muted/60" : "opacity-80",
-              )}
-            >
-              <span
-                className={cn(
-                  "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
-                  tag.color ? ["leftbar-tag-indicator--custom", tag.color] : null,
-                )}
-              />
-              <span className="text-xs flex-shrink-0">{displayIcon}</span>
-              <span className="truncate text-sm text-foreground" title={tag.name}>
-                {tag.name}
-              </span>
-            </div>
-          </button>
+  const tagActions: TagAction[] = [
+    ...(canManage
+      ? [
+          {
+            key: "edit",
+            label: "Edit Tag",
+            icon: Edit,
+            onSelect: () => onEditTag(tag),
+          } satisfies TagAction,
+        ]
+      : []),
+    ...(canAddChild
+      ? [
+          {
+            key: "add",
+            label: "Add Tag",
+            icon: Plus,
+            onSelect: () => onAddChildTag(tag),
+          } satisfies TagAction,
+        ]
+      : []),
+    ...(canManage
+      ? [
+          {
+            key: "delete",
+            label: "Delete Tag",
+            icon: Trash,
+            onSelect: () => onDeleteTag(tag.id),
+            className: "text-destructive focus:text-destructive",
+          } satisfies TagAction,
+        ]
+      : []),
+  ]
 
-          {(canManage || canAddChild) && (
-            <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100"
-                  onClick={(e) => e.stopPropagation()}
+  return (
+    <ContextMenu>
+      <div>
+        <ContextMenuTrigger asChild>
+          <div
+            className={cn(
+              "w-full flex items-center gap-1 px-2 py-0.5 rounded-md text-sm transition-colors group min-w-0",
+              isSelected
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+            )}
+            style={{ paddingLeft: `${level * 12 + 8}px` }}
+          >
+            {hasChildren && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsExpanded(!isExpanded)
+                }}
+                className="p-0 hover:bg-transparent flex-shrink-0"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                )}
+              </button>
+            )}
+            {!hasChildren && <div className="w-3 flex-shrink-0" />}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (canSelect) {
+                    onTagClick({ id: tag.id, name: tag.name })
+                  }
+                }}
+                className="flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:cursor-default"
+                disabled={!canSelect}
+              >
+                <div
+                  className={cn(
+                    "flex items-center gap-2 flex-1 min-w-0 rounded px-1.5 py-0.5 transition-colors",
+                    canSelect ? "hover:bg-muted/60" : "opacity-80",
+                  )}
                 >
-                  <MoreVertical className="h-3 w-3" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-1" align="end">
-                {canManage && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onEditTag(tag)
-                      setIsPopoverOpen(false)
-                    }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-md rounded hover:bg-accent"
-                  >
-                    <Edit className="h-3 w-3" />
-                    Edit Tag
-                  </button>
-                )}
-                {canAddChild && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddChildTag(tag)
-                      setIsPopoverOpen(false)
-                    }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-md rounded hover:bg-accent"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Add Tag
-                  </button>
-                )}
-                {canManage && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDeleteTag(tag.id)
-                      setIsPopoverOpen(false)
-                    }}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 text-md rounded hover:bg-accent text-destructive"
-                  >
-                    <Trash className="h-3 w-3" />
-                    Delete Tag
-                  </button>
-                )}
-              </PopoverContent>
-            </Popover>
-          )}
-        </div>
+                  <span
+                    className={cn(
+                      "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
+                      tag.color ? ["leftbar-tag-indicator--custom", tag.color] : null,
+                    )}
+                  />
+                  <span className="text-xs flex-shrink-0">{displayIcon}</span>
+                  <span className="truncate text-sm text-foreground" title={tag.name}>
+                    {tag.name}
+                  </span>
+                </div>
+              </button>
+
+              {(canManage || canAddChild) && (
+                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreVertical className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-1" align="end">
+                    {tagActions.map((action) => (
+                      <button
+                        key={action.key}
+                        type="button"
+                        onClick={() => {
+                          action.onSelect()
+                          setIsPopoverOpen(false)
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-1.5 text-md rounded hover:bg-accent",
+                          action.className,
+                        )}
+                      >
+                        <action.icon className="h-3 w-3" />
+                        {action.label}
+                      </button>
+                    ))}
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+          </div>
+        </ContextMenuTrigger>
+
+        {hasChildren && isExpanded && (
+          <div className="space-y-0">
+            {tag.children!.map((child) => (
+              <TagTreeItem
+                key={child.id}
+                tag={child}
+                level={level + 1}
+                selectedTag={selectedTag}
+                onTagClick={onTagClick}
+                onEditTag={onEditTag}
+                onAddChildTag={onAddChildTag}
+                onDeleteTag={onDeleteTag}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {hasChildren && isExpanded && (
-        <div className="space-y-0">
-          {tag.children!.map((child) => (
-            <TagTreeItem
-              key={child.id}
-              tag={child}
-              level={level + 1}
-              selectedTag={selectedTag}
-              onTagClick={onTagClick}
-              onEditTag={onEditTag}
-              onAddChildTag={onAddChildTag}
-              onDeleteTag={onDeleteTag}
-            />
+      {tagActions.length > 0 && (
+        <ContextMenuContent className="w-48">
+          {tagActions.map((action) => (
+            <ContextMenuItem
+              key={action.key}
+              onSelect={() => action.onSelect()}
+              className={cn("flex items-center gap-2 text-sm", action.className)}
+            >
+              <action.icon className="h-3 w-3" />
+              {action.label}
+            </ContextMenuItem>
           ))}
-        </div>
+        </ContextMenuContent>
       )}
-    </div>
+    </ContextMenu>
   )
 }
 

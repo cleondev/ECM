@@ -91,7 +91,7 @@ public sealed class CreateShareLinkRequest
     {
         if (values is null)
         {
-            return Array.Empty<SharePermission>();
+            return [];
         }
 
         var list = new List<SharePermission>();
