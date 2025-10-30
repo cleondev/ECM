@@ -291,7 +291,7 @@
         <td class="actor-none">—</td>
         <td>Notify subscriber nếu tag kích hoạt cảnh báo.</td>
         <td class="actor-none">—</td>
-        <td>Cập nhật <code>doc.metadata</code>, <code>doc.document_tag</code>, <code>doc.tag_namespace</code>/<code>tag_label</code>.</td>
+        <td>Cập nhật <code>doc.metadata</code>, <code>doc.document_tag</code>, <code>doc.tag_namespace</code> (scope, owner) và <code>doc.tag_label</code> (parent_id, path_ids, sort_order, color, icon_key).</td>
         <td class="actor-none">—</td>
         <td class="actor-none">—</td>
         <td class="actor-none">—</td>
@@ -656,7 +656,7 @@
       </tr>
       <tr>
         <td><code>doc.document</code>, <code>doc.metadata</code>, <code>doc.effective_acl_flat</code>, <code>doc.metadata_history</code><br />
-            <code>doc.tag_namespace</code>, <code>doc.tag_label</code>, <code>doc.document_tag</code></td>
+            <code>doc.tag_namespace</code> (scope, owner_user_id, owner_group_id, is_system), <code>doc.tag_label</code> (parent_id, path_ids, sort_order, color, icon_key, is_system), <code>doc.document_tag</code> (applied_by, applied_at)</td>
         <td>Document</td>
         <td>Tạo/cập nhật tài liệu, metadata thủ công hoặc tự động, áp tag từ rule/OCR, vật hoá ACL để phục vụ tìm kiếm.</td>
       </tr>

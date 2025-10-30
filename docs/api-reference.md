@@ -79,19 +79,26 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
-| `GET /tags/namespaces` | Danh sách namespace tag. | `q`, `page`, `pageSize` |
-| `POST /tags/namespaces` | Tạo namespace tag. | Body namespace |
-| `PATCH /tags/namespaces/{slug}` | Cập nhật namespace. | `slug`, body |
-| `DELETE /tags/namespaces/{slug}` | Xóa namespace. | `slug` |
-| `GET /tags/{namespace}/labels` | Danh sách label thuộc namespace. | `namespace`, `q`, `page`, `pageSize`, `parent?`, `active?` |
-| `POST /tags/{namespace}/labels` | Tạo label mới. | `namespace`, body |
-| `PATCH /tags/{namespace}/labels/{id}` | Cập nhật label. | `namespace`, `id`, body |
-| `PUT /tags/{id}` | Gateway cập nhật slug/path của label hiện có. | `id`, body `{namespaceSlug, slug, path}` |
-| `DELETE /tags/{namespace}/labels/{id}` | Xóa label. | `namespace`, `id` |
+| `GET /tags/namespaces` | Danh sách namespace tag theo phạm vi. | `q`, `scope?=global|group|user`, `ownerGroupId?`, `ownerUserId?`, `page`, `pageSize` |
+| `POST /tags/namespaces` | Tạo namespace tag mới. | Body `{displayName, scope, ownerGroupId?, ownerUserId?, isSystem?}` |
+| `GET /tags/namespaces/{id}` | Chi tiết namespace (scope, quyền sở hữu). | `id` |
+| `PATCH /tags/namespaces/{id}` | Cập nhật namespace (tên hiển thị, quyền sở hữu). | `id`, body `{displayName?, ownerGroupId?, ownerUserId?}` |
+| `DELETE /tags/namespaces/{id}` | Xóa namespace (trừ namespace hệ thống). | `id` |
+| `GET /tags/namespaces/{id}/labels` | Lấy cây label trong namespace. | `id`, `parentId?`, `includeInactive?`, `depth?` |
+| `POST /tags/namespaces/{id}/labels` | Tạo label mới trong namespace. | `id`, body `{name, parentId?, color?, iconKey?, sortOrder?}` |
+| `PATCH /tags/labels/{id}` | Đổi tên, màu, icon hoặc bật/tắt nhãn. | `id`, body `{name?, color?, iconKey?, isActive?}` |
+| `POST /tags/labels/{id}/move` | Di chuyển nhánh hoặc reorder sibling. | `id`, body `{parentId?, sortOrder?}` |
+| `DELETE /tags/labels/{id}` | Xóa nhãn (trừ nhãn hệ thống). | `id` |
 | `GET /documents/{id}/tags` | Lấy tag của tài liệu. | `id` |
-| `POST /documents/{id}/tags` | Gán tag cho tài liệu. | `id`, body `{tag_id}` |
+| `POST /documents/{id}/tags` | Gán tag cho tài liệu. | `id`, body `{tagIds[]?, tagId?}` |
 | `DELETE /documents/{id}/tags/{tagId}` | Bỏ gán tag khỏi tài liệu. | `id`, `tagId` |
-| `GET /facets/tags` | Thống kê tài liệu theo tag. | `q`, `folder`, `doc_type`, `status`, `sensitivity` |
+| `GET /facets/tags` | Thống kê tài liệu theo tag. | `q`, `folder`, `doc_type`, `status`, `sensitivity`, `tagIds[]?` |
+
+> **Ghi chú:**
+> * Trường `scope` của namespace quyết định phạm vi hiển thị: `global` (mọi người), `group` (thành viên unit group), `user` (chủ sở hữu).
+> * Namespace hoặc nhãn có `isSystem=true` chỉ đọc, API trả lỗi khi cố gắng sửa/xóa.
+> * Backend sử dụng `parentId` + `pathIds` để quản lý cây; khi di chuyển nhánh, trigger sẽ cập nhật `pathIds` giúp truy vấn `WHERE path_ids @> ARRAY[tagId]`.
+
 | `GET /folders` | Danh sách thư mục hệ thống. | – |
 | `GET /folders/{name}/documents` | Liệt kê tài liệu trong thư mục. | `name`, `page`, `pageSize`, `sort`, `q` |
 

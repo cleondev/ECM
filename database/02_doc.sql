@@ -53,26 +53,33 @@ CREATE TABLE doc.file_object (
 );
 
 CREATE TABLE doc.tag_namespace (
-    namespace_slug  text PRIMARY KEY,
-    kind            text NOT NULL CHECK (kind IN ('system','user')),
-    owner_user_id   uuid REFERENCES iam.users(id),
-    display_name    text,
-    created_at      timestamptz NOT NULL DEFAULT now()
+    id               uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    scope            text NOT NULL CHECK (scope IN ('global','group','user')),
+    owner_user_id    uuid REFERENCES iam.users(id),
+    owner_group_id   uuid REFERENCES iam.groups(id),
+    display_name     text,
+    is_system        boolean NOT NULL DEFAULT false,
+    created_at       timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE doc.tag_label (
     id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-    namespace_slug  text NOT NULL REFERENCES doc.tag_namespace(namespace_slug) ON DELETE CASCADE,
-    slug            text NOT NULL,
-    path            text NOT NULL,
+    namespace_id    uuid NOT NULL REFERENCES doc.tag_namespace(id) ON DELETE CASCADE,
+    parent_id       uuid REFERENCES doc.tag_label(id) ON DELETE RESTRICT,
+    name            text NOT NULL,
+    path_ids        uuid[] NOT NULL DEFAULT ARRAY[]::uuid[],
+    sort_order      int NOT NULL DEFAULT 0,
+    color           text,
+    icon_key        text,
     is_active       boolean NOT NULL DEFAULT true,
+    is_system       boolean NOT NULL DEFAULT false,
     created_by      uuid REFERENCES iam.users(id),
     created_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT uq_tag_path UNIQUE (namespace_slug, path),
-    CONSTRAINT chk_tag_path_format CHECK (path ~ '^[a-z0-9_]+(-[a-z0-9_]+)*$')
+    CONSTRAINT uq_tag_sibling_name UNIQUE (namespace_id, parent_id, name)
 );
-CREATE INDEX tag_label_ns_path_idx ON doc.tag_label (namespace_slug, path);
-CREATE INDEX tag_label_path_trgm ON doc.tag_label USING GIN (path gin_trgm_ops);
+CREATE INDEX tag_label_ns_parent_idx ON doc.tag_label (namespace_id, parent_id);
+CREATE INDEX tag_label_ns_path_gin ON doc.tag_label USING GIN (path_ids);
+CREATE INDEX tag_label_name_trgm ON doc.tag_label USING GIN (name gin_trgm_ops);
 
 CREATE TABLE doc.document_tag (
     document_id     uuid NOT NULL REFERENCES doc.document(id) ON DELETE CASCADE,
