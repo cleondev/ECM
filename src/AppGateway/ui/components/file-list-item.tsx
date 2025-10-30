@@ -83,8 +83,13 @@ export function FileListItem({
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="flex flex-wrap gap-1">
               {file.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  {tag}
+                <Badge
+                  key={tag.id}
+                  variant={tag.color ? "secondary" : "outline"}
+                  className="text-xs"
+                  style={tag.color ? { backgroundColor: tag.color, borderColor: tag.color } : undefined}
+                >
+                  {tag.name}
                 </Badge>
               ))}
             </div>

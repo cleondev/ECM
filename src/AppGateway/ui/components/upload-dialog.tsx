@@ -529,7 +529,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       const isSelected = prev.some((selected) => selected.id === tag.id)
       return isSelected
         ? prev.filter((selected) => selected.id !== tag.id)
-        : [...prev, { id: tag.id, name: tag.name }]
+        : [...prev, { id: tag.id, name: tag.name, namespaceId: tag.namespaceId }]
     })
   }
 
@@ -546,7 +546,8 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       const isExpanded = expandedTags[tag.id] ?? true
       const isSelected = selectedTags.some((selected) => selected.id === tag.id)
       const canSelect = isSelectableTag(tag)
-      const displayIcon = tag.icon && tag.icon.trim() !== "" ? tag.icon : DEFAULT_TAG_ICON
+      const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
+      const backgroundStyle = tag.color ? { backgroundColor: tag.color } : undefined
 
       return (
         <div key={tag.id} className="space-y-2">
@@ -588,10 +589,11 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               disabled={!canSelect}
               className={cn(
                 "flex items-center gap-3 flex-1 min-w-0 rounded-md px-3 py-2 text-left transition",
-                tag.color ?? "bg-muted/60",
+                !tag.color ? "bg-muted/60" : "",
                 canSelect ? "text-foreground" : "text-muted-foreground cursor-default opacity-80",
                 isSelected ? "ring-1 ring-primary" : "",
               )}
+              style={backgroundStyle}
             >
               <span className="text-sm flex-shrink-0">{displayIcon}</span>
               <span className="truncate">{tag.name}</span>

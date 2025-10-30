@@ -1,3 +1,16 @@
+export type DocumentTag = {
+  id: string
+  namespaceId: string
+  parentId?: string | null
+  name: string
+  color?: string | null
+  iconKey?: string | null
+  sortOrder?: number | null
+  pathIds?: string[]
+  isActive?: boolean
+  isSystem?: boolean
+}
+
 export type FileItem = {
   id: string
   name: string
@@ -5,7 +18,7 @@ export type FileItem = {
   size: string
   modified: string
   modifiedAtUtc?: string
-  tags: string[]
+  tags: DocumentTag[]
   folder: string
   thumbnail?: string
   status?: "in-progress" | "completed" | "draft"
@@ -19,21 +32,24 @@ export type FileItem = {
 
 export type TagNode = {
   id: string
+  namespaceId: string
   name: string
-  color?: string
-  icon?: string
+  color?: string | null
+  iconKey?: string | null
+  sortOrder?: number | null
+  parentId?: string | null
+  pathIds?: string[]
+  isActive?: boolean
+  isSystem?: boolean
   children?: TagNode[]
   kind?: "namespace" | "label"
-  namespaceSlug?: string
-  slug?: string
-  path?: string
-  isActive?: boolean
+  namespaceLabel?: string
 }
 
 export type TagUpdateData = {
   name: string
-  color: string
-  icon?: string
+  color?: string | null
+  iconKey?: string | null
   applyColorToChildren?: boolean
 }
 
@@ -104,6 +120,7 @@ export type UploadMetadata = {
 export type SelectedTag = {
   id: string
   name: string
+  namespaceId?: string
 }
 
 export type FileQueryParams = {

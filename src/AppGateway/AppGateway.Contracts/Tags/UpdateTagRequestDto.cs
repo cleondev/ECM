@@ -3,7 +3,11 @@ using System;
 namespace AppGateway.Contracts.Tags;
 
 public sealed record UpdateTagRequestDto(
-    string NamespaceSlug,
-    string Slug,
-    string? Path,
+    Guid NamespaceId,
+    Guid? ParentId,
+    string Name,
+    int? SortOrder,
+    string? Color,
+    string? IconKey,
+    bool IsActive,
     Guid? UpdatedBy);

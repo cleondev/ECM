@@ -23,14 +23,14 @@ public sealed class TagsController(IEcmApiClient client) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateTagRequestDto request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.NamespaceSlug))
+        if (request.NamespaceId == Guid.Empty)
         {
-            ModelState.AddModelError(nameof(request.NamespaceSlug), "Namespace slug is required.");
+            ModelState.AddModelError(nameof(request.NamespaceId), "Namespace identifier is required.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.Slug))
+        if (string.IsNullOrWhiteSpace(request.Name))
         {
-            ModelState.AddModelError(nameof(request.Slug), "Slug is required.");
+            ModelState.AddModelError(nameof(request.Name), "Tag name is required.");
         }
 
         if (!ModelState.IsValid)
@@ -56,6 +56,16 @@ public sealed class TagsController(IEcmApiClient client) : ControllerBase
         if (tagId == Guid.Empty)
         {
             ModelState.AddModelError(nameof(tagId), "Tag identifier is required.");
+        }
+
+        if (request.NamespaceId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(request.NamespaceId), "Namespace identifier is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            ModelState.AddModelError(nameof(request.Name), "Tag name is required.");
         }
 
         if (!ModelState.IsValid)
