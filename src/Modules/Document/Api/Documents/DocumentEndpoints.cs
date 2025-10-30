@@ -113,15 +113,13 @@ public static class DocumentEndpoints
             .AsQueryable();
 
         var now = DateTimeOffset.UtcNow;
-        var authorizedDocumentIds = context
-            .EffectiveAclEntries.AsNoTracking()
-            .Where(entry =>
-                entry.UserId == userId.Value
+        query = query.Where(document =>
+            context.EffectiveAclEntries.AsNoTracking().Any(entry =>
+                entry.DocumentId == document.Id.Value
+                && entry.UserId == userId.Value
                 && (entry.ValidToUtc == null || entry.ValidToUtc >= now)
             )
-            .Select(entry => entry.DocumentId);
-
-        query = query.Where(document => authorizedDocumentIds.Contains(document.Id.Value));
+        );
 
         if (!string.IsNullOrWhiteSpace(request.Query))
         {
