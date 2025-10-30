@@ -22,6 +22,10 @@ public sealed class EffectiveAclFlatEntryConfiguration : IEntityTypeConfiguratio
             .HasColumnName("valid_to")
             .HasColumnType("timestamptz");
 
+        builder.Property(entry => entry.IsValid)
+            .HasColumnName("is_valid")
+            .HasDefaultValue(true);
+
         builder.Property(entry => entry.Source)
             .HasColumnName("source")
             .IsRequired();
@@ -35,7 +39,7 @@ public sealed class EffectiveAclFlatEntryConfiguration : IEntityTypeConfiguratio
             .HasColumnType("timestamptz")
             .HasDefaultValueSql("now()");
 
-        builder.HasIndex(entry => new { entry.UserId, entry.ValidToUtc, entry.DocumentId })
+        builder.HasIndex(entry => new { entry.UserId, entry.IsValid, entry.DocumentId })
             .HasDatabaseName("doc_effective_acl_flat_user_document_idx");
     }
 }

@@ -10,6 +10,8 @@ public sealed class EffectiveAclFlatEntry
 
     public DateTimeOffset? ValidToUtc { get; set; }
 
+    public bool IsValid { get; set; }
+
     public string Source { get; set; } = string.Empty;
 
     public string IdempotencyKey { get; set; } = string.Empty;
