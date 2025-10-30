@@ -19,7 +19,13 @@ internal static class StaticFileRedirectHelper
 
         if (TryResolveDirectory(requestPath, fileProvider, out var normalizedPath))
         {
-            return UriHelper.BuildRelative(null, requestPathBase, normalizedPath, queryString);
+            return UriHelper.BuildRelative(
+                scheme: null,
+                host: HostString.Empty,
+                pathBase: requestPathBase,
+                path: normalizedPath,
+                query: queryString,
+                fragment: FragmentString.Empty);
         }
 
         if (!string.IsNullOrWhiteSpace(uiRequestPath))
@@ -31,7 +37,13 @@ internal static class StaticFileRedirectHelper
                 if (TryResolveDirectory(remainder, fileProvider, out var normalizedRemainder))
                 {
                     var combined = uiPath.Add(normalizedRemainder);
-                    return UriHelper.BuildRelative(null, requestPathBase, combined, queryString);
+                    return UriHelper.BuildRelative(
+                        scheme: null,
+                        host: HostString.Empty,
+                        pathBase: requestPathBase,
+                        path: combined,
+                        query: queryString,
+                        fragment: FragmentString.Empty);
                 }
             }
         }
