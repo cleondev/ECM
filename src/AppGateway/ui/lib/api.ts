@@ -870,14 +870,38 @@ export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedRes
     const query = searchParams.toString()
     const path = query ? `/api/documents?${query}` : "/api/documents"
     const response = await gatewayRequest<DocumentListResponse>(path)
-    const mapped = response.items.map(mapDocumentToFileItem)
+    const documents = Array.isArray(response.items) ? response.items : []
+    const mapped = documents.map(mapDocumentToFileItem)
+
+    const totalItems =
+      typeof response.totalItems === "number" && !Number.isNaN(response.totalItems)
+        ? response.totalItems
+        : mapped.length
+    const page =
+      typeof response.page === "number" && response.page > 0
+        ? response.page
+        : params?.page && params.page > 0
+          ? params.page
+          : 1
+    const limit =
+      typeof response.pageSize === "number" && response.pageSize > 0
+        ? response.pageSize
+        : params?.limit && params.limit > 0
+          ? params.limit
+          : mapped.length || 24
+    const totalPages =
+      typeof response.totalPages === "number" && response.totalPages >= 0
+        ? response.totalPages
+        : limit > 0
+          ? Math.ceil(totalItems / limit)
+          : 0
 
     return {
       data: mapped,
-      total: response.totalItems,
-      page: response.page,
-      limit: response.pageSize,
-      hasMore: response.page < response.totalPages,
+      total: totalItems,
+      page,
+      limit,
+      hasMore: page < totalPages,
     }
   } catch (error) {
     console.error("[ui] Failed to fetch documents from gateway, falling back to mock data:", error)

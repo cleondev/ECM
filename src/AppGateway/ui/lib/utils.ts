@@ -5,13 +5,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+function stripDiacritics(value: string): string {
+  try {
+    return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  } catch (error) {
+    console.warn("[utils] Failed to normalize string for slugify:", error)
+    return value
+  }
+}
+
 export function slugify(value: string): string {
-  return value
+  if (!value) {
+    return ""
+  }
+
+  const withoutDiacritics = stripDiacritics(value)
+
+  return withoutDiacritics
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
+    .replace(/[^a-z0-9\s_-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
 }
 
 type MaybeString = string | null | undefined
