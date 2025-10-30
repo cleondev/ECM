@@ -376,8 +376,8 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   const handleSignOut = async () => {
     setIsSigningOut(true)
     try {
-      await signOut()
-      window.location.href = "/login"
+      await signOut("/")
+      window.location.href = "/"
     } catch (error) {
       console.error("[ui] Failed to sign out:", error)
     } finally {
