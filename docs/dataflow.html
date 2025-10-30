@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Bảng Dataflow ECM</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      line-height: 1.6;
+      margin: 2rem;
+      color: #1a1a1a;
+    }
+    h1, h2 {
+      color: #0b3d91;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+    }
+    th, td {
+      border: 1px solid #d0d7de;
+      padding: 0.75rem;
+      vertical-align: top;
+    }
+    th {
+      background-color: #f6f8fa;
+      text-align: left;
+    }
+    code {
+      background-color: #f6f8fa;
+      padding: 0 0.25rem;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+    ul {
+      padding-left: 1.5rem;
+      margin: 0.25rem 0 0;
+    }
+    td.actor-none {
+      color: #6c757d;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bảng Dataflow ECM</h1>
+  <p>
+    Bảng dưới đây mô tả luồng dữ liệu đi qua từng tác nhân theo thứ tự <strong>User → Azure Entra ID → App Gateway → ECM Host →
+    Database</strong>. Cột ECM Host sử dụng <code>rowspan</code> để gom các bước chung một module trong ECM Monolith.
+  </p>
+
+  <h2>Tác nhân và module</h2>
+  <ul>
+    <li><strong>User/Browser</strong>: người dùng cuối tương tác với giao diện SPA.</li>
+    <li><strong>Azure Entra ID</strong>: Identity Provider phát hành token đăng nhập.</li>
+    <li><strong>App Gateway</strong>: BFF ASP.NET Core chịu trách nhiệm xác thực OIDC, phục vụ UI và chuyển tiếp request tới ECM.</li>
+    <li><strong>ECM Host</strong>: monolith gồm các module IAM, Document, File, Workflow, Signature, SearchRead, Ocr cùng hạ tầng chung.</li>
+    <li><strong>Database</strong>: PostgreSQL với các schema <code>iam</code>, <code>doc</code>, <code>wf</code>, <code>file</code>, <code>search</code>, <code>ocr</code>, <code>ops</code>.</li>
+  </ul>
+
+  <h2>Bảng luồng nghiệp vụ theo tác nhân</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Luồng</th>
+        <th>Bước</th>
+        <th>User / Browser</th>
+        <th>Azure Entra ID</th>
+        <th>App Gateway</th>
+        <th>ECM Host (Module)</th>
+        <th>Database</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th rowspan="4">1. Đăng nhập &amp; Bootstrap phiên</th>
+        <td>1</td>
+        <td>Truy cập <code>/signin-azure</code> để bắt đầu đăng nhập.</td>
+        <td class="actor-none">—</td>
+        <td>Phục vụ SPA và điều hướng người dùng sang Azure.</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td>Thực hiện xác thực OIDC, trả authorization code/token.</td>
+        <td>Nhận phản hồi, trao đổi token và đặt cookie phiên.</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Gọi <code>GET /api/iam/profile</code> để lấy hồ sơ theo email trong token.</td>
+        <td rowspan="2">
+          <strong>IAM</strong>
+          <ul>
+            <li>Bước 3: tra cứu thông tin người dùng và nhóm từ hồ sơ hiện có.</li>
+            <li>Bước 4: tự động provisioning người dùng mới, gán group/role mặc định.</li>
+          </ul>
+        </td>
+        <td>Đọc <code>iam.users</code>.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Đồng bộ cookie, lưu claim người dùng vào session.</td>
+        <td>Ghi <code>iam.users</code>, <code>iam.group_members</code>, <code>iam.user_roles</code>.</td>
+      </tr>
+
+      <tr>
+        <th rowspan="4">2. Tạo tài liệu &amp; upload phiên bản</th>
+        <td>1</td>
+        <td>Chọn upload hoặc tạo mới từ UI.</td>
+        <td class="actor-none">—</td>
+        <td>Forward <code>POST /documents</code> cùng metadata/file.</td>
+        <td rowspan="2">
+          <strong>Document</strong>
+          <ul>
+            <li>Bước 2: khởi tạo bản ghi tài liệu với metadata cơ bản.</li>
+            <li>Bước 3: cập nhật metadata JSON tùy biến.</li>
+          </ul>
+        </td>
+        <td class="actor-none">—</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Nhận kết quả và trả về UI.</td>
+        <td>Ghi <code>doc.document</code>.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Cập nhật metadata bổ sung.</td>
+        <td class="actor-none">—</td>
+        <td>Ghi <code>doc.metadata</code>.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Hoàn tất upload phiên bản.</td>
+        <td class="actor-none">—</td>
+        <td>Gọi <code>/documents/{id}/versions:init</code> và <code>.../complete</code>.</td>
+        <td>
+          <strong>File</strong>
+          <ul>
+            <li>Quản lý phiên upload, tạo object lưu trữ và checksum.</li>
+          </ul>
+        </td>
+        <td>Ghi <code>doc.version</code>, <code>doc.file_object</code>.</td>
+      </tr>
+
+      <tr>
+        <th rowspan="3">3. Metadata &amp; Tagging</th>
+        <td>1</td>
+        <td>Cập nhật metadata/tag từ UI.</td>
+        <td class="actor-none">—</td>
+        <td>Forward <code>PUT /documents/{id}/metadata</code> hoặc API tag.</td>
+        <td rowspan="2">
+          <strong>Document</strong>
+          <ul>
+            <li>Bước 2: ghi nhận metadata mới.</li>
+            <li>Bước 3: cập nhật namespace, label và gán tag.</li>
+          </ul>
+        </td>
+        <td class="actor-none">—</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Thông báo thành công cho UI.</td>
+        <td>Ghi <code>doc.metadata</code>.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Gọi API gán tag.</td>
+        <td>
+          <strong>Document</strong>
+          <ul>
+            <li>Liên kết tag với tài liệu.</li>
+          </ul>
+        </td>
+        <td>Ghi <code>doc.tag_namespace</code>, <code>doc.tag_label</code>, <code>doc.document_tag</code>.</td>
+      </tr>
+
+      <tr>
+        <th rowspan="3">4. Chia sẻ tài liệu</th>
+        <td>1</td>
+        <td>Tạo link chia sẻ / cấp quyền ngoài.</td>
+        <td class="actor-none">—</td>
+        <td>Forward <code>POST /links</code> hoặc <code>/files/share/{versionId}</code>.</td>
+        <td rowspan="2">
+          <strong>File (Share)</strong>
+          <ul>
+            <li>Bước 2: áp chính sách link (hạn dùng, mật khẩu, quyền).</li>
+            <li>Bước 3: lưu nhật ký truy cập và thống kê.</li>
+          </ul>
+        </td>
+        <td class="actor-none">—</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Trả lại token tải xuống/presigned URL.</td>
+        <td>Ghi <code>file.share_link</code>.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Người nhận truy cập link.</td>
+        <td class="actor-none">—</td>
+        <td>Đối chiếu mật khẩu/OTP, log truy cập.</td>
+        <td>
+          <strong>File (Share)</strong>
+          <ul>
+            <li>Ghi sự kiện truy cập và thống kê.</li>
+          </ul>
+        </td>
+        <td>Ghi <code>file.share_access_event</code>, <code>file.share_stats</code>.</td>
+      </tr>
+
+      <tr>
+        <th rowspan="3">5. Workflow &amp; Form</th>
+        <td>1</td>
+        <td>Khởi chạy workflow / claim task.</td>
+        <td class="actor-none">—</td>
+        <td>Forward <code>POST /wf/instances</code>, <code>/wf/tasks</code>, <code>/forms</code>.</td>
+        <td rowspan="2">
+          <strong>Workflow</strong>
+          <ul>
+            <li>Bước 2: tạo instance, phân nhiệm vụ, đồng bộ trạng thái.</li>
+            <li>Bước 3: lưu dữ liệu form động.</li>
+          </ul>
+        </td>
+        <td class="actor-none">—</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Nhận kết quả và cập nhật UI.</td>
+        <td>Ghi <code>wf.instance</code>, <code>wf.task</code>, <code>wf.form</code>.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Nộp form / cập nhật tiến độ.</td>
+        <td class="actor-none">—</td>
+        <td>Forward payload form.</td>
+        <td>
+          <strong>Workflow</strong>
+          <ul>
+            <li>Lưu giá trị form và lịch sử.</li>
+          </ul>
+        </td>
+        <td>Ghi <code>wf.form_data</code>.</td>
+      </tr>
+
+      <tr>
+        <th rowspan="3">6. Tìm kiếm &amp; Chỉ mục</th>
+        <td>1</td>
+        <td>Thực hiện truy vấn tìm kiếm.</td>
+        <td class="actor-none">—</td>
+        <td>Gọi <code>GET /search</code>, <code>/search/suggest</code>.</td>
+        <td>
+          <strong>SearchRead</strong>
+          <ul>
+            <li>Đọc chỉ mục FTS/vector để trả kết quả.</li>
+          </ul>
+        </td>
+        <td>Đọc <code>search.fts</code>, <code>search.kv</code>, <code>search.embedding</code>.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Không tác động thêm.</td>
+        <td rowspan="2">
+          <strong>SearchIndexer Worker</strong>
+          <ul>
+            <li>Bước 2: tiêu thụ sự kiện Outbox.</li>
+            <li>Bước 3: cập nhật chỉ mục tìm kiếm.</li>
+          </ul>
+        </td>
+        <td>Đọc <code>ops.outbox</code>.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Ghi <code>search.fts</code>, <code>search.kv</code>, <code>search.embedding</code>.</td>
+      </tr>
+
+      <tr>
+        <th rowspan="3">7. OCR &amp; Trích xuất</th>
+        <td>1</td>
+        <td>Yêu cầu xử lý OCR / xem kết quả.</td>
+        <td class="actor-none">—</td>
+        <td>Forward <code>POST /ocr/process</code>, <code>/ocr/results</code>.</td>
+        <td>
+          <strong>Ocr</strong>
+          <ul>
+            <li>Tạo job OCR, trả trạng thái cho UI.</li>
+          </ul>
+        </td>
+        <td>Ghi <code>ops.outbox</code> (sự kiện OCR).</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td rowspan="2">
+          <strong>OCR Worker</strong>
+          <ul>
+            <li>Bước 2: tiêu thụ sự kiện, chạy engine Python.</li>
+            <li>Bước 3: lưu kết quả trang, annotation, extraction.</li>
+          </ul>
+        </td>
+        <td>Đọc <code>ops.outbox</code>.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Ghi <code>ocr.result</code>, <code>ocr.page_text</code>, <code>ocr.annotation</code>, <code>ocr.extraction</code>.</td>
+      </tr>
+
+      <tr>
+        <th rowspan="3">8. Audit, Thông báo &amp; Retention</th>
+        <td>1</td>
+        <td>Tra cứu audit / retention / notification.</td>
+        <td class="actor-none">—</td>
+        <td>Gọi <code>/audit</code>, <code>/retention/policies</code>, <code>/notifications</code>.</td>
+        <td>
+          <strong>Shared Services</strong>
+          <ul>
+            <li>Trả dữ liệu audit và cấu hình chính sách.</li>
+          </ul>
+        </td>
+        <td>Đọc <code>ops.audit_event</code>, <code>ops.retention_policy</code>, <code>ops.notification</code>.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Các module phát sinh sự kiện domain.</td>
+        <td rowspan="2">
+          <strong>Outbox &amp; Workers</strong>
+          <ul>
+            <li>Bước 2: ghi sự kiện vào Outbox.</li>
+            <li>Bước 3: tiêu thụ để gửi thông báo, đánh dấu retention.</li>
+          </ul>
+        </td>
+        <td>Ghi <code>ops.outbox</code>, <code>ops.outbox_deadletter</code>.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td class="actor-none">—</td>
+        <td class="actor-none">—</td>
+        <td>Gửi thông báo/webhook, áp chính sách.</td>
+        <td>Ghi <code>ops.notification</code>, <code>ops.retention_candidate</code>, <code>ops.webhook*</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Bảng nguồn dữ liệu trong Database</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Bảng &amp; Cột chính</th>
+        <th>Module chịu trách nhiệm</th>
+        <th>Nguồn sinh dữ liệu</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>iam.users(email, display_name, primary_group_id, is_active, created_at)</code><br />
+            <code>iam.user_roles</code><br />
+            <code>iam.group_members</code></td>
+        <td>IAM</td>
+        <td>Provision qua <code>POST /api/iam/users</code>, tự động đồng bộ khi đăng nhập lần đầu.</td>
+      </tr>
+      <tr>
+        <td><code>iam.relations(subject_*, relation, valid_from, valid_to)</code></td>
+        <td>IAM</td>
+        <td>Thiết lập chia sẻ/ReBAC bằng <code>POST /api/iam/relations</code> và các API quan hệ.</td>
+      </tr>
+      <tr>
+        <td><code>doc.document(title, doc_type, status, sensitivity, owner_id, group_id, type_id, created_by, timestamps)</code></td>
+        <td>Document</td>
+        <td>Tạo tài liệu bằng <code>POST /documents</code>; module suy luận metadata mặc định.</td>
+      </tr>
+      <tr>
+        <td><code>doc.metadata(data)</code><br />
+            <code>doc.effective_acl_flat(user_id, valid_to, source, idempotency_key)</code></td>
+        <td>Document</td>
+        <td>Cập nhật metadata qua <code>PUT /documents/{id}/metadata</code>; worker vật hoá ACL cho truy vấn nhanh.</td>
+      </tr>
+      <tr>
+        <td><code>doc.version(storage_key, bytes, mime_type, sha256, version_no, created_by, created_at)</code><br />
+            <code>doc.file_object(storage_key, legal_hold, created_at)</code></td>
+        <td>File</td>
+        <td>Quy trình upload phiên bản (<code>/documents/{id}/versions:init</code>, <code>.../complete</code>) và quản lý MinIO/S3.</td>
+      </tr>
+      <tr>
+        <td><code>doc.tag_namespace</code>, <code>doc.tag_label</code>, <code>doc.document_tag</code></td>
+        <td>Document</td>
+        <td>API quản lý tag/folder (<code>/tags/*</code>, <code>/documents/{id}/tags</code>).</td>
+      </tr>
+      <tr>
+        <td><code>file.share_link</code>, <code>file.share_access_event</code>, <code>file.share_stats</code></td>
+        <td>File (Share)</td>
+        <td>Tạo link/quyền chia sẻ qua <code>POST /links</code>, <code>/files/share/{versionId}</code> và log truy cập.</td>
+      </tr>
+      <tr>
+        <td><code>wf.definition</code>, <code>wf.instance</code>, <code>wf.task</code>, <code>wf.form</code>, <code>wf.form_data</code></td>
+        <td>Workflow</td>
+        <td>Định nghĩa, khởi chạy workflow và lưu form qua <code>/wf/definitions</code>, <code>/wf/instances</code>, <code>/wf/tasks</code>, <code>/forms*</code>.</td>
+      </tr>
+      <tr>
+        <td><code>search.fts</code>, <code>search.kv</code>, <code>search.embedding</code></td>
+        <td>SearchRead</td>
+        <td>SearchIndexer worker tiêu thụ Outbox và xây dựng chỉ mục phục vụ API <code>/search</code>.</td>
+      </tr>
+      <tr>
+        <td><code>ocr.result</code>, <code>ocr.page_text</code>, <code>ocr.annotation</code>, <code>ocr.extraction</code></td>
+        <td>Ocr</td>
+        <td>Quy trình OCR từ API <code>/ocr/process</code> và worker lưu kết quả, annotation, trường trích xuất.</td>
+      </tr>
+      <tr>
+        <td><code>ops.outbox</code>, <code>ops.outbox_deadletter</code>, <code>ops.audit_event</code>, <code>ops.notification</code>, <code>ops.retention_policy</code>, <code>ops.retention_candidate</code>, <code>ops.webhook*</code></td>
+        <td>Shared (Notify/Retention)</td>
+        <td>Các module ghi sự kiện vào Outbox, audit; workers gửi thông báo, quản lý retention và webhook.</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
