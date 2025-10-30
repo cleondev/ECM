@@ -43,6 +43,7 @@ type UserSummaryResponse = {
   roles?: RoleSummaryResponse[]
   primaryGroupId?: string | null
   groupIds?: string[]
+  hasPassword?: boolean
 }
 
 type CheckLoginResponse = {
@@ -495,6 +496,7 @@ function mapUserSummaryToUser(profile: UserSummaryResponse): User {
     createdAtUtc: profile.createdAtUtc,
     primaryGroupId,
     groupIds: uniqueGroupIds,
+    hasPassword: Boolean(profile.hasPassword),
   }
 }
 
@@ -549,6 +551,11 @@ export type UpdateUserProfileInput = {
   groupIds?: string[]
 }
 
+export type UpdateUserPasswordInput = {
+  currentPassword?: string | null
+  newPassword: string
+}
+
 export async function updateCurrentUserProfile({
   displayName,
   primaryGroupId,
@@ -585,6 +592,55 @@ export async function updateCurrentUserProfile({
 
   const data = (await response.json()) as UserSummaryResponse
   return mapUserSummaryToUser(data)
+}
+
+export async function updateCurrentUserPassword({
+  currentPassword,
+  newPassword,
+}: UpdateUserPasswordInput): Promise<void> {
+  const payload: Record<string, string> = { newPassword }
+  if (currentPassword) {
+    payload.currentPassword = currentPassword
+  }
+
+  const response = await gatewayFetch("/api/iam/profile/password", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+
+  if (response.status === 204) {
+    return
+  }
+
+  if (response.status === 404) {
+    throw new Error("Không tìm thấy người dùng hiện tại.")
+  }
+
+  if (response.status === 400) {
+    try {
+      const problem = (await response.json()) as {
+        errors?: Record<string, string[]>
+        detail?: string
+        title?: string
+      }
+      const messages = problem?.errors ? Object.values(problem.errors).flat() : []
+      const message = messages[0] ?? problem?.detail ?? problem?.title
+      if (message) {
+        throw new Error(message)
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        throw error
+      }
+      throw new Error("Không thể cập nhật mật khẩu. Vui lòng thử lại.")
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to update password (${response.status})`)
+  }
+
+  throw new Error("Không thể cập nhật mật khẩu. Vui lòng thử lại.")
 }
 
 export type CheckLoginResult = {

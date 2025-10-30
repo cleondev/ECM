@@ -9,8 +9,6 @@ import {
   Camera,
   Mail,
   Briefcase,
-  MapPin,
-  Phone,
   Calendar,
   Users,
   ChevronDown,
@@ -19,11 +17,17 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { fetchCurrentUserProfile, updateCurrentUserProfile, updateUserAvatar, fetchGroups } from "@/lib/api"
+import { Badge } from "@/components/ui/badge"
+import {
+  fetchCurrentUserProfile,
+  updateCurrentUserProfile,
+  updateUserAvatar,
+  fetchGroups,
+  updateCurrentUserPassword,
+} from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import type { Group, User } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -45,6 +49,12 @@ type ProfileFormState = {
   displayName: string
   primaryGroupId: string | null
   groupIds: string[]
+}
+
+type PasswordFormState = {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
 }
 
 export default function ProfilePage() {
@@ -72,6 +82,16 @@ export default function ProfilePage() {
   const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const [passwordForm, setPasswordForm] = useState<PasswordFormState>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [passwordFeedback, setPasswordFeedback] = useState<{
+    type: "success" | "error"
+    message: string
+  } | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(() => !cachedSnapshot?.user)
   const [isRedirecting, setIsRedirecting] = useState(false)
 
@@ -133,6 +153,8 @@ export default function ProfilePage() {
 
         console.debug("[profile] Nhận được hồ sơ người dùng với id:", profile.id)
         setUser(profile)
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+        setPasswordFeedback(null)
         setFormValues({
           displayName: profile.displayName,
           primaryGroupId: profile.primaryGroupId ?? profile.groupIds?.[0] ?? null,
@@ -231,6 +253,64 @@ export default function ProfilePage() {
         groupIds: Array.from(nextGroupIds),
       }
     })
+  }
+
+  const handlePasswordFieldChange = (field: keyof PasswordFormState) => (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const value = event.target.value
+    setPasswordForm((prev) => ({ ...prev, [field]: value }))
+    setPasswordFeedback(null)
+  }
+
+  const handleUpdatePassword = async () => {
+    if (!user) return
+
+    const requiresCurrentPassword = Boolean(user.hasPassword)
+    const trimmedNewPassword = passwordForm.newPassword.trim()
+    const trimmedConfirmPassword = passwordForm.confirmPassword.trim()
+
+    if (requiresCurrentPassword && passwordForm.currentPassword.length === 0) {
+      setPasswordFeedback({ type: "error", message: "Vui lòng nhập mật khẩu hiện tại." })
+      return
+    }
+
+    if (trimmedNewPassword.length < 8) {
+      setPasswordFeedback({ type: "error", message: "Mật khẩu mới phải có ít nhất 8 ký tự." })
+      return
+    }
+
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
+      setPasswordFeedback({ type: "error", message: "Mật khẩu xác nhận không khớp." })
+      return
+    }
+
+    setIsUpdatingPassword(true)
+    setPasswordFeedback(null)
+
+    try {
+      await updateCurrentUserPassword({
+        currentPassword: requiresCurrentPassword ? passwordForm.currentPassword : undefined,
+        newPassword: trimmedNewPassword,
+      })
+
+      setPasswordFeedback({
+        type: "success",
+        message: requiresCurrentPassword
+          ? "Mật khẩu của bạn đã được cập nhật."
+          : "Mật khẩu của bạn đã được thiết lập.",
+      })
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
+      setUser((prev) => (prev ? { ...prev, hasPassword: true } : prev))
+    } catch (error) {
+      console.error("[ui] Không thể cập nhật mật khẩu:", error)
+      setPasswordFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : "Không thể cập nhật mật khẩu. Vui lòng thử lại.",
+      })
+    } finally {
+      setIsUpdatingPassword(false)
+    }
   }
 
   const primaryGroupName = useMemo(() => {
@@ -354,6 +434,14 @@ export default function ProfilePage() {
     }
   }, [user?.createdAtUtc])
 
+  const requiresCurrentPassword = Boolean(user?.hasPassword)
+  const trimmedNewPassword = passwordForm.newPassword.trim()
+  const trimmedConfirmPassword = passwordForm.confirmPassword.trim()
+  const canSubmitPassword =
+    trimmedNewPassword.length >= 8 &&
+    trimmedNewPassword === trimmedConfirmPassword &&
+    (!requiresCurrentPassword || passwordForm.currentPassword.length > 0)
+
   if (isRedirecting) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -395,17 +483,18 @@ export default function ProfilePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>Manage your personal information and preferences</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center gap-6">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Hồ sơ cá nhân</CardTitle>
+              <CardDescription>Cập nhật thông tin tài khoản và nhóm làm việc của bạn.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+            <div className="flex flex-col gap-6 md:flex-row md:items-center">
               <div className="relative">
                 <Avatar className="h-24 w-24">
                   <AvatarImage src={avatarPreview || user.avatar || "/placeholder.svg"} alt={user.displayName} />
-                  <AvatarFallback className="text-2xl">{user.displayName?.charAt(0) ?? '?'}</AvatarFallback>
+                  <AvatarFallback className="text-2xl">{user.displayName?.charAt(0) ?? "?"}</AvatarFallback>
                 </Avatar>
                 <input
                   ref={fileInputRef}
@@ -418,18 +507,18 @@ export default function ProfilePage() {
                   size="icon"
                   variant="secondary"
                   className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
-                  title="Change avatar"
+                  title="Đổi ảnh đại diện"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold">{user.displayName}</h2>
-                <p className="text-muted-foreground">{user.roles[0] ?? "Member"}</p>
-                {primaryGroupName && (
-                  <p className="text-xs text-muted-foreground">Primary group: {primaryGroupName}</p>
-                )}
+              <div className="flex-1 space-y-2">
+                <h2 className="text-2xl font-bold break-words">{user.displayName}</h2>
+                <p className="text-sm text-muted-foreground break-words">{user.email}</p>
+                {primaryGroupName ? (
+                  <p className="text-xs text-muted-foreground">Nhóm chính: {primaryGroupName}</p>
+                ) : null}
               </div>
               <Button
                 variant={isEditing ? "outline" : "default"}
@@ -442,7 +531,7 @@ export default function ProfilePage() {
                   }
                 }}
               >
-                {isEditing ? "Cancel" : "Edit Profile"}
+                {isEditing ? "Hủy" : "Chỉnh sửa hồ sơ"}
               </Button>
             </div>
 
@@ -462,13 +551,16 @@ export default function ProfilePage() {
 
             <div className="grid gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Tên hiển thị</Label>
                 <Input
                   id="name"
                   value={formValues.displayName}
                   onChange={handleDisplayNameChange}
                   disabled={!isEditing}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Tên này sẽ hiển thị với các thành viên khác trong hệ thống.
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -480,15 +572,36 @@ export default function ProfilePage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="phone">Phone</Label>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <Input id="phone" type="tel" defaultValue="+1 (555) 123-4567" disabled={!isEditing} />
+                <Label>Vai trò</Label>
+                <div className="flex flex-wrap gap-2">
+                  {user.roles.length > 0 ? (
+                    user.roles.map((role, index) => (
+                      <Badge key={`role-${role}-${index}`} variant="outline">
+                        {role}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Chưa được gán vai trò nào.</span>
+                  )}
                 </div>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="primary-group">Primary group</Label>
+                <Label>Trạng thái tài khoản</Label>
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <Badge variant={user.isActive ? "secondary" : "outline"}>
+                    {user.isActive ? "Đang hoạt động" : "Đã vô hiệu hóa"}
+                  </Badge>
+                  <span className="text-muted-foreground">
+                    {user.isActive
+                      ? "Bạn có thể truy cập các tính năng của hệ thống."
+                      : "Liên hệ quản trị viên để kích hoạt lại tài khoản."}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="primary-group">Nhóm chính</Label>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
                   <Select
@@ -498,11 +611,11 @@ export default function ProfilePage() {
                   >
                     <SelectTrigger id="primary-group" className="w-full">
                       <SelectValue
-                        placeholder={groups.length ? "Select primary group" : "No groups available"}
+                        placeholder={groups.length ? "Chọn nhóm chính" : "Không có nhóm nào"}
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">No primary group</SelectItem>
+                      <SelectItem value="__none__">Không có nhóm chính</SelectItem>
                       {groups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.name}
@@ -513,15 +626,15 @@ export default function ProfilePage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {groups.length === 0
-                    ? "No groups available"
+                    ? "Bạn chưa được gán vào bất kỳ nhóm nào."
                     : primaryGroupName
-                      ? `Current primary group: ${primaryGroupName}`
-                      : "Select a primary group"}
+                      ? `Nhóm chính hiện tại: ${primaryGroupName}`
+                      : "Chọn một nhóm làm nhóm chính mặc định."}
                 </p>
               </div>
 
               <div className="grid gap-2">
-                <Label>Groups</Label>
+                <Label>Nhóm tham gia</Label>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <Popover
@@ -543,15 +656,15 @@ export default function ProfilePage() {
                         disabled={!isEditing || groups.length === 0}
                       >
                         {selectedGroupCount > 0
-                          ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
-                          : "Select groups"}
+                          ? `${selectedGroupCount} nhóm được chọn`
+                          : "Chọn nhóm"}
                         <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[280px]" align="start">
                       <Command>
-                        <CommandInput placeholder="Search groups..." />
-                        <CommandEmpty>No groups found.</CommandEmpty>
+                        <CommandInput placeholder="Tìm kiếm nhóm..." />
+                        <CommandEmpty>Không tìm thấy nhóm.</CommandEmpty>
                         <CommandGroup>
                           {groups.map((group) => {
                             const isSelected = formValues.groupIds.includes(group.id)
@@ -583,36 +696,17 @@ export default function ProfilePage() {
                   {selectedGroupNames.length > 0
                     ? selectedGroupNames.join(", ")
                     : selectedGroupCount > 0
-                      ? `${selectedGroupCount} group${selectedGroupCount > 1 ? "s" : ""} selected`
-                      : "Assign groups to keep files organized"}
+                      ? `Đã chọn ${selectedGroupCount} nhóm`
+                      : "Chưa gán nhóm nào cho tài khoản này."}
                 </p>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="location">Location</Label>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <Input id="location" defaultValue="San Francisco, CA" disabled={!isEditing} />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="joined">Joined Date</Label>
+                <Label htmlFor="joined">Ngày tham gia</Label>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <Input id="joined" value={joinedDate} disabled readOnly />
                 </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  placeholder="Tell us about yourself..."
-                  defaultValue="Passionate about document management and workflow optimization."
-                  disabled={!isEditing}
-                  rows={4}
-                />
               </div>
             </div>
 
@@ -621,16 +715,116 @@ export default function ProfilePage() {
                 <Separator />
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={handleCancelEdit} disabled={isSaving}>
-                    Cancel
+                    Hủy
                   </Button>
                   <Button onClick={handleSaveChanges} disabled={!hasChanges || isSaving}>
-                    {isSaving ? "Saving..." : "Save Changes"}
+                    {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                   </Button>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bảo mật tài khoản</CardTitle>
+              <CardDescription>Thiết lập hoặc đổi mật khẩu đăng nhập của bạn.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Badge variant={requiresCurrentPassword ? "secondary" : "outline"}>
+                  {requiresCurrentPassword ? "Đã thiết lập mật khẩu" : "Chưa có mật khẩu"}
+                </Badge>
+                <span className="text-muted-foreground">
+                  {requiresCurrentPassword
+                    ? "Bạn có thể đổi mật khẩu định kỳ để tăng bảo mật."
+                    : "Đặt mật khẩu để đăng nhập trực tiếp vào hệ thống."}
+                </span>
+              </div>
+
+              {passwordFeedback && (
+                <div
+                  className={
+                    passwordFeedback.type === "error"
+                      ? "text-sm text-destructive"
+                      : "text-sm text-green-600"
+                  }
+                >
+                  {passwordFeedback.message}
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {requiresCurrentPassword && (
+                  <div className="grid gap-2 md:col-span-2">
+                    <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      value={passwordForm.currentPassword}
+                      onChange={handlePasswordFieldChange("currentPassword")}
+                      disabled={isUpdatingPassword}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                )}
+                <div className="grid gap-2">
+                  <Label htmlFor="new-password">Mật khẩu mới</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordFieldChange("newPassword")}
+                    disabled={isUpdatingPassword}
+                    autoComplete="new-password"
+                  />
+                  <p
+                    className={cn(
+                      "text-xs",
+                      trimmedNewPassword.length > 0 && trimmedNewPassword.length < 8
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    Mật khẩu cần tối thiểu 8 ký tự.
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={handlePasswordFieldChange("confirmPassword")}
+                    disabled={isUpdatingPassword}
+                    autoComplete="new-password"
+                  />
+                  <p
+                    className={cn(
+                      "text-xs",
+                      trimmedConfirmPassword.length > 0 && trimmedConfirmPassword !== trimmedNewPassword
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    Nhập lại mật khẩu mới để xác nhận.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={handleUpdatePassword} disabled={!canSubmitPassword || isUpdatingPassword}>
+                  {isUpdatingPassword
+                    ? "Đang cập nhật..."
+                    : requiresCurrentPassword
+                      ? "Đổi mật khẩu"
+                      : "Thiết lập mật khẩu"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

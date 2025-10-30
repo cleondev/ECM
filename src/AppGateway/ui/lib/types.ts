@@ -89,6 +89,7 @@ export type User = {
   createdAtUtc?: string
   primaryGroupId?: string | null
   groupIds?: string[]
+  hasPassword?: boolean
 }
 
 export type Group = {
