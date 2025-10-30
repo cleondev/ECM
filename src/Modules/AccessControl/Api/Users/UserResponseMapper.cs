@@ -1,5 +1,4 @@
 using System.Linq;
-using ECM.AccessControl.Api.Roles;
 using ECM.AccessControl.Application.Users;
 
 namespace ECM.AccessControl.Api.Users;
