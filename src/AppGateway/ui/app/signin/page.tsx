@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,24 +12,9 @@ import { BrandLogo } from "@/components/brand-logo"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { checkLogin, passwordLogin, PasswordLoginError } from "@/lib/api"
+import { attemptSilentLogin, resolveGatewayUrl } from "@/lib/auth"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
-
-function resolveGatewayUrl(path: string) {
-  const envBase = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
-  const runtimeBase = envBase || (typeof window !== "undefined" ? window.location.origin : "")
-
-  if (!runtimeBase) {
-    return path
-  }
-
-  try {
-    return new URL(path, runtimeBase).toString()
-  } catch (error) {
-    console.warn("[ui] Không thể chuẩn hoá URL đăng nhập:", error)
-    return path
-  }
-}
 
 export default function SignInPage() {
   return (
@@ -47,6 +32,7 @@ function SignInPageContent() {
   const [passwordStatus, setPasswordStatus] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const silentLoginAttempted = useRef(false)
   const targetAfterLogin = useMemo(() => {
     const candidate = searchParams?.get("redirectUri") ?? searchParams?.get("redirect")
     return normalizeRedirectTarget(candidate)
@@ -56,6 +42,73 @@ function SignInPageContent() {
     const cached = getCachedAuthSnapshot()
     if (cached?.isAuthenticated) {
       router.replace(cached.redirectPath ?? targetAfterLogin)
+    }
+  }, [router, targetAfterLogin])
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    let cancelled = false
+
+    async function attemptAutoSignIn() {
+      setIsLoading(true)
+      setStatus("Đang kiểm tra trạng thái đăng nhập…")
+
+      try {
+        const initial = await checkLogin(targetAfterLogin)
+        if (cancelled) {
+          return
+        }
+
+        let safeRedirect = normalizeRedirectTarget(initial.redirectPath, targetAfterLogin)
+
+        if (initial.isAuthenticated) {
+          setStatus("Đã đăng nhập, đang chuyển hướng…")
+          router.replace(safeRedirect)
+          return
+        }
+
+        if (!silentLoginAttempted.current && initial.silentLoginUrl) {
+          silentLoginAttempted.current = true
+          setStatus("Đang thử đăng nhập tự động…")
+
+          await attemptSilentLogin(initial.silentLoginUrl)
+
+          if (cancelled) {
+            return
+          }
+
+          const followUp = await checkLogin(targetAfterLogin)
+          if (cancelled) {
+            return
+          }
+
+          safeRedirect = normalizeRedirectTarget(followUp.redirectPath, targetAfterLogin)
+
+          if (followUp.isAuthenticated) {
+            setStatus("Đã đăng nhập, đang chuyển hướng…")
+            router.replace(safeRedirect)
+            return
+          }
+        }
+
+        setStatus("")
+      } catch (error) {
+        console.error("[ui] Không thể kiểm tra trạng thái đăng nhập tự động:", error)
+        setStatus("")
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    attemptAutoSignIn()
+
+    return () => {
+      cancelled = true
     }
   }, [router, targetAfterLogin])
 

@@ -34,10 +34,15 @@ public static class GatewayEndpointConfiguration
                 Program.MainAppPath);
 
             var loginUrl = AzureLoginRedirectHelper.CreateLoginUrl(context, redirectUri);
+            var silentLoginUrl = AzureLoginRedirectHelper.CreateLoginUrl(
+                context,
+                redirectUri,
+                AzureLoginRedirectHelper.AzureLoginMode.Silent);
 
             return Results.Json(new
             {
-                url = loginUrl
+                url = loginUrl,
+                silentUrl = silentLoginUrl
             });
         }).AllowAnonymous();
 
@@ -48,10 +53,12 @@ public static class GatewayEndpointConfiguration
                 context.Request.Query["redirectUri"].FirstOrDefault(),
                 Program.MainAppPath);
 
-            var properties = new AuthenticationProperties
-            {
-                RedirectUri = redirectUri
-            };
+            var loginMode = AzureLoginRedirectHelper.ResolveLoginMode(
+                context.Request.Query["mode"].FirstOrDefault());
+
+            var properties = AzureLoginRedirectHelper.CreateAuthenticationProperties(
+                redirectUri,
+                loginMode);
 
             return Results.Challenge(properties, [OpenIdConnectDefaults.AuthenticationScheme]);
         }).AllowAnonymous();

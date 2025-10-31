@@ -45,10 +45,14 @@ public sealed class IamAuthenticationController(
             Program.MainAppPath);
 
         var loginUrl = AzureLoginRedirectHelper.CreateLoginUrl(HttpContext, resolvedRedirect);
+        var silentLoginUrl = AzureLoginRedirectHelper.CreateLoginUrl(
+            HttpContext,
+            resolvedRedirect,
+            AzureLoginRedirectHelper.AzureLoginMode.Silent);
 
         if (User.Identity?.IsAuthenticated != true)
         {
-            return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
+            return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
         }
 
         if (IsPasswordLoginPrincipal(User))
@@ -57,14 +61,14 @@ public sealed class IamAuthenticationController(
 
             if (profile is not null)
             {
-                return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, profile));
+                return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null, profile));
             }
 
             if (invalidProfileClaim)
             {
                 _logger.LogWarning(PasswordLoginInvalidProfileMessage);
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
+                return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
             }
         }
 
@@ -77,15 +81,15 @@ public sealed class IamAuthenticationController(
             {
                 _logger.LogWarning(
                     "Authenticated principal did not resolve to a user profile. Treating as unauthenticated.");
-                return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
+                return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
             }
 
-            return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, profile));
+            return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null, profile));
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "An error occurred while checking the current user's login state.");
-            return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, null));
+            return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
         }
     }
 
@@ -139,7 +143,7 @@ public sealed class IamAuthenticationController(
 
         _logger.LogInformation("Password login succeeded for {Email}.", profile.Email);
 
-        return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, profile));
+        return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null, profile));
     }
 
     private static ClaimsPrincipal CreateLocalUserPrincipal(UserSummaryDto user)

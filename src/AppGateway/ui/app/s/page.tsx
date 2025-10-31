@@ -5,6 +5,7 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -24,6 +25,7 @@ import {
   verifySharePassword,
 } from "@/lib/api"
 import type { ShareInterstitial, User } from "@/lib/types"
+import { attemptSilentLogin, resolveGatewayUrl } from "@/lib/auth"
 import { createSignInRedirectPath } from "@/lib/utils"
 
 export type ShareDownloadPageProps = {
@@ -35,6 +37,7 @@ type AuthState = {
   loading: boolean
   isAuthenticated: boolean
   loginUrl: string | null
+  silentLoginUrl: string | null
   user: User | null
   error: string | null
 }
@@ -91,6 +94,7 @@ function ShareDownloadPageContent({
     loading: true,
     isAuthenticated: false,
     loginUrl: null,
+    silentLoginUrl: null,
     user: null,
     error: null,
   })
@@ -126,6 +130,8 @@ function ShareDownloadPageContent({
     return true
   }, [share])
 
+  const silentLoginAttempted = useRef(false)
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return
@@ -137,16 +143,47 @@ function ShareDownloadPageContent({
 
     async function ensureAuthenticated() {
       try {
-        const result = await checkLogin(redirectTarget)
+        setAuthState((previous) => ({
+          ...previous,
+          loading: true,
+          error: null,
+        }))
+
+        const initial = await checkLogin(redirectTarget)
         if (cancelled) {
+          return
+        }
+
+        if (!initial.isAuthenticated && initial.silentLoginUrl && !silentLoginAttempted.current) {
+          silentLoginAttempted.current = true
+          await attemptSilentLogin(initial.silentLoginUrl)
+
+          if (cancelled) {
+            return
+          }
+
+          const followUp = await checkLogin(redirectTarget)
+          if (cancelled) {
+            return
+          }
+
+          setAuthState({
+            loading: false,
+            isAuthenticated: followUp.isAuthenticated,
+            loginUrl: followUp.loginUrl,
+            silentLoginUrl: followUp.silentLoginUrl,
+            user: followUp.user,
+            error: null,
+          })
           return
         }
 
         setAuthState({
           loading: false,
-          isAuthenticated: result.isAuthenticated,
-          loginUrl: result.loginUrl,
-          user: result.user,
+          isAuthenticated: initial.isAuthenticated,
+          loginUrl: initial.loginUrl,
+          silentLoginUrl: initial.silentLoginUrl,
+          user: initial.user,
           error: null,
         })
       } catch (err) {
@@ -156,6 +193,7 @@ function ShareDownloadPageContent({
             loading: false,
             isAuthenticated: false,
             loginUrl: null,
+            silentLoginUrl: null,
             user: null,
             error: "Không thể kiểm tra trạng thái đăng nhập. Vui lòng thử lại.",
           })
@@ -610,22 +648,6 @@ function ShareDownloadAuthErrorState({ message }: { message: string }): JSX.Elem
       </div>
     </div>
   )
-}
-
-function resolveGatewayUrl(path: string): string {
-  const envBase = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
-  const runtimeBase = envBase || (typeof window !== "undefined" ? window.location.origin : "")
-
-  if (!runtimeBase) {
-    return path
-  }
-
-  try {
-    return new URL(path, runtimeBase).toString()
-  } catch (error) {
-    console.warn("[ui] Không thể chuẩn hoá URL đăng nhập:", error)
-    return path
-  }
 }
 
 type DetailItemProps = { label: string; value: ReactNode }

@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.WebUtilities;
@@ -7,7 +8,16 @@ namespace AppGateway.Api.Auth;
 
 internal static class AzureLoginRedirectHelper
 {
+    private const string SilentMode = "silent";
+    private const string ModeQueryKey = "mode";
+    private const string LoginModePropertyKey = "appgateway:login-mode";
     private static readonly PathString RootPath = new("/");
+
+    internal enum AzureLoginMode
+    {
+        Interactive,
+        Silent
+    }
 
     public static string ResolveRedirectPath(HttpContext context, string? candidate, string defaultPath, bool allowRoot = false)
     {
@@ -29,14 +39,26 @@ internal static class AzureLoginRedirectHelper
         return EnsureWithinPathBase(context.Request.PathBase, fallback);
     }
 
-    public static string CreateLoginPath(string redirectPath)
-        => QueryHelpers.AddQueryString("/signin-azure", "redirectUri", redirectPath);
+    public static string CreateLoginPath(string redirectPath, AzureLoginMode mode = AzureLoginMode.Interactive)
+    {
+        var loginPath = QueryHelpers.AddQueryString("/signin-azure", "redirectUri", redirectPath);
 
-    public static string CreateLoginUrl(HttpContext context, string redirectPath)
+        if (mode == AzureLoginMode.Silent)
+        {
+            loginPath = QueryHelpers.AddQueryString(loginPath, ModeQueryKey, SilentMode);
+        }
+
+        return loginPath;
+    }
+
+    public static string CreateLoginUrl(
+        HttpContext context,
+        string redirectPath,
+        AzureLoginMode mode = AzureLoginMode.Interactive)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var loginPath = CreateLoginPath(redirectPath);
+        var loginPath = CreateLoginPath(redirectPath, mode);
         var queryIndex = loginPath.IndexOf('?');
 
         var path = queryIndex >= 0
@@ -53,6 +75,46 @@ internal static class AzureLoginRedirectHelper
             context.Request.PathBase,
             path,
             query);
+    }
+
+    public static AuthenticationProperties CreateAuthenticationProperties(
+        string redirectPath,
+        AzureLoginMode mode)
+    {
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = redirectPath
+        };
+
+        if (mode == AzureLoginMode.Silent)
+        {
+            properties.Items[LoginModePropertyKey] = SilentMode;
+        }
+
+        return properties;
+    }
+
+    public static AzureLoginMode ResolveLoginMode(string? mode)
+    {
+        return string.Equals(mode, SilentMode, StringComparison.OrdinalIgnoreCase)
+            ? AzureLoginMode.Silent
+            : AzureLoginMode.Interactive;
+    }
+
+    public static AzureLoginMode ResolveLoginMode(AuthenticationProperties? properties)
+    {
+        if (properties is null)
+        {
+            return AzureLoginMode.Interactive;
+        }
+
+        if (properties.Items.TryGetValue(LoginModePropertyKey, out var value)
+            && string.Equals(value, SilentMode, StringComparison.Ordinal))
+        {
+            return AzureLoginMode.Silent;
+        }
+
+        return AzureLoginMode.Interactive;
     }
 
     private static string? TryNormalize(string? value, bool allowRoot)
