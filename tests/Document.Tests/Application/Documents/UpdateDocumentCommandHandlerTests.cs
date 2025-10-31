@@ -35,7 +35,8 @@ public sealed class UpdateDocumentCommandHandlerTests
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
-        var document = Assert.Same(repository.Document, result.Value);
+        var document = result.Value;
+        Assert.Same(repository.Document, document);
         Assert.Equal("Updated Title", document!.Title.Value);
         Assert.Equal("Reviewed", document.Status);
         Assert.Equal("Confidential", document.Sensitivity);
@@ -99,7 +100,7 @@ public sealed class UpdateDocumentCommandHandlerTests
             now,
             _groups.SystemGroupId,
             "Internal",
-            documentTypeId: null);
+            typeId: null);
     }
 
     private sealed class FakeDocumentRepository(DomainDocument? document) : IDocumentRepository
