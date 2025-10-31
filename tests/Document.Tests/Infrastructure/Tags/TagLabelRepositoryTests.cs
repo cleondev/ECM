@@ -5,7 +5,7 @@ using ECM.Document.Domain.Tags;
 using ECM.Document.Infrastructure.Persistence;
 using ECM.Document.Infrastructure.Tags;
 using Microsoft.EntityFrameworkCore;
-using Shared.Contracts.Documents;
+using Shared.Contracts.Messaging;
 using Xunit;
 
 namespace Document.Tests.Infrastructure.Tags;
@@ -42,7 +42,7 @@ public class TagLabelRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("tag-label", message.Aggregate);
-        Assert.Equal(DocumentEventNames.TagLabelCreated, message.Type);
+        Assert.Equal(EventNames.TagLabel.Created, message.Type);
     }
 
     [Fact]
@@ -80,6 +80,6 @@ public class TagLabelRepositoryTests
         await repository.RemoveAsync(tagLabel, CancellationToken.None);
 
         var message = Assert.Single(context.OutboxMessages);
-        Assert.Equal(DocumentEventNames.TagLabelDeleted, message.Type);
-    }
+        Assert.Equal(EventNames.TagLabel.Deleted, message.Type);
+}
 }

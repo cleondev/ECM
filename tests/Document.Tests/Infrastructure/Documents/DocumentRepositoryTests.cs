@@ -4,7 +4,7 @@ using ECM.Document.Domain.Documents.Events;
 using ECM.Document.Infrastructure.Documents;
 using ECM.Document.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Shared.Contracts.Documents;
+using Shared.Contracts.Messaging;
 using Xunit;
 
 using DomainDocument = ECM.Document.Domain.Documents.Document;
@@ -42,7 +42,7 @@ public class DocumentRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("document", message.Aggregate);
-        Assert.Equal(DocumentEventNames.DocumentTagAssigned, message.Type);
+        Assert.Equal(EventNames.Document.TagAssigned, message.Type);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class DocumentRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("document", message.Aggregate);
-        Assert.Equal(DocumentEventNames.DocumentUpdated, message.Type);
+        Assert.Equal(EventNames.Document.Updated, message.Type);
     }
 
     [Fact]
@@ -111,6 +111,6 @@ public class DocumentRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("document", message.Aggregate);
-        Assert.Equal(DocumentEventNames.DocumentDeleted, message.Type);
-    }
+        Assert.Equal(EventNames.Document.Deleted, message.Type);
+}
 }
