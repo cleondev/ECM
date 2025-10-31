@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECM.Ocr.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OcrDbContext))]
-    [Migration("20251031064319_init")]
-    partial class init
+    [Migration("20251031064319_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
