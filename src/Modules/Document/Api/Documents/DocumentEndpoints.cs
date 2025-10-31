@@ -246,23 +246,20 @@ public static class DocumentEndpoints
         if (!string.IsNullOrWhiteSpace(request.Query))
         {
             var term = request.Query.Trim();
-            if (term.Length > 0)
-            {
-                var escaped = term
-                    .Replace(@"\", @"\\")
-                    .Replace("%", @"\%")
-                    .Replace("_", @"\_");
 
-                var likeExpression = $"%{escaped}%";
+            var escaped = term
+                .Replace(@"\", @"\\")
+                .Replace("%", @"\%")
+                .Replace("_", @"\_");
 
-                query = query.Where(document =>
-                    EF.Functions.ILike(
-                        EF.Property<string>(document, nameof(document.Title)),
-                        likeExpression,
-                        '\\'
-                    )
-                );
-            }
+            var likeLower = $"%{escaped.ToLowerInvariant()}%";
+
+            query = query.Where(d =>
+                EF.Functions.Like(
+                    d.Title.Value.ToLower(),
+                    likeLower
+                )
+            );
         }
 
         if (!string.IsNullOrWhiteSpace(request.DocType))

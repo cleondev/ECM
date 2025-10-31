@@ -27,11 +27,11 @@ public static class EfConverters
         );
 
     public static readonly ValueComparer<DocumentTitle> DocumentTitleComparer =
-        new(
+        new ValueComparer<DocumentTitle>(
             (left, right) =>
-                ReferenceEquals(left, right)
-                || (left is not null && right is not null && left.Value == right.Value),
-            title => title is null ? 0 : title.Value.GetHashCode(),
-            title => title is null ? null : DocumentTitle.Create(title.Value)
+                (left == null && right == null) ||
+                (left != null && right != null && left.Value == right.Value),
+            v => v == null ? 0 : v.Value.GetHashCode(),
+            v => v == null ? null : DocumentTitle.Create(v.Value)
         );
 }
