@@ -46,6 +46,27 @@ function isSelectableTag(tag: TagNode) {
   return !tag.kind || tag.kind === "label" || tag.kind === "namespace"
 }
 
+function collectNamespaceLabels(namespace: TagNode): TagNode[] {
+  const labels: TagNode[] = []
+
+  const visit = (node?: TagNode | null) => {
+    if (!node) {
+      return
+    }
+
+    if (!node.kind || node.kind === "label") {
+      labels.push(node)
+    }
+
+    if (node.children?.length) {
+      node.children.forEach((child) => visit(child))
+    }
+  }
+
+  namespace.children?.forEach((child) => visit(child))
+  return labels
+}
+
 type TagAssignmentDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -200,14 +221,37 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
   }
 
   const buildSelectedTags = (): SelectedTag[] => {
-    return newTagIds
-      .map((id) => tagMap.get(id))
-      .filter((node): node is TagNode => Boolean(node))
-      .map((node) => ({
-        id: node.id,
-        name: node.name,
-        namespaceId: node.namespaceId,
-      }))
+    const selections = new Map<string, SelectedTag>()
+
+    for (const id of newTagIds) {
+      const node = tagMap.get(id)
+      if (!node) {
+        continue
+      }
+
+      const targetNodes =
+        node.kind === "namespace"
+          ? collectNamespaceLabels(node)
+          : !node.kind || node.kind === "label"
+            ? [node]
+            : []
+
+      for (const target of targetNodes) {
+        if (initialTagIds.has(target.id)) {
+          continue
+        }
+
+        if (!selections.has(target.id)) {
+          selections.set(target.id, {
+            id: target.id,
+            name: target.name,
+            namespaceId: target.namespaceId,
+          })
+        }
+      }
+    }
+
+    return Array.from(selections.values())
   }
 
   const toDocumentTags = (selected: SelectedTag[]): DocumentTag[] => {
