@@ -12,7 +12,8 @@ public sealed record CreateShareLinkRequestDto(
     DateTimeOffset? FileCreatedAtUtc,
     string SubjectType = "public",
     Guid? SubjectId = null,
-    int? ExpiresInMinutes = null)
+    int? ExpiresInMinutes = null,
+    string? Password = null)
 {
     private const int DefaultLifetimeMinutes = 1440;
     private const int MinLifetimeMinutes = 1;
