@@ -62,13 +62,9 @@ public class CreateDocumentCommandHandlerTests
         Assert.Equal(now, storedDocument.UpdatedAtUtc);
         Assert.Equal(CancellationToken.None, repository.CapturedToken);
 
-        Assert.Collection(
-            aclWriter.Entries,
-            entry =>
-            {
-                Assert.Equal(storedDocument.Id, entry.DocumentId);
-                Assert.Equal(storedDocument.OwnerId, entry.UserId);
-            });
+        var aclEntry = Assert.Single(aclWriter.Entries);
+        Assert.Equal(storedDocument.Id, aclEntry.DocumentId);
+        Assert.Equal(storedDocument.OwnerId, aclEntry.UserId);
     }
 
     [Fact]
