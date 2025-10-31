@@ -197,7 +197,7 @@ public class AzureAdUserProvisioningServiceTests
     }
 
     private static UserSummaryDto CreateUserSummary()
-        => new(Guid.NewGuid(), "user@example.com", "User", true, DateTimeOffset.UtcNow, null, [], [], []);
+        => new(Guid.NewGuid(), "user@example.com", "User", true, false, DateTimeOffset.UtcNow, null, [], [], []);
 
     private sealed class FakeEcmApiClient : IEcmApiClient
     {

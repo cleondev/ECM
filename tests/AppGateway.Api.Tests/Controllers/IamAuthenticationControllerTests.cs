@@ -34,6 +34,7 @@ public class IamAuthenticationControllerTests
             "user@example.com",
             "Example User",
             true,
+            false,
             DateTimeOffset.UtcNow,
             Guid.NewGuid(),
             new List<Guid> { Guid.NewGuid() },
