@@ -281,6 +281,16 @@ internal sealed class EcmApiClient(
         return await SendAsync<DocumentDto>(request, cancellationToken);
     }
 
+    public async Task<DocumentDto?> UpdateDocumentAsync(
+        Guid documentId,
+        UpdateDocumentRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Put, $"api/ecm/documents/{documentId}", cancellationToken);
+        request.Content = JsonContent.Create(requestDto ?? new UpdateDocumentRequestDto());
+        return await SendAsync<DocumentDto>(request, cancellationToken);
+    }
+
     public async Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/documents/{documentId}", cancellationToken);

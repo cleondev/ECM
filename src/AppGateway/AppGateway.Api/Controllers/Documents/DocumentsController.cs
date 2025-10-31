@@ -103,6 +103,41 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return Created($"/api/documents/{document.Id}", document);
     }
 
+    [HttpPut("{documentId:guid}")]
+    [ProducesResponseType(typeof(DocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PutAsync(
+        Guid documentId,
+        [FromBody] UpdateDocumentRequestDto? request,
+        CancellationToken cancellationToken)
+    {
+        if (documentId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(documentId), "A valid document identifier is required.");
+        }
+
+        request ??= new UpdateDocumentRequestDto();
+
+        if (request.HasGroupId && request.GroupId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(request.GroupId), "Group identifier must be a valid GUID when provided.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var document = await _client.UpdateDocumentAsync(documentId, request, cancellationToken);
+        if (document is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(document);
+    }
+
     [HttpDelete("{documentId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
