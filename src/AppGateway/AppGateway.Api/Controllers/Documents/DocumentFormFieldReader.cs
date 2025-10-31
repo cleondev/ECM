@@ -54,6 +54,20 @@ internal static class DocumentFormFieldReader
             }
         }
 
+        foreach (var field in EnumerateFieldNames(propertyName))
+        {
+            if (!form.TryGetValue(field, out var values) || values.Count == 0)
+            {
+                continue;
+            }
+
+            var parsed = values.ParseGuidValues();
+            if (parsed.Values.Count > 0)
+            {
+                return parsed.Values;
+            }
+        }
+
         var buffer = new List<Guid>();
         var seen = new HashSet<Guid>();
 
