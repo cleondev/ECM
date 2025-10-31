@@ -18,7 +18,7 @@ import type {
   ShareLink,
   ShareOptions,
 } from "@/lib/types"
-import { buildDocumentDownloadUrl, createShareLink, fetchFiles } from "@/lib/api"
+import { buildDocumentDownloadUrl, createShareLink, deleteFile, fetchFiles } from "@/lib/api"
 import { useIsMobile } from "@/components/ui/use-mobile"
 import {
   Drawer,
@@ -28,7 +28,18 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
-import { X } from "lucide-react"
+import { Loader2, X } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const PAGE_SIZE = 20
 
@@ -55,6 +66,8 @@ export function FileManager() {
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
   const [tagDialogFile, setTagDialogFile] = useState<FileItem | null>(null)
+  const [filePendingDelete, setFilePendingDelete] = useState<FileItem | null>(null)
+  const [isDeletingFile, setIsDeletingFile] = useState(false)
   const [sortBy, setSortBy] = useState<"name" | "modified" | "size">("modified")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false)
@@ -63,6 +76,7 @@ export function FileManager() {
   const isMobile = useIsMobile()
   const isMobileDevice = isMobile ?? false
   const hasSyncedDesktopSidebar = useRef(false)
+  const { toast } = useToast()
 
   const isSingleSelection =
     selectedFile !== null && selectedFiles.size === 1 && selectedFiles.has(selectedFile.id)
@@ -201,6 +215,69 @@ export function FileManager() {
 
     setTagDialogFile(targetFile)
     setIsTagDialogOpen(true)
+  }
+
+  const handleDeleteFileRequest = (file: FileItem) => {
+    ensureSingleSelection(file)
+    setFilePendingDelete(file)
+  }
+
+  const handleDeleteDialogOpenChange = (open: boolean) => {
+    if (!open && !isDeletingFile) {
+      setFilePendingDelete(null)
+    }
+  }
+
+  const handleDeleteFileConfirm = async () => {
+    if (!filePendingDelete) {
+      return
+    }
+
+    const deletedFileId = filePendingDelete.id
+    const deletedFileName = filePendingDelete.name
+
+    setIsDeletingFile(true)
+
+    try {
+      await deleteFile(deletedFileId)
+
+      setFiles((previous) => previous.filter((file) => file.id !== deletedFileId))
+      setSelectedFiles((previous) => {
+        const next = new Set(previous)
+        next.delete(deletedFileId)
+        return next
+      })
+      setSelectedFile((previous) => (previous?.id === deletedFileId ? null : previous))
+
+      if (shareDialogOpen && selectedFile?.id === deletedFileId) {
+        setShareDialogOpen(false)
+        resetShareState()
+      }
+
+      setTagDialogFile((previous) => {
+        if (previous?.id === deletedFileId) {
+          setIsTagDialogOpen(false)
+          return null
+        }
+        return previous?.id === deletedFileId ? null : previous
+      })
+
+      toast({
+        title: "Đã xóa tệp",
+        description: `"${deletedFileName}" đã được xóa khỏi hệ thống.`,
+      })
+
+      setFilePendingDelete(null)
+    } catch (error) {
+      console.error(`[ui] Failed to delete file '${deletedFileId}':`, error)
+      toast({
+        title: "Không thể xóa tệp",
+        description: "Vui lòng thử lại sau.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeletingFile(false)
+    }
   }
 
   const handleTagsAssigned = (fileId: string, updatedTags: DocumentTag[]) => {
@@ -400,6 +477,7 @@ export function FileManager() {
               onDownloadFile={handleDownloadClick}
               onShareFile={handleShareClick}
               onAssignTags={handleAssignTagsClick}
+              onDeleteFile={handleDeleteFileRequest}
               onOpenDetailsTab={handleOpenDetailsPanel}
             />
           </div>
@@ -454,6 +532,36 @@ export function FileManager() {
         file={tagDialogFile}
         onTagsAssigned={handleTagsAssigned}
       />
+
+      <AlertDialog
+        open={Boolean(filePendingDelete)}
+        onOpenChange={handleDeleteDialogOpenChange}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa tệp</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa
+              {" "}
+              <span className="font-medium text-foreground">
+                {filePendingDelete?.name}
+              </span>
+              ? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingFile}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFileConfirm}
+              disabled={isDeletingFile}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingFile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {isMobileDevice && (
         <>

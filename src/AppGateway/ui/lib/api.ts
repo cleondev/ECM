@@ -1270,6 +1270,22 @@ export async function updateFile(fileId: string, data: UpdateFileRequest): Promi
     }
   }
 
+export async function deleteFile(fileId: string): Promise<void> {
+  try {
+    await gatewayRequest(`/api/documents/${fileId}`, {
+      method: "DELETE",
+    })
+  } catch (error) {
+    console.warn("[ui] Failed to delete document via gateway, using mock data:", error)
+    const index = mockFiles.findIndex((file) => file.id === fileId)
+    if (index === -1) {
+      throw (error instanceof Error ? error : new Error("Failed to delete file."))
+    }
+    mockFiles.splice(index, 1)
+  }
+}
+
+export async function updateFile(fileId: string, data: Partial<FileItem>): Promise<FileItem> {
   try {
     const file = mockFiles.find((f) => f.id === fileId)
     if (!file) {
