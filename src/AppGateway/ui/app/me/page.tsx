@@ -57,27 +57,27 @@ type PasswordFormState = {
   confirmPassword: string
 }
 
+function getInitialProfileFormValues(user: User | null): ProfileFormState {
+  const base = Array.from(new Set(user?.groupIds ?? []))
+  const primaryGroupId = user?.primaryGroupId ?? base[0] ?? null
+  if (primaryGroupId && !base.includes(primaryGroupId)) {
+    base.unshift(primaryGroupId)
+  }
+
+  return {
+    displayName: user?.displayName ?? "",
+    primaryGroupId,
+    groupIds: base,
+  }
+}
+
 export default function ProfilePage() {
   const router = useRouter()
-  const cachedSnapshot = useMemo(() => getCachedAuthSnapshot(), [])
-  const [user, setUser] = useState<User | null>(() => cachedSnapshot?.user ?? null)
+  const [user, setUser] = useState<User | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const cachedUser = cachedSnapshot?.user ?? null
-  const initialGroups = useMemo(() => {
-    const base = Array.from(new Set(cachedUser?.groupIds ?? []))
-    const primaryGroupId = cachedUser?.primaryGroupId ?? base[0] ?? null
-    if (primaryGroupId && !base.includes(primaryGroupId)) {
-      base.unshift(primaryGroupId)
-    }
-    return { list: base, primary: cachedUser?.primaryGroupId ?? base[0] ?? null }
-  }, [cachedUser?.groupIds, cachedUser?.primaryGroupId])
-  const [formValues, setFormValues] = useState<ProfileFormState>({
-    displayName: cachedUser?.displayName ?? "",
-    primaryGroupId: initialGroups.primary,
-    groupIds: initialGroups.list,
-  })
+  const [formValues, setFormValues] = useState<ProfileFormState>(() => getInitialProfileFormValues(null))
   const [groups, setGroups] = useState<Group[]>([])
   const [isGroupPickerOpen, setGroupPickerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -92,7 +92,7 @@ export default function ProfilePage() {
     type: "success" | "error"
     message: string
   } | null>(null)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(() => !cachedSnapshot?.user)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
@@ -102,11 +102,28 @@ export default function ProfilePage() {
         : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
     console.debug(
-      "[profile] Trang profile được mount tại location=%s với cachedUser=%s",
+      "[profile] Trang profile được mount tại location=%s",
       locationSnapshot,
-      cachedSnapshot?.user?.id ?? "(none)",
     )
-  }, [cachedSnapshot?.user?.id])
+  }, [])
+
+  useEffect(() => {
+    const snapshot = getCachedAuthSnapshot()
+    if (!snapshot?.user) {
+      console.debug("[profile] Không tìm thấy cached snapshot cho người dùng hiện tại.")
+      return
+    }
+
+    console.debug("[profile] Khôi phục hồ sơ từ cached snapshot với id:", snapshot.user.id)
+    setUser((previous) => previous ?? snapshot.user)
+    setFormValues((previous) => {
+      if (previous.displayName || previous.groupIds.length > 0) {
+        return previous
+      }
+      return getInitialProfileFormValues(snapshot.user)
+    })
+    setIsLoadingProfile(false)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -155,21 +172,7 @@ export default function ProfilePage() {
         setUser(profile)
         setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
         setPasswordFeedback(null)
-        setFormValues({
-          displayName: profile.displayName,
-          primaryGroupId: profile.primaryGroupId ?? profile.groupIds?.[0] ?? null,
-          groupIds: Array.from(
-            new Set(
-              (() => {
-                const base = profile.groupIds ?? []
-                if (profile.primaryGroupId && !base.includes(profile.primaryGroupId)) {
-                  return [profile.primaryGroupId, ...base]
-                }
-                return base
-              })(),
-            ),
-          ),
-        })
+        setFormValues(getInitialProfileFormValues(profile))
       } catch (error) {
         console.error("[ui] Không thể tải hồ sơ người dùng:", error)
         if (!mounted) return
@@ -335,21 +338,7 @@ export default function ProfilePage() {
 
   const handleCancelEdit = () => {
     if (user) {
-      setFormValues({
-        displayName: user.displayName,
-        primaryGroupId: user.primaryGroupId ?? user.groupIds?.[0] ?? null,
-        groupIds: Array.from(
-          new Set(
-            (() => {
-              const base = user.groupIds ?? []
-              if (user.primaryGroupId && !base.includes(user.primaryGroupId)) {
-                return [user.primaryGroupId, ...base]
-              }
-              return base
-            })(),
-          ),
-        ),
-      })
+      setFormValues(getInitialProfileFormValues(user))
     }
     setIsEditing(false)
     setFeedback(null)
@@ -369,16 +358,7 @@ export default function ProfilePage() {
       })
 
       setUser(updated)
-      const normalizedGroups = Array.from(new Set(updated.groupIds ?? []))
-      const primaryGroupId = updated.primaryGroupId ?? normalizedGroups[0] ?? null
-      if (primaryGroupId && !normalizedGroups.includes(primaryGroupId)) {
-        normalizedGroups.unshift(primaryGroupId)
-      }
-      setFormValues({
-        displayName: updated.displayName,
-        primaryGroupId,
-        groupIds: normalizedGroups,
-      })
+      setFormValues(getInitialProfileFormValues(updated))
       setIsEditing(false)
       setFeedback({ type: "success", message: "Hồ sơ của bạn đã được cập nhật." })
     } catch (error) {
