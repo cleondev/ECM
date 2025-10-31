@@ -495,18 +495,25 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   useEffect(() => {
     const tagIds = selectedTags.map((tag) => tag.id)
+    const trimmedTitle = metadata.title?.trim() || ""
+    const trimmedDocType = metadata.docType?.trim() || "General"
+    const trimmedStatus = metadata.status?.trim() || "Draft"
+    const trimmedSensitivity = metadata.sensitivity?.trim() || "Internal"
+    const trimmedDescription = metadata.description?.trim() || ""
+    const trimmedNotes = metadata.notes?.trim() || ""
 
     uppy.setMeta({
-      Title: metadata.title?.trim() || "",
-      DocType: metadata.docType?.trim() || "General",
-      Status: metadata.status?.trim() || "Draft",
-      Sensitivity: metadata.sensitivity?.trim() || "Internal",
-      Description: metadata.description?.trim() || "",
-      Notes: metadata.notes?.trim() || "",
+      Title: trimmedTitle,
+      DocType: trimmedDocType,
+      Status: trimmedStatus,
+      Sensitivity: trimmedSensitivity,
+      Description: trimmedDescription,
+      Notes: trimmedNotes,
       FlowDefinition: selectedFlow ?? "",
       OwnerId: currentUser?.id ?? "",
       CreatedBy: currentUser?.id ?? "",
       Tags: JSON.stringify(tagIds),
+      ["Tags[]"]: tagIds,
     })
   }, [metadata, selectedFlow, selectedTags, currentUser, uppy])
 
