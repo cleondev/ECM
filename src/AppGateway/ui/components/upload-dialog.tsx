@@ -465,7 +465,13 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     setExpandedTags((previous) => buildExpandedMap(tags, { ...previous }))
   }, [tags])
 
+  const isSelectableTag = (tag: TagNode) => !tag.kind || tag.kind === "label"
+
   const toggleTag = (tag: TagNode) => {
+    if (!isSelectableTag(tag)) {
+      return
+    }
+
     setSelectedTags((prev) => {
       const isSelected = prev.some((selected) => selected.id === tag.id)
       return isSelected
@@ -473,9 +479,6 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
         : [...prev, { id: tag.id, name: tag.name, namespaceId: tag.namespaceId }]
     })
   }
-
-  const isSelectableTag = (tag: TagNode) =>
-    !tag.kind || tag.kind === "label" || tag.kind === "namespace"
 
   const toggleTagExpansion = (tagId: string) => {
     setExpandedTags((prev) => ({ ...prev, [tagId]: !prev[tagId] }))
