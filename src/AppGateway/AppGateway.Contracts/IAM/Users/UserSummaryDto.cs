@@ -10,6 +10,7 @@ public sealed record UserSummaryDto(
     string Email,
     string DisplayName,
     bool IsActive,
+    bool HasPassword,
     DateTimeOffset CreatedAtUtc,
     Guid? PrimaryGroupId,
     IReadOnlyCollection<Guid> GroupIds,
