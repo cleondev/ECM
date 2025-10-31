@@ -487,17 +487,24 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       const isExpanded = expandedTags[tag.id] ?? true
       const isSelected = selectedTags.some((selected) => selected.id === tag.id)
       const canSelect = isSelectableTag(tag)
+      const isNamespace = tag.kind === "namespace"
       const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
-      const backgroundStyle = tag.color ? { backgroundColor: tag.color } : undefined
+      const indicatorStyle = tag.color
+        ? {
+            backgroundColor: tag.color,
+            borderColor: tag.color,
+          }
+        : undefined
 
       return (
-        <div key={tag.id} className="space-y-2">
+        <div key={tag.id} className="space-y-1">
           <div
             className={cn(
-              "flex items-center gap-1 rounded-md text-sm transition-colors group",
+              "w-full flex items-center gap-1 px-2 py-0.5 rounded-md text-sm transition-colors group min-w-0",
+              isNamespace ? "hover:bg-transparent" : null,
               isSelected
                 ? "bg-primary/10 text-primary border border-primary/30"
-                : "hover:bg-muted/60 border border-transparent text-muted-foreground",
+                : "text-muted-foreground hover:bg-muted/50",
             )}
             style={{ paddingLeft: `${level * 12 + 8}px` }}
           >
@@ -520,33 +527,63 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
               <span className="w-3" />
             )}
 
-            <button
-              type="button"
-              onClick={() => {
-                if (canSelect) {
-                  toggleTag(tag)
-                }
-              }}
-              disabled={!canSelect}
-              className={cn(
-                "flex items-center gap-3 flex-1 min-w-0 rounded-md px-3 py-2 text-left transition",
-                !tag.color ? "bg-muted/60" : "",
-                canSelect ? "text-foreground" : "text-muted-foreground cursor-default opacity-80",
-                isSelected ? "ring-1 ring-primary" : "",
-              )}
-              style={backgroundStyle}
-            >
-              <span className="text-sm flex-shrink-0">{displayIcon}</span>
-              <span className="truncate">{tag.name}</span>
-            </button>
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (canSelect) {
+                    toggleTag(tag)
+                  }
+                }}
+                disabled={!canSelect}
+                className={cn(
+                  "flex items-center gap-1.5 flex-1 min-w-0 text-left disabled:cursor-default",
+                  !canSelect ? "opacity-70" : null,
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex flex-1 min-w-0 rounded px-2 py-1 transition-colors",
+                    isNamespace
+                      ? "flex-col items-start gap-1 bg-muted/40 border border-dashed border-border/70"
+                      : "items-center gap-2 bg-card/70 hover:bg-muted/60",
+                    canSelect ? "text-foreground" : "text-muted-foreground",
+                    isSelected ? "ring-1 ring-primary/60 bg-primary/5" : null,
+                  )}
+                >
+                  {isNamespace ? (
+                    <span
+                      className="truncate text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
+                      title={tag.name}
+                    >
+                      {tag.name}
+                    </span>
+                  ) : (
+                    <>
+                      <span
+                        className={cn(
+                          "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
+                          tag.color ? "leftbar-tag-indicator--custom" : null,
+                        )}
+                        style={indicatorStyle}
+                      />
+                      <span className="text-xs flex-shrink-0">{displayIcon}</span>
+                      <span className="truncate text-sm" title={tag.name}>
+                        {tag.name}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </button>
 
-            {isSelected ? (
-              <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
-            ) : null}
+              {isSelected ? (
+                <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
+              ) : null}
+            </div>
           </div>
 
           {hasChildren && isExpanded ? (
-            <div className="space-y-2">{renderTagTree(tag.children!, level + 1)}</div>
+            <div className="space-y-1">{renderTagTree(tag.children!, level + 1)}</div>
           ) : null}
         </div>
       )
