@@ -177,6 +177,18 @@ function createGatewayUrl(path: string): string {
   return `${API_BASE_URL}${normalizedPath}`
 }
 
+function ensureTrailingSlash(value: string): string {
+  if (!value) {
+    return value
+  }
+
+  return value.endsWith("/") ? value : `${value}/`
+}
+
+function isAbsoluteUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value)
+}
+
 const jsonHeaders = { Accept: "application/json" }
 
 const TAG_COLOR_PALETTE = [
@@ -1545,29 +1557,48 @@ function normalizeShareShortUrl(url: string): string {
   }
 
   try {
-    const origin = typeof window === "undefined" ? "http://localhost" : window.location.origin
-    const parsed = new URL(url, origin)
+    const parseBase = API_BASE_URL || (typeof window === "undefined" ? "http://localhost" : window.location.origin)
+    const parsed = new URL(url, ensureTrailingSlash(parseBase))
     const code = extractShareCode(parsed)
 
     if (!code) {
       return url
     }
 
-    parsed.pathname = `/s/${encodeURIComponent(code)}`
-    parsed.search = ""
-    parsed.hash = ""
+    const shortPath = `/s/${encodeURIComponent(code)}`
 
-    if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
-      return parsed.pathname
+    if (API_BASE_URL) {
+      return `${API_BASE_URL}${shortPath}`
     }
 
-    return parsed.toString()
+    if (isAbsoluteUrl(url)) {
+      parsed.pathname = shortPath
+      parsed.search = ""
+      parsed.hash = ""
+      return parsed.toString()
+    }
+
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}${shortPath}`
+    }
+
+    return shortPath
   } catch (error) {
     console.warn("[ui] Failed to normalize short share link URL", error)
 
     const fallbackCode = extractShareCodeFromString(url)
     if (fallbackCode) {
-      return `/s/${encodeURIComponent(fallbackCode)}`
+      const shortPath = `/s/${encodeURIComponent(fallbackCode)}`
+
+      if (API_BASE_URL) {
+        return `${API_BASE_URL}${shortPath}`
+      }
+
+      if (typeof window !== "undefined") {
+        return `${window.location.origin}${shortPath}`
+      }
+
+      return shortPath
     }
 
     return url
