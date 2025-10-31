@@ -18,7 +18,7 @@ import type {
   ShareLink,
   ShareOptions,
 } from "@/lib/types"
-import { buildDocumentDownloadUrl, createShareLink, deleteFile, fetchFiles } from "@/lib/api"
+import { buildDocumentDownloadUrl, createShareLink, deleteFiles, fetchFiles } from "@/lib/api"
 import { useIsMobile } from "@/components/ui/use-mobile"
 import {
   Drawer,
@@ -66,8 +66,8 @@ export function FileManager() {
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
   const [tagDialogFile, setTagDialogFile] = useState<FileItem | null>(null)
-  const [filePendingDelete, setFilePendingDelete] = useState<FileItem | null>(null)
-  const [isDeletingFile, setIsDeletingFile] = useState(false)
+  const [filesPendingDelete, setFilesPendingDelete] = useState<FileItem[]>([])
+  const [isDeletingFiles, setIsDeletingFiles] = useState(false)
   const [sortBy, setSortBy] = useState<"name" | "modified" | "size">("modified")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false)
@@ -219,64 +219,124 @@ export function FileManager() {
 
   const handleDeleteFileRequest = (file: FileItem) => {
     ensureSingleSelection(file)
-    setFilePendingDelete(file)
+    setFilesPendingDelete([file])
   }
 
   const handleDeleteDialogOpenChange = (open: boolean) => {
-    if (!open && !isDeletingFile) {
-      setFilePendingDelete(null)
+    if (!open && !isDeletingFiles) {
+      setFilesPendingDelete([])
     }
   }
 
-  const handleDeleteFileConfirm = async () => {
-    if (!filePendingDelete) {
+  const handleDeleteSelectionRequest = (fileIds: Set<string>) => {
+    if (fileIds.size === 0) {
       return
     }
 
-    const deletedFileId = filePendingDelete.id
-    const deletedFileName = filePendingDelete.name
+    const targetIds = new Set(fileIds)
+    const pending = files.filter((file) => targetIds.has(file.id))
 
-    setIsDeletingFile(true)
+    if (pending.length === 0) {
+      return
+    }
+
+    if (pending.length === 1) {
+      ensureSingleSelection(pending[0])
+    }
+
+    setFilesPendingDelete(pending)
+  }
+
+  const handleDeleteFilesConfirm = async () => {
+    if (filesPendingDelete.length === 0) {
+      return
+    }
+
+    const pendingFiles = filesPendingDelete
+    const deletedFileIds = pendingFiles.map((file) => file.id)
+    const fileLookup = new Map(pendingFiles.map((file) => [file.id, file]))
+
+    setIsDeletingFiles(true)
 
     try {
-      await deleteFile(deletedFileId)
+      const { deletedIds, failedIds } = await deleteFiles(deletedFileIds)
 
-      setFiles((previous) => previous.filter((file) => file.id !== deletedFileId))
-      setSelectedFiles((previous) => {
-        const next = new Set(previous)
-        next.delete(deletedFileId)
-        return next
-      })
-      setSelectedFile((previous) => (previous?.id === deletedFileId ? null : previous))
+      if (deletedIds.length > 0) {
+        const deletedIdSet = new Set(deletedIds)
+        const remainingFiles = files.filter((file) => !deletedIdSet.has(file.id))
+        const previousSelection = Array.from(selectedFiles)
+        const remainingSelectedIds = previousSelection.filter((id) => !deletedIdSet.has(id))
+        const fallbackFile =
+          remainingSelectedIds
+            .map((id) => remainingFiles.find((file) => file.id === id) ?? null)
+            .find((file): file is FileItem => Boolean(file)) ?? null
 
-      if (shareDialogOpen && selectedFile?.id === deletedFileId) {
-        setShareDialogOpen(false)
-        resetShareState()
-      }
+        setFiles(remainingFiles)
+        setSelectedFiles(new Set(remainingSelectedIds))
+        setSelectedFile((previous) => {
+          if (previous && !deletedIdSet.has(previous.id)) {
+            return previous
+          }
+          return fallbackFile
+        })
 
-      setTagDialogFile((previous) => {
-        if (previous?.id === deletedFileId) {
+        if (shareDialogOpen && selectedFile && deletedIdSet.has(selectedFile.id)) {
+          setShareDialogOpen(false)
+          resetShareState()
+        }
+
+        setTagDialogFile((previous) => {
+          if (!previous || !deletedIdSet.has(previous.id)) {
+            return previous
+          }
           setIsTagDialogOpen(false)
           return null
+        })
+
+        const deletedFiles = deletedIds
+          .map((id) => fileLookup.get(id))
+          .filter((file): file is FileItem => Boolean(file))
+
+        if (deletedFiles.length > 0) {
+          const title = deletedFiles.length === 1 ? "Đã xóa tệp" : "Đã xóa các tệp"
+          const description =
+            deletedFiles.length === 1
+              ? `"${deletedFiles[0]!.name}" đã được xóa khỏi hệ thống.`
+              : `${deletedFiles.length} tệp đã được xóa khỏi hệ thống.`
+
+          toast({
+            title,
+            description,
+          })
         }
-        return previous?.id === deletedFileId ? null : previous
-      })
+      }
 
-      toast({
-        title: "Đã xóa tệp",
-        description: `"${deletedFileName}" đã được xóa khỏi hệ thống.`,
-      })
+      if (failedIds.length > 0) {
+        const failedFiles = failedIds
+          .map((id) => fileLookup.get(id))
+          .filter((file): file is FileItem => Boolean(file))
 
-      setFilePendingDelete(null)
+        setFilesPendingDelete(failedFiles)
+
+        toast({
+          title: "Không thể xóa một số tệp",
+          description: "Vui lòng thử lại sau.",
+          variant: "destructive",
+        })
+
+        return
+      }
+
+      setFilesPendingDelete([])
     } catch (error) {
-      console.error(`[ui] Failed to delete file '${deletedFileId}':`, error)
+      console.error(`[ui] Failed to delete files '${deletedFileIds.join(",")}'`, error)
       toast({
         title: "Không thể xóa tệp",
         description: "Vui lòng thử lại sau.",
         variant: "destructive",
       })
     } finally {
-      setIsDeletingFile(false)
+      setIsDeletingFiles(false)
     }
   }
 
@@ -407,6 +467,7 @@ export function FileManager() {
   }
 
   const detailsPanelOpen = isMobileDevice ? isRightDrawerOpen : isRightSidebarOpen
+  const hasSelectedFiles = selectedFiles.size > 0
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -450,6 +511,7 @@ export function FileManager() {
               onUploadClick={() => setUploadDialogOpen(true)}
               onDownloadClick={handleDownloadClick}
               onShareClick={handleShareClick}
+              onDeleteClick={() => handleDeleteSelectionRequest(selectedFiles)}
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortChange={(nextSortBy, nextSortOrder) => {
@@ -457,6 +519,7 @@ export function FileManager() {
                 setSortOrder(nextSortOrder)
               }}
               disableFileActions={!selectedFile?.latestVersionId || !isSingleSelection}
+              disableDeleteAction={!hasSelectedFiles || isDeletingFiles}
               isRightSidebarOpen={detailsPanelOpen}
               onToggleRightSidebar={handleToggleRightSidebar}
               activeRightTab={activeRightTab}
@@ -478,6 +541,7 @@ export function FileManager() {
               onShareFile={handleShareClick}
               onAssignTags={handleAssignTagsClick}
               onDeleteFile={handleDeleteFileRequest}
+              onDeleteSelection={handleDeleteSelectionRequest}
               onOpenDetailsTab={handleOpenDetailsPanel}
             />
           </div>
@@ -534,29 +598,50 @@ export function FileManager() {
       />
 
       <AlertDialog
-        open={Boolean(filePendingDelete)}
+        open={filesPendingDelete.length > 0}
         onOpenChange={handleDeleteDialogOpenChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xóa tệp</AlertDialogTitle>
+            <AlertDialogTitle>
+              {filesPendingDelete.length > 1 ? "Xóa các tệp" : "Xóa tệp"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa
-              {" "}
-              <span className="font-medium text-foreground">
-                {filePendingDelete?.name}
-              </span>
-              ? Hành động này không thể hoàn tác.
+              {filesPendingDelete.length > 1 ? (
+                <>
+                  Bạn có chắc chắn muốn xóa {filesPendingDelete.length} tệp đã chọn? Hành động này không thể hoàn tác.
+                  <ul className="mt-2 space-y-1 text-foreground">
+                    {filesPendingDelete.slice(0, 3).map((file) => (
+                      <li key={file.id} className="truncate">
+                        • {file.name}
+                      </li>
+                    ))}
+                    {filesPendingDelete.length > 3 && (
+                      <li className="text-muted-foreground">
+                        +{filesPendingDelete.length - 3} tệp khác
+                      </li>
+                    )}
+                  </ul>
+                </>
+              ) : (
+                <>
+                  Bạn có chắc chắn muốn xóa {" "}
+                  <span className="font-medium text-foreground">
+                    {filesPendingDelete[0]?.name}
+                  </span>
+                  ? Hành động này không thể hoàn tác.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingFile}>Hủy</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeletingFiles}>Hủy</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteFileConfirm}
-              disabled={isDeletingFile}
+              onClick={handleDeleteFilesConfirm}
+              disabled={isDeletingFiles}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeletingFile && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isDeletingFiles && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Xóa
             </AlertDialogAction>
           </AlertDialogFooter>

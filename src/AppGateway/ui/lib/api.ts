@@ -1285,6 +1285,31 @@ export async function deleteFile(fileId: string): Promise<void> {
   }
 }
 
+export async function deleteFiles(
+  fileIds: string[],
+): Promise<{ deletedIds: string[]; failedIds: string[] }> {
+  const normalizedIds = Array.from(new Set(fileIds.filter((id) => id.trim().length > 0)))
+
+  if (normalizedIds.length === 0) {
+    return { deletedIds: [], failedIds: [] }
+  }
+
+  const results = await Promise.allSettled(normalizedIds.map((fileId) => deleteFile(fileId)))
+  const deletedIds: string[] = []
+  const failedIds: string[] = []
+
+  results.forEach((result, index) => {
+    const fileId = normalizedIds[index]
+    if (result.status === "fulfilled") {
+      deletedIds.push(fileId)
+    } else {
+      failedIds.push(fileId)
+    }
+  })
+
+  return { deletedIds, failedIds }
+}
+
 export async function updateFile(fileId: string, data: Partial<FileItem>): Promise<FileItem> {
   try {
     const file = mockFiles.find((f) => f.id === fileId)
