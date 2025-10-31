@@ -156,7 +156,9 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     [HttpPost("batch")]
     [ProducesResponseType(typeof(DocumentBatchDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> PostBatchAsync([FromForm] CreateDocumentsForm request, CancellationToken cancellationToken)
+    public async Task<IActionResult> PostBatchAsync(
+        [ModelBinder(typeof(CreateDocumentsFormModelBinder))] CreateDocumentsForm request,
+        CancellationToken cancellationToken)
     {
         if (request.Files.Count == 0)
         {
