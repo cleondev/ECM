@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -71,13 +72,13 @@ public static class GatewayServiceConfiguration
                 }
             }
 
-            var previousHandler = options.Events.OnTokenValidated;
+            var previousTokenValidatedHandler = options.Events.OnTokenValidated;
 
             options.Events.OnTokenValidated = async context =>
             {
-                if (previousHandler is not null)
+                if (previousTokenValidatedHandler is not null)
                 {
-                    await previousHandler(context);
+                    await previousTokenValidatedHandler(context);
                 }
 
                 var provisioningService = context.HttpContext.RequestServices
@@ -86,6 +87,56 @@ public static class GatewayServiceConfiguration
                 await provisioningService.EnsureUserExistsAsync(
                     context.Principal,
                     context.HttpContext.RequestAborted);
+            };
+
+            var previousRedirectHandler = options.Events.OnRedirectToIdentityProvider;
+
+            options.Events.OnRedirectToIdentityProvider = async context =>
+            {
+                if (previousRedirectHandler is not null)
+                {
+                    await previousRedirectHandler(context);
+                    if (context.Handled)
+                    {
+                        return;
+                    }
+                }
+
+                var loginMode = AzureLoginRedirectHelper.ResolveLoginMode(context.Properties);
+
+                if (loginMode == AzureLoginRedirectHelper.AzureLoginMode.Silent)
+                {
+                    context.ProtocolMessage.Prompt = OpenIdConnectPrompt.None;
+                }
+            };
+
+            var previousRemoteFailureHandler = options.Events.OnRemoteFailure;
+
+            options.Events.OnRemoteFailure = async context =>
+            {
+                if (AzureLoginRedirectHelper.ResolveLoginMode(context.Properties)
+                    == AzureLoginRedirectHelper.AzureLoginMode.Silent)
+                {
+                    context.HandleResponse();
+
+                    var redirectUri = context.Properties?.RedirectUri;
+
+                    if (!string.IsNullOrWhiteSpace(redirectUri))
+                    {
+                        context.Response.Redirect(redirectUri);
+                    }
+                    else
+                    {
+                        context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    }
+
+                    return;
+                }
+
+                if (previousRemoteFailureHandler is not null)
+                {
+                    await previousRemoteFailureHandler(context);
+                }
             };
         });
 

@@ -54,6 +54,7 @@ type CheckLoginResponse = {
   isAuthenticated: boolean
   redirectPath: string
   loginUrl?: string | null
+  silentLoginUrl?: string | null
   profile?: (UserSummaryResponse & {
     isActive?: boolean
     createdAtUtc?: string
@@ -747,6 +748,7 @@ export type CheckLoginResult = {
   isAuthenticated: boolean
   redirectPath: string
   loginUrl: string | null
+  silentLoginUrl: string | null
   user: User | null
 }
 
@@ -760,6 +762,7 @@ function mapCheckLoginResponse(
     isAuthenticated: Boolean(data.isAuthenticated),
     redirectPath,
     loginUrl: data.loginUrl ?? null,
+    silentLoginUrl: data.silentLoginUrl ?? null,
     user: data.profile ? mapUserSummaryToUser(data.profile) : null,
   }
 
