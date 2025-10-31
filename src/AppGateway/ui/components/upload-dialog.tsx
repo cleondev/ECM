@@ -39,6 +39,20 @@ const createDefaultMetadata = (): UploadMetadata => ({
   notes: "",
 })
 
+const deriveAutoTitle = (fileName?: string | null) => {
+  if (!fileName) {
+    return ""
+  }
+
+  const normalized = fileName.trim()
+  if (!normalized) {
+    return ""
+  }
+
+  const nameWithoutExtension = normalized.replace(/\.[^/.]+$/, "").trim()
+  return nameWithoutExtension || normalized
+}
+
 type UploadDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -77,6 +91,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({})
   const autoCloseTimeoutRef = useRef<number | null>(null)
+  const autoTitleRef = useRef<string | null>(null)
   const dashboardRootRef = useRef<HTMLDivElement | null>(null)
 
   const uppy = useMemo<ManagedUppy>(() => {
@@ -113,6 +128,7 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
     clearAutoCloseTimeout()
     setUploadResult(null)
     setSelectedFileCount(0)
+    autoTitleRef.current = null
     uppy.cancelAll()
   }, [clearAutoCloseTimeout, uppy])
 
@@ -363,21 +379,66 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
 
   useEffect(() => {
     const handleFileAdded = (file: ManagedUppyFile) => {
-      setSelectedFileCount(uppy.getFiles().length)
+      const files = uppy.getFiles()
+      setSelectedFileCount(files.length)
       setUploadResult(null)
       setMetadata((prev) => {
-        if (prev.title.trim()) {
-          return prev
+        const trimmedTitle = prev.title.trim()
+
+        if (files.length <= 1) {
+          if (trimmedTitle) {
+            return prev
+          }
+
+          const autoTitle = deriveAutoTitle(file.name)
+          if (!autoTitle) {
+            autoTitleRef.current = null
+            return prev
+          }
+
+          autoTitleRef.current = autoTitle
+          return { ...prev, title: autoTitle }
         }
 
-        const rawName = file.name ?? ""
-        const nameWithoutExtension = rawName.replace(/\.[^/.]+$/, "")
-        return { ...prev, title: nameWithoutExtension }
+        if (
+          trimmedTitle &&
+          autoTitleRef.current &&
+          trimmedTitle === autoTitleRef.current
+        ) {
+          autoTitleRef.current = null
+          return { ...prev, title: "" }
+        }
+
+        return prev
       })
     }
 
     const handleFileRemoved = () => {
-      setSelectedFileCount(uppy.getFiles().length)
+      const files = uppy.getFiles()
+      setSelectedFileCount(files.length)
+
+      if (files.length === 1) {
+        const remaining = files[0]
+        setMetadata((prev) => {
+          if (prev.title.trim()) {
+            return prev
+          }
+
+          const autoTitle = deriveAutoTitle(remaining?.name)
+          if (!autoTitle) {
+            autoTitleRef.current = null
+            return prev
+          }
+
+          autoTitleRef.current = autoTitle
+          return { ...prev, title: autoTitle }
+        })
+        return
+      }
+
+      if (files.length === 0) {
+        autoTitleRef.current = null
+      }
     }
 
     const handleUploadStarted = () => {
@@ -761,7 +822,10 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
                       id="title"
                       placeholder="Enter document title"
                       value={metadata.title}
-                      onChange={(e) => setMetadata((prev) => ({ ...prev, title: e.target.value }))}
+                      onChange={(e) => {
+                        autoTitleRef.current = null
+                        setMetadata((prev) => ({ ...prev, title: e.target.value }))
+                      }}
                     />
                   </div>
 
