@@ -642,19 +642,6 @@ export function ShareDialog({
                     <span className="sr-only">Copy short link</span>
                   </Button>
                 </div>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input value={result.shortUrl} readOnly className="sm:flex-1" />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopy(result.shortUrl, "short")}
-                    >
-                      {copiedShort ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      <span className="sr-only">Copy short link</span>
-                    </Button>
-                  </div>
-                </div>
               </div>
 
               <div className="space-y-3 rounded-lg border border-border bg-background/60 p-3">
@@ -686,19 +673,6 @@ export function ShareDialog({
                     {copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     <span className="sr-only">Copy full link</span>
                   </Button>
-                </div>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input value={result.url} readOnly className="sm:flex-1" />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopy(result.url, "full")}
-                    >
-                      {copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      <span className="sr-only">Copy full link</span>
-                    </Button>
-                  </div>
                 </div>
               </div>
 
