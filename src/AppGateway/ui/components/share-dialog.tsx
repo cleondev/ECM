@@ -396,9 +396,6 @@ export function ShareDialog({
                   </Badge>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Generate a short link to share quickly in chat apps. The full link remains available for detailed audit trails.
-              </p>
               <p className="mt-2 text-xs text-muted-foreground">{audienceSummary}</p>
             </div>
 
@@ -585,34 +582,6 @@ export function ShareDialog({
           {hasResult ? (
             <div className="space-y-4 rounded-xl border border-primary/40 bg-primary/5 p-4 lg:sticky lg:top-6">
               <div className="space-y-3">
-                <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-primary/30 bg-background/80 p-3">
-                  <div>
-                    <p className="text-sm font-semibold text-primary">Audience</p>
-                    <p className="text-xs text-muted-foreground">{audienceSummary}</p>
-                  </div>
-                  <Badge variant="outline" className="gap-1 border-primary/50 text-primary">
-                    {audienceType === "user" ? (
-                      <UserIcon className="h-3.5 w-3.5" />
-                    ) : audienceType === "group" ? (
-                      <Users className="h-3.5 w-3.5" />
-                    ) : (
-                      <Globe2 className="h-3.5 w-3.5" />
-                    )}
-                    {audienceBadgeLabel}
-                  </Badge>
-                </div>
-                {audienceUser ? (
-                  <p className="text-xs text-muted-foreground">
-                    User: {audienceUser.displayName}
-                    {audienceUser.email ? ` (${audienceUser.email})` : ""}
-                  </p>
-                ) : null}
-                {audienceGroup ? (
-                  <p className="text-xs text-muted-foreground">Group: {audienceGroup.name}</p>
-                ) : null}
-              </div>
-
-              <div className="space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-primary">Short link</p>
@@ -640,38 +609,6 @@ export function ShareDialog({
                   >
                     {copiedShort ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     <span className="sr-only">Copy short link</span>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-3 rounded-lg border border-border bg-background/60 p-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Full link</p>
-                    <p className="text-xs text-muted-foreground">
-                      Includes tracking parameters for auditing access.
-                    </p>
-                  </div>
-                  <Button asChild variant="ghost" size="sm" className="gap-1">
-                    <a href={result.url} target="_blank" rel="noreferrer">
-                      Open
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </Button>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input value={result.url} readOnly className="sm:flex-1" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleCopy(result.url, "full")}
-                    className={cn(
-                      "transition-colors",
-                      copiedFull ? "border-primary text-primary" : undefined,
-                    )}
-                  >
-                    {copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    <span className="sr-only">Copy full link</span>
                   </Button>
                 </div>
               </div>
