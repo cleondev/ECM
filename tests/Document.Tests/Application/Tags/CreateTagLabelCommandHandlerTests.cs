@@ -16,13 +16,13 @@ public class CreateTagLabelCommandHandlerTests
     public async Task HandleAsync_WithParent_ComputesPathIds()
     {
         var now = new DateTimeOffset(2024, 02, 12, 9, 15, 0, TimeSpan.Zero);
-        var tagNamespace = TagNamespace.Create("user", Guid.NewGuid(), null, "My Tags", isSystem: false, createdAtUtc: now);
+        var creatorId = Guid.NewGuid();
+        var tagNamespace = TagNamespace.Create("user", creatorId, null, "My Tags", isSystem: false, createdAtUtc: now);
         var namespaceRepository = new FakeTagNamespaceRepository([tagNamespace]);
         var repository = new FakeTagLabelRepository();
         var clock = new FixedClock(now);
         var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
-        var creatorId = Guid.NewGuid();
         var parent = TagLabel.Create(tagNamespace.Id, null, [], "Parent", 0, null, null, creatorId, false, now);
         repository.Seed(parent);
 
@@ -53,33 +53,43 @@ public class CreateTagLabelCommandHandlerTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenNamespaceMissing_ReturnsFailure()
+    public async Task HandleAsync_WhenNamespaceMissing_CreatesNamespace()
     {
+        var now = new DateTimeOffset(2024, 02, 13, 12, 30, 0, TimeSpan.Zero);
         var repository = new FakeTagLabelRepository();
         var namespaceRepository = new FakeTagNamespaceRepository();
-        var clock = new FixedClock(DateTimeOffset.UtcNow);
+        var clock = new FixedClock(now);
         var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
-        var command = new CreateTagLabelCommand(Guid.NewGuid(), null, "Tag", null, null, null, Guid.NewGuid(), false);
+        var creatorId = Guid.NewGuid();
+        var command = new CreateTagLabelCommand(null, null, "Tag", null, null, null, creatorId, false);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
-        Assert.True(result.IsFailure);
-        Assert.Contains("namespace", string.Join(' ', result.Errors), StringComparison.OrdinalIgnoreCase);
-        Assert.Empty(repository.StoredTags);
+        Assert.True(result.IsSuccess);
+        var tag = Assert.IsType<TagLabelResult>(result.Value);
+        Assert.NotEqual(Guid.Empty, tag.NamespaceId);
+        Assert.Equal("Tag", tag.Name);
+
+        var createdNamespace = namespaceRepository.StoredNamespaces.Single();
+        Assert.Equal(tag.NamespaceId, createdNamespace.Id);
+        Assert.Equal("user", createdNamespace.Scope, StringComparer.Ordinal);
+        Assert.Equal(creatorId, createdNamespace.OwnerUserId);
+        Assert.Equal("Personal Tags", createdNamespace.DisplayName);
+        Assert.Single(repository.StoredTags);
     }
 
     [Fact]
     public async Task HandleAsync_WhenDuplicateNameExists_ReturnsFailure()
     {
         var now = DateTimeOffset.UtcNow;
-        var tagNamespace = TagNamespace.Create("global", null, null, "Global", isSystem: true, createdAtUtc: now);
+        var creatorId = Guid.NewGuid();
+        var tagNamespace = TagNamespace.Create("user", creatorId, null, "My Tags", isSystem: false, createdAtUtc: now);
         var namespaceRepository = new FakeTagNamespaceRepository([tagNamespace]);
         var repository = new FakeTagLabelRepository();
         var clock = new FixedClock(now);
         var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
 
-        var creatorId = Guid.NewGuid();
         var existing = TagLabel.Create(tagNamespace.Id, null, [], "Duplicate", 0, null, null, creatorId, false, now);
         repository.Seed(existing);
 
@@ -89,6 +99,31 @@ public class CreateTagLabelCommandHandlerTests
 
         Assert.True(result.IsFailure);
         Assert.Contains("already exists", string.Join(' ', result.Errors), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenNamespaceIsGlobal_UsesPersonalNamespace()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var creatorId = Guid.NewGuid();
+        var tagNamespace = TagNamespace.Create("global", null, null, "Global", isSystem: true, createdAtUtc: now);
+        var namespaceRepository = new FakeTagNamespaceRepository([tagNamespace]);
+        var repository = new FakeTagLabelRepository();
+        var clock = new FixedClock(now);
+        var handler = new CreateTagLabelCommandHandler(repository, namespaceRepository, clock);
+
+        var command = new CreateTagLabelCommand(tagNamespace.Id, null, "Personal", null, null, null, creatorId, false);
+
+        var result = await handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        var tag = Assert.IsType<TagLabelResult>(result.Value);
+        Assert.NotEqual(tagNamespace.Id, tag.NamespaceId);
+
+        var personalNamespace = namespaceRepository.StoredNamespaces.Single(ns => ns.Scope == "user");
+        Assert.Equal(creatorId, personalNamespace.OwnerUserId);
+        Assert.Equal(tag.NamespaceId, personalNamespace.Id);
+        Assert.Single(repository.StoredTags);
     }
 
     private sealed class FixedClock(DateTimeOffset now) : ISystemClock

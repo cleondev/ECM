@@ -14,4 +14,16 @@ public sealed class TagNamespaceRepository(DocumentDbContext context) : ITagName
 
     public Task<TagNamespace?> GetAsync(Guid namespaceId, CancellationToken cancellationToken = default)
         => _context.TagNamespaces.FirstOrDefaultAsync(ns => ns.Id == namespaceId, cancellationToken);
+
+    public Task<TagNamespace?> GetUserNamespaceAsync(Guid ownerUserId, CancellationToken cancellationToken = default)
+        => _context.TagNamespaces.FirstOrDefaultAsync(
+            ns => ns.Scope == "user" && ns.OwnerUserId == ownerUserId,
+            cancellationToken);
+
+    public async Task<TagNamespace> AddAsync(TagNamespace tagNamespace, CancellationToken cancellationToken = default)
+    {
+        await _context.TagNamespaces.AddAsync(tagNamespace, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return tagNamespace;
+    }
 }

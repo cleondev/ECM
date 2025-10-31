@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.Document.Application.Tags.Repositories;
@@ -24,6 +25,8 @@ internal sealed class FakeTagNamespaceRepository : ITagNamespaceRepository
         }
     }
 
+    public IReadOnlyCollection<TagNamespace> StoredNamespaces => [.. _namespaces.Values];
+
     public void Seed(TagNamespace tagNamespace)
     {
         ArgumentNullException.ThrowIfNull(tagNamespace);
@@ -33,6 +36,18 @@ internal sealed class FakeTagNamespaceRepository : ITagNamespaceRepository
     public Task<TagNamespace?> GetAsync(Guid namespaceId, CancellationToken cancellationToken = default)
     {
         _namespaces.TryGetValue(namespaceId, out var tagNamespace);
+        return Task.FromResult(tagNamespace);
+    }
+
+    public Task<TagNamespace?> GetUserNamespaceAsync(Guid ownerUserId, CancellationToken cancellationToken = default)
+    {
+        var tagNamespace = _namespaces.Values.FirstOrDefault(ns => ns.Scope == "user" && ns.OwnerUserId == ownerUserId);
+        return Task.FromResult(tagNamespace);
+    }
+
+    public Task<TagNamespace> AddAsync(TagNamespace tagNamespace, CancellationToken cancellationToken = default)
+    {
+        Seed(tagNamespace);
         return Task.FromResult(tagNamespace);
     }
 }
