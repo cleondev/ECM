@@ -52,10 +52,13 @@ function ShareDownloadPageContent({
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const code = useMemo(
-    () => initialCode ?? extractShareCodeFromRouter(pathname, searchParams),
-    [initialCode, pathname, searchParams],
-  )
+  const code = useMemo(() => {
+    return (
+      initialCode ??
+      extractShareCodeFromRouter(pathname, searchParams) ??
+      extractShareCodeFromWindowLocation()
+    )
+  }, [initialCode, pathname, searchParams])
   const passwordFromUrl = useMemo(
     () => initialPassword ?? searchParams?.get("password") ?? undefined,
     [initialPassword, searchParams],
@@ -69,6 +72,7 @@ function ShareDownloadPageContent({
   const [verifying, setVerifying] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
 
   const canDownload = useMemo(() => {
     if (!share) {
@@ -137,6 +141,7 @@ function ShareDownloadPageContent({
     setPassword("")
     setPasswordError(null)
     setDownloadError(null)
+    setDownloadUrl(null)
     loadShare(passwordFromUrl)
 
     return () => {
@@ -199,6 +204,7 @@ function ShareDownloadPageContent({
     }
 
     setDownloadError(null)
+    setDownloadUrl(null)
     setDownloading(true)
 
     try {
@@ -209,6 +215,7 @@ function ShareDownloadPageContent({
         throw new Error("Missing download URL from gateway response")
       }
 
+      setDownloadUrl(download.url)
       window.location.href = download.url
     } catch (err) {
       console.error("[ui] Failed to download shared file", err)
@@ -334,6 +341,17 @@ function ShareDownloadPageContent({
               Liên kết này hiện không khả dụng để tải xuống. Vui lòng kiểm tra lại sau hoặc liên hệ chủ sở hữu.
             </p>
           ) : null}
+          {downloadUrl ? (
+            <p className="mt-4 text-sm text-slate-200">
+              Link tải xuống:{" "}
+              <a
+                href={downloadUrl}
+                className="underline decoration-slate-200/70 underline-offset-2 hover:text-white hover:decoration-white"
+              >
+                {downloadUrl}
+              </a>
+            </p>
+          ) : null}
           {downloadError ? <p className="mt-4 text-sm text-red-300">{downloadError}</p> : null}
         </div>
       </div>
@@ -397,12 +415,7 @@ function extractShareCodeFromRouter(
     return safelyDecodeShareCode(queryCode)
   }
 
-  const segments = pathname.split("/").filter(Boolean)
-  if (segments.length >= 2 && segments[0] === "s") {
-    return safelyDecodeShareCode(segments[1])
-  }
-
-  return null
+  return extractShareCodeFromPath(pathname)
 }
 
 function safelyDecodeShareCode(raw: string): string {
@@ -412,4 +425,21 @@ function safelyDecodeShareCode(raw: string): string {
     console.warn("[ui] Failed to decode share code", error)
     return raw
   }
+}
+
+function extractShareCodeFromPath(path: string): string | null {
+  const segments = path.split("/").filter(Boolean)
+  if (segments.length >= 2 && segments[0] === "s") {
+    return safelyDecodeShareCode(segments[1])
+  }
+
+  return null
+}
+
+function extractShareCodeFromWindowLocation(): string | null {
+  if (typeof window === "undefined") {
+    return null
+  }
+
+  return extractShareCodeFromPath(window.location.pathname)
 }
