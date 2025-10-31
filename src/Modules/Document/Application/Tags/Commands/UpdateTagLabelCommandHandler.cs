@@ -68,6 +68,9 @@ public sealed class UpdateTagLabelCommandHandler(
             return OperationResult<TagLabelResult>.Failure("Tag namespace does not exist.");
         }
 
+        var namespaceScope = string.IsNullOrWhiteSpace(tagNamespace.Scope)
+            ? null
+            : tagNamespace.Scope.Trim();
         var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
             ? null
             : tagNamespace.DisplayName.Trim();
@@ -137,6 +140,7 @@ public sealed class UpdateTagLabelCommandHandler(
         var result = new TagLabelResult(
             tagLabel.Id,
             tagLabel.NamespaceId,
+            namespaceScope,
             namespaceDisplayName,
             tagLabel.ParentId,
             tagLabel.Name,

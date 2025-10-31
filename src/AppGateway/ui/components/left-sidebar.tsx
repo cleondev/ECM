@@ -96,7 +96,7 @@ function TagTreeItem({
   const hasChildren = tag.children && tag.children.length > 0
   const isSelected = selectedTag?.id === tag.id
   const isNamespace = tag.kind === "namespace"
-  const tagScope = tag.scope ?? "user"
+  const tagScope = tag.namespaceScope ?? "user"
   const isReadOnlyScope = tagScope === "group" || tagScope === "global"
   const canSelect = !isNamespace
   const isManageableLabel = tag.kind === "label" && !tag.isSystem && !isReadOnlyScope
@@ -306,7 +306,8 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   })
 
   const canCreateTags = useMemo(
-    () => tagTree.some((node) => node.kind === "namespace" && (node.scope ?? "user") === "user"),
+    () =>
+      tagTree.some((node) => node.kind === "namespace" && (node.namespaceScope ?? "user") === "user"),
     [tagTree],
   )
 
@@ -370,7 +371,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   }
 
   const findCreatableNamespace = (nodes: TagNode[]): TagNode | null =>
-    nodes.find((node) => node.kind === "namespace" && (node.scope ?? "user") === "user") ?? null
+    nodes.find((node) => node.kind === "namespace" && (node.namespaceScope ?? "user") === "user") ?? null
 
   const resolveNamespaceNode = async (): Promise<TagNode | null> => {
     const existing = findCreatableNamespace(tagTree)
