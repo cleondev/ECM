@@ -215,7 +215,7 @@ public static class ShareEndpoints
             return PathString.Empty;
         }
 
-        if (!prefix.StartsWith('/', StringComparison.Ordinal))
+        if (!prefix.StartsWith("/", StringComparison.Ordinal))
         {
             prefix = string.Concat('/', prefix);
         }
