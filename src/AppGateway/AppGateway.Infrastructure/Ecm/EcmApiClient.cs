@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -753,7 +754,42 @@ internal sealed class EcmApiClient(
             await AttachAuthenticationAsync(request, cancellationToken);
         }
 
+        ApplyForwardedHeaders(request);
+
         return request;
+    }
+
+    private void ApplyForwardedHeaders(HttpRequestMessage request)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null)
+        {
+            return;
+        }
+
+        var origin = httpContext.Request;
+
+        if (!string.IsNullOrWhiteSpace(origin.Scheme))
+        {
+            request.Headers.TryAddWithoutValidation("X-Forwarded-Proto", origin.Scheme);
+        }
+
+        if (origin.Host.HasValue)
+        {
+            request.Headers.TryAddWithoutValidation("X-Forwarded-Host", origin.Host.Value);
+
+            if (origin.Host.Port is > 0)
+            {
+                request.Headers.TryAddWithoutValidation(
+                    "X-Forwarded-Port",
+                    origin.Host.Port.Value.ToString(CultureInfo.InvariantCulture));
+            }
+        }
+
+        if (origin.PathBase.HasValue && origin.PathBase != PathString.Empty)
+        {
+            request.Headers.TryAddWithoutValidation("X-Forwarded-Prefix", origin.PathBase.Value);
+        }
     }
 
     private async Task AttachAuthenticationAsync(HttpRequestMessage request, CancellationToken cancellationToken)

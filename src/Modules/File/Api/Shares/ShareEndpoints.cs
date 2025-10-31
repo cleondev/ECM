@@ -1,6 +1,8 @@
+using System;
+using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Security.Claims;
-using System.Linq;
 using ECM.File.Application.Shares;
 using ECM.File.Domain.Shares;
 using Microsoft.AspNetCore.Builder;
@@ -130,17 +132,101 @@ public static class ShareEndpoints
         return result.IsFailure ? MapErrors(result.Errors) : TypedResults.NoContent();
     }
 
-    private static string? ResolveRequestBaseUrl(HttpRequest request)
+    internal static string? ResolveRequestBaseUrl(HttpRequest request)
     {
-        if (!request.Host.HasValue || string.IsNullOrWhiteSpace(request.Scheme))
+        var forwardedScheme = GetForwardedHeaderValue(request, "X-Forwarded-Proto");
+        var forwardedHost = GetForwardedHeaderValue(request, "X-Forwarded-Host");
+        var forwardedPort = GetForwardedHeaderValue(request, "X-Forwarded-Port");
+        var forwardedPrefix = GetForwardedHeaderValue(request, "X-Forwarded-Prefix");
+
+        var scheme = !string.IsNullOrWhiteSpace(forwardedScheme) ? forwardedScheme : request.Scheme;
+        if (string.IsNullOrWhiteSpace(scheme))
         {
             return null;
         }
 
-        var host = request.Host.ToUriComponent();
-        var pathBase = request.PathBase.HasValue ? request.PathBase.ToUriComponent() : string.Empty;
+        var host = !string.IsNullOrWhiteSpace(forwardedHost)
+            ? HostString.FromUriComponent(forwardedHost)
+            : request.Host;
 
-        return string.Concat(request.Scheme, "://", host, pathBase);
+        if (!host.HasValue)
+        {
+            return null;
+        }
+
+        var port = TryParsePort(forwardedPort) ?? host.Port;
+        var pathBase = !string.IsNullOrWhiteSpace(forwardedPrefix)
+            ? NormalizePathBase(forwardedPrefix)
+            : request.PathBase;
+
+        var builder = new UriBuilder
+        {
+            Scheme = scheme,
+            Host = host.Host,
+            Port = -1,
+            Path = pathBase.HasValue ? pathBase.Value : string.Empty,
+        };
+
+        if (port.HasValue && !IsDefaultPort(port.Value, scheme))
+        {
+            builder.Port = port.Value;
+        }
+
+        var uri = builder.Uri.GetLeftPart(UriPartial.Path);
+        return uri.TrimEnd('/');
+    }
+
+    private static string? GetForwardedHeaderValue(HttpRequest request, string headerName)
+    {
+        if (!request.Headers.TryGetValue(headerName, out var values) || values.Count == 0)
+        {
+            return null;
+        }
+
+        var raw = values[0];
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        var separatorIndex = raw.IndexOf(',');
+        var value = separatorIndex >= 0 ? raw[..separatorIndex] : raw;
+        value = value.Trim();
+
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static int? TryParsePort(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port) && port > 0
+            ? port
+            : null;
+    }
+
+    private static PathString NormalizePathBase(string prefix)
+    {
+        if (string.IsNullOrWhiteSpace(prefix))
+        {
+            return PathString.Empty;
+        }
+
+        if (!prefix.StartsWith('/', StringComparison.Ordinal))
+        {
+            prefix = string.Concat('/', prefix);
+        }
+
+        return PathString.FromUriComponent(prefix);
+    }
+
+    private static bool IsDefaultPort(int port, string scheme)
+    {
+        return (port == 80 && string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase))
+            || (port == 443 && string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase));
     }
 
     private static async Task<IResult> GetInterstitialAsync(
