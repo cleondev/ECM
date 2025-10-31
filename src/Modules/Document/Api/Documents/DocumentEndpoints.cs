@@ -248,10 +248,12 @@ public static class DocumentEndpoints
             var term = request.Query.Trim();
             if (term.Length > 0)
             {
-                var likeExpression =
-                    $"%{term.Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal)}%";
+                var loweredTerm = term.ToLowerInvariant();
+
                 query = query.Where(document =>
-                    EF.Functions.ILike(document.Title.Value, likeExpression)
+                    EF.Property<string>(document, nameof(document.Title))
+                        .ToLower()
+                        .Contains(loweredTerm)
                 );
             }
         }
