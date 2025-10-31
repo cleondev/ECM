@@ -7,7 +7,12 @@ namespace ECM.File.Application.Files;
 
 public interface IFileStorage
 {
-    Task UploadAsync(string storageKey, Stream content, string contentType, CancellationToken cancellationToken = default);
+    Task UploadAsync(
+        string storageKey,
+        Stream content,
+        string contentType,
+        string? originalFileName,
+        CancellationToken cancellationToken = default);
 
     Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default);
 
