@@ -58,6 +58,11 @@ public static class DocumentEndpoints
             );
 
         group
+            .MapPut("/documents/{documentId:guid}", UpdateDocumentAsync)
+            .WithName("UpdateDocument")
+            .WithDescription("Updates document metadata and ownership attributes.");
+
+        group
             .MapDelete("/documents/{documentId:guid}", DeleteDocumentAsync)
             .WithName("DeleteDocument")
             .WithDescription("Deletes a document by identifier.");
@@ -122,6 +127,68 @@ public static class DocumentEndpoints
         }
 
         return TypedResults.NoContent();
+    }
+
+    private static async Task<
+        Results<Ok<DocumentResponse>, ValidationProblem, NotFound, ForbidHttpResult>
+    > UpdateDocumentAsync(
+        ClaimsPrincipal principal,
+        Guid documentId,
+        UpdateDocumentRequest? request,
+        DocumentDbContext context,
+        UpdateDocumentCommandHandler handler,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
+        if (userId is null)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var documentIdValue = DocumentId.FromGuid(documentId);
+
+        var hasAccess = await context.EffectiveAclEntries
+            .AsNoTracking()
+            .AnyAsync(
+                entry => entry.UserId == userId.Value
+                    && entry.IsValid
+                    && entry.DocumentId == documentIdValue,
+                cancellationToken);
+
+        if (!hasAccess)
+        {
+            return TypedResults.Forbid();
+        }
+
+        request ??= new UpdateDocumentRequest();
+
+        var command = new UpdateDocumentCommand(
+            documentId,
+            request.Title,
+            request.Status,
+            request.Sensitivity,
+            request.HasGroupId,
+            NormalizeGuid(request.GroupId));
+
+        var result = await handler.HandleAsync(command, cancellationToken);
+
+        if (result.IsFailure)
+        {
+            if (UpdateDocumentCommandHandler.IsNotFound(result))
+            {
+                return TypedResults.NotFound();
+            }
+
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["document"] = [.. result.Errors],
+            });
+        }
+
+        var response = MapDocument(result.Value!);
+
+        return TypedResults.Ok(response);
     }
 
     private static async Task<Ok<DocumentListResponse>> ListDocumentsAsync(
