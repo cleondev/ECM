@@ -27,6 +27,79 @@ internal static class DocumentFormFieldReader
         return null;
     }
 
+    public static IReadOnlyList<string> GetStringList(IFormCollection form, string propertyName)
+    {
+        foreach (var field in EnumerateListFieldNames(propertyName))
+        {
+            if (!form.TryGetValue(field, out var values) || values.Count == 0)
+            {
+                continue;
+            }
+
+            var list = values
+                .Select(v => v?.Trim())
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (list.Count > 0)
+            {
+                return list;
+            }
+        }
+
+        foreach (var field in EnumerateFieldNames(propertyName))
+        {
+            if (!form.TryGetValue(field, out var values) || values.Count == 0)
+            {
+                continue;
+            }
+
+            var list = values
+                .Select(v => v?.Trim())
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (list.Count > 0)
+            {
+                return list;
+            }
+        }
+
+        var buffer = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var key in form.Keys)
+        {
+            if (!IsListFieldName(key, propertyName))
+            {
+                continue;
+            }
+
+            if (!form.TryGetValue(key, out var values) || values.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var v in values)
+            {
+                var value = v?.Trim();
+                if (!string.IsNullOrWhiteSpace(value) && seen.Add(value))
+                {
+                    buffer.Add(value);
+                }
+            }
+        }
+
+        if (buffer.Count > 0)
+        {
+            return buffer;
+        }
+
+        return Array.Empty<string>();
+    }
+
     public static Guid? GetGuid(IFormCollection form, string propertyName)
     {
         var value = GetString(form, propertyName);
