@@ -4,7 +4,7 @@ import { useRef } from "react"
 import type React from "react"
 
 import type { FileItem } from "@/lib/types"
-import { Download, Edit3, FileText, GitBranch, MoreVertical, Share2, Tag } from "lucide-react"
+import { Download, Edit3, FileText, GitBranch, MoreVertical, Share2, Tag, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,7 @@ type FileCardProps = {
   onShare?: () => void
   onAssignTags?: () => void
   onOpenDetails?: (tab: "property" | "flow" | "form") => void
+  onDelete?: () => void
   actionsDisabled?: boolean
 }
 
@@ -46,6 +47,7 @@ export function FileCard({
   onShare,
   onAssignTags,
   onOpenDetails,
+  onDelete,
   actionsDisabled,
 }: FileCardProps) {
   const cardRef = useRef<HTMLButtonElement>(null)
@@ -146,6 +148,15 @@ export function FileCard({
         <ContextMenuItem onSelect={() => onOpenDetails?.("form")} disabled={actionsDisabled}>
           <Edit3 className="h-4 w-4" />
           Open Form
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          onSelect={() => onDelete?.()}
+          disabled={actionsDisabled}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

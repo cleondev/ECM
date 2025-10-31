@@ -22,6 +22,7 @@ type FileGridProps = {
   onShareFile: (file: FileItem) => void
   onOpenDetailsTab: (tab: "property" | "flow" | "form", file: FileItem) => void
   onAssignTags: (file: FileItem) => void
+  onDeleteFile: (file: FileItem) => void
 }
 
 function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
@@ -69,6 +70,7 @@ export function FileGrid({
   onShareFile,
   onOpenDetailsTab,
   onAssignTags,
+  onDeleteFile,
 }: FileGridProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const lastSelectedIndexRef = useRef<number>(-1)
@@ -221,6 +223,7 @@ export function FileGrid({
               onShare={() => onShareFile(file)}
               onAssignTags={() => onAssignTags(file)}
               onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
+              onDelete={() => onDeleteFile(file)}
               actionsDisabled={areActionsDisabled}
             />
           ))}
@@ -249,6 +252,7 @@ export function FileGrid({
             onShare={() => onShareFile(file)}
             onAssignTags={() => onAssignTags(file)}
             onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
+            onDelete={() => onDeleteFile(file)}
             actionsDisabled={areActionsDisabled}
           />
         ))}
