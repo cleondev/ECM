@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Check, Copy, Link2, Loader2 } from "lucide-react"
+import { Check, Copy, ExternalLink, Link2, Loader2 } from "lucide-react"
 import type { FileItem, ShareLink, ShareOptions } from "@/lib/types"
 
 const SHARE_DURATION_OPTIONS = [
@@ -188,39 +188,71 @@ export function ShareDialog({
           ) : null}
 
           {result ? (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label className="font-medium">Short link</Label>
-                <div className="flex items-center gap-2">
-                  <Input value={result.shortUrl} readOnly className="flex-1" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleCopy(result.shortUrl, "short")}
-                  >
-                    {copiedShort ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    <span className="sr-only">Copy short link</span>
+            <div className="space-y-4">
+              <div className="rounded-lg border border-primary/40 bg-primary/5 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-primary">Short link</p>
+                    <p className="text-xs text-muted-foreground">
+                      Use the shortened link for quick sharing in chats or emails.
+                    </p>
+                  </div>
+                  <Button asChild variant="ghost" size="sm" className="gap-1">
+                    <a href={result.shortUrl} target="_blank" rel="noreferrer">
+                      Open link
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   </Button>
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input value={result.shortUrl} readOnly className="sm:flex-1" />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopy(result.shortUrl, "short")}
+                    >
+                      {copiedShort ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      <span className="sr-only">Copy short link</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="font-medium text-muted-foreground">Full link</Label>
-                <div className="flex items-center gap-2">
-                  <Input value={result.url} readOnly className="flex-1" />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleCopy(result.url, "full")}
-                  >
-                    {copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    <span className="sr-only">Copy full link</span>
+              <div className="rounded-lg border bg-muted/20 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Full link</p>
+                    <p className="text-xs text-muted-foreground">
+                      The full link includes the complete URL with tracking parameters.
+                    </p>
+                  </div>
+                  <Button asChild variant="ghost" size="sm" className="gap-1">
+                    <a href={result.url} target="_blank" rel="noreferrer">
+                      Open link
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   </Button>
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input value={result.url} readOnly className="sm:flex-1" />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopy(result.url, "full")}
+                    >
+                      {copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      <span className="sr-only">Copy full link</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
 
               {formattedExpiry ? (
-                <p className="text-xs text-muted-foreground">Link expires on {formattedExpiry}</p>
+                <p className="text-xs text-muted-foreground">
+                  Links expire on {formattedExpiry}. Share recipients will no longer have access afterwards.
+                </p>
               ) : null}
             </div>
           ) : null}
