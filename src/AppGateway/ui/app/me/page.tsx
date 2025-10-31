@@ -487,7 +487,6 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>Hồ sơ cá nhân</CardTitle>
-              <CardDescription>Cập nhật thông tin tài khoản và nhóm làm việc của bạn.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
             <div className="flex flex-col gap-6 md:flex-row md:items-center">
@@ -517,7 +516,7 @@ export default function ProfilePage() {
                 <h2 className="text-2xl font-bold break-words">{user.displayName}</h2>
                 <p className="text-sm text-muted-foreground break-words">{user.email}</p>
                 {primaryGroupName ? (
-                  <p className="text-xs text-muted-foreground">Nhóm chính: {primaryGroupName}</p>
+                  <p className="text-xs text-muted-foreground">Đơn vị: {primaryGroupName}</p>
                 ) : null}
               </div>
               <Button
@@ -558,9 +557,6 @@ export default function ProfilePage() {
                   onChange={handleDisplayNameChange}
                   disabled={!isEditing}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Tên này sẽ hiển thị với các thành viên khác trong hệ thống.
-                </p>
               </div>
 
               <div className="grid gap-2">
@@ -594,14 +590,14 @@ export default function ProfilePage() {
                   </Badge>
                   <span className="text-muted-foreground">
                     {user.isActive
-                      ? "Bạn có thể truy cập các tính năng của hệ thống."
+                      ? ""
                       : "Liên hệ quản trị viên để kích hoạt lại tài khoản."}
                   </span>
                 </div>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="primary-group">Nhóm chính</Label>
+                <Label htmlFor="primary-group">Đơn vị</Label>
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
                   <Select
@@ -611,11 +607,11 @@ export default function ProfilePage() {
                   >
                     <SelectTrigger id="primary-group" className="w-full">
                       <SelectValue
-                        placeholder={groups.length ? "Chọn nhóm chính" : "Không có nhóm nào"}
+                        placeholder={groups.length ? "Chọn đơn vị" : "Không có đơn vị nào"}
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Không có nhóm chính</SelectItem>
+                      <SelectItem value="__none__">Không có đơn vị</SelectItem>
                       {groups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
                           {group.name}
@@ -626,10 +622,10 @@ export default function ProfilePage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {groups.length === 0
-                    ? "Bạn chưa được gán vào bất kỳ nhóm nào."
+                    ? "Bạn chưa được gán vào bất kỳ đơn vị nào."
                     : primaryGroupName
-                      ? `Nhóm chính hiện tại: ${primaryGroupName}`
-                      : "Chọn một nhóm làm nhóm chính mặc định."}
+                      ? `Đơn vị hiện tại: ${primaryGroupName}`
+                      : "Chọn một đơn vị làm đơn vị mặc định."}
                 </p>
               </div>
 
