@@ -2,6 +2,7 @@ export type DocumentTag = {
   id: string
   namespaceId: string
   namespaceDisplayName?: string | null
+  namespaceScope?: TagScope
   parentId?: string | null
   name: string
   color?: string | null
@@ -49,7 +50,7 @@ export type TagNode = {
   children?: TagNode[]
   kind?: "namespace" | "label"
   namespaceLabel?: string
-  scope?: TagScope
+  namespaceScope?: TagScope
 }
 
 export type TagUpdateData = {
