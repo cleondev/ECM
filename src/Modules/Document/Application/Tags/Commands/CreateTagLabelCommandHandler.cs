@@ -22,11 +22,6 @@ public sealed class CreateTagLabelCommandHandler(
         CreateTagLabelCommand command,
         CancellationToken cancellationToken = default)
     {
-        if (command.NamespaceId == Guid.Empty)
-        {
-            return OperationResult<TagLabelResult>.Failure("Namespace identifier is required.");
-        }
-
         if (string.IsNullOrWhiteSpace(command.Name))
         {
             return OperationResult<TagLabelResult>.Failure("Tag name is required.");
@@ -37,44 +32,39 @@ public sealed class CreateTagLabelCommandHandler(
             return OperationResult<TagLabelResult>.Failure("A valid creator identifier is required.");
         }
 
-        var tagNamespace = await _tagNamespaceRepository
-            .GetAsync(command.NamespaceId, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (tagNamespace is null)
-        {
-            return OperationResult<TagLabelResult>.Failure("Tag namespace does not exist.");
-        }
-
-        var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
-            ? null
-            : tagNamespace.DisplayName.Trim();
-
-        var normalizedName = command.Name.Trim();
-        var parentId = NormalizeGuid(command.ParentId);
+        var normalizedParentId = NormalizeGuid(command.ParentId);
 
         TagLabel? parent = null;
-        if (parentId is not null)
+        if (normalizedParentId is not null)
         {
             parent = await _tagLabelRepository
-                .GetByIdAsync(parentId.Value, cancellationToken)
+                .GetByIdAsync(normalizedParentId.Value, cancellationToken)
                 .ConfigureAwait(false);
 
             if (parent is null)
             {
                 return OperationResult<TagLabelResult>.Failure("Parent tag was not found.");
             }
-
-            if (parent.NamespaceId != command.NamespaceId)
-            {
-                return OperationResult<TagLabelResult>.Failure("Parent tag belongs to a different namespace.");
-            }
         }
+
+        var tagNamespace = await EnsurePersonalNamespaceAsync(command.CreatedBy.Value, cancellationToken)
+            .ConfigureAwait(false);
+        var namespaceId = tagNamespace.Id;
+        var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
+            ? null
+            : tagNamespace.DisplayName.Trim();
+
+        if (parent is not null && parent.NamespaceId != namespaceId)
+        {
+            return OperationResult<TagLabelResult>.Failure("Parent tag belongs to a different namespace.");
+        }
+
+        var normalizedName = command.Name.Trim();
 
         var duplicateExists = await _tagLabelRepository
             .ExistsWithNameAsync(
-                command.NamespaceId,
-                parentId,
+                namespaceId,
+                normalizedParentId,
                 normalizedName,
                 excludeTagId: null,
                 cancellationToken)
@@ -88,8 +78,8 @@ public sealed class CreateTagLabelCommandHandler(
         var createdAt = _clock.UtcNow;
         var parentPath = parent?.PathIds ?? [];
         var tagLabel = TagLabel.Create(
-            command.NamespaceId,
-            parentId,
+            namespaceId,
+            normalizedParentId,
             parentPath,
             normalizedName,
             command.SortOrder ?? 0,
@@ -121,4 +111,29 @@ public sealed class CreateTagLabelCommandHandler(
 
     private static Guid? NormalizeGuid(Guid? value)
         => value.HasValue && value.Value != Guid.Empty ? value : null;
+
+    private async Task<TagNamespace> EnsurePersonalNamespaceAsync(Guid ownerUserId, CancellationToken cancellationToken)
+    {
+        var tagNamespace = await _tagNamespaceRepository
+            .GetUserNamespaceAsync(ownerUserId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (tagNamespace is not null)
+        {
+            return tagNamespace;
+        }
+
+        var namespaceCreatedAt = _clock.UtcNow;
+        tagNamespace = TagNamespace.Create(
+            scope: "user",
+            ownerUserId,
+            ownerGroupId: null,
+            displayName: "Personal Tags",
+            isSystem: false,
+            createdAtUtc: namespaceCreatedAt);
+
+        return await _tagNamespaceRepository
+            .AddAsync(tagNamespace, cancellationToken)
+            .ConfigureAwait(false);
+    }
 }
