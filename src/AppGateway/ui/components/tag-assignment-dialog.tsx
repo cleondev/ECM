@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 
-import { CheckCircle2, ChevronDown, ChevronRight, Loader2 } from "lucide-react"
+import { CheckCircle2, ChevronDown, ChevronRight, Loader2, MinusCircle } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -88,6 +88,16 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
     () => Array.from(selectedTagIds).filter((id) => !initialTagIds.has(id)),
     [selectedTagIds, initialTagIds],
   )
+  const removedTagIds = useMemo(() => {
+    const removed: string[] = []
+    initialTagIds.forEach((id) => {
+      if (!selectedTagIds.has(id)) {
+        removed.push(id)
+      }
+    })
+    return removed
+  }, [initialTagIds, selectedTagIds])
+  const hasChanges = newTagIds.length > 0 || removedTagIds.length > 0
 
   useEffect(() => {
     if (!open) {
@@ -133,14 +143,7 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
 
     setSelectedTagIds((previous) => {
       const next = new Set(previous)
-      if (next.has(tag.id)) {
-        if (initialTagIds.has(tag.id)) {
-          return next
-        }
-        next.delete(tag.id)
-      } else {
-        next.add(tag.id)
-      }
+      next.has(tag.id) ? next.delete(tag.id) : next.add(tag.id)
       return next
     })
   }
@@ -150,10 +153,11 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
       const hasChildren = Boolean(tag.children && tag.children.length > 0)
       const isExpanded = expandedTags[tag.id] ?? true
       const isSelected = selectedTagIds.has(tag.id)
-      const isLocked = initialTagIds.has(tag.id)
-      const canSelect = isSelectableTag(tag) && !isLocked
+      const isInitiallyAssigned = initialTagIds.has(tag.id)
+      const willRemove = isInitiallyAssigned && !isSelected
+      const canSelect = isSelectableTag(tag)
       const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
-      const backgroundStyle = tag.color
+      const backgroundStyle = !willRemove && tag.color
         ? {
             backgroundColor: tag.color,
             borderColor: tag.color,
@@ -167,7 +171,9 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
               "flex items-center gap-1 rounded-md text-sm transition-colors group",
               isSelected
                 ? "bg-primary/10 text-primary border border-primary/30"
-                : "hover:bg-muted/60 border border-transparent text-muted-foreground",
+                : willRemove
+                  ? "border border-destructive/40 bg-destructive/10 text-destructive"
+                  : "hover:bg-muted/60 border border-transparent text-muted-foreground",
             )}
             style={{ paddingLeft: `${level * 12 + 8}px` }}
           >
@@ -199,17 +205,31 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
                 !tag.color ? "bg-muted/60" : "",
                 canSelect ? "text-foreground" : "text-muted-foreground cursor-default opacity-80",
                 isSelected ? "ring-1 ring-primary" : "",
+                willRemove ? "ring-1 ring-destructive/60" : "",
               )}
               style={backgroundStyle}
             >
               <span className="text-sm flex-shrink-0">{displayIcon}</span>
               <span className="truncate">{tag.name}</span>
-              {isLocked ? (
-                <span className="ml-auto text-[10px] uppercase tracking-wide text-primary/70">Assigned</span>
+              {isInitiallyAssigned ? (
+                <span
+                  className={cn(
+                    "ml-auto text-[10px] uppercase tracking-wide",
+                    isSelected ? "text-primary/70" : "text-destructive",
+                  )}
+                >
+                  {isSelected ? "Assigned" : "Will remove"}
+                </span>
+              ) : isSelected ? (
+                <span className="ml-auto text-[10px] uppercase tracking-wide text-primary/70">Will add</span>
               ) : null}
             </button>
 
-            {isSelected ? <CheckCircle2 className="mr-2 h-4 w-4 text-primary" /> : null}
+            {isSelected ? (
+              <CheckCircle2 className="mr-2 h-4 w-4 text-primary" />
+            ) : willRemove ? (
+              <MinusCircle className="mr-2 h-4 w-4 text-destructive" />
+            ) : null}
           </div>
 
           {hasChildren && isExpanded ? (
@@ -220,7 +240,7 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
     })
   }
 
-  const buildSelectedTags = (): SelectedTag[] => {
+  const buildTagsToAdd = (): SelectedTag[] => {
     const selections = new Map<string, SelectedTag>()
 
     for (const id of newTagIds) {
@@ -270,39 +290,75 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
     })
   }
 
+  const buildUpdatedDocumentTags = (
+    additions: DocumentTag[],
+    removals: string[],
+  ): DocumentTag[] => {
+    const remaining = file?.tags.filter((tag) => !removals.includes(tag.id)) ?? []
+    const additionMap = new Map(additions.map((tag) => [tag.id, tag]))
+
+    const merged = remaining.map((tag) => {
+      const replacement = additionMap.get(tag.id)
+      if (replacement) {
+        additionMap.delete(tag.id)
+        return { ...tag, ...replacement }
+      }
+      return tag
+    })
+
+    additionMap.forEach((tag) => {
+      merged.push(tag)
+    })
+
+    return merged
+  }
+
   const handleApplyTags = async () => {
     if (!file) {
       return
     }
 
-    const selections = buildSelectedTags()
+    const selections = buildTagsToAdd()
 
-    if (selections.length === 0) {
+    if (selections.length === 0 && removedTagIds.length === 0) {
       toast({
-        title: "No new tags selected",
-        description: "Select one or more tags to add to this document.",
+        title: "No tag changes",
+        description: "Select tags to add or remove before saving.",
       })
       return
     }
 
     setIsSaving(true)
     try {
-      await applyTagsToDocument(file.id, selections)
+      await applyTagsToDocument(file.id, selections, removedTagIds)
       const documentTags = toDocumentTags(selections)
-      onTagsAssigned?.(file.id, documentTags)
+      const updatedTags = buildUpdatedDocumentTags(documentTags, removedTagIds)
+      onTagsAssigned?.(file.id, updatedTags)
+      const additionsCount = documentTags.length
+      const removalsCount = removedTagIds.length
+      const actionParts: string[] = []
+      if (additionsCount > 0) {
+        actionParts.push(`added ${additionsCount} tag${additionsCount === 1 ? "" : "s"}`)
+      }
+      if (removalsCount > 0) {
+        actionParts.push(`removed ${removalsCount} tag${removalsCount === 1 ? "" : "s"}`)
+      }
       toast({
-        title: "Tags added",
-        description: `Added ${documentTags.length} tag${documentTags.length === 1 ? "" : "s"} to “${file.name}”.`,
+        title: "Tags updated",
+        description:
+          actionParts.length > 0
+            ? `Successfully ${actionParts.join(" and ")} for “${file.name}”.`
+            : `No tag changes were applied to “${file.name}”.`,
       })
       onOpenChange(false)
     } catch (error) {
       console.error(`[ui] Failed to assign tags to document '${file.id}':`, error)
       toast({
-        title: "Unable to add tags",
+        title: "Unable to update tags",
         description:
           error instanceof Error
             ? error.message
-            : "An unexpected error occurred while adding tags. Please try again.",
+            : "An unexpected error occurred while updating tags. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -317,7 +373,7 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
           <DialogTitle>Assign tags</DialogTitle>
           <DialogDescription>
             {file
-              ? `Select tags below to add them to “${file.name}”. Tags already applied cannot be removed here.`
+              ? `Select tags below to add to or remove from “${file.name}”.`
               : "Select a file to assign tags."}
           </DialogDescription>
         </DialogHeader>
@@ -351,9 +407,18 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
             ) : null}
 
             <div className="text-sm text-muted-foreground">
-              {newTagIds.length > 0
-                ? `Ready to add ${newTagIds.length} tag${newTagIds.length === 1 ? "" : "s"}.`
-                : "Choose tags from the list below to add them to the document."}
+              {hasChanges
+                ? [
+                    newTagIds.length > 0
+                      ? `Adding ${newTagIds.length} tag${newTagIds.length === 1 ? "" : "s"}`
+                      : null,
+                    removedTagIds.length > 0
+                      ? `Removing ${removedTagIds.length} tag${removedTagIds.length === 1 ? "" : "s"}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "Choose tags from the list below to update the document."}
             </div>
 
             <div className="border rounded-lg bg-muted/30">
@@ -374,9 +439,9 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleApplyTags} disabled={isSaving || !file || newTagIds.length === 0}>
+          <Button onClick={handleApplyTags} disabled={isSaving || !file || !hasChanges}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Add Tags
+            Save changes
           </Button>
         </DialogFooter>
       </DialogContent>
