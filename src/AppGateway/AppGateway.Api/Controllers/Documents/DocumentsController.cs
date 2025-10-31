@@ -301,12 +301,32 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             ModelState.AddModelError(nameof(request.VersionId), "Version identifier does not match the route parameter.");
         }
 
+        var normalizedSubjectType = request.GetNormalizedSubjectType();
+        var normalizedSubjectId = request.GetEffectiveSubjectId();
+
+        if (!string.IsNullOrWhiteSpace(request.SubjectType)
+            && normalizedSubjectType == "public"
+            && !string.Equals(request.SubjectType.Trim(), "public", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(nameof(request.SubjectType), "Subject type must be 'public', 'user', or 'group'.");
+        }
+
+        if (normalizedSubjectType is "user" or "group" && normalizedSubjectId is null)
+        {
+            ModelState.AddModelError(nameof(request.SubjectId), "A subject identifier is required when sharing with a user or group.");
+        }
+
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
         }
 
-        var normalizedRequest = request with { VersionId = versionId };
+        var normalizedRequest = request with
+        {
+            VersionId = versionId,
+            SubjectType = normalizedSubjectType,
+            SubjectId = normalizedSubjectId,
+        };
         var link = await _client.CreateDocumentShareLinkAsync(normalizedRequest, cancellationToken);
         if (link is null)
         {

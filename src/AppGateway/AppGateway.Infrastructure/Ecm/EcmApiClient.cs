@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Contracts.IAM.Relations;
@@ -402,11 +403,15 @@ internal sealed class EcmApiClient(
         var effectiveMinutes = requestDto.GetEffectiveMinutes();
         var validTo = validFrom.AddMinutes(effectiveMinutes);
 
+        var subjectType = requestDto.GetNormalizedSubjectType();
+        var subjectId = requestDto.GetEffectiveSubjectId();
+
         var payload = new
         {
             documentId = requestDto.DocumentId,
             versionId = requestDto.VersionId,
-            subjectType = requestDto.IsPublic ? "public" : "public",
+            subjectType,
+            subjectId,
             permissions = new[] { "view", "download" },
             validFrom,
             validTo,
@@ -440,9 +445,15 @@ internal sealed class EcmApiClient(
         var url = CreateUri(shareResponse.Url);
         var shortUrl = CreateUri(shareResponse.ShortUrl);
         var expiresAt = shareResponse.ValidTo ?? shareResponse.ValidFrom.AddMinutes(effectiveMinutes);
-        var isPublic = string.Equals(shareResponse.SubjectType, "public", StringComparison.OrdinalIgnoreCase);
+        var responseSubjectType = NormalizeShareSubjectType(shareResponse.SubjectType);
+        var isPublic = responseSubjectType == "public";
+        var responseSubjectId = shareResponse.SubjectId;
+        if (isPublic)
+        {
+            responseSubjectId = null;
+        }
 
-        return new DocumentShareLinkDto(url, shortUrl, expiresAt, isPublic);
+        return new DocumentShareLinkDto(url, shortUrl, expiresAt, isPublic, responseSubjectType, responseSubjectId);
     }
 
     private sealed record ShareLinkResponse(
@@ -450,7 +461,8 @@ internal sealed class EcmApiClient(
         string ShortUrl,
         DateTimeOffset ValidFrom,
         DateTimeOffset? ValidTo,
-        string SubjectType);
+        JsonElement SubjectType,
+        Guid? SubjectId);
 
     private sealed record LegacyShareLinkResponse(
         string Url,
@@ -468,6 +480,10 @@ internal sealed class EcmApiClient(
             return null;
         }
 
+        var subjectType = requestDto.GetNormalizedSubjectType();
+        var subjectId = requestDto.GetEffectiveSubjectId();
+        var isPublic = requestDto.IsPublicShare;
+
         using var legacyRequest = await CreateRequestAsync(
             HttpMethod.Post,
             $"api/ecm/files/share/{requestDto.VersionId}",
@@ -476,7 +492,7 @@ internal sealed class EcmApiClient(
         legacyRequest.Content = JsonContent.Create(new
         {
             expiresInMinutes = effectiveMinutes,
-            isPublic = requestDto.IsPublic,
+            isPublic,
         });
 
         using var response = await _httpClient.SendAsync(legacyRequest, cancellationToken);
@@ -497,7 +513,10 @@ internal sealed class EcmApiClient(
             ? url
             : CreateUri(legacyShare.ShortUrl);
 
-        return new DocumentShareLinkDto(url, shortUrl, legacyShare.ExpiresAtUtc, legacyShare.IsPublic);
+        var legacySubjectType = legacyShare.IsPublic ? "public" : subjectType;
+        var legacySubjectId = legacySubjectType == "public" ? null : subjectId;
+
+        return new DocumentShareLinkDto(url, shortUrl, legacyShare.ExpiresAtUtc, legacyShare.IsPublic, legacySubjectType, legacySubjectId);
     }
 
     private static string? NormalizeExtension(string? extension, string fileName)
@@ -525,6 +544,37 @@ internal sealed class EcmApiClient(
         }
 
         return new Uri(value, UriKind.Relative);
+    }
+
+    private static string NormalizeShareSubjectType(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            var raw = value.GetString();
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return "public";
+            }
+
+            return raw.Trim().ToLowerInvariant() switch
+            {
+                "user" => "user",
+                "group" => "group",
+                _ => "public",
+            };
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var intValue))
+        {
+            return intValue switch
+            {
+                0 => "user",
+                1 => "group",
+                _ => "public",
+            };
+        }
+
+        return "public";
     }
 
     public async Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)

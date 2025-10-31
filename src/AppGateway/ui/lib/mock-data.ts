@@ -910,6 +910,42 @@ export const mockGroups: Group[] = [
   },
 ]
 
+export const mockUsers: User[] = [
+  {
+    id: "11111111-1111-1111-1111-111111111111",
+    displayName: "Alice Nguyen",
+    email: "alice.nguyen@example.com",
+    roles: ["Product Designer"],
+    isActive: true,
+    createdAtUtc: new Date("2023-05-12T08:15:00Z").toISOString(),
+    primaryGroupId: "group-product-design",
+    groupIds: ["group-product-design", "group-design-ops"],
+    hasPassword: true,
+  },
+  {
+    id: "22222222-2222-2222-2222-222222222222",
+    displayName: "Bao Tran",
+    email: "bao.tran@example.com",
+    roles: ["Compliance Lead"],
+    isActive: true,
+    createdAtUtc: new Date("2022-11-03T10:45:00Z").toISOString(),
+    primaryGroupId: "group-customer-success",
+    groupIds: ["group-customer-success"],
+    hasPassword: true,
+  },
+  {
+    id: "33333333-3333-3333-3333-333333333333",
+    displayName: "Linh Pham",
+    email: "linh.pham@example.com",
+    roles: ["Security Analyst"],
+    isActive: true,
+    createdAtUtc: new Date("2024-01-20T04:20:00Z").toISOString(),
+    primaryGroupId: "group-design-ops",
+    groupIds: ["group-design-ops"],
+    hasPassword: true,
+  },
+]
+
 export const mockUser: User = {
   id: "user-1",
   displayName: "John Doe",
