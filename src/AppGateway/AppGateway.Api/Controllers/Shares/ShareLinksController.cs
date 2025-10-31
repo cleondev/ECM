@@ -47,9 +47,12 @@ public sealed class ShareLinksController(IEcmShareAccessClient client, ILogger<S
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            return ValidationProblem(new()
+            return ValidationProblem(new ValidationProblemDetails
             {
-                [nameof(request.Password)] = ["Password is required."]
+                Errors =
+                {
+                    [nameof(request.Password)] = ["Password is required."]
+                }
             });
         }
 
