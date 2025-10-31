@@ -15,6 +15,7 @@ import type {
   NotificationItem,
   Group,
   ShareSubjectType,
+  TagScope,
 } from "./types"
 import {
   mockFiles,
@@ -147,6 +148,8 @@ type TagLabelResponse = {
   id: string
   namespaceId: string
   namespaceDisplayName?: string | null
+  namespaceScope?: string | null
+  scope?: string | null
   parentId?: string | null
   name: string
   pathIds: string[]
@@ -221,6 +224,15 @@ function colorForKey(key: string): string {
   return TAG_COLOR_PALETTE[paletteIndex]
 }
 
+function normalizeScope(value?: string | null): TagScope {
+  const normalized = value?.trim().toLowerCase()
+  if (normalized === "group" || normalized === "global") {
+    return normalized
+  }
+
+  return "user"
+}
+
 function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
   if (!labels?.length) {
     return []
@@ -249,14 +261,19 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
   const ensureNamespace = (
     namespaceId: string,
     namespaceDisplayName?: string | null,
+    namespaceScope?: string | null,
   ): TagNode => {
     const existing = namespaceNodes.get(namespaceId)
     const normalizedLabel = namespaceDisplayName?.trim()
+    const normalizedScope = normalizeScope(namespaceScope)
 
     if (existing) {
       if (normalizedLabel && normalizedLabel !== existing.namespaceLabel) {
         existing.name = normalizedLabel
         existing.namespaceLabel = normalizedLabel
+      }
+      if (!existing.scope || existing.scope !== normalizedScope) {
+        existing.scope = normalizedScope
       }
       return existing
     }
@@ -270,6 +287,7 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
       namespaceLabel: label,
       kind: "namespace",
       color: colorForKey(namespaceId),
+      scope: normalizedScope,
       isActive: true,
       isSystem: false,
       sortOrder: index,
@@ -294,6 +312,7 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
       isActive: label.isActive,
       isSystem: label.isSystem,
       kind: "label",
+      scope: normalizeScope(label.namespaceScope ?? label.scope),
       children: [],
     }
 
@@ -316,7 +335,11 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
       }
       parentNode.children.push(node)
     } else {
-      const namespaceNode = ensureNamespace(label.namespaceId, label.namespaceDisplayName)
+      const namespaceNode = ensureNamespace(
+        label.namespaceId,
+        label.namespaceDisplayName,
+        label.namespaceScope ?? label.scope,
+      )
       if (!namespaceNode.children) {
         namespaceNode.children = []
       }
@@ -374,6 +397,7 @@ function normalizeMockTagTree(nodes: TagNode[]): TagNode[] {
       ...node,
       color: node.color ?? colorForKey(node.id),
       kind: node.kind ?? (children.length > 0 ? "namespace" : "label"),
+      scope: node.scope ?? "user",
       children,
     }
   })
