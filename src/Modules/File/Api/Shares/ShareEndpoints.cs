@@ -234,6 +234,14 @@ public static class ShareEndpoints
         return TypedResults.Redirect(result.Value.Uri.ToString(), permanent: false);
     }
 
+    private static readonly string[] CandidateOwnerClaimTypes =
+    [
+        ClaimTypes.NameIdentifier,
+        "http://schemas.microsoft.com/identity/claims/objectidentifier",
+        "oid",
+        "sub",
+    ];
+
     private static Guid? GetUserId(ClaimsPrincipal? user)
     {
         if (user?.Identity?.IsAuthenticated != true)
@@ -241,10 +249,21 @@ public static class ShareEndpoints
             return null;
         }
 
-        var identifier = user.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? user.FindFirstValue("sub");
+        foreach (var claimType in CandidateOwnerClaimTypes)
+        {
+            var identifier = user.FindFirstValue(claimType);
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                continue;
+            }
 
-        return Guid.TryParse(identifier, out var id) ? id : null;
+            if (Guid.TryParse(identifier, out var id))
+            {
+                return id;
+            }
+        }
+
+        return null;
     }
 
     private static IResult MapErrors(IReadOnlyCollection<string> errors)
