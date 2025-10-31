@@ -23,14 +23,14 @@ public sealed class TagsController(IEcmApiClient client) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateTagRequestDto request, CancellationToken cancellationToken)
     {
-        if (request.NamespaceId == Guid.Empty)
-        {
-            ModelState.AddModelError(nameof(request.NamespaceId), "Namespace identifier is required.");
-        }
-
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             ModelState.AddModelError(nameof(request.Name), "Tag name is required.");
+        }
+
+        if (request.NamespaceId.HasValue && request.NamespaceId.Value == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(request.NamespaceId), "Namespace identifier is required.");
         }
 
         if (!ModelState.IsValid)
