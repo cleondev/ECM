@@ -1,6 +1,7 @@
 "use client"
 
 import { FormEvent, useEffect, useMemo, useState } from "react"
+import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation"
 
 import {
   fetchShareInterstitial,
@@ -32,13 +33,17 @@ function formatFileSize(bytes?: number | null): string {
 }
 
 export default function ShareDownloadPage() {
-  const [code, setCode] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return null
-    }
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-    return extractShareCodeFromLocation(window.location)
-  })
+  const code = useMemo(
+    () => extractShareCodeFromRouter(pathname, searchParams),
+    [pathname, searchParams],
+  )
+  const initialPassword = useMemo(
+    () => searchParams?.get("password") ?? undefined,
+    [searchParams],
+  )
   const [share, setShare] = useState<ShareInterstitial | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -69,32 +74,7 @@ export default function ShareDownloadPage() {
     return true
   }, [share])
 
-  const [codeResolved, setCodeResolved] = useState(() => typeof window !== "undefined")
-
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return () => {}
-    }
-
-    function handleLocationChange() {
-      setCode(extractShareCodeFromLocation(window.location))
-      setCodeResolved(true)
-    }
-
-    window.addEventListener("popstate", handleLocationChange)
-
-    handleLocationChange()
-
-    return () => {
-      window.removeEventListener("popstate", handleLocationChange)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!codeResolved) {
-      return
-    }
-
     let cancelled = false
 
     async function loadShare(initialPassword?: string) {
@@ -102,6 +82,7 @@ export default function ShareDownloadPage() {
         setShare(null)
         setError("Liên kết chia sẻ không hợp lệ.")
         setLoading(false)
+        setAccessPassword(undefined)
         return
       }
 
@@ -137,12 +118,15 @@ export default function ShareDownloadPage() {
       }
     }
 
-    loadShare()
+    setPassword("")
+    setPasswordError(null)
+    setDownloadError(null)
+    loadShare(initialPassword)
 
     return () => {
       cancelled = true
     }
-  }, [code, codeResolved])
+  }, [code, initialPassword])
 
   async function refreshShare(withPassword?: string) {
     if (!code) {
@@ -372,22 +356,32 @@ function translateStatus(status: ShareInterstitial["status"]): string {
   }
 }
 
-function extractShareCodeFromLocation(location: Location): string | null {
-  const searchParams = new URLSearchParams(location.search)
-  const queryCode = searchParams.get("code")
-  if (queryCode) {
-    return queryCode
+function extractShareCodeFromRouter(
+  pathname: string | null,
+  searchParams: ReadonlyURLSearchParams | null,
+): string | null {
+  if (!pathname) {
+    return null
   }
 
-  const segments = location.pathname.split("/").filter(Boolean)
+  const queryCode = searchParams?.get("code")
+  if (queryCode) {
+    return safelyDecodeShareCode(queryCode)
+  }
+
+  const segments = pathname.split("/").filter(Boolean)
   if (segments.length >= 2 && segments[0] === "s") {
-    try {
-      return decodeURIComponent(segments[1])
-    } catch (error) {
-      console.warn("[ui] Failed to decode share code from pathname", error)
-      return segments[1]
-    }
+    return safelyDecodeShareCode(segments[1])
   }
 
   return null
+}
+
+function safelyDecodeShareCode(raw: string): string {
+  try {
+    return decodeURIComponent(raw)
+  } catch (error) {
+    console.warn("[ui] Failed to decode share code", error)
+    return raw
+  }
 }
