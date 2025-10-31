@@ -76,9 +76,10 @@ export function TagManagementDialog({
   const [applyColorToChildren, setApplyColorToChildren] = useState(false)
 
   const previewIcon = tagIcon && tagIcon !== NO_ICON_VALUE ? tagIcon : DEFAULT_TAG_ICON
-  const previewStyle = {
-    backgroundColor: tagColor || DEFAULT_TAG_COLOR,
-  }
+  const hasCustomColor = Boolean(tagColor && tagColor.trim() !== "")
+  const previewIndicatorStyle = hasCustomColor
+    ? { backgroundColor: tagColor, borderColor: tagColor }
+    : undefined
 
   useEffect(() => {
     if (mode === "edit" && editingTag) {
@@ -122,16 +123,30 @@ export function TagManagementDialog({
         <div className="space-y-4">
           <Label className="text-xs text-muted-foreground block">Preview</Label>
           <div className="p-4 border border-border rounded-lg bg-muted/30">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md w-fit text-foreground" style={previewStyle}>
-              <span className="text-base">{previewIcon}</span>
-              <span className="text-sm font-medium">{tagName || "Tag Name"}</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md w-fit border border-border bg-background/80 text-foreground shadow-sm">
+              <span
+                className={cn(
+                  "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
+                  hasCustomColor ? "leftbar-tag-indicator--custom" : null,
+                )}
+                style={previewIndicatorStyle}
+              />
+              <span className="text-xs flex-shrink-0">{previewIcon}</span>
+              <span className="text-sm font-medium truncate max-w-[180px]">{tagName || "Tag Name"}</span>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="tag-name">Tag Name</Label>
             <div className="flex items-center gap-2">
-              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
+              <span
+                className={cn(
+                  "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
+                  hasCustomColor ? "leftbar-tag-indicator--custom" : null,
+                )}
+                style={previewIndicatorStyle}
+              />
+              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md border border-border bg-muted/40">
                 <span className="text-lg">{previewIcon}</span>
               </div>
               <Input
