@@ -170,7 +170,9 @@ public sealed class AzureAdUserProvisioningService(
 
     private static string? GetEmail(ClaimsPrincipal principal)
         => principal.FindFirst(ClaimTypes.Email)?.Value
+           ?? principal.FindFirst("email")?.Value
            ?? principal.FindFirst("preferred_username")?.Value
+           ?? principal.FindFirst("signInNames.emailAddress")?.Value
            ?? principal.FindFirst("emails")?.Value
            ?? principal.FindFirst(ClaimTypes.Upn)?.Value;
 
