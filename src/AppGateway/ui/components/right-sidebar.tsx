@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { useState, useEffect } from "react"
-import { fetchFlows, fetchSystemTags, fetchTags } from "@/lib/api"
+import { useState, useEffect, useCallback } from "react"
+import { fetchFlows, fetchSystemTags, fetchTags, updateFile, type UpdateFileRequest } from "@/lib/api"
 import type { Flow, SystemTag, TagNode } from "@/lib/types"
 import { FileTypeIcon } from "./file-type-icon"
 
@@ -20,6 +20,7 @@ type RightSidebarProps = {
   activeTab: ActiveTab
   onTabChange: (tab: ActiveTab) => void
   onClose: () => void
+  onFileUpdate?: (file: FileItem) => void
 }
 
 const statusColors: Record<NonNullable<FileItem['status']>, string> = {
@@ -50,7 +51,7 @@ function createEditableState(file: FileItem | null): EditableFileState {
   }
 }
 
-export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: RightSidebarProps) {
+export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, onFileUpdate }: RightSidebarProps) {
   const [editValues, setEditValues] = useState<EditableFileState>(() => createEditableState(selectedFile))
 
   const [flows, setFlows] = useState<Flow[]>([])
@@ -67,21 +68,32 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
   })
 
   useEffect(() => {
-    if (selectedFile) {
-      setEditValues(createEditableState(selectedFile))
-      fetchFlows(selectedFile.id).then((data) => {
-        const sortedFlows = data.sort((a, b) => {
-          const timeA = parseTimeAgo(a.lastUpdated)
-          const timeB = parseTimeAgo(b.lastUpdated)
-          return timeA - timeB
-        })
-        setFlows(sortedFlows)
-        setCollapsedFlows(new Set(sortedFlows.map((f) => f.id)))
-      })
-      fetchSystemTags(selectedFile.id).then(setSystemTags)
-      fetchTags().then(setTagTree)
-    }
+    setEditValues(createEditableState(selectedFile))
   }, [selectedFile])
+
+  useEffect(() => {
+    fetchTags().then(setTagTree)
+  }, [])
+
+  useEffect(() => {
+    if (!selectedFile?.id) {
+      setFlows([])
+      setSystemTags([])
+      setCollapsedFlows(new Set())
+      return
+    }
+
+    fetchFlows(selectedFile.id).then((data) => {
+      const sortedFlows = data.sort((a, b) => {
+        const timeA = parseTimeAgo(a.lastUpdated)
+        const timeB = parseTimeAgo(b.lastUpdated)
+        return timeA - timeB
+      })
+      setFlows(sortedFlows)
+      setCollapsedFlows(new Set(sortedFlows.map((f) => f.id)))
+    })
+    fetchSystemTags(selectedFile.id).then(setSystemTags)
+  }, [selectedFile?.id])
 
   const parseTimeAgo = (timeStr: string): number => {
     const match = timeStr.match(/(\d+)\s+(hour|day|week|month)/)
@@ -167,9 +179,94 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose }: 
     )
   }
 
-  const handleBlur = (field: string, value: string) => {
-    console.log("[v0] Auto-save field:", field, value)
-  }
+  const handleBlur = useCallback(
+    async (field: keyof EditableFileState, rawValue: string) => {
+      if (!selectedFile) {
+        return
+      }
+
+      const updateData: UpdateFileRequest = {}
+      const trimmedValue = field === "description" ? rawValue : rawValue.trim()
+
+      switch (field) {
+        case "name": {
+          if (trimmedValue === selectedFile.name) {
+            return
+          }
+          updateData.name = trimmedValue
+          break
+        }
+        case "description": {
+          const currentDescription = selectedFile.description ?? ""
+          if (rawValue === currentDescription) {
+            return
+          }
+          updateData.description = rawValue
+          break
+        }
+        case "owner": {
+          if (trimmedValue === selectedFile.owner) {
+            return
+          }
+          updateData.owner = trimmedValue
+          break
+        }
+        case "folder": {
+          if (trimmedValue === selectedFile.folder) {
+            return
+          }
+          updateData.folder = trimmedValue
+          break
+        }
+        case "tags": {
+          const nextTagNames = trimmedValue
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag.length > 0)
+          const currentTagNames = selectedFile.tags.map((tag) => tag.name.trim()).filter((tag) => tag.length > 0)
+
+          const normalizedNext = Array.from(new Set(nextTagNames)).sort()
+          const normalizedCurrent = Array.from(new Set(currentTagNames)).sort()
+
+          const hasChanged =
+            normalizedNext.length !== normalizedCurrent.length ||
+            normalizedNext.some((tag, index) => tag !== normalizedCurrent[index])
+
+          if (!hasChanged) {
+            return
+          }
+
+          updateData.tagNames = normalizedNext
+          break
+        }
+        case "status": {
+          const normalizedStatus = (trimmedValue || DEFAULT_FILE_STATUS) as NonNullable<FileItem["status"]>
+          const currentStatus = selectedFile.status ?? DEFAULT_FILE_STATUS
+          if (normalizedStatus === currentStatus) {
+            return
+          }
+          updateData.status = normalizedStatus
+          break
+        }
+        default:
+          return
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return
+      }
+
+      try {
+        console.log("[v0] Auto-save field:", field, rawValue)
+        const updatedFile = await updateFile(selectedFile.id, updateData)
+        setEditValues(createEditableState(updatedFile))
+        onFileUpdate?.(updatedFile)
+      } catch (error) {
+        console.error(`[v0] Failed to auto-save field ${field}:`, error)
+      }
+    },
+    [selectedFile, onFileUpdate],
+  )
 
   const activeTabLabel =
     activeTab === "flow" ? "Flow" : activeTab === "form" ? "Form" : "Property"

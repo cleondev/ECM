@@ -130,6 +130,11 @@ export function FileManager() {
     loadFiles(true)
   }
 
+  const handleFileUpdated = (updatedFile: FileItem) => {
+    setFiles((prev) => prev.map((file) => (file.id === updatedFile.id ? { ...file, ...updatedFile } : file)))
+    setSelectedFile(updatedFile)
+  }
+
   useEffect(() => {
     setShareResult(null)
     setShareError(null)
@@ -492,6 +497,7 @@ export function FileManager() {
                 activeTab={activeRightTab}
                 onTabChange={setActiveRightTab}
                 onClose={() => setIsRightSidebarOpen(false)}
+                onFileUpdate={handleFileUpdated}
               />
             </div>
           </>
@@ -610,6 +616,7 @@ export function FileManager() {
                   setIsRightDrawerOpen(false)
                   setIsRightSidebarOpen(false)
                 }}
+                onFileUpdate={handleFileUpdated}
               />
             </DrawerContent>
           </Drawer>
