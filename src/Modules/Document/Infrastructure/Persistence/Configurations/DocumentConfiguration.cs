@@ -23,10 +23,13 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<DomainDocum
         idProperty.Metadata.SetValueConverter(EfConverters.DocumentIdConverter);
         idProperty.Metadata.SetValueComparer(EfConverters.DocumentIdComparer);
 
-        builder.Property(document => document.Title)
+        var titleProperty = builder.Property(document => document.Title)
             .HasColumnName("title")
             .IsRequired()
-            .HasConversion(title => title.Value, value => DocumentTitle.Create(value));
+            .HasConversion(EfConverters.DocumentTitleConverter);
+
+        titleProperty.Metadata.SetValueConverter(EfConverters.DocumentTitleConverter);
+        titleProperty.Metadata.SetValueComparer(EfConverters.DocumentTitleComparer);
 
         builder.Property(document => document.DocType)
             .HasColumnName("doc_type")
