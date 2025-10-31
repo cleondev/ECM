@@ -3,6 +3,8 @@ namespace Shared.Contracts.Documents;
 public static class DocumentEventNames
 {
     public const string DocumentCreated = "ecm.document.created";
+    public const string DocumentUpdated = "ecm.document.updated";
+    public const string DocumentDeleted = "ecm.document.deleted";
     public const string DocumentTagAssigned = "ecm.document.tag-assigned";
     public const string DocumentTagRemoved = "ecm.document.tag-removed";
     public const string TagLabelCreated = "ecm.tag-label.created";

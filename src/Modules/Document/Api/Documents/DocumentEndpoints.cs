@@ -119,7 +119,7 @@ public static class DocumentEndpoints
             return TypedResults.Forbid();
         }
 
-        var result = await handler.HandleAsync(new DeleteDocumentCommand(documentId), cancellationToken);
+        var result = await handler.HandleAsync(new DeleteDocumentCommand(documentId, userId.Value), cancellationToken);
 
         if (result.IsFailure)
         {
@@ -165,6 +165,7 @@ public static class DocumentEndpoints
 
         var command = new UpdateDocumentCommand(
             documentId,
+            userId.Value,
             request.Title,
             request.Status,
             request.Sensitivity,

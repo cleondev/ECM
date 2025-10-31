@@ -23,6 +23,8 @@ internal static class DocumentOutboxMapper
         return domainEvent switch
         {
             DocumentCreatedDomainEvent created => Map(created),
+            DocumentUpdatedDomainEvent updated => Map(updated),
+            DocumentDeletedDomainEvent deleted => Map(deleted),
             DocumentTagAssignedDomainEvent tagAssigned => Map(tagAssigned),
             DocumentTagRemovedDomainEvent tagRemoved => Map(tagRemoved),
             TagLabelCreatedDomainEvent tagCreated => Map(tagCreated),
@@ -47,6 +49,44 @@ internal static class DocumentOutboxMapper
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
             type: DocumentEventNames.DocumentCreated,
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+
+    private static OutboxMessage Map(DocumentUpdatedDomainEvent domainEvent)
+    {
+        var contract = new DocumentUpdatedContract(
+            domainEvent.DocumentId.Value,
+            domainEvent.Title,
+            domainEvent.Status,
+            domainEvent.Sensitivity,
+            domainEvent.GroupId,
+            domainEvent.UpdatedBy,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "document",
+            aggregateId: domainEvent.DocumentId.Value,
+            type: DocumentEventNames.DocumentUpdated,
+            payload: payload,
+            occurredAtUtc: domainEvent.OccurredAtUtc);
+    }
+
+    private static OutboxMessage Map(DocumentDeletedDomainEvent domainEvent)
+    {
+        var contract = new DocumentDeletedContract(
+            domainEvent.DocumentId.Value,
+            domainEvent.DeletedBy,
+            domainEvent.OccurredAtUtc);
+
+        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
+
+        return new OutboxMessage(
+            aggregate: "document",
+            aggregateId: domainEvent.DocumentId.Value,
+            type: DocumentEventNames.DocumentDeleted,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }

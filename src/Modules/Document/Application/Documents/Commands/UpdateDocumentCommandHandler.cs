@@ -32,14 +32,24 @@ public sealed class UpdateDocumentCommandHandler(
             return OperationResult<DomainDocument>.Failure(DocumentNotFoundError);
         }
 
+        if (command.UpdatedBy == Guid.Empty)
+        {
+            return OperationResult<DomainDocument>.Failure("Updated by is required.");
+        }
+
         var now = _clock.UtcNow;
+        var hasChanges = false;
 
         if (command.Title is not null)
         {
             try
             {
                 var title = DocumentTitle.Create(command.Title);
-                document.UpdateTitle(title, now);
+                if (!string.Equals(document.Title.Value, title.Value, StringComparison.Ordinal))
+                {
+                    document.UpdateTitle(title, now);
+                    hasChanges = true;
+                }
             }
             catch (ArgumentException exception)
             {
@@ -51,7 +61,19 @@ public sealed class UpdateDocumentCommandHandler(
         {
             try
             {
-                document.UpdateStatus(command.Status, now);
+                if (string.IsNullOrWhiteSpace(command.Status))
+                {
+                    document.UpdateStatus(command.Status, now);
+                }
+                else
+                {
+                    var trimmedStatus = command.Status.Trim();
+                    if (!string.Equals(document.Status, trimmedStatus, StringComparison.Ordinal))
+                    {
+                        document.UpdateStatus(command.Status, now);
+                        hasChanges = true;
+                    }
+                }
             }
             catch (ArgumentException exception)
             {
@@ -63,7 +85,19 @@ public sealed class UpdateDocumentCommandHandler(
         {
             try
             {
-                document.UpdateSensitivity(command.Sensitivity, now);
+                if (string.IsNullOrWhiteSpace(command.Sensitivity))
+                {
+                    document.UpdateSensitivity(command.Sensitivity, now);
+                }
+                else
+                {
+                    var trimmedSensitivity = command.Sensitivity.Trim();
+                    if (!string.Equals(document.Sensitivity, trimmedSensitivity, StringComparison.Ordinal))
+                    {
+                        document.UpdateSensitivity(command.Sensitivity, now);
+                        hasChanges = true;
+                    }
+                }
             }
             catch (ArgumentException exception)
             {
@@ -73,10 +107,19 @@ public sealed class UpdateDocumentCommandHandler(
 
         if (command.HasGroupId)
         {
-            document.UpdateGroupId(command.GroupId, now);
+            var normalizedGroupId = NormalizeGroupId(command.GroupId);
+            if (normalizedGroupId != document.GroupId)
+            {
+                document.UpdateGroupId(command.GroupId, now);
+                hasChanges = true;
+            }
         }
 
-        await _repository.SaveChangesAsync(cancellationToken);
+        if (hasChanges)
+        {
+            document.MarkUpdated(command.UpdatedBy, now);
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
 
         return OperationResult<DomainDocument>.Success(document);
     }
@@ -89,5 +132,10 @@ public sealed class UpdateDocumentCommandHandler(
         }
 
         return result.Errors.Any(error => string.Equals(error, DocumentNotFoundError, StringComparison.Ordinal));
+    }
+
+    private static Guid? NormalizeGroupId(Guid? groupId)
+    {
+        return groupId is null || groupId == Guid.Empty ? null : groupId;
     }
 }

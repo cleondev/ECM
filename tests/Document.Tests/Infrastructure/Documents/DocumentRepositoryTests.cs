@@ -1,3 +1,4 @@
+using System;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Documents.Events;
 using ECM.Document.Infrastructure.Documents;
@@ -42,5 +43,74 @@ public class DocumentRepositoryTests
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("document", message.Aggregate);
         Assert.Equal(DocumentEventNames.DocumentTagAssigned, message.Type);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_PersistsOutboxMessageForUpdatedDocument()
+    {
+        var options = new DbContextOptionsBuilder<DocumentDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new DocumentDbContext(options);
+        var repository = new DocumentRepository(context);
+
+        var now = DateTimeOffset.UtcNow;
+        var document = DomainDocument.Create(
+            DocumentTitle.Create("Project Charter"),
+            "proposal",
+            "draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            now);
+
+        await repository.AddAsync(document, CancellationToken.None);
+        context.OutboxMessages.RemoveRange(context.OutboxMessages);
+        await context.SaveChangesAsync();
+
+        document.UpdateStatus("published", now.AddMinutes(1));
+        var updatedBy = Guid.NewGuid();
+        var updatedAt = now.AddMinutes(1);
+        document.MarkUpdated(updatedBy, updatedAt);
+
+        await repository.SaveChangesAsync(CancellationToken.None);
+
+        var message = Assert.Single(context.OutboxMessages);
+        Assert.Equal("document", message.Aggregate);
+        Assert.Equal(DocumentEventNames.DocumentUpdated, message.Type);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_PersistsOutboxMessageForDeletedDocument()
+    {
+        var options = new DbContextOptionsBuilder<DocumentDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        await using var context = new DocumentDbContext(options);
+        var repository = new DocumentRepository(context);
+
+        var now = DateTimeOffset.UtcNow;
+        var document = DomainDocument.Create(
+            DocumentTitle.Create("Project Charter"),
+            "proposal",
+            "draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            now);
+
+        await repository.AddAsync(document, CancellationToken.None);
+        context.OutboxMessages.RemoveRange(context.OutboxMessages);
+        await context.SaveChangesAsync();
+
+        var deletedBy = Guid.NewGuid();
+        var deletedAt = now.AddMinutes(5);
+        document.MarkDeleted(deletedBy, deletedAt);
+
+        await repository.DeleteAsync(document, CancellationToken.None);
+
+        var message = Assert.Single(context.OutboxMessages);
+        Assert.Equal("document", message.Aggregate);
+        Assert.Equal(DocumentEventNames.DocumentDeleted, message.Type);
     }
 }
