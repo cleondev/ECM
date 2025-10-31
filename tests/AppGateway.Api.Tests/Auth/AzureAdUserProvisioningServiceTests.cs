@@ -303,6 +303,9 @@ public class AzureAdUserProvisioningServiceTests
         public Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload request, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 

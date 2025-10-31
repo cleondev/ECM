@@ -187,6 +187,9 @@ public class IamAuthenticationControllerTests
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
