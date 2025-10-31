@@ -19,4 +19,19 @@ public static class EfConverters
             id => id.Value.GetHashCode(),
             id => DocumentId.FromGuid(id.Value)
         );
+
+    public static readonly ValueConverter<DocumentTitle, string> DocumentTitleConverter =
+        new(
+            title => title.Value,
+            value => DocumentTitle.Create(value)
+        );
+
+    public static readonly ValueComparer<DocumentTitle> DocumentTitleComparer =
+        new(
+            (left, right) =>
+                ReferenceEquals(left, right)
+                || (left is not null && right is not null && left.Value == right.Value),
+            title => title is null ? 0 : title.Value.GetHashCode(),
+            title => DocumentTitle.Create(title.Value)
+        );
 }
