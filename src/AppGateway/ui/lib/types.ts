@@ -28,6 +28,8 @@ export type FileItem = {
   latestVersionId?: string
   latestVersionNumber?: number
   latestVersionStorageKey?: string
+  latestVersionMimeType?: string
+  latestVersionCreatedAtUtc?: string
   sizeBytes?: number
 }
 
@@ -149,6 +151,7 @@ export type ShareOptions = {
 
 export type ShareLink = {
   url: string
+  shortUrl: string
   expiresAtUtc: string
   isPublic: boolean
 }

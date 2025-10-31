@@ -142,8 +142,42 @@ internal sealed class EcmApiClient(
                 if (string.IsNullOrWhiteSpace(content))
                 {
                     content = null;
-                }
-            }
+    }
+
+    private sealed record ShareLinkResponse(
+        string Url,
+        string ShortUrl,
+        DateTimeOffset ValidFrom,
+        DateTimeOffset? ValidTo,
+        string SubjectType);
+
+    private static string? NormalizeExtension(string? extension, string fileName)
+    {
+        if (!string.IsNullOrWhiteSpace(extension))
+        {
+            var trimmed = extension.Trim();
+            return trimmed.StartsWith('.', StringComparison.Ordinal) ? trimmed[1..] : trimmed;
+        }
+
+        var lastDot = fileName.LastIndexOf('.', StringComparison.Ordinal);
+        if (lastDot >= 0 && lastDot < fileName.Length - 1)
+        {
+            return fileName[(lastDot + 1)..];
+        }
+
+        return null;
+    }
+
+    private static Uri CreateUri(string value)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
+        {
+            return absolute;
+        }
+
+        return new Uri(value, UriKind.Relative);
+    }
+}
         }
 
         return new PasswordUpdateResult(response.StatusCode, content, contentType);
@@ -382,13 +416,49 @@ internal sealed class EcmApiClient(
     }
 
     public async Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
-        Guid versionId,
         CreateShareLinkRequestDto requestDto,
         CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Post, $"api/ecm/files/share/{versionId}", cancellationToken);
-        request.Content = JsonContent.Create(requestDto);
-        return await SendAsync<DocumentShareLinkDto>(request, cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/shares", cancellationToken);
+
+        var normalizedExtension = NormalizeExtension(requestDto.FileExtension, requestDto.FileName);
+        var contentType = string.IsNullOrWhiteSpace(requestDto.FileContentType)
+            ? "application/octet-stream"
+            : requestDto.FileContentType.Trim();
+
+        var validFrom = DateTimeOffset.UtcNow;
+        var effectiveMinutes = requestDto.GetEffectiveMinutes();
+        var validTo = validFrom.AddMinutes(effectiveMinutes);
+
+        var payload = new
+        {
+            documentId = requestDto.DocumentId,
+            versionId = requestDto.VersionId,
+            subjectType = requestDto.IsPublic ? "public" : "public",
+            permissions = new[] { "view", "download" },
+            validFrom,
+            validTo,
+            fileName = requestDto.FileName,
+            fileExtension = normalizedExtension,
+            fileContentType = contentType,
+            fileSizeBytes = requestDto.FileSizeBytes < 0 ? 0 : requestDto.FileSizeBytes,
+            fileCreatedAt = requestDto.FileCreatedAtUtc,
+        };
+
+        request.Content = JsonContent.Create(payload);
+
+        var response = await SendAsync<ShareLinkResponse>(request, cancellationToken);
+        if (response is null)
+        {
+            return null;
+        }
+
+        var url = CreateUri(response.Url);
+        var shortUrl = CreateUri(response.ShortUrl);
+        var expiresAt = response.ValidTo ?? response.ValidFrom.AddMinutes(effectiveMinutes);
+        var isPublic = string.Equals(response.SubjectType, "public", StringComparison.OrdinalIgnoreCase);
+
+        return new DocumentShareLinkDto(url, shortUrl, expiresAt, isPublic);
     }
 
     public async Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)

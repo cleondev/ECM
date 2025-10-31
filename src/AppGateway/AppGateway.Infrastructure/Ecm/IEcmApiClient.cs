@@ -71,7 +71,6 @@ public interface IEcmApiClient
         CancellationToken cancellationToken = default);
 
     Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
-        Guid versionId,
         CreateShareLinkRequestDto request,
         CancellationToken cancellationToken = default);
 

@@ -6,12 +6,13 @@ internal static class ShareLinkMapper
 {
     public static ShareLinkDto ToDto(ShareLink shareLink, ShareLinkOptions options)
     {
-        var url = BuildShareUrl(options.PublicBaseUrl, shareLink.Code);
+        var (url, shortUrl) = BuildShareUrls(options.PublicBaseUrl, shareLink.Code);
 
         return new ShareLinkDto(
             shareLink.Id,
             shareLink.Code,
             url,
+            shortUrl,
             shareLink.OwnerUserId,
             shareLink.DocumentId,
             shareLink.VersionId,
@@ -33,16 +34,16 @@ internal static class ShareLinkMapper
             shareLink.RevokedAt);
     }
 
-    private static string BuildShareUrl(string? baseUrl, string code)
+    private static (string Url, string ShortUrl) BuildShareUrls(string? baseUrl, string code)
     {
         var encodedCode = Uri.EscapeDataString(code);
 
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
-            return $"/s/?code={encodedCode}";
+            return ($"/s/?code={encodedCode}", $"/s/{encodedCode}");
         }
 
         var trimmed = baseUrl.TrimEnd('/');
-        return $"{trimmed}/s/?code={encodedCode}";
+        return ($"{trimmed}/s/?code={encodedCode}", $"{trimmed}/s/{encodedCode}");
     }
 }

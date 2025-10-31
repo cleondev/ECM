@@ -9,7 +9,15 @@ import { FileToolbar } from "./file-toolbar"
 import { UploadDialog } from "./upload-dialog"
 import { ResizableHandle } from "./resizable-handle"
 import { ShareDialog } from "./share-dialog"
-import type { FileItem, FileQueryParams, SelectedTag, ShareLink, ShareOptions } from "@/lib/types"
+import { TagAssignmentDialog } from "./tag-assignment-dialog"
+import type {
+  DocumentTag,
+  FileItem,
+  FileQueryParams,
+  SelectedTag,
+  ShareLink,
+  ShareOptions,
+} from "@/lib/types"
 import { buildDocumentDownloadUrl, createShareLink, fetchFiles } from "@/lib/api"
 import { useIsMobile } from "@/components/ui/use-mobile"
 import {
@@ -21,6 +29,28 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
+
+function mergeDocumentTags(existing: DocumentTag[], additions: DocumentTag[]): DocumentTag[] {
+  if (additions.length === 0) {
+    return existing
+  }
+
+  const additionMap = new Map(additions.map((tag) => [tag.id, tag]))
+  const merged = existing.map((tag) => {
+    const updated = additionMap.get(tag.id)
+    if (updated) {
+      additionMap.delete(tag.id)
+      return { ...tag, ...updated }
+    }
+    return tag
+  })
+
+  additionMap.forEach((tag) => {
+    merged.push(tag)
+  })
+
+  return merged
+}
 
 const PAGE_SIZE = 20
 
@@ -45,6 +75,8 @@ export function FileManager() {
   const [shareResult, setShareResult] = useState<ShareLink | null>(null)
   const [shareError, setShareError] = useState<string | null>(null)
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
+  const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
+  const [tagDialogFile, setTagDialogFile] = useState<FileItem | null>(null)
   const [sortBy, setSortBy] = useState<"name" | "modified" | "size">("modified")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false)
@@ -142,7 +174,7 @@ export function FileManager() {
     setShareError(null)
 
     try {
-      const link = await createShareLink(selectedFile.latestVersionId, options)
+      const link = await createShareLink(selectedFile, options)
       setShareResult(link)
     } catch (error) {
       console.error("[ui] Failed to create share link:", error)
@@ -171,6 +203,47 @@ export function FileManager() {
 
     resetShareState()
     setShareDialogOpen(true)
+  }
+
+  const handleAssignTagsClick = (file?: FileItem) => {
+    const targetFile = file ?? selectedFile
+
+    if (!targetFile) {
+      return
+    }
+
+    if (file) {
+      ensureSingleSelection(targetFile)
+    }
+
+    setTagDialogFile(targetFile)
+    setIsTagDialogOpen(true)
+  }
+
+  const handleTagsAssigned = (fileId: string, addedTags: DocumentTag[]) => {
+    if (addedTags.length === 0) {
+      return
+    }
+
+    setFiles((previous) =>
+      previous.map((file) =>
+        file.id === fileId ? { ...file, tags: mergeDocumentTags(file.tags, addedTags) } : file,
+      ),
+    )
+
+    setSelectedFile((previous) => {
+      if (!previous || previous.id !== fileId) {
+        return previous
+      }
+      return { ...previous, tags: mergeDocumentTags(previous.tags, addedTags) }
+    })
+
+    setTagDialogFile((previous) => {
+      if (!previous || previous.id !== fileId) {
+        return previous
+      }
+      return { ...previous, tags: mergeDocumentTags(previous.tags, addedTags) }
+    })
   }
 
   useEffect(() => {
@@ -349,6 +422,7 @@ export function FileManager() {
               onLoadMore={() => loadFiles(false)}
               onDownloadFile={handleDownloadClick}
               onShareFile={handleShareClick}
+              onAssignTags={handleAssignTagsClick}
               onOpenDetailsTab={handleOpenDetailsPanel}
             />
           </div>
@@ -389,6 +463,18 @@ export function FileManager() {
         result={shareResult}
         error={shareError}
         onReset={resetShareState}
+      />
+
+      <TagAssignmentDialog
+        open={isTagDialogOpen}
+        onOpenChange={(open) => {
+          setIsTagDialogOpen(open)
+          if (!open) {
+            setTagDialogFile(null)
+          }
+        }}
+        file={tagDialogFile}
+        onTagsAssigned={handleTagsAssigned}
       />
 
       {isMobileDevice && (
