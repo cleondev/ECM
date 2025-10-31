@@ -38,6 +38,19 @@ public static class DependencyInjection
                     options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(180);
                 });
 
+        services.AddHttpClient<IEcmShareAccessClient, EcmShareAccessClient>(client => client.BaseAddress = new Uri(baseAddress))
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    AllowAutoRedirect = false
+                })
+                .AddStandardResilienceHandler()
+                .Configure(options =>
+                {
+                    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
+                    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(120);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(180);
+                });
+
         services.Configure<IamOptions>(configuration.GetSection("IAM"));
         services.Configure<EcmApiClientOptions>(options =>
         {

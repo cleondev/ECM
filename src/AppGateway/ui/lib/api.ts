@@ -1747,12 +1747,14 @@ function normalizeShareInterstitial(dto: ShareInterstitialResponseDto): ShareInt
 
 export async function fetchShareInterstitial(code: string, password?: string): Promise<ShareInterstitial> {
   const query = password ? `?password=${encodeURIComponent(password)}` : ""
-  const dto = await gatewayRequest<ShareInterstitialResponseDto>(`/s/${encodeShareCode(code)}${query}`)
+  const dto = await gatewayRequest<ShareInterstitialResponseDto>(
+    `/api/share-links/${encodeShareCode(code)}${query}`,
+  )
   return normalizeShareInterstitial(dto)
 }
 
 export async function verifySharePassword(code: string, password: string): Promise<boolean> {
-  const response = await gatewayFetch(`/s/${encodeShareCode(code)}/password`, {
+  const response = await gatewayFetch(`/api/share-links/${encodeShareCode(code)}/password`, {
     method: "POST",
     body: JSON.stringify({ password }),
   })
@@ -1774,17 +1776,20 @@ export async function verifySharePassword(code: string, password: string): Promi
 
 export async function requestShareDownloadLink(code: string, password?: string): Promise<SharePresignResponse> {
   const payload = password ? { password } : {}
-  const response = await gatewayRequest<SharePresignResponse>(`/s/${encodeShareCode(code)}/presign`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  })
+  const response = await gatewayRequest<SharePresignResponse>(
+    `/api/share-links/${encodeShareCode(code)}/presign`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  )
 
   return response
 }
 
 export function redirectToShareDownload(code: string, password?: string): void {
   const query = password ? `?password=${encodeURIComponent(password)}` : ""
-  const url = createGatewayUrl(`/s/${encodeShareCode(code)}/download${query}`)
+  const url = createGatewayUrl(`/api/share-links/${encodeShareCode(code)}/download${query}`)
 
   if (typeof window !== "undefined") {
     window.location.href = url
