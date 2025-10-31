@@ -142,42 +142,8 @@ internal sealed class EcmApiClient(
                 if (string.IsNullOrWhiteSpace(content))
                 {
                     content = null;
-    }
-
-    private sealed record ShareLinkResponse(
-        string Url,
-        string ShortUrl,
-        DateTimeOffset ValidFrom,
-        DateTimeOffset? ValidTo,
-        string SubjectType);
-
-    private static string? NormalizeExtension(string? extension, string fileName)
-    {
-        if (!string.IsNullOrWhiteSpace(extension))
-        {
-            var trimmed = extension.Trim();
-            return trimmed.StartsWith('.', StringComparison.Ordinal) ? trimmed[1..] : trimmed;
-        }
-
-        var lastDot = fileName.LastIndexOf('.', StringComparison.Ordinal);
-        if (lastDot >= 0 && lastDot < fileName.Length - 1)
-        {
-            return fileName[(lastDot + 1)..];
-        }
-
-        return null;
-    }
-
-    private static Uri CreateUri(string value)
-    {
-        if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
-        {
-            return absolute;
-        }
-
-        return new Uri(value, UriKind.Relative);
-    }
-}
+                }
+            }
         }
 
         return new PasswordUpdateResult(response.StatusCode, content, contentType);
@@ -459,6 +425,40 @@ internal sealed class EcmApiClient(
         var isPublic = string.Equals(response.SubjectType, "public", StringComparison.OrdinalIgnoreCase);
 
         return new DocumentShareLinkDto(url, shortUrl, expiresAt, isPublic);
+    }
+
+    private sealed record ShareLinkResponse(
+        string Url,
+        string ShortUrl,
+        DateTimeOffset ValidFrom,
+        DateTimeOffset? ValidTo,
+        string SubjectType);
+
+    private static string? NormalizeExtension(string? extension, string fileName)
+    {
+        if (!string.IsNullOrWhiteSpace(extension))
+        {
+            var trimmed = extension.Trim();
+            return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed[1..] : trimmed;
+        }
+
+        var lastDot = fileName.LastIndexOf(".", StringComparison.Ordinal);
+        if (lastDot >= 0 && lastDot < fileName.Length - 1)
+        {
+            return fileName[(lastDot + 1)..];
+        }
+
+        return null;
+    }
+
+    private static Uri CreateUri(string value)
+    {
+        if (Uri.TryCreate(value, UriKind.Absolute, out var absolute))
+        {
+            return absolute;
+        }
+
+        return new Uri(value, UriKind.Relative);
     }
 
     public async Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)
