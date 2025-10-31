@@ -139,6 +139,25 @@ public class AzureAdUserProvisioningServiceTests
     }
 
     [Fact]
+    public async Task EnsureUserExistsAsync_UsesSignInNamesEmailClaim_WhenPresent()
+    {
+        var existingUser = CreateUserSummary();
+        var client = new FakeEcmApiClient
+        {
+            ExistingUser = existingUser
+        };
+        var service = CreateService(client: client);
+        var principal = CreatePrincipal(
+            existingUser.Email,
+            existingUser.DisplayName,
+            claimType: "signInNames.emailAddress");
+
+        var result = await service.EnsureUserExistsAsync(principal, CancellationToken.None);
+
+        result.Should().Be(existingUser);
+    }
+
+    [Fact]
     public async Task EnsureUserExistsAsync_UsesEmailsArrayClaim_WhenPresent()
     {
         var existingUser = CreateUserSummary();
