@@ -23,6 +23,7 @@ type FileGridProps = {
   onOpenDetailsTab: (tab: "property" | "flow" | "form", file: FileItem) => void
   onAssignTags: (file: FileItem) => void
   onDeleteFile: (file: FileItem) => void
+  onDeleteSelection: (fileIds: Set<string>) => void
 }
 
 function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
@@ -71,6 +72,7 @@ export function FileGrid({
   onOpenDetailsTab,
   onAssignTags,
   onDeleteFile,
+  onDeleteSelection,
 }: FileGridProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const lastSelectedIndexRef = useRef<number>(-1)
@@ -116,6 +118,12 @@ export function FileGrid({
         return
       }
 
+      if (e.key === "Delete" && selectedFiles.size > 0) {
+        e.preventDefault()
+        onDeleteSelection(new Set(selectedFiles))
+        return
+      }
+
       // Arrow key navigation
       const currentIndex = selectedFile ? files.findIndex((f) => f.id === selectedFile.id) : -1
       let newIndex = currentIndex
@@ -145,7 +153,15 @@ export function FileGrid({
       container.addEventListener("keydown", handleKeyDown)
       return () => container.removeEventListener("keydown", handleKeyDown)
     }
-  }, [files, selectedFile, viewMode, onFileSelect, onSelectedFilesChange, selectedFiles])
+  }, [
+    files,
+    selectedFile,
+    viewMode,
+    onFileSelect,
+    onSelectedFilesChange,
+    selectedFiles,
+    onDeleteSelection,
+  ])
 
   const handleFileClick = (file: FileItem, index: number, e: React.MouseEvent) => {
     if (e.ctrlKey || e.metaKey) {

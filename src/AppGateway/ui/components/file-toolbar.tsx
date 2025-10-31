@@ -11,6 +11,7 @@ import {
   Share2,
   SlidersHorizontal,
   Upload,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -23,10 +24,12 @@ type FileToolbarProps = {
   onUploadClick: () => void
   onDownloadClick?: () => void
   onShareClick?: () => void
+  onDeleteClick?: () => void
   sortBy: "name" | "modified" | "size"
   sortOrder: "asc" | "desc"
   onSortChange: (sortBy: "name" | "modified" | "size", sortOrder: "asc" | "desc") => void
   disableFileActions?: boolean
+  disableDeleteAction?: boolean
   isRightSidebarOpen: boolean
   onToggleRightSidebar: () => void
   activeRightTab: "property" | "flow" | "form"
@@ -54,10 +57,12 @@ export function FileToolbar({
   onUploadClick,
   onDownloadClick,
   onShareClick,
+  onDeleteClick,
   sortBy,
   sortOrder,
   onSortChange,
   disableFileActions = false,
+  disableDeleteAction = false,
   isRightSidebarOpen,
   onToggleRightSidebar,
   activeRightTab,
@@ -131,6 +136,17 @@ export function FileToolbar({
                 <Share2 className="h-4 w-4" />
                 <span className="sr-only">Share</span>
                 <span className="hidden sm:inline">Share</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="gap-0 sm:gap-2 flex-1 justify-center sm:flex-none sm:w-auto"
+                onClick={() => onDeleteClick?.()}
+                disabled={disableDeleteAction}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delete</span>
+                <span className="hidden sm:inline">Delete</span>
               </Button>
             </div>
 
