@@ -5,6 +5,7 @@ namespace ECM.Document.Api.Tags.Responses;
 public sealed record TagLabelResponse(
     Guid Id,
     Guid NamespaceId,
+    string? NamespaceScope,
     string? NamespaceDisplayName,
     Guid? ParentId,
     string Name,

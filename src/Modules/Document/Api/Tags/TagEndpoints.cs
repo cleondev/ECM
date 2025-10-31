@@ -112,6 +112,7 @@ public static class TagEndpoints
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
+            result.Value.NamespaceScope,
             result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,
@@ -139,6 +140,7 @@ public static class TagEndpoints
             .Select(tag => new TagLabelResponse(
                 tag.Id,
                 tag.NamespaceId,
+                tag.NamespaceScope,
                 tag.NamespaceDisplayName,
                 tag.ParentId,
                 tag.Name,
@@ -215,6 +217,7 @@ public static class TagEndpoints
         var response = new TagLabelResponse(
             result.Value.Id,
             result.Value.NamespaceId,
+            result.Value.NamespaceScope,
             result.Value.NamespaceDisplayName,
             result.Value.ParentId,
             result.Value.Name,

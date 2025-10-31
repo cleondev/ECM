@@ -50,6 +50,9 @@ public sealed class CreateTagLabelCommandHandler(
         var tagNamespace = await EnsurePersonalNamespaceAsync(command.CreatedBy.Value, cancellationToken)
             .ConfigureAwait(false);
         var namespaceId = tagNamespace.Id;
+        var namespaceScope = string.IsNullOrWhiteSpace(tagNamespace.Scope)
+            ? null
+            : tagNamespace.Scope.Trim();
         var namespaceDisplayName = string.IsNullOrWhiteSpace(tagNamespace.DisplayName)
             ? null
             : tagNamespace.DisplayName.Trim();
@@ -94,6 +97,7 @@ public sealed class CreateTagLabelCommandHandler(
         var result = new TagLabelResult(
             tagLabel.Id,
             tagLabel.NamespaceId,
+            namespaceScope,
             namespaceDisplayName,
             tagLabel.ParentId,
             tagLabel.Name,
