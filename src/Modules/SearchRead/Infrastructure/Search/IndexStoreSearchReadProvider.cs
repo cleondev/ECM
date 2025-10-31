@@ -38,12 +38,11 @@ internal sealed class IndexStoreSearchReadProvider(ISearchIndexReader reader) : 
         var records = await _reader.ListAsync(cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(term))
         {
-            return records
+            return [.. records
                 .Select(record => record.Title)
                 .Where(title => !string.IsNullOrWhiteSpace(title))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(limit)
-                .ToArray();
+                .Take(limit)];
         }
 
         var comparison = StringComparison.OrdinalIgnoreCase;

@@ -28,7 +28,7 @@ internal sealed class InMemorySignatureRequestRepository : ISignatureRequestRepo
             items = items.Where(request => request.Status == query.Status);
         }
 
-        return Task.FromResult<IReadOnlyCollection<SignatureRequest>>(items.ToArray());
+        return Task.FromResult<IReadOnlyCollection<SignatureRequest>>([.. items]);
     }
 
     public Task<SignatureRequest?> FindAsync(Guid id, CancellationToken cancellationToken = default)

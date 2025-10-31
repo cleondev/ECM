@@ -503,7 +503,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             }
         }
 
-        return parsed.HasValues ? parsed.Values.ToArray() : Array.Empty<Guid>();
+        return parsed.HasValues ? [.. parsed.Values] : [];
     }
 
     private static string? ReadQueryString(IQueryCollection query, IEnumerable<string> keys)
@@ -602,7 +602,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             {
                 var normalized = NormalizeGroupSelection(
                     user.PrimaryGroupId,
-                    user.GroupIds ?? Array.Empty<Guid>(),
+                    user.GroupIds ?? [],
                     out var primaryGroupId);
 
                 if (normalized.Count > 0)
@@ -886,16 +886,16 @@ public sealed class CreateDocumentsForm
         var files = form.Files.GetFiles("Files");
         if (files.Count > 0)
         {
-            return files.ToList();
+            return [.. files];
         }
 
         files = form.Files.GetFiles("files");
         if (files.Count > 0)
         {
-            return files.ToList();
+            return [.. files];
         }
 
-        return form.Files.ToList();
+        return [.. form.Files];
     }
 
     private static IEnumerable<string> EnumerateFieldNames(string propertyName)

@@ -37,8 +37,8 @@ public class IamAuthenticationControllerTests
             DateTimeOffset.UtcNow,
             Guid.NewGuid(),
             new List<Guid> { Guid.NewGuid() },
-            Array.Empty<RoleSummaryDto>(),
-            Array.Empty<GroupSummaryDto>());
+            [],
+            []);
 
         var client = new TrackingEcmApiClient();
         var provisioningService = new TrackingProvisioningService();

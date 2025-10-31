@@ -66,7 +66,7 @@ public static class StringValuesExtensions
         }
 
         var trimmed = raw.Trim();
-        if (trimmed.StartsWith("[", StringComparison.Ordinal))
+        if (trimmed.StartsWith('['))
         {
             try
             {

@@ -16,7 +16,7 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
             .ListWithNamespaceAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return tagLabels
+        return [.. tagLabels
             .Select(label => new TagLabelResult(
                 label.Id,
                 label.NamespaceId,
@@ -31,8 +31,7 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
                 label.IsSystem,
                 label.CreatedBy,
                 label.CreatedAtUtc
-            ))
-            .ToArray();
+            ))];
     }
 
     private static string? NormalizeNamespaceDisplayName(string? displayName)

@@ -83,9 +83,7 @@ public static class WorkflowEndpoints
 
         if (request.DocumentId.HasValue)
         {
-            instances = instances
-                .Where(instance => instance.DocumentId == request.DocumentId)
-                .ToArray();
+            instances = [.. instances.Where(instance => instance.DocumentId == request.DocumentId)];
         }
 
         if (!string.IsNullOrWhiteSpace(request.State) && !request.State.Equals("open", System.StringComparison.OrdinalIgnoreCase))

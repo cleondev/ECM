@@ -136,7 +136,7 @@ public class GroupServiceTests
         context.Users.Add(user);
         await context.SaveChangesAsync();
 
-        await service.EnsureUserGroupsAsync(user, Array.Empty<GroupAssignment>(), null, CancellationToken.None);
+        await service.EnsureUserGroupsAsync(user, [], null, CancellationToken.None);
 
         var systemGroup = await context.Groups.SingleAsync(group => group.Id == GroupDefaults.SystemId);
         var guessGroup = await context.Groups.SingleAsync(group => group.Kind == GroupKind.Guess);
