@@ -71,7 +71,8 @@ public static class ShareEndpoints
             });
         }
 
-        var command = request.ToCommand(ownerId.Value);
+        var requestBaseUrl = ResolveRequestBaseUrl(httpContext.Request);
+        var command = request.ToCommand(ownerId.Value, requestBaseUrl);
         var result = await handler.HandleAsync(command, cancellationToken);
 
         if (result.IsFailure || result.Value is null)
@@ -127,6 +128,19 @@ public static class ShareEndpoints
     {
         var result = await service.RevokeAsync(shareId, cancellationToken);
         return result.IsFailure ? MapErrors(result.Errors) : TypedResults.NoContent();
+    }
+
+    private static string? ResolveRequestBaseUrl(HttpRequest request)
+    {
+        if (!request.Host.HasValue || string.IsNullOrWhiteSpace(request.Scheme))
+        {
+            return null;
+        }
+
+        var host = request.Host.ToUriComponent();
+        var pathBase = request.PathBase.HasValue ? request.PathBase.ToUriComponent() : string.Empty;
+
+        return string.Concat(request.Scheme, "://", host, pathBase);
     }
 
     private static async Task<IResult> GetInterstitialAsync(

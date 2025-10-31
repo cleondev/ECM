@@ -58,7 +58,7 @@ public sealed class CreateShareLinkRequest
     [JsonPropertyName("allowedIps")]
     public string[]? AllowedIps { get; set; }
 
-    public CreateShareLinkCommand ToCommand(Guid ownerId)
+    public CreateShareLinkCommand ToCommand(Guid ownerId, string? requestBaseUrl)
     {
         var subjectType = ParseSubjectType(SubjectType);
         var permissions = ParsePermissions(Permissions);
@@ -84,7 +84,8 @@ public sealed class CreateShareLinkRequest
             FileSizeBytes,
             FileCreatedAt,
             watermark,
-            AllowedIps);
+            AllowedIps,
+            requestBaseUrl);
     }
 
     private static IReadOnlyCollection<SharePermission> ParsePermissions(IEnumerable<string>? values)
