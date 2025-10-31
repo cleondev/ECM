@@ -5,7 +5,7 @@ using System.Text.Json;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.File.Domain.Files.Events;
 using ECM.Operations.Infrastructure.Persistence;
-using Shared.Contracts.Files;
+using Shared.Contracts.Messaging;
 
 namespace ECM.File.Infrastructure.Outbox;
 
@@ -40,7 +40,7 @@ internal static class FileOutboxMapper
         return new OutboxMessage(
             aggregate: "file",
             aggregateId: CreateDeterministicGuid(domainEvent.StorageKey),
-            type: FileEventNames.StoredFileUploaded,
+            type: EventNames.File.Uploaded,
             payload: payload,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }

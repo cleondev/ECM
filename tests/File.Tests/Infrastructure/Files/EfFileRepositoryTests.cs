@@ -3,7 +3,7 @@ using ECM.File.Domain.Files;
 using ECM.File.Infrastructure.Files;
 using ECM.File.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Shared.Contracts.Files;
+using Shared.Contracts.Messaging;
 using Xunit;
 
 namespace File.Tests.Infrastructure.Files;
@@ -26,6 +26,6 @@ public class EfFileRepositoryTests
 
         var message = Assert.Single(context.OutboxMessages);
         Assert.Equal("file", message.Aggregate);
-        Assert.Equal(FileEventNames.StoredFileUploaded, message.Type);
+        Assert.Equal(EventNames.File.Uploaded, message.Type);
     }
 }
