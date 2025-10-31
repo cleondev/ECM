@@ -26,6 +26,7 @@ public sealed class UpdateDocumentCommandHandlerTests
         var groupId = Guid.NewGuid();
         var command = new UpdateDocumentCommand(
             repository.Document!.Id.Value,
+            UpdatedBy: Guid.NewGuid(),
             "  Updated Title  ",
             "  Reviewed  ",
             "  Confidential  ",
@@ -54,6 +55,7 @@ public sealed class UpdateDocumentCommandHandlerTests
 
         var command = new UpdateDocumentCommand(
             Guid.NewGuid(),
+            UpdatedBy: Guid.NewGuid(),
             Title: "Quarterly Report",
             Status: null,
             Sensitivity: null,
@@ -75,6 +77,7 @@ public sealed class UpdateDocumentCommandHandlerTests
 
         var command = new UpdateDocumentCommand(
             repository.Document!.Id.Value,
+            UpdatedBy: Guid.NewGuid(),
             Title: "   ",
             Status: null,
             Sensitivity: null,
@@ -85,6 +88,28 @@ public sealed class UpdateDocumentCommandHandlerTests
 
         Assert.True(result.IsFailure);
         Assert.Contains(result.Errors, error => error.StartsWith("Document title is required.", StringComparison.Ordinal));
+        Assert.False(repository.SaveChangesCalled);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenUpdatedByIsMissing_ReturnsFailure()
+    {
+        var repository = new FakeDocumentRepository(CreateSampleDocument());
+        var handler = new UpdateDocumentCommandHandler(repository, new FixedClock(DateTimeOffset.UtcNow));
+
+        var command = new UpdateDocumentCommand(
+            repository.Document!.Id.Value,
+            UpdatedBy: Guid.Empty,
+            Title: "Updated",
+            Status: null,
+            Sensitivity: null,
+            HasGroupId: false,
+            GroupId: null);
+
+        var result = await handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains(result.Errors, error => error.Equals("Updated by is required.", StringComparison.Ordinal));
         Assert.False(repository.SaveChangesCalled);
     }
 

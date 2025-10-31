@@ -149,6 +149,35 @@ public sealed class Document : IHasDomainEvents
         UpdatedAtUtc = updatedAtUtc;
     }
 
+    public void MarkUpdated(Guid updatedBy, DateTimeOffset occurredAtUtc)
+    {
+        if (updatedBy == Guid.Empty)
+        {
+            throw new ArgumentException("UpdatedBy is required.", nameof(updatedBy));
+        }
+
+        UpdatedAtUtc = occurredAtUtc;
+
+        Raise(new DocumentUpdatedDomainEvent(
+            Id,
+            Title.Value,
+            Status,
+            Sensitivity,
+            GroupId,
+            updatedBy,
+            occurredAtUtc));
+    }
+
+    public void MarkDeleted(Guid deletedBy, DateTimeOffset occurredAtUtc)
+    {
+        if (deletedBy == Guid.Empty)
+        {
+            throw new ArgumentException("DeletedBy is required.", nameof(deletedBy));
+        }
+
+        Raise(new DocumentDeletedDomainEvent(Id, deletedBy, occurredAtUtc));
+    }
+
     public void UpdateSensitivity(string sensitivity, DateTimeOffset updatedAtUtc)
     {
         if (string.IsNullOrWhiteSpace(sensitivity))
