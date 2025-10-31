@@ -13,8 +13,9 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import {
   Popover,
   PopoverContent,
@@ -36,11 +37,11 @@ import {
   ExternalLink,
   Link2,
   Loader2,
-  Sparkles,
   Globe2,
   User as UserIcon,
   Users,
   ChevronDown,
+  Lock,
 } from "lucide-react"
 import type {
   FileItem,
@@ -95,6 +96,8 @@ export function ShareDialog({
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [passwordEnabled, setPasswordEnabled] = useState(false)
+  const [password, setPassword] = useState("")
 
   const resetCopyState = useCallback(() => {
     setCopiedShort(false)
@@ -106,6 +109,8 @@ export function ShareDialog({
       resetCopyState()
       setUserPickerOpen(false)
       setGroupPickerOpen(false)
+      setPasswordEnabled(false)
+      setPassword("")
       return
     }
 
@@ -115,6 +120,8 @@ export function ShareDialog({
     setSelectedUserId(null)
     setSelectedGroupId(null)
     setValidationError(null)
+    setPasswordEnabled(false)
+    setPassword("")
   }, [open, file?.id, resetCopyState])
 
   useEffect(() => {
@@ -213,6 +220,18 @@ export function ShareDialog({
   const audienceUser = audienceType === "user" ? resultUser ?? selectedUser : null
   const audienceGroup = audienceType === "group" ? resultGroup ?? selectedGroup : null
 
+  const requiresPassword = useMemo(() => {
+    if (result) {
+      return Boolean(result.requiresPassword)
+    }
+
+    if (!passwordEnabled) {
+      return false
+    }
+
+    return password.trim().length > 0
+  }, [result?.requiresPassword, passwordEnabled, password])
+
   const audienceBadgeLabel = useMemo(() => {
     switch (audienceType) {
       case "user":
@@ -240,19 +259,27 @@ export function ShareDialog({
   }, [shareTarget, selectedUser, selectedGroup])
 
   const audienceSummary = useMemo(() => {
-    switch (audienceType) {
-      case "user":
-        return audienceUser?.displayName
-          ? `Only ${audienceUser.displayName} can use this link.`
-          : "Only the designated user can use this link."
-      case "group":
-        return audienceGroup?.name
-          ? `Members of ${audienceGroup.name} can use this link.`
-          : "Members of the designated group can use this link."
-      default:
-        return "Anyone with the link can download this file until it expires."
+    let summary = (() => {
+      switch (audienceType) {
+        case "user":
+          return audienceUser?.displayName
+            ? `Only ${audienceUser.displayName} can use this link.`
+            : "Only the designated user can use this link."
+        case "group":
+          return audienceGroup?.name
+            ? `Members of ${audienceGroup.name} can use this link.`
+            : "Members of the designated group can use this link."
+        default:
+          return "Anyone with the link can download this file until it expires."
+      }
+    })()
+
+    if (requiresPassword) {
+      summary = `${summary} Recipients must enter the password to access this link.`
     }
-  }, [audienceType, audienceUser, audienceGroup])
+
+    return summary
+  }, [audienceType, audienceUser, audienceGroup, requiresPassword])
 
   const handleAudienceChange = (value: ShareSubjectType) => {
     setShareTarget(value)
@@ -305,6 +332,8 @@ export function ShareDialog({
       setUserPickerOpen(false)
       setGroupPickerOpen(false)
       setValidationError(null)
+      setPasswordEnabled(false)
+      setPassword("")
       onReset()
     }
   }
@@ -330,9 +359,28 @@ export function ShareDialog({
       return
     }
 
+    const trimmedPassword = password.trim()
+    if (passwordEnabled && trimmedPassword.length < 4) {
+      setValidationError("Set a password with at least 4 characters before creating the link.")
+      return
+    }
+
     resetCopyState()
     setValidationError(null)
-    await onConfirm({ subjectType: shareTarget, subjectId, expiresInMinutes })
+    await onConfirm({
+      subjectType: shareTarget,
+      subjectId,
+      expiresInMinutes,
+      password: passwordEnabled ? trimmedPassword : null,
+    })
+  }
+
+  const handlePasswordToggle = (checked: boolean) => {
+    setPasswordEnabled(checked)
+    if (!checked) {
+      setPassword("")
+    }
+    setValidationError(null)
   }
 
   const handleCopy = async (value: string | null | undefined, type: "short" | "full") => {
@@ -394,6 +442,12 @@ export function ShareDialog({
                     )}
                     {audienceBadgeLabel}
                   </Badge>
+                  {requiresPassword ? (
+                    <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-900 dark:bg-amber-500/10 dark:text-amber-100">
+                      <Lock className="h-3.5 w-3.5" />
+                      Password required
+                    </Badge>
+                  ) : null}
                 </div>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">{audienceSummary}</p>
@@ -554,6 +608,32 @@ export function ShareDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="share-password-toggle" className="font-semibold">
+                    Password protection
+                  </Label>
+                  <Switch
+                    id="share-password-toggle"
+                    checked={passwordEnabled}
+                    onCheckedChange={handlePasswordToggle}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Require recipients to enter a password before accessing the shared file. Use at least 4 characters.
+                </p>
+                {passwordEnabled ? (
+                  <Input
+                    id="share-password"
+                    type="password"
+                    placeholder="Enter a password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="new-password"
+                  />
+                ) : null}
               </div>
             </div>
 

@@ -416,6 +416,10 @@ internal sealed class EcmApiClient(
         var subjectType = requestDto.GetNormalizedSubjectType();
         var subjectId = requestDto.GetEffectiveSubjectId();
 
+        var password = string.IsNullOrWhiteSpace(requestDto.Password)
+            ? null
+            : requestDto.Password.Trim();
+
         var payload = new
         {
             documentId = requestDto.DocumentId,
@@ -430,6 +434,7 @@ internal sealed class EcmApiClient(
             fileContentType = contentType,
             fileSizeBytes = requestDto.FileSizeBytes < 0 ? 0 : requestDto.FileSizeBytes,
             fileCreatedAt = requestDto.FileCreatedAtUtc,
+            password,
         };
 
         request.Content = JsonContent.Create(payload);
@@ -438,6 +443,11 @@ internal sealed class EcmApiClient(
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
+            if (!string.IsNullOrEmpty(password))
+            {
+                return null;
+            }
+
             return await CreateLegacyShareLinkAsync(requestDto, effectiveMinutes, cancellationToken);
         }
 
@@ -463,7 +473,14 @@ internal sealed class EcmApiClient(
             responseSubjectId = null;
         }
 
-        return new DocumentShareLinkDto(url, shortUrl, expiresAt, isPublic, responseSubjectType, responseSubjectId);
+        return new DocumentShareLinkDto(
+            url,
+            shortUrl,
+            expiresAt,
+            isPublic,
+            shareResponse.RequiresPassword,
+            responseSubjectType,
+            responseSubjectId);
     }
 
     private sealed record ShareLinkResponse(
@@ -472,7 +489,8 @@ internal sealed class EcmApiClient(
         DateTimeOffset ValidFrom,
         DateTimeOffset? ValidTo,
         JsonElement SubjectType,
-        Guid? SubjectId);
+        Guid? SubjectId,
+        bool RequiresPassword);
 
     private sealed record LegacyShareLinkResponse(
         string Url,
@@ -526,7 +544,14 @@ internal sealed class EcmApiClient(
         var legacySubjectType = legacyShare.IsPublic ? "public" : subjectType;
         var legacySubjectId = legacySubjectType == "public" ? null : subjectId;
 
-        return new DocumentShareLinkDto(url, shortUrl, legacyShare.ExpiresAtUtc, legacyShare.IsPublic, legacySubjectType, legacySubjectId);
+        return new DocumentShareLinkDto(
+            url,
+            shortUrl,
+            legacyShare.ExpiresAtUtc,
+            legacyShare.IsPublic,
+            false,
+            legacySubjectType,
+            legacySubjectId);
     }
 
     private static string? NormalizeExtension(string? extension, string fileName)

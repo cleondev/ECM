@@ -148,6 +148,7 @@ export type ShareOptions = {
   subjectType: ShareSubjectType
   subjectId: string | null
   expiresInMinutes: number
+  password?: string | null
 }
 
 export type ShareLink = {
@@ -157,6 +158,7 @@ export type ShareLink = {
   subjectType: ShareSubjectType
   subjectId: string | null
   isPublic: boolean
+  requiresPassword: boolean
 }
 
 export type ShareSubjectType = "public" | "user" | "group"
