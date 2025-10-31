@@ -18,15 +18,25 @@ import { Badge } from "@/components/ui/badge"
 import { DownloadCloud, Eye, Lock } from "lucide-react"
 
 import {
+  checkLogin,
   fetchShareInterstitial,
   requestShareDownloadLink,
   verifySharePassword,
 } from "@/lib/api"
-import type { ShareInterstitial } from "@/lib/types"
+import type { ShareInterstitial, User } from "@/lib/types"
+import { createSignInRedirectPath } from "@/lib/utils"
 
 export type ShareDownloadPageProps = {
   initialCode?: string
   initialPassword?: string
+}
+
+type AuthState = {
+  loading: boolean
+  isAuthenticated: boolean
+  loginUrl: string | null
+  user: User | null
+  error: string | null
 }
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
@@ -77,6 +87,14 @@ function ShareDownloadPageContent({
     () => initialPassword ?? searchParams?.get("password") ?? undefined,
     [initialPassword, searchParams],
   )
+  const [authState, setAuthState] = useState<AuthState>({
+    loading: true,
+    isAuthenticated: false,
+    loginUrl: null,
+    user: null,
+    error: null,
+  })
+  const [signInPath, setSignInPath] = useState("/signin/")
   const [share, setShare] = useState<ShareInterstitial | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -107,6 +125,50 @@ function ShareDownloadPageContent({
 
     return true
   }, [share])
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    let cancelled = false
+    const redirectTarget = `${window.location.pathname}${window.location.search}` || "/s/"
+    setSignInPath(createSignInRedirectPath(redirectTarget, "/s/"))
+
+    async function ensureAuthenticated() {
+      try {
+        const result = await checkLogin(redirectTarget)
+        if (cancelled) {
+          return
+        }
+
+        setAuthState({
+          loading: false,
+          isAuthenticated: result.isAuthenticated,
+          loginUrl: result.loginUrl,
+          user: result.user,
+          error: null,
+        })
+      } catch (err) {
+        console.error("[ui] Không thể kiểm tra trạng thái đăng nhập:", err)
+        if (!cancelled) {
+          setAuthState({
+            loading: false,
+            isAuthenticated: false,
+            loginUrl: null,
+            user: null,
+            error: "Không thể kiểm tra trạng thái đăng nhập. Vui lòng thử lại.",
+          })
+        }
+      }
+    }
+
+    ensureAuthenticated()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -152,6 +214,22 @@ function ShareDownloadPageContent({
       }
     }
 
+    if (authState.loading) {
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (!authState.isAuthenticated) {
+      setShare(null)
+      setLoading(false)
+      setError(null)
+      setAccessPassword(undefined)
+      return () => {
+        cancelled = true
+      }
+    }
+
     setPassword("")
     setPasswordError(null)
     setDownloadError(null)
@@ -161,7 +239,7 @@ function ShareDownloadPageContent({
     return () => {
       cancelled = true
     }
-  }, [code, passwordFromUrl])
+  }, [authState.isAuthenticated, authState.loading, code, passwordFromUrl])
 
   async function refreshShare(withPassword?: string) {
     if (!code) {
@@ -239,6 +317,23 @@ function ShareDownloadPageContent({
     }
   }
 
+  if (authState.loading) {
+    return <ShareDownloadLoadingState message="Đang kiểm tra trạng thái đăng nhập…" />
+  }
+
+  if (authState.error) {
+    return <ShareDownloadAuthErrorState message={authState.error} />
+  }
+
+  if (!authState.isAuthenticated) {
+    return (
+      <ShareDownloadLoginRequired
+        loginUrl={authState.loginUrl}
+        fallbackUrl={signInPath}
+      />
+    )
+  }
+
   if (loading && !share) {
     return <ShareDownloadLoadingState />
   }
@@ -249,10 +344,41 @@ function ShareDownloadPageContent({
 
   const file = share.file
   const quota = share.quota
+  const currentUser = authState.user
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 px-4 py-12 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
+        {currentUser ? (
+          <Card className="border-primary/30 bg-primary/5 shadow-sm shadow-primary/10 dark:border-primary/40 dark:bg-primary/10">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-lg font-semibold text-primary dark:text-primary-200">
+                Đang đăng nhập
+              </CardTitle>
+              <CardDescription>
+                Bạn đang sử dụng tài khoản {currentUser.displayName} để xem nội dung chia sẻ này.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <dl className="space-y-2 text-sm">
+                <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
+                  <dt className="text-muted-foreground">Email</dt>
+                  <dd className="font-medium text-foreground break-all">{currentUser.email}</dd>
+                </div>
+                <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
+                  <dt className="text-muted-foreground">Mã người dùng</dt>
+                  <dd className="font-mono text-sm text-foreground">{currentUser.id}</dd>
+                </div>
+                {currentUser.roles?.length ? (
+                  <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
+                    <dt className="text-muted-foreground">Vai trò</dt>
+                    <dd className="text-foreground">{currentUser.roles.join(", ")}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </CardContent>
+          </Card>
+        ) : null}
         <Card className="shadow-lg shadow-slate-200/60 dark:shadow-slate-950/40">
           <CardHeader className="gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div className="space-y-2">
@@ -425,11 +551,11 @@ function ShareDownloadSuspenseFallback(): JSX.Element {
   return <ShareDownloadLoadingState />
 }
 
-function ShareDownloadLoadingState(): JSX.Element {
+function ShareDownloadLoadingState({ message = "Đang tải thông tin chia sẻ…" }: { message?: string } = {}): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
-        <h1 className="text-2xl font-semibold text-foreground">Đang tải thông tin chia sẻ…</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{message}</h1>
         <p className="text-muted-foreground">Vui lòng chờ trong giây lát.</p>
       </div>
     </div>
@@ -447,6 +573,59 @@ function ShareDownloadErrorState({ message }: { message: string | null }): JSX.E
       </div>
     </div>
   )
+}
+
+type ShareDownloadLoginRequiredProps = {
+  loginUrl: string | null
+  fallbackUrl: string
+}
+
+function ShareDownloadLoginRequired({ loginUrl, fallbackUrl }: ShareDownloadLoginRequiredProps): JSX.Element {
+  const resolvedLoginUrl = loginUrl ? resolveGatewayUrl(loginUrl) : fallbackUrl
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
+        <h1 className="text-2xl font-semibold text-foreground">Yêu cầu đăng nhập</h1>
+        <p className="text-muted-foreground">
+          Bạn cần đăng nhập để truy cập vào liên kết chia sẻ này. Vui lòng đăng nhập để tiếp tục.
+        </p>
+        <Button asChild className="w-full">
+          <a href={resolvedLoginUrl}>Đăng nhập để tiếp tục</a>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function ShareDownloadAuthErrorState({ message }: { message: string }): JSX.Element {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
+        <h1 className="text-2xl font-semibold text-foreground">Không thể xác minh đăng nhập</h1>
+        <p className="text-muted-foreground">{message}</p>
+        <Button type="button" onClick={() => window.location.reload()} className="w-full">
+          Thử lại
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function resolveGatewayUrl(path: string): string {
+  const envBase = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
+  const runtimeBase = envBase || (typeof window !== "undefined" ? window.location.origin : "")
+
+  if (!runtimeBase) {
+    return path
+  }
+
+  try {
+    return new URL(path, runtimeBase).toString()
+  } catch (error) {
+    console.warn("[ui] Không thể chuẩn hoá URL đăng nhập:", error)
+    return path
+  }
 }
 
 type DetailItemProps = { label: string; value: ReactNode }
