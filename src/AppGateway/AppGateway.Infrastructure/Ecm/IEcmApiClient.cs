@@ -59,6 +59,11 @@ public interface IEcmApiClient
 
     Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload request, CancellationToken cancellationToken = default);
 
+    Task<DocumentDto?> UpdateDocumentAsync(
+        Guid documentId,
+        UpdateDocumentRequestDto request,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default);
 
     Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default);
