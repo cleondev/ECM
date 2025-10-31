@@ -96,9 +96,12 @@ function TagTreeItem({
   const hasChildren = tag.children && tag.children.length > 0
   const isSelected = selectedTag?.id === tag.id
   const isNamespace = tag.kind === "namespace"
+  const tagScope = tag.scope ?? "user"
+  const isReadOnlyScope = tagScope === "group" || tagScope === "global"
   const canSelect = !isNamespace
-  const canManage = tag.kind === "label" && !tag.isSystem
-  const canAddChild = tag.kind === "namespace" || (tag.kind === "label" && !tag.isSystem)
+  const isManageableLabel = tag.kind === "label" && !tag.isSystem && !isReadOnlyScope
+  const canManage = isManageableLabel
+  const canAddChild = (isNamespace && !isReadOnlyScope) || isManageableLabel
 
   const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
   const indicatorStyle = tag.color
@@ -302,6 +305,11 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     system: false,
   })
 
+  const canCreateTags = useMemo(
+    () => tagTree.some((node) => node.kind === "namespace" && (node.scope ?? "user") === "user"),
+    [tagTree],
+  )
+
   useEffect(() => {
     fetchTags().then(setTagTree)
   }, [])
@@ -352,14 +360,20 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   }
 
   const handleCreateNewTag = () => {
+    if (!canCreateTags) {
+      return
+    }
     setEditingTag(null)
     setParentTag(null)
     setDialogMode("create")
     setIsTagDialogOpen(true)
   }
 
+  const findCreatableNamespace = (nodes: TagNode[]): TagNode | null =>
+    nodes.find((node) => node.kind === "namespace" && (node.scope ?? "user") === "user") ?? null
+
   const resolveNamespaceNode = async (): Promise<TagNode | null> => {
-    const existing = tagTree.find((node) => node.kind === "namespace")
+    const existing = findCreatableNamespace(tagTree)
     if (existing) {
       return existing
     }
@@ -367,7 +381,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     const refreshed = await fetchTags()
     setTagTree(refreshed)
 
-    return refreshed.find((node) => node.kind === "namespace") ?? null
+    return findCreatableNamespace(refreshed)
   }
 
   const handleSaveTag = async (data: TagUpdateData) => {
@@ -447,6 +461,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
                   size="icon"
                   className="h-6 w-6"
                   title="Create new tag"
+                  disabled={!canCreateTags}
                   onClick={(event) => {
                     event.stopPropagation()
                     handleCreateNewTag()
