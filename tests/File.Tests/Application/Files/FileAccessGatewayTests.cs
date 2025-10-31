@@ -229,7 +229,12 @@ public class FileAccessGatewayTests
 
         public Func<string, int, int, string, CancellationToken, Task<FileDownload?>>? DownloadThumbnailAsyncHandler { get; set; }
 
-        public Task UploadAsync(string storageKey, Stream content, string contentType, CancellationToken cancellationToken = default)
+        public Task UploadAsync(
+            string storageKey,
+            Stream content,
+            string contentType,
+            string? originalFileName,
+            CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
         public Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default)

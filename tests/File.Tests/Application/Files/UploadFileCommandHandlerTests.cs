@@ -33,6 +33,7 @@ public class UploadFileCommandHandlerTests
         Assert.Single(storage.Uploads);
         Assert.Equal(storageKeyGenerator.Key, result.Value!.StorageKey);
         Assert.Equal("application/pdf", storage.Uploads[0].ContentType);
+        Assert.Equal("document.pdf", storage.Uploads[0].OriginalFileName);
     }
 
     private sealed class FakeFileRepository : IFileRepository
@@ -51,11 +52,16 @@ public class UploadFileCommandHandlerTests
 
     private sealed class FakeFileStorage : IFileStorage
     {
-        public List<(string StorageKey, string ContentType)> Uploads { get; } = [];
+        public List<(string StorageKey, string ContentType, string? OriginalFileName)> Uploads { get; } = [];
 
-        public Task UploadAsync(string storageKey, Stream content, string contentType, CancellationToken cancellationToken = default)
+        public Task UploadAsync(
+            string storageKey,
+            Stream content,
+            string contentType,
+            string? originalFileName,
+            CancellationToken cancellationToken = default)
         {
-            Uploads.Add((storageKey, contentType));
+            Uploads.Add((storageKey, contentType, originalFileName));
             return Task.CompletedTask;
         }
 
