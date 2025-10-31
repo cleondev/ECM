@@ -5,7 +5,6 @@ using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
-using ECM.Document.Domain.Documents;
 using ECM.Document.Domain.Versions;
 using DocumentEntity = ECM.Document.Domain.Documents.Document;
 
@@ -31,23 +30,13 @@ public sealed class UploadDocumentCommandHandler(
             return OperationResult<DocumentWithVersionResult>.Failure("File size must be greater than zero.");
         }
 
-        DocumentTitle title;
-        try
-        {
-            title = DocumentTitle.Create(command.Title);
-        }
-        catch (ArgumentException exception)
-        {
-            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
-        }
-
         var now = _clock.UtcNow;
 
         DocumentEntity document;
         try
         {
             document = DocumentEntity.Create(
-                title,
+                command.Title,
                 command.DocType,
                 command.Status,
                 command.OwnerId,

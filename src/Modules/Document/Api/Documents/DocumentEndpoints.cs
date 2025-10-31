@@ -254,11 +254,11 @@ public static class DocumentEndpoints
                 .Replace("%", @"\%")
                 .Replace("_", @"\_");
 
-            var likePattern = $"%{escaped.ToLowerInvariant()}%";
+            var likePattern = $"%{escaped}%";
 
             query = query.Where(document =>
-                EF.Functions.Like(
-                    EF.Property<string>(document, nameof(DomainDocument.Title)).ToLower(),
+                EF.Functions.ILike(
+                    document.Title,
                     likePattern,
                     @"\\"
                 )
@@ -782,7 +782,7 @@ public static class DocumentEndpoints
 
         return new DocumentResponse(
             document.Id.Value,
-            document.Title.Value,
+            document.Title,
             document.DocType,
             document.Status,
             document.Sensitivity,

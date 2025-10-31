@@ -14,7 +14,7 @@ internal static class Mapping
 
         return new DocumentSummaryResult(
             document.Id.Value,
-            document.Title.Value,
+            document.Title,
             document.DocType,
             document.Status,
             document.Sensitivity,
@@ -34,7 +34,7 @@ internal static class Mapping
 
         return new DocumentWithVersionResult(
             document.Id.Value,
-            document.Title.Value,
+            document.Title,
             document.DocType,
             document.Status,
             document.Sensitivity,

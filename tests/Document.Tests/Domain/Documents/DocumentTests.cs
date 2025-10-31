@@ -13,17 +13,16 @@ public class DocumentTests
         var now = DateTimeOffset.UtcNow;
         var ownerId = Guid.NewGuid();
         var createdBy = Guid.NewGuid();
-        var title = DocumentTitle.Create(" Document Handbook ");
 
         var document = DomainDocument.Create(
-            title,
+            " Document Handbook ",
             "  Policy  ",
             "  Draft  ",
             ownerId,
             createdBy,
             now);
 
-        Assert.Equal(title, document.Title);
+        Assert.Equal("Document Handbook", document.Title);
         Assert.Equal("Policy", document.DocType);
         Assert.Equal("Draft", document.Status);
         Assert.Equal("Internal", document.Sensitivity);
@@ -40,8 +39,9 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
         var groupId = Guid.NewGuid();
+
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Procedure"),
+            "Procedure",
             "Guide",
             "Published",
             Guid.NewGuid(),
@@ -58,12 +58,29 @@ public class DocumentTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
+    public void Create_WithMissingTitle_ThrowsArgumentException(string? title)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        Assert.Throws<ArgumentException>(() => DomainDocument.Create(
+            title,
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            now));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
     public void Create_WithMissingDocType_ThrowsArgumentException(string? docType)
     {
         var now = DateTimeOffset.UtcNow;
 
         Assert.Throws<ArgumentException>(() => DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             docType!,
             "Draft",
             Guid.NewGuid(),
@@ -80,7 +97,7 @@ public class DocumentTests
         var now = DateTimeOffset.UtcNow;
 
         Assert.Throws<ArgumentException>(() => DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             status!,
             Guid.NewGuid(),
@@ -93,7 +110,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -114,7 +131,7 @@ public class DocumentTests
     public void UpdateStatus_WithMissingValue_ThrowsArgumentException(string? status)
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -128,7 +145,7 @@ public class DocumentTests
     public void UpdateSensitivity_WithValidValue_UpdatesProperties()
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -149,7 +166,7 @@ public class DocumentTests
     public void UpdateSensitivity_WithMissingValue_ThrowsArgumentException(string? sensitivity)
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -163,7 +180,7 @@ public class DocumentTests
     public void UpdateGroupId_WithEmptyGuid_SetsGroupIdToNull()
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -182,7 +199,7 @@ public class DocumentTests
     public void UpdateGroupId_WithValue_SetsProperty()
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -202,7 +219,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -224,7 +241,7 @@ public class DocumentTests
     public void AssignTag_WithExistingTag_ThrowsInvalidOperationException()
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -238,11 +255,11 @@ public class DocumentTests
     }
 
     [Fact]
-    public void RemoveTag_WithAssignedTag_RemovesAndUpdatesTimestamp()
+    public void RemoveTag_WithExistingAssignment_RemovesTagAndUpdatesTimestamp()
     {
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -264,7 +281,7 @@ public class DocumentTests
     public void RemoveTag_WithMissingAssignment_ReturnsFalse()
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -283,7 +300,7 @@ public class DocumentTests
         var now = DateTimeOffset.UtcNow;
         var createdBy = Guid.NewGuid();
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -314,7 +331,7 @@ public class DocumentTests
         var now = DateTimeOffset.UtcNow;
         var createdBy = Guid.NewGuid();
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -337,7 +354,7 @@ public class DocumentTests
     public void AddVersion_WithNonPositiveBytes_ThrowsArgumentOutOfRangeException(long bytes)
     {
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
@@ -352,20 +369,32 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),
             Guid.NewGuid(),
             now);
 
-        var newTitle = DocumentTitle.Create("Updated");
         var updatedAt = now.AddMinutes(3);
+        document.UpdateTitle("Updated", updatedAt);
 
-        document.UpdateTitle(newTitle, updatedAt);
-
-        Assert.Equal(newTitle, document.Title);
+        Assert.Equal("Updated", document.Title);
         Assert.Equal(updatedAt, document.UpdatedAtUtc);
+    }
+
+    [Fact]
+    public void UpdateTitle_WithMissingValue_ThrowsArgumentException()
+    {
+        var document = DomainDocument.Create(
+            "Doc",
+            "Policy",
+            "Draft",
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow);
+
+        Assert.Throws<ArgumentException>(() => document.UpdateTitle("   ", DateTimeOffset.UtcNow));
     }
 
     [Fact]
@@ -373,7 +402,7 @@ public class DocumentTests
     {
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Doc"),
+            "Doc",
             "Policy",
             "Draft",
             Guid.NewGuid(),

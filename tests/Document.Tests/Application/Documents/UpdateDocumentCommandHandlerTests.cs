@@ -38,7 +38,7 @@ public sealed class UpdateDocumentCommandHandlerTests
         Assert.True(result.IsSuccess);
         var document = result.Value;
         Assert.Same(repository.Document, document);
-        Assert.Equal("Updated Title", document!.Title.Value);
+        Assert.Equal("Updated Title", document!.Title);
         Assert.Equal("Reviewed", document.Status);
         Assert.Equal("Confidential", document.Sensitivity);
         Assert.Equal(groupId, document.GroupId);
@@ -117,7 +117,7 @@ public sealed class UpdateDocumentCommandHandlerTests
     {
         var now = new DateTimeOffset(2024, 03, 10, 9, 0, 0, TimeSpan.Zero);
         return DomainDocument.Create(
-            DocumentTitle.Create("Employee Handbook"),
+            "Employee Handbook",
             "Policy",
             "Draft",
             _groups.SystemGroupId,

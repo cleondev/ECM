@@ -24,7 +24,7 @@ public class DocumentRepositoryTests
         var repository = new DocumentRepository(context);
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Project Charter"),
+            "Project Charter",
             "proposal",
             "draft",
             Guid.NewGuid(),
@@ -57,7 +57,7 @@ public class DocumentRepositoryTests
 
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Project Charter"),
+            "Project Charter",
             "proposal",
             "draft",
             Guid.NewGuid(),
@@ -92,7 +92,7 @@ public class DocumentRepositoryTests
 
         var now = DateTimeOffset.UtcNow;
         var document = DomainDocument.Create(
-            DocumentTitle.Create("Project Charter"),
+            "Project Charter",
             "proposal",
             "draft",
             Guid.NewGuid(),

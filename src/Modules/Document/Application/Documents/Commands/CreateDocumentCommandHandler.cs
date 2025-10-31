@@ -4,7 +4,6 @@ using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
-using ECM.Document.Domain.Documents;
 using DocumentEntity = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Application.Documents.Commands;
@@ -20,21 +19,11 @@ public sealed class CreateDocumentCommandHandler(
 
     public async Task<OperationResult<DocumentSummaryResult>> HandleAsync(CreateDocumentCommand command, CancellationToken cancellationToken = default)
     {
-        DocumentTitle title;
-        try
-        {
-            title = DocumentTitle.Create(command.Title);
-        }
-        catch (ArgumentException exception)
-        {
-            return OperationResult<DocumentSummaryResult>.Failure(exception.Message);
-        }
-
         DocumentEntity document;
         try
         {
             document = DocumentEntity.Create(
-                title,
+                command.Title,
                 command.DocType,
                 command.Status,
                 command.OwnerId,

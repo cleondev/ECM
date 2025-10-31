@@ -65,7 +65,7 @@ public sealed class DeleteDocumentCommandHandlerTests
     {
         var now = new DateTimeOffset(2024, 03, 10, 9, 0, 0, TimeSpan.Zero);
         return DomainDocument.Create(
-            DocumentTitle.Create("Employee Handbook"),
+            "Employee Handbook",
             "Policy",
             "Draft",
             _groups.SystemGroupId,
