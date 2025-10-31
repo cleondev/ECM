@@ -13,7 +13,7 @@ export default function AppHomePage() {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-6 bg-background text-muted-foreground">
         <BrandLogo className="flex-col items-center gap-3" imageClassName="h-48 w-48" textClassName="text-2xl" />
-        <p className="text-center text-base">Đang xác thực phiên đăng nhập…</p>
+        {/* <p className="text-center text-base">Đang xác thực phiên đăng nhập…</p> */}
       </div>
     )
   }
