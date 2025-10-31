@@ -30,8 +30,8 @@ public static class EfConverters
         new(
             (left, right) =>
                 ReferenceEquals(left, right)
-                || (left != null && right != null && left.Value == right.Value),
-            title => title == null ? 0 : title.Value.GetHashCode(),
-            title => DocumentTitle.Create(title.Value)
+                || (left is not null && right is not null && left.Value == right.Value),
+            title => title is null ? 0 : title.Value.GetHashCode(),
+            title => title is null ? null : DocumentTitle.Create(title.Value)
         );
 }

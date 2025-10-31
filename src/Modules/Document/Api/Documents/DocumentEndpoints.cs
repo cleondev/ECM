@@ -248,12 +248,18 @@ public static class DocumentEndpoints
             var term = request.Query.Trim();
             if (term.Length > 0)
             {
-                var likeExpression = $"%{term.Replace("%", "\\%").Replace("_", "\\_")}%";
+                var escaped = term
+                    .Replace(@"\", @"\\")
+                    .Replace("%", @"\%")
+                    .Replace("_", @"\_");
+
+                var likeExpression = $"%{escaped}%";
 
                 query = query.Where(document =>
                     EF.Functions.ILike(
                         EF.Property<string>(document, nameof(document.Title)),
-                        likeExpression
+                        likeExpression,
+                        '\\'
                     )
                 );
             }
