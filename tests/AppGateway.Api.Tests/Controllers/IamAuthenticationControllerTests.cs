@@ -4,10 +4,16 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AppGateway.Api.Auth;
 using AppGateway.Api.Controllers.IAM;
+using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.IAM.Groups;
+using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
+using AppGateway.Contracts.Signatures;
+using AppGateway.Contracts.Tags;
+using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -183,12 +189,12 @@ public class IamAuthenticationControllerTests
         public Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task<AppGateway.Contracts.Documents.DocumentFileContent?> GetDocumentVersionPreviewAsync(
+        public Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(
             Guid versionId,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task<AppGateway.Contracts.Documents.DocumentFileContent?> GetDocumentVersionThumbnailAsync(
+        public Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(
             Guid versionId,
             int width,
             int height,
@@ -196,8 +202,7 @@ public class IamAuthenticationControllerTests
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task<AppGateway.Contracts.Documents.DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
-            Guid versionId,
+        public Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
             CreateShareLinkRequestDto request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();

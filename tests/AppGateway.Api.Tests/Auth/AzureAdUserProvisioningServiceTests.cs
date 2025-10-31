@@ -246,6 +246,11 @@ public class AzureAdUserProvisioningServiceTests
         public Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto request, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(
+            UpdateUserPasswordRequestDto request,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto request, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
