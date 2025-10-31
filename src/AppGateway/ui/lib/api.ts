@@ -728,6 +728,25 @@ async function assignTagsToDocument(documentId: string, tags: SelectedTag[], use
   )
 }
 
+async function removeTagsFromDocument(documentId: string, tagIds: string[]) {
+  if (!tagIds.length) {
+    return
+  }
+
+  await Promise.all(
+    tagIds.map((tagId) =>
+      gatewayRequest(`/api/documents/${documentId}/tags/${tagId}`, {
+        method: "DELETE",
+      }).catch((error) => {
+        console.error(
+          `[ui] Failed to remove tag '${tagId}' from document '${documentId}':`,
+          error,
+        )
+      }),
+    ),
+  )
+}
+
 async function startWorkflowForDocument(documentId: string, flowDefinition?: string) {
   if (!flowDefinition) {
     return
@@ -1233,8 +1252,12 @@ export async function fetchUser(): Promise<User | null> {
   }
 }
 
-export async function applyTagsToDocument(documentId: string, tags: SelectedTag[]): Promise<void> {
-  if (!tags.length) {
+export async function applyTagsToDocument(
+  documentId: string,
+  tagsToAdd: SelectedTag[],
+  tagIdsToRemove: string[],
+): Promise<void> {
+  if (!tagsToAdd.length && !tagIdsToRemove.length) {
     return
   }
 
@@ -1242,10 +1265,13 @@ export async function applyTagsToDocument(documentId: string, tags: SelectedTag[
   const userId = user?.id?.trim()
 
   if (!userId) {
-    throw new Error("You must be signed in to assign tags to documents.")
+    throw new Error("You must be signed in to update document tags.")
   }
 
-  await assignTagsToDocument(documentId, tags, userId)
+  await Promise.all([
+    assignTagsToDocument(documentId, tagsToAdd, userId),
+    removeTagsFromDocument(documentId, tagIdsToRemove),
+  ])
 }
 
 function resolveRedirectLocation(location: string): string {

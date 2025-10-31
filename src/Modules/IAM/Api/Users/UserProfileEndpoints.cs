@@ -225,6 +225,7 @@ public static class UserProfileEndpoints
     {
         yield return principal.FindFirst(ClaimTypes.Email)?.Value;
         yield return principal.FindFirst("email")?.Value;
+        yield return principal.FindFirst("signInNames.emailAddress")?.Value;
 
         foreach (var claim in principal.FindAll("emails"))
         {
