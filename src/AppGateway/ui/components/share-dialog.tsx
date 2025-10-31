@@ -410,13 +410,7 @@ export function ShareDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div
-          className={cn(
-            "space-y-6",
-            hasResult &&
-              "lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6 lg:space-y-0",
-          )}
-        >
+        <div className="space-y-6">
           <div className="space-y-6">
             <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -648,7 +642,7 @@ export function ShareDialog({
           </div>
 
           {hasResult ? (
-            <div className="space-y-4 rounded-xl border border-primary/40 bg-primary/5 p-4 lg:sticky lg:top-6">
+            <div className="space-y-4 rounded-xl border border-primary/40 bg-primary/5 p-4">
               <div className="space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
