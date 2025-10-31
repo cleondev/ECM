@@ -43,28 +43,7 @@ function expandAllNodes(nodes: TagNode[], initial: Record<string, boolean> = {})
 }
 
 function isSelectableTag(tag: TagNode) {
-  return !tag.kind || tag.kind === "label" || tag.kind === "namespace"
-}
-
-function collectNamespaceLabels(namespace: TagNode): TagNode[] {
-  const labels: TagNode[] = []
-
-  const visit = (node?: TagNode | null) => {
-    if (!node) {
-      return
-    }
-
-    if (!node.kind || node.kind === "label") {
-      labels.push(node)
-    }
-
-    if (node.children?.length) {
-      node.children.forEach((child) => visit(child))
-    }
-  }
-
-  namespace.children?.forEach((child) => visit(child))
-  return labels
+  return !tag.kind || tag.kind === "label"
 }
 
 type TagAssignmentDialogProps = {
@@ -307,12 +286,7 @@ export function TagAssignmentDialog({ open, onOpenChange, file, onTagsAssigned }
         continue
       }
 
-      const targetNodes =
-        node.kind === "namespace"
-          ? collectNamespaceLabels(node)
-          : !node.kind || node.kind === "label"
-            ? [node]
-            : []
+      const targetNodes = !node.kind || node.kind === "label" ? [node] : []
 
       for (const target of targetNodes) {
         if (initialTagIds.has(target.id)) {
