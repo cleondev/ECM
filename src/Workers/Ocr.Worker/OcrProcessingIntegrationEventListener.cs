@@ -14,7 +14,7 @@ internal sealed class OcrProcessingIntegrationEventListener(
     IServiceScopeFactory scopeFactory,
     ILogger<OcrProcessingIntegrationEventListener> logger) : BackgroundService
 {
-    private const string DocumentUploadedTopic = EventTopics.Document.Uploaded;
+    private const string DocumentUploadedTopic = EventTopics.Pipelines.Document.Uploaded;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 

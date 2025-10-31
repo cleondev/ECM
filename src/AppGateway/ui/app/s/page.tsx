@@ -1,7 +1,21 @@
 "use client"
 
-import { FormEvent, Suspense, useEffect, useMemo, useState } from "react"
+import {
+  FormEvent,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react"
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { DownloadCloud, Eye, Lock } from "lucide-react"
 
 import {
   fetchShareInterstitial,
@@ -237,123 +251,156 @@ function ShareDownloadPageContent({
   const quota = share.quota
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white">
-      <div className="mx-auto flex max-w-3xl flex-col gap-6">
-        <div className="rounded-2xl bg-black/30 p-6 backdrop-blur">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-300">File được chia sẻ</p>
-                <h1 className="text-2xl font-semibold text-white">{file.name}</h1>
-              </div>
-              <div className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm text-white">
-                Mã chia sẻ: <span className="font-mono">{share.code}</span>
-              </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 px-4 py-12 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8">
+        <Card className="shadow-lg shadow-slate-200/60 dark:shadow-slate-950/40">
+          <CardHeader className="gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <CardTitle className="text-3xl font-semibold tracking-tight text-foreground">{file.name}</CardTitle>
+              <CardDescription>
+                Truy cập nhanh vào tệp được chia sẻ và xem các chỉ số quan trọng trước khi tải xuống.
+              </CardDescription>
+            </div>
+            <Badge
+              variant="outline"
+              className="self-start border-dashed border-primary/40 bg-primary/5 font-mono text-xs uppercase tracking-widest text-muted-foreground dark:border-primary/50 dark:bg-primary/10"
+            >
+              Mã chia sẻ
+              <span className="ml-2 text-foreground">{share.code}</span>
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DetailItem label="Dung lượng" value={formatFileSize(file.sizeBytes)} />
+              <DetailItem
+                label="Ngày tạo"
+                value={file.createdAtUtc ? dateFormatter.format(new Date(file.createdAtUtc)) : "--"}
+              />
+              <DetailItem
+                label="Lượt xem"
+                value={
+                  <span>
+                    {quota.viewsUsed}
+                    {quota.maxViews ? ` / ${quota.maxViews}` : ""}
+                  </span>
+                }
+              />
+              <DetailItem
+                label="Lượt tải"
+                value={
+                  <span>
+                    {quota.downloadsUsed}
+                    {quota.maxDownloads ? ` / ${quota.maxDownloads}` : ""}
+                  </span>
+                }
+              />
             </div>
 
-            <div className="grid gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-lg sm:grid-cols-2">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-slate-300">Dung lượng</p>
-                <p className="text-lg font-semibold text-white">{formatFileSize(file.sizeBytes)}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-slate-300">Ngày tạo</p>
-                <p className="text-lg font-semibold text-white">
-                  {file.createdAtUtc ? dateFormatter.format(new Date(file.createdAtUtc)) : "--"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-slate-300">Lượt xem</p>
-                <p className="text-lg font-semibold text-white">
-                  {quota.viewsUsed}
-                  {quota.maxViews ? ` / ${quota.maxViews}` : ""}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-slate-300">Lượt tải</p>
-                <p className="text-lg font-semibold text-white">
-                  {quota.downloadsUsed}
-                  {quota.maxDownloads ? ` / ${quota.maxDownloads}` : ""}
-                </p>
-              </div>
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-muted/50 bg-muted/20 p-4 dark:bg-muted/30">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Trạng thái hiện tại
+              </span>
+              <Badge variant="secondary" className="text-sm font-medium text-foreground">
+                {translateStatus(share.status)}
+              </Badge>
             </div>
-
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-lg">
-              <p className="text-xs uppercase tracking-wider text-slate-300">Trạng thái</p>
-              <p className="font-medium text-white">{translateStatus(share.status)}</p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {share.requiresPassword && !share.passwordValid ? (
-          <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-6 text-yellow-100">
-            <h2 className="text-xl font-semibold">Liên kết được bảo vệ bằng mật khẩu</h2>
-            <p className="mt-2 text-sm">
-              Chủ sở hữu đã yêu cầu mật khẩu để truy cập tệp này. Vui lòng nhập mật khẩu được cung cấp cùng liên
-              kết chia sẻ.
-            </p>
-
-            <form onSubmit={handleVerifyPassword} className="mt-4 space-y-3">
-              <label htmlFor="share-password" className="text-sm font-medium">
-                Mật khẩu truy cập
-              </label>
-              <input
-                id="share-password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border border-white/20 bg-black/40 px-4 py-2 text-white focus:border-white/60 focus:outline-none"
-                placeholder="Nhập mật khẩu"
-                autoComplete="current-password"
-                required
-              />
-              {passwordError ? <p className="text-sm text-red-300">{passwordError}</p> : null}
-              <button
-                type="submit"
-                disabled={verifying}
-                className="inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 font-medium text-slate-900 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {verifying ? "Đang kiểm tra…" : "Xác nhận mật khẩu"}
-              </button>
-            </form>
-          </div>
+          <Card className="border-amber-200 bg-amber-50/90 shadow-md dark:border-amber-500/60 dark:bg-amber-950/30">
+            <CardHeader className="space-y-2">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-amber-900 dark:text-amber-200">
+                <Lock className="h-4 w-4" aria-hidden />
+                Liên kết được bảo vệ bằng mật khẩu
+              </CardTitle>
+              <CardDescription className="text-amber-800 dark:text-amber-100/80">
+                Chủ sở hữu đã yêu cầu mật khẩu để truy cập tệp này. Vui lòng nhập mật khẩu được cung cấp cùng liên kết chia sẻ.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleVerifyPassword} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="share-password">Mật khẩu truy cập</Label>
+                  <Input
+                    id="share-password"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="Nhập mật khẩu"
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+                {passwordError ? <p className="text-sm text-destructive">{passwordError}</p> : null}
+                <Button type="submit" disabled={verifying} className="w-full sm:w-auto">
+                  {verifying ? "Đang kiểm tra…" : "Xác nhận mật khẩu"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         ) : null}
 
-        <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Tải tệp chia sẻ</h2>
-              <p className="text-sm text-slate-300">
-                Liên kết này có thể hết hạn hoặc bị thu hồi bất cứ lúc nào bởi người chia sẻ.
-              </p>
+        <Card className="shadow-lg shadow-slate-200/60 dark:shadow-slate-950/40">
+          <CardHeader className="space-y-2">
+            <CardTitle>Nội dung chia sẻ</CardTitle>
+            <CardDescription>
+              Thông tin xem trước giúp bạn đánh giá nhanh tệp chia sẻ. Tính năng xem trực tuyến sẽ sớm ra mắt.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 lg:grid-cols-[3fr,2fr]">
+              <div className="flex flex-col gap-4">
+                <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-muted-foreground dark:bg-muted/30">
+                  <div className="flex flex-col items-center gap-3 text-center text-sm">
+                    <Eye className="h-5 w-5" aria-hidden />
+                    <span>Khu vực xem trước sẽ hiển thị nội dung file ngay khi tính năng sẵn sàng.</span>
+                  </div>
+                </div>
+                {downloadUrl ? (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-muted-foreground dark:border-primary/40 dark:bg-primary/10">
+                    <span className="font-medium text-foreground">Link tải xuống:</span>{" "}
+                    <a
+                      href={downloadUrl}
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      {downloadUrl}
+                    </a>
+                  </div>
+                ) : null}
+                {downloadError ? <p className="text-sm text-destructive">{downloadError}</p> : null}
+              </div>
+              <div className="flex flex-col gap-4 rounded-lg border border-border bg-background/80 p-5 shadow-inner dark:bg-slate-950/40">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground">Hành động nhanh</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Liên kết này có thể hết hạn hoặc bị thu hồi bất cứ lúc nào bởi người chia sẻ.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={!canDownload || downloading}
+                    className="w-full justify-center"
+                  >
+                    <DownloadCloud className="h-4 w-4" aria-hidden />
+                    {downloading ? "Đang chuẩn bị…" : "Tải xuống ngay"}
+                  </Button>
+                  <Button type="button" variant="outline" disabled className="w-full justify-center">
+                    <Eye className="h-4 w-4" aria-hidden />
+                    Xem trực tuyến (sắp ra mắt)
+                  </Button>
+                </div>
+                {!canDownload ? (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    Liên kết này hiện không khả dụng để tải xuống. Vui lòng kiểm tra lại sau hoặc liên hệ chủ sở hữu.
+                  </p>
+                ) : null}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={handleDownload}
-              disabled={!canDownload || downloading}
-              className="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2 font-medium text-slate-900 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {downloading ? "Đang chuẩn bị…" : "Tải xuống ngay"}
-            </button>
-          </div>
-          {!canDownload ? (
-            <p className="mt-4 text-sm text-yellow-200">
-              Liên kết này hiện không khả dụng để tải xuống. Vui lòng kiểm tra lại sau hoặc liên hệ chủ sở hữu.
-            </p>
-          ) : null}
-          {downloadUrl ? (
-            <p className="mt-4 text-sm text-slate-200">
-              Link tải xuống:{" "}
-              <a
-                href={downloadUrl}
-                className="underline decoration-slate-200/70 underline-offset-2 hover:text-white hover:decoration-white"
-              >
-                {downloadUrl}
-              </a>
-            </p>
-          ) : null}
-          {downloadError ? <p className="mt-4 text-sm text-red-300">{downloadError}</p> : null}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
@@ -380,9 +427,9 @@ function ShareDownloadSuspenseFallback(): JSX.Element {
 
 function ShareDownloadLoadingState(): JSX.Element {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="w-full max-w-md space-y-4 text-center">
-        <h1 className="text-2xl font-semibold">Đang tải thông tin chia sẻ…</h1>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
+        <h1 className="text-2xl font-semibold text-foreground">Đang tải thông tin chia sẻ…</h1>
         <p className="text-muted-foreground">Vui lòng chờ trong giây lát.</p>
       </div>
     </div>
@@ -391,13 +438,24 @@ function ShareDownloadLoadingState(): JSX.Element {
 
 function ShareDownloadErrorState({ message }: { message: string | null }): JSX.Element {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="w-full max-w-md space-y-4 text-center">
-        <h1 className="text-2xl font-semibold">Không thể mở liên kết chia sẻ</h1>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
+        <h1 className="text-2xl font-semibold text-foreground">Không thể mở liên kết chia sẻ</h1>
         <p className="text-muted-foreground">
           {message ?? "Liên kết chia sẻ không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại."}
         </p>
       </div>
+    </div>
+  )
+}
+
+type DetailItemProps = { label: string; value: ReactNode }
+
+function DetailItem({ label, value }: DetailItemProps): JSX.Element {
+  return (
+    <div className="rounded-lg border border-border bg-muted/20 p-4 dark:bg-muted/30">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-2 text-lg font-semibold text-foreground">{value}</div>
     </div>
   )
 }
