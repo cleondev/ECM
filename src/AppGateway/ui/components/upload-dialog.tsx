@@ -512,7 +512,6 @@ export function UploadDialog({ open, onOpenChange, onUploadComplete }: UploadDia
       FlowDefinition: selectedFlow ?? "",
       OwnerId: currentUser?.id ?? "",
       CreatedBy: currentUser?.id ?? "",
-      Tags: JSON.stringify(tagIds),
       ["Tags[]"]: tagIds,
     })
   }, [metadata, selectedFlow, selectedTags, currentUser, uppy])

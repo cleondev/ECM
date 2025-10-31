@@ -12,6 +12,7 @@ namespace AppGateway.Api.Controllers.Documents;
 internal static class DocumentFormFieldReader
 {
     private static readonly string[] MetadataPrefixes = ["meta", "Meta"];
+    private static readonly char[] FieldDelimiters = ['[', ']', '.'];
 
     public static string? GetString(IFormCollection form, string propertyName)
     {
@@ -39,7 +40,7 @@ internal static class DocumentFormFieldReader
 
     public static IReadOnlyList<Guid> GetGuidList(IFormCollection form, string propertyName)
     {
-        foreach (var field in EnumerateFieldNames(propertyName))
+        foreach (var field in EnumerateListFieldNames(propertyName))
         {
             if (!form.TryGetValue(field, out var values) || values.Count == 0)
             {
@@ -51,6 +52,41 @@ internal static class DocumentFormFieldReader
             {
                 return parsed.Values;
             }
+        }
+
+        var buffer = new List<Guid>();
+        var seen = new HashSet<Guid>();
+
+        foreach (var key in form.Keys)
+        {
+            if (!IsListFieldName(key, propertyName))
+            {
+                continue;
+            }
+
+            if (!form.TryGetValue(key, out var values) || values.Count == 0)
+            {
+                continue;
+            }
+
+            var parsed = values.ParseGuidValues();
+            if (parsed.Values.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var value in parsed.Values)
+            {
+                if (seen.Add(value))
+                {
+                    buffer.Add(value);
+                }
+            }
+        }
+
+        if (buffer.Count > 0)
+        {
+            return buffer;
         }
 
         return [];
@@ -109,6 +145,12 @@ internal static class DocumentFormFieldReader
             yield return $"{prefix}.{camelCase}";
         }
 
+    }
+
+    private static IEnumerable<string> EnumerateListFieldNames(string propertyName)
+    {
+        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
+
         yield return $"{propertyName}[]";
         yield return $"{camelCase}[]";
 
@@ -119,5 +161,34 @@ internal static class DocumentFormFieldReader
             yield return $"{prefix}.{propertyName}[]";
             yield return $"{prefix}.{camelCase}[]";
         }
+    }
+
+    private static bool IsListFieldName(string key, string propertyName)
+    {
+        if (!IsPotentialMatch(key, propertyName))
+        {
+            return false;
+        }
+
+        return key.Contains('[');
+    }
+
+    private static bool IsPotentialMatch(string key, string propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(propertyName))
+        {
+            return false;
+        }
+
+        var segments = key.Split(FieldDelimiters, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
+        {
+            if (string.Equals(segment, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
