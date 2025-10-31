@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
+using AppGateway.Api.Documents;
 using AppGateway.Contracts.Documents;
-using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
@@ -19,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Shared.Extensions.Http;
 using Shared.Extensions.Primitives;
+using static AppGateway.Api.Documents.DocumentRequestNormalization;
 
 namespace AppGateway.Api.Controllers;
 
@@ -70,7 +68,9 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var (normalizedGroupId, normalizedGroupIds) = await ResolveGroupSelectionAsync(
+        var (normalizedGroupId, normalizedGroupIds) = await DocumentUserContextResolver.ResolveGroupSelectionAsync(
+            _client,
+            _logger,
             request.CreatedBy.Value,
             cancellationToken);
 
@@ -111,7 +111,11 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var claimedUserId = await ResolveUserIdAsync(User, cancellationToken);
+        var claimedUserId = await DocumentUserContextResolver.ResolveUserIdAsync(
+            _client,
+            _logger,
+            User,
+            cancellationToken);
         var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId;
         var ownerId = NormalizeGuid(request.OwnerId) ?? createdBy;
 
@@ -130,7 +134,9 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         var normalizedDocType = NormalizeString(request.DocType, "General");
         var normalizedStatus = NormalizeString(request.Status, "Draft");
         var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
-        var (normalizedGroupId, normalizedGroupIds) = await ResolveGroupSelectionAsync(
+        var (normalizedGroupId, normalizedGroupIds) = await DocumentUserContextResolver.ResolveGroupSelectionAsync(
+            _client,
+            _logger,
             createdBy.Value,
             cancellationToken);
         var documentTypeId = request.DocumentTypeId;
@@ -190,8 +196,20 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
 
                 documents.Add(document);
 
-                await AssignTagsAsync(document.Id, tagIds, createdBy.Value, cancellationToken);
-                await StartWorkflowAsync(document.Id, flowDefinition, cancellationToken);
+                await DocumentPostUploadActions.AssignTagsAsync(
+                    _client,
+                    _logger,
+                    document.Id,
+                    tagIds,
+                    createdBy.Value,
+                    cancellationToken);
+
+                await DocumentPostUploadActions.StartWorkflowAsync(
+                    _client,
+                    _logger,
+                    document.Id,
+                    flowDefinition,
+                    cancellationToken);
             }
             catch (OperationCanceledException)
             {
@@ -239,7 +257,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return NotFound();
         }
 
-        return CreateFileResult(file);
+        return DocumentFileResultFactory.Create(file);
     }
 
     [HttpPost("files/share/{versionId:guid}")]
@@ -313,7 +331,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return NotFound();
         }
 
-        return CreateFileResult(file);
+        return DocumentFileResultFactory.Create(file);
     }
 
     [HttpPost("{documentId:guid}/tags")]
@@ -354,69 +372,6 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         }
 
         return NoContent();
-    }
-
-    private static FileContentResult CreateFileResult(DocumentFileContent file)
-    {
-        return new FileContentResult(file.Content, file.ContentType)
-        {
-            FileDownloadName = file.FileName,
-            LastModified = file.LastModifiedUtc,
-            EnableRangeProcessing = file.EnableRangeProcessing,
-        };
-    }
-
-    private async Task AssignTagsAsync(Guid documentId, IReadOnlyCollection<Guid> tagIds, Guid appliedBy, CancellationToken cancellationToken)
-    {
-        if (tagIds.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var tagId in tagIds)
-        {
-            try
-            {
-                var assigned = await _client.AssignTagToDocumentAsync(documentId, new AssignTagRequestDto(tagId, appliedBy), cancellationToken);
-                if (!assigned)
-                {
-                    _logger.LogWarning("Failed to assign tag {TagId} to document {DocumentId}", tagId, documentId);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception exception)
-            {
-                _logger.LogWarning(exception, "Failed to assign tag {TagId} to document {DocumentId}", tagId, documentId);
-            }
-        }
-    }
-
-    private async Task StartWorkflowAsync(Guid documentId, string? flowDefinition, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(flowDefinition))
-        {
-            return;
-        }
-
-        try
-        {
-            await _client.StartWorkflowAsync(new StartWorkflowRequestDto
-            {
-                DocumentId = documentId,
-                Definition = flowDefinition,
-            }, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(exception, "Failed to start workflow {Workflow} for document {DocumentId}", flowDefinition, documentId);
-        }
     }
 
     private ListDocumentsRequestDto BindListDocumentsRequest()
@@ -522,408 +477,4 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             ? "The provided value is not valid."
             : $"The value '{raw}' is not valid.";
     }
-
-    private static Guid? NormalizeGuid(Guid? value)
-    {
-        return value is null || value == Guid.Empty ? null : value;
-    }
-
-    private static string NormalizeString(string? value, string fallback)
-    {
-        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
-    }
-
-    private static string? NormalizeOptional(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-
-    private static string NormalizeTitle(string? title, string? fileName)
-    {
-        if (!string.IsNullOrWhiteSpace(title))
-        {
-            return title.Trim();
-        }
-
-        if (!string.IsNullOrWhiteSpace(fileName))
-        {
-            var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-            if (!string.IsNullOrWhiteSpace(nameWithoutExtension))
-            {
-                return nameWithoutExtension.Trim();
-            }
-
-            return fileName.Trim();
-        }
-
-        return "Untitled document";
-    }
-
-
-
-    private static IReadOnlyList<Guid> NormalizeGroupSelection(Guid? groupId, IReadOnlyCollection<Guid> groupIds, out Guid? primaryGroupId)
-    {
-        var buffer = new List<Guid>();
-        var seen = new HashSet<Guid>();
-
-        if (groupId.HasValue && groupId.Value != Guid.Empty && seen.Add(groupId.Value))
-        {
-            buffer.Add(groupId.Value);
-        }
-
-        if (groupIds is not null)
-        {
-            foreach (var id in groupIds)
-            {
-                if (id == Guid.Empty)
-                {
-                    continue;
-                }
-
-                if (seen.Add(id))
-                {
-                    buffer.Add(id);
-                }
-            }
-        }
-
-        primaryGroupId = buffer.Count > 0 ? buffer[0] : (Guid?)null;
-        return buffer;
-    }
-
-    private async Task<(Guid? PrimaryGroupId, IReadOnlyList<Guid> GroupIds)> ResolveGroupSelectionAsync(
-        Guid createdBy,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var user = await _client.GetUserAsync(createdBy, cancellationToken);
-            if (user is not null)
-            {
-                var normalized = NormalizeGroupSelection(
-                    user.PrimaryGroupId,
-                    user.GroupIds ?? Array.Empty<Guid>(),
-                    out var primaryGroupId);
-
-                if (normalized.Count > 0)
-                {
-                    return (primaryGroupId, normalized);
-                }
-
-                _logger.LogWarning(
-                    "User {UserId} does not have any group memberships; falling back to the system group.",
-                    createdBy);
-            }
-            else
-            {
-                _logger.LogWarning(
-                    "Failed to resolve user {UserId} for group selection; falling back to the system group.",
-                    createdBy);
-            }
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(
-                exception,
-                "Failed to resolve group selection for user {UserId}; falling back to the system group.",
-                createdBy);
-        }
-
-        return (GroupDefaultIds.System, new[] { GroupDefaultIds.System });
-    }
-
-    private async Task<Guid?> ResolveUserIdAsync(ClaimsPrincipal? principal, CancellationToken cancellationToken)
-    {
-        if (principal is null)
-        {
-            return null;
-        }
-
-        var upn = ResolveUserPrincipalName(principal);
-        if (string.IsNullOrWhiteSpace(upn))
-        {
-            return null;
-        }
-
-        try
-        {
-            var user = await _client.GetUserByEmailAsync(upn, cancellationToken);
-            return user?.Id;
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(exception, "Failed to resolve user id from UPN {Upn}", upn);
-            return null;
-        }
-    }
-
-    private static string? ResolveUserPrincipalName(ClaimsPrincipal principal)
-    {
-        foreach (var claimType in new[] { ClaimTypes.Upn, "preferred_username", ClaimTypes.Email })
-        {
-            var value = principal.FindFirst(claimType)?.Value;
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                return value.Trim();
-            }
-        }
-
-        return null;
-    }
-}
-
-public sealed class CreateDocumentForm
-{
-    [Required]
-    [StringLength(256)]
-    public string Title { get; init; } = string.Empty;
-
-    [Required]
-    [StringLength(128)]
-    public string DocType { get; init; } = string.Empty;
-
-    [Required]
-    [StringLength(64)]
-    public string Status { get; init; } = string.Empty;
-
-    [Required]
-    public Guid? OwnerId { get; init; }
-
-    [Required]
-    public Guid? CreatedBy { get; init; }
-
-    [StringLength(64)]
-    public string? Sensitivity { get; init; }
-
-    public Guid? DocumentTypeId { get; init; }
-
-    [Required]
-    public IFormFile? File { get; init; }
-
-    public static async ValueTask<CreateDocumentForm?> BindAsync(HttpContext context)
-    {
-        if (!context.Request.HasFormContentType)
-        {
-            return null;
-        }
-
-        var form = await context.Request.ReadFormAsync(context.RequestAborted);
-
-        var request = new CreateDocumentForm
-        {
-            Title = GetString(form, nameof(Title)) ?? string.Empty,
-            DocType = GetString(form, nameof(DocType)) ?? string.Empty,
-            Status = GetString(form, nameof(Status)) ?? string.Empty,
-            OwnerId = GetGuid(form, nameof(OwnerId)),
-            CreatedBy = GetGuid(form, nameof(CreatedBy)),
-            Sensitivity = GetString(form, nameof(Sensitivity)),
-            DocumentTypeId = GetGuid(form, nameof(DocumentTypeId)),
-            File = GetFile(form, nameof(File)),
-        };
-
-        return request;
-    }
-
-    private static string? GetString(IFormCollection form, string propertyName)
-    {
-        foreach (var field in EnumerateFieldNames(propertyName))
-        {
-            if (form.TryGetValue(field, out var value) && !StringValues.IsNullOrEmpty(value))
-            {
-                return value.ToString();
-            }
-        }
-
-        return null;
-    }
-
-    private static Guid? GetGuid(IFormCollection form, string propertyName)
-    {
-        var value = GetString(form, propertyName);
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        return Guid.TryParse(value, out var parsed) ? parsed : (Guid?)null;
-    }
-
-    private static IReadOnlyCollection<Guid> GetGuidList(IFormCollection form, string propertyName)
-    {
-        foreach (var field in EnumerateFieldNames(propertyName))
-        {
-            if (!form.TryGetValue(field, out var values) || values.Count == 0)
-            {
-                continue;
-            }
-
-            var parsed = values.ParseGuidValues();
-            if (parsed.Values.Count > 0)
-            {
-                return parsed.Values;
-            }
-        }
-
-        return [];
-    }
-
-    private static IEnumerable<string> EnumerateFieldNames(string propertyName)
-    {
-        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-
-        yield return propertyName;
-        yield return camelCase;
-        yield return $"{propertyName}[]";
-        yield return $"{camelCase}[]";
-    }
-
-    private static IFormFile? GetFile(IFormCollection form, string propertyName)
-    {
-        return form.Files.GetFile(propertyName)
-            ?? form.Files.GetFile(char.ToLowerInvariant(propertyName[0]) + propertyName[1..])
-            ?? form.Files.FirstOrDefault();
-    }
-}
-
-public sealed class CreateDocumentsForm
-{
-    public string? Title { get; init; }
-
-    public string? DocType { get; init; }
-
-    public string? Status { get; init; }
-
-    public Guid? OwnerId { get; init; }
-
-    public Guid? CreatedBy { get; init; }
-
-    public string? Sensitivity { get; init; }
-
-    public Guid? DocumentTypeId { get; init; }
-
-    public string? FlowDefinition { get; init; }
-
-    public IReadOnlyList<Guid> TagIds { get; init; } = [];
-
-    public IReadOnlyList<IFormFile> Files { get; init; } = [];
-
-    public static async ValueTask<CreateDocumentsForm?> BindAsync(HttpContext context)
-    {
-        if (!context.Request.HasFormContentType)
-        {
-            return null;
-        }
-
-        var form = await context.Request.ReadFormAsync(context.RequestAborted);
-
-        var request = new CreateDocumentsForm
-        {
-            Title = GetString(form, nameof(Title)),
-            DocType = GetString(form, nameof(DocType)),
-            Status = GetString(form, nameof(Status)),
-            OwnerId = GetGuid(form, nameof(OwnerId)),
-            CreatedBy = GetGuid(form, nameof(CreatedBy)),
-            Sensitivity = GetString(form, nameof(Sensitivity)),
-            DocumentTypeId = GetGuid(form, nameof(DocumentTypeId)),
-            FlowDefinition = GetString(form, nameof(FlowDefinition)),
-            TagIds = GetGuidList(form, "Tags"),
-            Files = GetFiles(form),
-        };
-
-        return request;
-    }
-
-    private static string? GetString(IFormCollection form, string propertyName)
-    {
-        foreach (var field in EnumerateFieldNames(propertyName))
-        {
-            if (form.TryGetValue(field, out var value) && !StringValues.IsNullOrEmpty(value))
-            {
-                return value.ToString();
-            }
-        }
-
-        return null;
-    }
-
-    private static Guid? GetGuid(IFormCollection form, string propertyName)
-    {
-        var value = GetString(form, propertyName);
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        return Guid.TryParse(value, out var parsed) ? parsed : null;
-    }
-
-    private static IReadOnlyList<Guid> GetGuidList(IFormCollection form, string propertyName)
-    {
-        foreach (var field in EnumerateFieldNames(propertyName))
-        {
-            if (!form.TryGetValue(field, out var values) || values.Count == 0)
-            {
-                continue;
-            }
-
-            var parsed = values.ParseGuidValues();
-            if (parsed.Values.Count > 0)
-            {
-                return parsed.Values;
-            }
-        }
-
-        return [];
-    }
-
-    private static IReadOnlyList<IFormFile> GetFiles(IFormCollection form)
-    {
-        if (form.Files.Count == 0)
-        {
-            return [];
-        }
-
-        var files = form.Files.GetFiles("Files");
-        if (files.Count > 0)
-        {
-            return files.ToList();
-        }
-
-        files = form.Files.GetFiles("files");
-        if (files.Count > 0)
-        {
-            return files.ToList();
-        }
-
-        return form.Files.ToList();
-    }
-
-    private static IEnumerable<string> EnumerateFieldNames(string propertyName)
-    {
-        var camelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
-
-        yield return propertyName;
-        yield return camelCase;
-
-        foreach (var prefix in new[] { "meta", "Meta" })
-        {
-            yield return $"{prefix}[{propertyName}]";
-            yield return $"{prefix}[{camelCase}]";
-            yield return $"{prefix}.{propertyName}";
-            yield return $"{prefix}.{camelCase}";
-        }
-
-        yield return $"{propertyName}[]";
-        yield return $"{camelCase}[]";
-
-        foreach (var prefix in new[] { "meta", "Meta" })
-        {
-            yield return $"{prefix}[{propertyName}][]";
-            yield return $"{prefix}[{camelCase}][]";
-            yield return $"{prefix}.{propertyName}[]";
-            yield return $"{prefix}.{camelCase}[]";
-        }
-    }
-
-
 }
