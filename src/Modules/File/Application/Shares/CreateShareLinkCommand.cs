@@ -25,7 +25,8 @@ public sealed record CreateShareLinkCommand(
     long FileSizeBytes,
     DateTimeOffset? FileCreatedAt,
     string? WatermarkJson,
-    IReadOnlyCollection<string>? AllowedIps);
+    IReadOnlyCollection<string>? AllowedIps,
+    string? RequestBaseUrl);
 
 public sealed class CreateShareLinkCommandHandler(
     IShareLinkRepository repository,
@@ -135,7 +136,7 @@ public sealed class CreateShareLinkCommandHandler(
             shareLink.DocumentId,
             shareLink.Code);
 
-        var dto = ShareLinkMapper.ToDto(shareLink, _options);
+        var dto = ShareLinkMapper.ToDto(shareLink, _options, command.RequestBaseUrl);
         return OperationResult<ShareLinkDto>.Success(dto);
     }
 

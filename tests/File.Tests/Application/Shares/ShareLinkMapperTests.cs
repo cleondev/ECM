@@ -28,6 +28,18 @@ public class ShareLinkMapperTests
         Assert.Equal("https://files.example.com/portal/s/?code=A%2BB", dto.Url);
     }
 
+    [Fact]
+    public void ToDto_WithFallbackBaseUrl_UsesFallbackWhenOptionMissing()
+    {
+        var share = CreateShareLink("XYZ789");
+        var options = new ShareLinkOptions { PublicBaseUrl = null };
+
+        var dto = ShareLinkMapper.ToDto(share, options, "https://docs.example.com/base");
+
+        Assert.Equal("https://docs.example.com/base/s/?code=XYZ789", dto.Url);
+        Assert.Equal("https://docs.example.com/base/s/XYZ789", dto.ShortUrl);
+    }
+
     private static ShareLink CreateShareLink(string code)
     {
         var now = DateTimeOffset.UtcNow;
