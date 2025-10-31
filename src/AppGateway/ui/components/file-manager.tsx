@@ -30,28 +30,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
 
-function mergeDocumentTags(existing: DocumentTag[], additions: DocumentTag[]): DocumentTag[] {
-  if (additions.length === 0) {
-    return existing
-  }
-
-  const additionMap = new Map(additions.map((tag) => [tag.id, tag]))
-  const merged = existing.map((tag) => {
-    const updated = additionMap.get(tag.id)
-    if (updated) {
-      additionMap.delete(tag.id)
-      return { ...tag, ...updated }
-    }
-    return tag
-  })
-
-  additionMap.forEach((tag) => {
-    merged.push(tag)
-  })
-
-  return merged
-}
-
 const PAGE_SIZE = 20
 
 export function FileManager() {
@@ -220,29 +198,23 @@ export function FileManager() {
     setIsTagDialogOpen(true)
   }
 
-  const handleTagsAssigned = (fileId: string, addedTags: DocumentTag[]) => {
-    if (addedTags.length === 0) {
-      return
-    }
-
+  const handleTagsAssigned = (fileId: string, updatedTags: DocumentTag[]) => {
     setFiles((previous) =>
-      previous.map((file) =>
-        file.id === fileId ? { ...file, tags: mergeDocumentTags(file.tags, addedTags) } : file,
-      ),
+      previous.map((file) => (file.id === fileId ? { ...file, tags: updatedTags } : file)),
     )
 
     setSelectedFile((previous) => {
       if (!previous || previous.id !== fileId) {
         return previous
       }
-      return { ...previous, tags: mergeDocumentTags(previous.tags, addedTags) }
+      return { ...previous, tags: updatedTags }
     })
 
     setTagDialogFile((previous) => {
       if (!previous || previous.id !== fileId) {
         return previous
       }
-      return { ...previous, tags: mergeDocumentTags(previous.tags, addedTags) }
+      return { ...previous, tags: updatedTags }
     })
   }
 
