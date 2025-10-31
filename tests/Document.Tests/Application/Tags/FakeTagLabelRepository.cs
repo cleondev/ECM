@@ -14,7 +14,7 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
 
     public CancellationToken? CapturedToken { get; private set; }
 
-    public IReadOnlyCollection<TagLabel> StoredTags => _tags.Values.ToArray();
+    public IReadOnlyCollection<TagLabel> StoredTags => [.. _tags.Values];
 
     public void Seed(TagLabel tagLabel)
     {

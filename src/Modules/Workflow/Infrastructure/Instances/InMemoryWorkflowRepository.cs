@@ -38,7 +38,7 @@ internal sealed class InMemoryWorkflowRepository : IWorkflowRepository
     }
 
     public Task<IReadOnlyCollection<WorkflowDefinition>> GetDefinitionsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult<IReadOnlyCollection<WorkflowDefinition>>(_definitions.Values.ToArray());
+        => Task.FromResult<IReadOnlyCollection<WorkflowDefinition>>([.. _definitions.Values]);
 
     public Task<WorkflowDefinition?> GetDefinitionByIdAsync(string definitionId, CancellationToken cancellationToken = default)
     {
@@ -82,7 +82,7 @@ internal sealed class InMemoryWorkflowRepository : IWorkflowRepository
             tasks = tasks.Where(task => task.State == state);
         }
 
-        return Task.FromResult<IReadOnlyCollection<WorkflowTask>>(tasks.ToArray());
+        return Task.FromResult<IReadOnlyCollection<WorkflowTask>>([.. tasks]);
     }
 
     public Task<WorkflowTask?> GetTaskAsync(string taskId, CancellationToken cancellationToken = default)

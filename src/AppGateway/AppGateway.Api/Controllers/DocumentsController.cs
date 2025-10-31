@@ -458,7 +458,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             }
         }
 
-        return parsed.HasValues ? parsed.Values.ToArray() : Array.Empty<Guid>();
+        return parsed.HasValues ? [.. parsed.Values] : [];
     }
 
     private static string? ReadQueryString(IQueryCollection query, IEnumerable<string> keys)
