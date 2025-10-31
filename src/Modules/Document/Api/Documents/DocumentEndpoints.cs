@@ -260,7 +260,7 @@ public static class DocumentEndpoints
                 EF.Functions.ILike(
                     document.Title,
                     likePattern,
-                    @"\\"
+                    "\\"
                 )
             );
         }
