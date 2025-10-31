@@ -225,10 +225,31 @@ function colorForKey(key: string): string {
   return TAG_COLOR_PALETTE[paletteIndex]
 }
 
+const scopePriority: Record<TagScope, number> = {
+  user: 0,
+  group: 1,
+  global: 2,
+}
+
 function normalizeScope(value?: string | null): TagScope {
   const normalized = value?.trim().toLowerCase()
-  if (normalized === "group" || normalized === "global") {
-    return normalized
+
+  if (!normalized) {
+    return "user"
+  }
+
+  if (normalized === "global" || normalized.includes("global") || normalized.includes("tenant")) {
+    return "global"
+  }
+
+  if (
+    normalized === "group" ||
+    normalized === "groups" ||
+    normalized.includes("group") ||
+    normalized.includes("team") ||
+    normalized.includes("shared")
+  ) {
+    return "group"
   }
 
   return "user"
@@ -273,8 +294,14 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
         existing.name = normalizedLabel
         existing.namespaceLabel = normalizedLabel
       }
-      if (!existing.scope || existing.scope !== normalizedScope) {
+      if (!existing.scope) {
         existing.scope = normalizedScope
+      } else {
+        const currentPriority = scopePriority[existing.scope]
+        const nextPriority = scopePriority[normalizedScope]
+        if (nextPriority > currentPriority) {
+          existing.scope = normalizedScope
+        }
       }
       return existing
     }
@@ -391,14 +418,15 @@ function mapGroupSummaryToGroup(data: GroupSummaryResponse): Group {
   }
 }
 
-function normalizeMockTagTree(nodes: TagNode[]): TagNode[] {
+function normalizeMockTagTree(nodes: TagNode[], parentScope?: TagScope): TagNode[] {
   return nodes.map((node) => {
-    const children = node.children ? normalizeMockTagTree(node.children) : []
+    const scope = node.scope ?? parentScope ?? "user"
+    const children = node.children ? normalizeMockTagTree(node.children, scope) : []
     return {
       ...node,
       color: node.color ?? colorForKey(node.id),
       kind: node.kind ?? (children.length > 0 ? "namespace" : "label"),
-      scope: node.scope ?? "user",
+      scope,
       children,
     }
   })
