@@ -413,16 +413,28 @@ internal sealed class EcmApiClient(
 
         request.Content = JsonContent.Create(payload);
 
-        var response = await SendAsync<ShareLinkResponse>(request, cancellationToken);
-        if (response is null)
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return await CreateLegacyShareLinkAsync(requestDto, effectiveMinutes, cancellationToken);
+        }
+
+        if (!response.IsSuccessStatusCode)
         {
             return null;
         }
 
-        var url = CreateUri(response.Url);
-        var shortUrl = CreateUri(response.ShortUrl);
-        var expiresAt = response.ValidTo ?? response.ValidFrom.AddMinutes(effectiveMinutes);
-        var isPublic = string.Equals(response.SubjectType, "public", StringComparison.OrdinalIgnoreCase);
+        var shareResponse = await response.Content.ReadFromJsonAsync<ShareLinkResponse>(cancellationToken: cancellationToken);
+        if (shareResponse is null)
+        {
+            return null;
+        }
+
+        var url = CreateUri(shareResponse.Url);
+        var shortUrl = CreateUri(shareResponse.ShortUrl);
+        var expiresAt = shareResponse.ValidTo ?? shareResponse.ValidFrom.AddMinutes(effectiveMinutes);
+        var isPublic = string.Equals(shareResponse.SubjectType, "public", StringComparison.OrdinalIgnoreCase);
 
         return new DocumentShareLinkDto(url, shortUrl, expiresAt, isPublic);
     }
@@ -433,6 +445,54 @@ internal sealed class EcmApiClient(
         DateTimeOffset ValidFrom,
         DateTimeOffset? ValidTo,
         string SubjectType);
+
+    private sealed record LegacyShareLinkResponse(
+        string Url,
+        DateTimeOffset ExpiresAtUtc,
+        bool IsPublic,
+        string? ShortUrl);
+
+    private async Task<DocumentShareLinkDto?> CreateLegacyShareLinkAsync(
+        CreateShareLinkRequestDto requestDto,
+        int effectiveMinutes,
+        CancellationToken cancellationToken)
+    {
+        if (requestDto.VersionId == Guid.Empty)
+        {
+            return null;
+        }
+
+        using var legacyRequest = await CreateRequestAsync(
+            HttpMethod.Post,
+            $"api/ecm/files/share/{requestDto.VersionId}",
+            cancellationToken);
+
+        legacyRequest.Content = JsonContent.Create(new
+        {
+            expiresInMinutes = effectiveMinutes,
+            isPublic = requestDto.IsPublic,
+        });
+
+        using var response = await _httpClient.SendAsync(legacyRequest, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var legacyShare = await response.Content.ReadFromJsonAsync<LegacyShareLinkResponse>(cancellationToken: cancellationToken);
+        if (legacyShare is null || string.IsNullOrWhiteSpace(legacyShare.Url))
+        {
+            return null;
+        }
+
+        var url = CreateUri(legacyShare.Url);
+        var shortUrl = string.IsNullOrWhiteSpace(legacyShare.ShortUrl)
+            ? url
+            : CreateUri(legacyShare.ShortUrl);
+
+        return new DocumentShareLinkDto(url, shortUrl, legacyShare.ExpiresAtUtc, legacyShare.IsPublic);
+    }
 
     private static string? NormalizeExtension(string? extension, string fileName)
     {
