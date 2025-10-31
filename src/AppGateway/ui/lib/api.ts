@@ -1190,41 +1190,6 @@ const statusToApiStatus: Record<NonNullable<FileItem["status"]>, string> = {
   completed: "Completed",
 }
 
-function createDocumentTagsFromNames(
-  fileId: string,
-  tagNames: string[],
-  existingTags: DocumentTag[] = [],
-): DocumentTag[] {
-  const uniqueNames = Array.from(
-    new Set(
-      tagNames
-        .map((tag) => tag.trim())
-        .filter((tag): tag is string => tag.length > 0),
-    ),
-  )
-
-  return uniqueNames.map((name, index) => {
-    const normalized = name.toLowerCase()
-    const match = existingTags.find((tag) => tag.name.toLowerCase() === normalized)
-    if (match) {
-      return { ...match, name }
-    }
-
-    const slug = normalized.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
-    return {
-      id: `${fileId}-tag-${slug || index}`,
-      namespaceId: "default",
-      name,
-      color: null,
-      iconKey: null,
-      sortOrder: null,
-      pathIds: [],
-      isActive: true,
-      isSystem: false,
-    }
-  })
-}
-
 export async function updateFile(fileId: string, data: UpdateFileRequest): Promise<FileItem> {
   const payloadEntries: [string, unknown][] = []
 
@@ -1258,17 +1223,13 @@ export async function updateFile(fileId: string, data: UpdateFileRequest): Promi
 
   const payload = Object.fromEntries(payloadEntries)
 
-  if (payloadEntries.length > 0) {
-    try {
-      const response = await gatewayRequest<DocumentResponse>(`/api/documents/${fileId}`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      })
-      return mapDocumentToFileItem(response)
-    } catch (error) {
-      console.warn("[ui] Failed to update document via gateway, falling back to mock data:", error)
-    }
-  }
+  const response = await gatewayRequest<DocumentResponse>(`/api/documents/${fileId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+
+  return mapDocumentToFileItem(response)
+}
 
 export async function deleteFile(fileId: string): Promise<void> {
   try {
@@ -1282,31 +1243,6 @@ export async function deleteFile(fileId: string): Promise<void> {
       throw (error instanceof Error ? error : new Error("Failed to delete file."))
     }
     mockFiles.splice(index, 1)
-  }
-}
-
-export async function updateFile(fileId: string, data: Partial<FileItem>): Promise<FileItem> {
-  try {
-    const file = mockFiles.find((f) => f.id === fileId)
-    if (!file) {
-      throw new Error(`File with id ${fileId} not found in mock data`)
-    }
-
-    const nextTags =
-      data.tags ?? (data.tagNames ? createDocumentTagsFromNames(fileId, data.tagNames, file.tags) : undefined)
-
-    return {
-      ...file,
-      ...(data.name !== undefined ? { name: data.name } : {}),
-      ...(data.description !== undefined ? { description: data.description } : {}),
-      ...(data.owner !== undefined ? { owner: data.owner } : {}),
-      ...(data.folder !== undefined ? { folder: data.folder } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
-      ...(nextTags !== undefined ? { tags: nextTags } : {}),
-    }
-  } catch (error) {
-    console.warn("[ui] Failed to update mock document data:", error)
-    throw error
   }
 }
 
