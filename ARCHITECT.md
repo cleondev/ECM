@@ -178,10 +178,13 @@ Modules ghi sự kiện vào `ops.outbox`; **Outbox Dispatcher** đọc và publ
 
 * `iam.events` – user/role thay đổi (tuỳ chọn)
 * `document.events` – CRUD document, metadata, tag
+* `file.events` – vòng đời file binary, storage quota
+* `tag.events` – CRUD tag namespace/label độc lập với document
 * `version.events` – version mới → trigger OCR & SearchIndexer
 * `workflow.events` – instance, task update → Notify, Audit
 * `signature.events` – trạng thái ký số (completed/failed)
 * `ocr.events` – OCR kết quả, extraction → SearchIndexer
+* `ops.events` – sự kiện vận hành (heartbeat, maintenance, incident)
 * `search.events` – đồng bộ read model / rebuild index
 * `audit.events` – log thao tác người dùng
 * `retention.events` – lịch dọn dữ liệu, purge/archive

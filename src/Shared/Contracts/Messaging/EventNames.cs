@@ -28,4 +28,13 @@ public static class EventNames
     {
         public const string Completed = "ecm.ocr.completed";
     }
+
+    public static class Ops
+    {
+        public const string HeartbeatFailed = "ecm.ops.heartbeat-failed";
+        public const string MaintenanceScheduled = "ecm.ops.maintenance-scheduled";
+        public const string MaintenanceCompleted = "ecm.ops.maintenance-completed";
+        public const string IncidentRaised = "ecm.ops.incident-raised";
+        public const string IncidentResolved = "ecm.ops.incident-resolved";
+    }
 }
