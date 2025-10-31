@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace AppGateway.Api.Documents;
+namespace AppGateway.Api.Controllers.Documents;
 
 internal static class DocumentRequestNormalization
 {
@@ -71,7 +71,7 @@ internal static class DocumentRequestNormalization
             }
         }
 
-        primaryGroupId = buffer.Count > 0 ? buffer[0] : (Guid?)null;
+        primaryGroupId = buffer.Count > 0 ? buffer[0] : null;
         return buffer;
     }
 }

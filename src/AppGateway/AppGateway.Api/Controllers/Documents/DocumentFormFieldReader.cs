@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+
 using Shared.Extensions.Primitives;
 
-namespace AppGateway.Api.Documents;
+namespace AppGateway.Api.Controllers.Documents;
 
 internal static class DocumentFormFieldReader
 {

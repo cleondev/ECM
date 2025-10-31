@@ -1,9 +1,10 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Http;
 
-namespace AppGateway.Api.Documents;
+namespace AppGateway.Api.Controllers.Documents;
 
 public sealed class CreateDocumentForm
 {

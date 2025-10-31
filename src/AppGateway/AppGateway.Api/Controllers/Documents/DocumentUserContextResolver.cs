@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Infrastructure.Ecm;
+
 using Microsoft.Extensions.Logging;
 
-namespace AppGateway.Api.Documents;
+namespace AppGateway.Api.Controllers.Documents;
 
 internal static class DocumentUserContextResolver
 {

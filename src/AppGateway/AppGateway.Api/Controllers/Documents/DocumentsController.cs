@@ -3,22 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+
 using AppGateway.Api.Auth;
-using AppGateway.Api.Documents;
 using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+
 using Shared.Extensions.Http;
 using Shared.Extensions.Primitives;
-using static AppGateway.Api.Documents.DocumentRequestNormalization;
 
-namespace AppGateway.Api.Controllers;
+using static AppGateway.Api.Controllers.Documents.DocumentRequestNormalization;
+
+namespace AppGateway.Api.Controllers.Documents;
 
 [ApiController]
 [Route("api/documents")]
@@ -88,7 +91,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             FileName = string.IsNullOrWhiteSpace(request.File.FileName) ? "upload.bin" : request.File.FileName,
             ContentType = string.IsNullOrWhiteSpace(request.File.ContentType) ? "application/octet-stream" : request.File.ContentType,
             FileSize = request.File.Length,
-            OpenReadStream = _ => Task.FromResult<Stream>(request.File.OpenReadStream()),
+            OpenReadStream = _ => Task.FromResult(request.File.OpenReadStream()),
         };
 
         var document = await _client.CreateDocumentAsync(upload, cancellationToken);
@@ -182,7 +185,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
                 FileName = string.IsNullOrWhiteSpace(file.FileName) ? "upload.bin" : file.FileName,
                 ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
                 FileSize = file.Length,
-                OpenReadStream = _ => Task.FromResult<Stream>(file.OpenReadStream()),
+                OpenReadStream = _ => Task.FromResult(file.OpenReadStream()),
             };
 
             try

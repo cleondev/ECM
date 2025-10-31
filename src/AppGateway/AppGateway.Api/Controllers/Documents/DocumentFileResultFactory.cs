@@ -1,7 +1,8 @@
 using AppGateway.Infrastructure.Ecm;
+
 using Microsoft.AspNetCore.Mvc;
 
-namespace AppGateway.Api.Documents;
+namespace AppGateway.Api.Controllers.Documents;
 
 internal static class DocumentFileResultFactory
 {
