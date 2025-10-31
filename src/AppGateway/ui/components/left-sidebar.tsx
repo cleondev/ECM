@@ -149,6 +149,7 @@ function TagTreeItem({
               isSelected
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+              isNamespace ? "hover:bg-transparent" : null,
             )}
             style={{ paddingLeft: `${level * 12 + 8}px` }}
           >
@@ -182,21 +183,37 @@ function TagTreeItem({
               >
                 <div
                   className={cn(
-                    "flex items-center gap-2 flex-1 min-w-0 rounded px-1.5 py-0.5 transition-colors",
-                    canSelect ? "hover:bg-muted/60" : "opacity-80",
+                    "flex gap-2 flex-1 min-w-0 rounded px-1.5 py-0.5 transition-colors",
+                    isNamespace
+                      ? "flex-col items-start bg-muted/40 border border-dashed border-border/70"
+                      : "items-center hover:bg-muted/60",
+                    !isNamespace && !canSelect ? "opacity-80" : null,
                   )}
                 >
-                  <span
-                    className={cn(
-                      "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
-                      tag.color ? "leftbar-tag-indicator--custom" : null,
-                    )}
-                    style={indicatorStyle}
-                  />
-                  <span className="text-xs flex-shrink-0">{displayIcon}</span>
-                  <span className="truncate text-sm text-foreground" title={tag.name}>
-                    {tag.name}
-                  </span>
+                  {isNamespace ? (
+                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                        Namespace
+                      </span>
+                      <span className="truncate text-sm font-semibold text-foreground" title={tag.name}>
+                        {tag.name}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <span
+                        className={cn(
+                          "leftbar-tag-indicator h-2.5 w-2.5 flex-shrink-0 rounded-full border transition-all duration-200",
+                          tag.color ? "leftbar-tag-indicator--custom" : null,
+                        )}
+                        style={indicatorStyle}
+                      />
+                      <span className="text-xs flex-shrink-0">{displayIcon}</span>
+                      <span className="truncate text-sm text-foreground" title={tag.name}>
+                        {tag.name}
+                      </span>
+                    </>
+                  )}
                 </div>
               </button>
 
