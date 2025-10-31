@@ -120,6 +120,11 @@ export type DocumentBatchResponse = {
   failures: DocumentUploadFailure[]
 }
 
+export type DeleteFilesResult = {
+  deletedIds: string[]
+  failedIds: string[]
+}
+
 type ShareLinkResponse = {
   url: string
   shortUrl: string
@@ -1244,6 +1249,29 @@ export async function deleteFile(fileId: string): Promise<void> {
     }
     mockFiles.splice(index, 1)
   }
+}
+
+export async function deleteFiles(fileIds: string[]): Promise<DeleteFilesResult> {
+  const uniqueIds = Array.from(new Set(fileIds.filter((id) => id)))
+
+  if (uniqueIds.length === 0) {
+    return { deletedIds: [], failedIds: [] }
+  }
+
+  const deletedIds: string[] = []
+  const failedIds: string[] = []
+
+  for (const fileId of uniqueIds) {
+    try {
+      await deleteFile(fileId)
+      deletedIds.push(fileId)
+    } catch (error) {
+      console.warn(`[ui] Failed to delete file '${fileId}' during batch delete:`, error)
+      failedIds.push(fileId)
+    }
+  }
+
+  return { deletedIds, failedIds }
 }
 
 export async function fetchFlows(fileId: string): Promise<Flow[]> {
