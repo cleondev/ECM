@@ -398,18 +398,6 @@ export function ShareDialog({
               </div>
               <p className="mt-2 text-xs text-muted-foreground">{audienceSummary}</p>
             </div>
-
-            {!hasResult ? (
-              <Alert className="border-primary/30 bg-primary/5 text-primary">
-                <Sparkles className="h-4 w-4" />
-                <AlertTitle>Shortened links are now built-in</AlertTitle>
-                <AlertDescription>
-                  Choose the duration and access level, then create the link. You will receive both the short and full URLs side
-                  by side for copying.
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
             <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
               <div className="space-y-2">
                 <Label htmlFor="share-audience" className="font-semibold">
