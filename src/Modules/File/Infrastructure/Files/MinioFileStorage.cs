@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -18,7 +19,12 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
     private readonly FileStorageOptions _options = options.Value;
     private readonly ILogger<MinioFileStorage> _logger = logger;
 
-    public async Task UploadAsync(string storageKey, Stream content, string contentType, CancellationToken cancellationToken = default)
+    public async Task UploadAsync(
+        string storageKey,
+        Stream content,
+        string contentType,
+        string? originalFileName,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -47,6 +53,17 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
                 .WithStreamData(uploadStream)
                 .WithObjectSize(objectSize)
                 .WithContentType(contentType);
+
+            var normalizedFileName = NormalizeFileName(originalFileName);
+            if (!string.IsNullOrWhiteSpace(normalizedFileName))
+            {
+                var headers = new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["x-amz-meta-original-filename"] = normalizedFileName,
+                };
+
+                putObjectArgs = putObjectArgs.WithHeaders(headers);
+            }
 
             await _client.PutObjectAsync(putObjectArgs, cancellationToken);
 
@@ -183,6 +200,19 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
             _logger.LogDebug(exception, "Bucket {Bucket} not found when accessing {Key}.", _options.BucketName, key);
             return null;
         }
+    }
+
+    private static string? NormalizeFileName(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return null;
+        }
+
+        var trimmed = fileName.Trim();
+        var normalized = Path.GetFileName(trimmed);
+
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)

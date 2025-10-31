@@ -21,7 +21,12 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
     private readonly FileStorageOptions _options = options.Value;
     private readonly ILogger<S3FileStorage> _logger = logger;
 
-    public async Task UploadAsync(string storageKey, Stream content, string contentType, CancellationToken cancellationToken = default)
+    public async Task UploadAsync(
+        string storageKey,
+        Stream content,
+        string contentType,
+        string? originalFileName,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -34,6 +39,12 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
             InputStream = content,
             ContentType = contentType,
         };
+
+        var normalizedFileName = NormalizeFileName(originalFileName);
+        if (!string.IsNullOrWhiteSpace(normalizedFileName))
+        {
+            request.Metadata["x-amz-meta-original-filename"] = normalizedFileName;
+        }
 
         if (content.CanSeek)
         {
@@ -161,5 +172,18 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
             BucketRegionName = _options.Region,
             UseClientRegion = true,
         }, cancellationToken);
+    }
+
+    private static string? NormalizeFileName(string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return null;
+        }
+
+        var trimmed = fileName.Trim();
+        var normalized = Path.GetFileName(trimmed);
+
+        return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
     }
 }

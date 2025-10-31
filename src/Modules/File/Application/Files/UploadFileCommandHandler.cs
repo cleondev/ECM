@@ -26,7 +26,12 @@ public sealed class UploadFileCommandHandler(
         var storageKey = _storageKeyGenerator.Generate(request.FileName);
         var createdAtUtc = _clock.UtcNow;
 
-        await _storage.UploadAsync(storageKey, request.Content, request.ContentType, cancellationToken);
+        await _storage.UploadAsync(
+            storageKey,
+            request.Content,
+            request.ContentType,
+            request.FileName,
+            cancellationToken);
 
         var storedFile = await _repository.AddAsync(StoredFile.Create(storageKey, legalHold: false, createdAtUtc), cancellationToken);
 
