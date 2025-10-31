@@ -20,8 +20,10 @@ internal sealed class OutboxMessageDispatcher
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["document"] = EventTopics.Document.Events,
-            ["tag-label"] = EventTopics.Document.Events,
-            ["file"] = EventTopics.Document.Events,
+            ["tag-label"] = EventTopics.Tags.Events,
+            ["file"] = EventTopics.File.Events,
+            ["ocr"] = EventTopics.Ocr.Events,
+            ["ops"] = EventTopics.Ops.Events,
             ["user"] = EventTopics.Iam.Events,
             ["access-relation"] = EventTopics.Iam.Events
         };
