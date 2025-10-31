@@ -27,7 +27,7 @@ public sealed class Document : IHasDomainEvents
 
     private Document(
         DocumentId id,
-        DocumentTitle title,
+        string title,
         string docType,
         string status,
         string sensitivity,
@@ -54,7 +54,7 @@ public sealed class Document : IHasDomainEvents
 
     public DocumentId Id { get; private set; }
 
-    public DocumentTitle Title { get; private set; }
+    public string Title { get; private set; }
 
     public string DocType { get; private set; }
 
@@ -87,7 +87,7 @@ public sealed class Document : IHasDomainEvents
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     public static Document Create(
-        DocumentTitle title,
+        string? title,
         string docType,
         string status,
         Guid ownerId,
@@ -109,9 +109,11 @@ public sealed class Document : IHasDomainEvents
 
         var finalSensitivity = string.IsNullOrWhiteSpace(sensitivity) ? "Internal" : sensitivity.Trim();
 
+        var normalizedTitle = NormalizeTitle(title);
+
         var document = new Document(
             DocumentId.New(),
-            title,
+            normalizedTitle,
             docType.Trim(),
             status.Trim(),
             finalSensitivity,
@@ -124,7 +126,7 @@ public sealed class Document : IHasDomainEvents
 
         document.Raise(new DocumentCreatedDomainEvent(
             document.Id,
-            document.Title.Value,
+            document.Title,
             document.OwnerId,
             document.CreatedBy,
             document.CreatedAtUtc));
@@ -132,9 +134,9 @@ public sealed class Document : IHasDomainEvents
         return document;
     }
 
-    public void UpdateTitle(DocumentTitle title, DateTimeOffset updatedAtUtc)
+    public void UpdateTitle(string title, DateTimeOffset updatedAtUtc)
     {
-        Title = title;
+        Title = NormalizeTitle(title);
         UpdatedAtUtc = updatedAtUtc;
     }
 
@@ -160,7 +162,7 @@ public sealed class Document : IHasDomainEvents
 
         Raise(new DocumentUpdatedDomainEvent(
             Id,
-            Title.Value,
+            Title,
             Status,
             Sensitivity,
             GroupId,
@@ -297,11 +299,6 @@ public sealed class Document : IHasDomainEvents
         _signatureRequests.Add(request);
     }
 
-    private static Guid? NormalizeGroupId(Guid? groupId)
-    {
-        return groupId is null || groupId == Guid.Empty ? null : groupId;
-    }
-
     private void Raise(IDomainEvent domainEvent)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
@@ -311,5 +308,20 @@ public sealed class Document : IHasDomainEvents
     public void ClearDomainEvents()
     {
         _domainEvents.Clear();
+    }
+
+    private static Guid? NormalizeGroupId(Guid? groupId)
+    {
+        return groupId is null || groupId == Guid.Empty ? null : groupId;
+    }
+
+    private static string NormalizeTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ArgumentException("Document title is required.", nameof(title));
+        }
+
+        return title.Trim();
     }
 }

@@ -21,6 +21,8 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
+using Npgsql.EntityFrameworkCore.PostgreSQL;
+
 using Shared.Extensions.Http;
 
 using DomainDocument = ECM.Document.Domain.Documents.Document;
@@ -252,12 +254,13 @@ public static class DocumentEndpoints
                 .Replace("%", @"\%")
                 .Replace("_", @"\_");
 
-            var likeLower = $"%{escaped.ToLowerInvariant()}%";
+            var likePattern = $"%{escaped}%";
 
-            query = query.Where(d =>
-                EF.Functions.Like(
-                    d.Title.Value.ToLower(),
-                    likeLower
+            query = query.Where(document =>
+                EF.Functions.ILike(
+                    document.Title,
+                    likePattern,
+                    @"\\"
                 )
             );
         }
@@ -779,7 +782,7 @@ public static class DocumentEndpoints
 
         return new DocumentResponse(
             document.Id.Value,
-            document.Title.Value,
+            document.Title,
             document.DocType,
             document.Status,
             document.Sensitivity,

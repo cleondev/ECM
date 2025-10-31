@@ -44,10 +44,10 @@ public sealed class UpdateDocumentCommandHandler(
         {
             try
             {
-                var title = DocumentTitle.Create(command.Title);
-                if (!string.Equals(document.Title.Value, title.Value, StringComparison.Ordinal))
+                var normalizedTitle = NormalizeTitle(command.Title);
+                if (!string.Equals(document.Title, normalizedTitle, StringComparison.Ordinal))
                 {
-                    document.UpdateTitle(title, now);
+                    document.UpdateTitle(command.Title, now);
                     hasChanges = true;
                 }
             }
@@ -137,5 +137,15 @@ public sealed class UpdateDocumentCommandHandler(
     private static Guid? NormalizeGroupId(Guid? groupId)
     {
         return groupId is null || groupId == Guid.Empty ? null : groupId;
+    }
+
+    private static string NormalizeTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ArgumentException("Document title is required.", nameof(title));
+        }
+
+        return title.Trim();
     }
 }
