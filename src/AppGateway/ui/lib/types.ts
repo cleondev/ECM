@@ -33,6 +33,8 @@ export type FileItem = {
   sizeBytes?: number
 }
 
+export type TagScope = "user" | "group" | "global"
+
 export type TagNode = {
   id: string
   namespaceId: string
@@ -47,6 +49,7 @@ export type TagNode = {
   children?: TagNode[]
   kind?: "namespace" | "label"
   namespaceLabel?: string
+  scope?: TagScope
 }
 
 export type TagUpdateData = {
