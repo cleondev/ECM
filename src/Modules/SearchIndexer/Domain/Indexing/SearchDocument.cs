@@ -124,7 +124,7 @@ public sealed class SearchDocument
             Title,
             AggregatedContent,
             metadata,
-            new List<string>(Tags),
+            [.. Tags],
             indexingType);
     }
 

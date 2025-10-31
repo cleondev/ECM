@@ -47,9 +47,12 @@ public sealed class ShareLinksController(IEcmShareAccessClient client, ILogger<S
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            return ValidationProblem(new()
+            return ValidationProblem(new ValidationProblemDetails
             {
-                [nameof(request.Password)] = ["Password is required."]
+                Errors =
+                {
+                    [nameof(request.Password)] = ["Password is required."]
+                }
             });
         }
 
@@ -117,10 +120,7 @@ public sealed class ShareLinksController(IEcmShareAccessClient client, ILogger<S
 
         public async Task ExecuteResultAsync(ActionContext context)
         {
-            if (context is null)
-            {
-                throw new ArgumentNullException(nameof(context));
-            }
+            ArgumentNullException.ThrowIfNull(context);
 
             await using var _ = new ResponseDisposer(_response);
 
@@ -134,7 +134,7 @@ public sealed class ShareLinksController(IEcmShareAccessClient client, ILogger<S
                     continue;
                 }
 
-                httpResponse.Headers[header.Key] = new StringValues(header.Value.ToArray());
+                httpResponse.Headers[header.Key] = new StringValues([.. header.Value]);
             }
 
             if (_response.Content is null)
@@ -160,7 +160,7 @@ public sealed class ShareLinksController(IEcmShareAccessClient client, ILogger<S
                     continue;
                 }
 
-                httpResponse.Headers[header.Key] = new StringValues(header.Value.ToArray());
+                httpResponse.Headers[header.Key] = new StringValues([.. header.Value]);
             }
 
             await _response.Content.CopyToAsync(httpResponse.Body);

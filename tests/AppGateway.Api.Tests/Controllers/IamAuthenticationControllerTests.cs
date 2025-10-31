@@ -37,7 +37,7 @@ public class IamAuthenticationControllerTests
             false,
             DateTimeOffset.UtcNow,
             Guid.NewGuid(),
-            new List<Guid> { Guid.NewGuid() },
+            [Guid.NewGuid()],
             [],
             []);
 
