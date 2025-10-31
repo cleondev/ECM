@@ -4,6 +4,8 @@ using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Domain.Documents.Events;
 using ECM.Document.Domain.Tags.Events;
 using ECM.Operations.Infrastructure.Persistence;
+
+using Shared.Contracts.Documents;
 using Shared.Contracts.Messaging;
 
 namespace ECM.Document.Infrastructure.Outbox;
