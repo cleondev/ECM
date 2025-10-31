@@ -75,6 +75,7 @@ export type DocumentTagResponse = {
   id: string
   namespaceId: string
   namespaceDisplayName?: string | null
+  namespaceScope?: string | null
   parentId?: string | null
   name: string
   pathIds: string[]
@@ -294,13 +295,14 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
         existing.name = normalizedLabel
         existing.namespaceLabel = normalizedLabel
       }
-      if (!existing.scope) {
-        existing.scope = normalizedScope
+      if (!existing.namespaceScope) {
+        existing.namespaceScope = normalizedScope
       } else {
-        const currentPriority = scopePriority[existing.scope]
+        const currentScope = existing.namespaceScope ?? "user"
+        const currentPriority = scopePriority[currentScope]
         const nextPriority = scopePriority[normalizedScope]
         if (nextPriority > currentPriority) {
-          existing.scope = normalizedScope
+          existing.namespaceScope = normalizedScope
         }
       }
       return existing
@@ -315,7 +317,7 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
       namespaceLabel: label,
       kind: "namespace",
       color: colorForKey(namespaceId),
-      scope: normalizedScope,
+      namespaceScope: normalizedScope,
       isActive: true,
       isSystem: false,
       sortOrder: index,
@@ -340,7 +342,7 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
       isActive: label.isActive,
       isSystem: label.isSystem,
       kind: "label",
-      scope: normalizeScope(label.namespaceScope ?? label.scope),
+      namespaceScope: normalizeScope(label.namespaceScope ?? label.scope),
       children: [],
     }
 
@@ -420,13 +422,13 @@ function mapGroupSummaryToGroup(data: GroupSummaryResponse): Group {
 
 function normalizeMockTagTree(nodes: TagNode[], parentScope?: TagScope): TagNode[] {
   return nodes.map((node) => {
-    const scope = node.scope ?? parentScope ?? "user"
+    const scope = node.namespaceScope ?? parentScope ?? "user"
     const children = node.children ? normalizeMockTagTree(node.children, scope) : []
     return {
       ...node,
       color: node.color ?? colorForKey(node.id),
       kind: node.kind ?? (children.length > 0 ? "namespace" : "label"),
-      scope,
+      namespaceScope: scope,
       children,
     }
   })
@@ -542,6 +544,7 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
       id: tag.id,
       namespaceId: tag.namespaceId,
       namespaceDisplayName: tag.namespaceDisplayName ?? null,
+      namespaceScope: tag.namespaceScope ? normalizeScope(tag.namespaceScope) : undefined,
       parentId: tag.parentId ?? null,
       name: tag.name,
       color: tag.color ?? null,
@@ -1184,6 +1187,7 @@ export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<
       isActive: response.isActive,
       isSystem: response.isSystem,
       kind: "label",
+      namespaceScope: normalizeScope(response.namespaceScope ?? response.scope),
       children: [],
     }
 
@@ -1202,6 +1206,7 @@ export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<
       isActive: true,
       isSystem: false,
       kind: "label",
+      namespaceScope: parent?.namespaceScope ?? "user",
       children: [],
     }
   }
@@ -1242,6 +1247,7 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
       isActive: response.isActive,
       isSystem: response.isSystem,
       kind: "label",
+      namespaceScope: normalizeScope(response.namespaceScope ?? response.scope),
       children: tag.children,
     }
   } catch (error) {

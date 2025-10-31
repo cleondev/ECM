@@ -20,6 +20,7 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
             .Select(label => new TagLabelResult(
                 label.Id,
                 label.NamespaceId,
+                NormalizeNamespaceScope(label.Namespace?.Scope),
                 NormalizeNamespaceDisplayName(label.Namespace?.DisplayName),
                 label.ParentId,
                 label.Name,
@@ -36,4 +37,7 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
 
     private static string? NormalizeNamespaceDisplayName(string? displayName)
         => string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
+
+    private static string? NormalizeNamespaceScope(string? scope)
+        => string.IsNullOrWhiteSpace(scope) ? null : scope.Trim();
 }
