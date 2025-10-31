@@ -11,9 +11,29 @@ public static class EventTopics
         public const string Events = "document.events";
     }
 
+    public static class File
+    {
+        public const string Events = "file.events";
+    }
+
     public static class Iam
     {
         public const string Events = "iam.events";
+    }
+
+    public static class Ocr
+    {
+        public const string Events = "ocr.events";
+    }
+
+    public static class Ops
+    {
+        public const string Events = "ops.events";
+    }
+
+    public static class Tags
+    {
+        public const string Events = "tag.events";
     }
 
     /// <summary>

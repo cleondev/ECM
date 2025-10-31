@@ -9,10 +9,13 @@ RPK_BIN="${RPK_BIN:-rpk}"
 TOPICS="
 iam.events
 document.events
+file.events
+tag.events
 version.events
 workflow.events
 signature.events
 ocr.events
+ops.events
 search.events
 audit.events
 retention.events
