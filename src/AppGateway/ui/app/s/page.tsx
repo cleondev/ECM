@@ -1,6 +1,6 @@
 "use client"
 
-import { FormEvent, useEffect, useMemo, useState } from "react"
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react"
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation"
 
 import {
@@ -9,6 +9,11 @@ import {
   verifySharePassword,
 } from "@/lib/api"
 import type { ShareInterstitial } from "@/lib/types"
+
+export type ShareDownloadPageProps = {
+  initialCode?: string
+  initialPassword?: string
+}
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   dateStyle: "medium",
@@ -32,17 +37,28 @@ function formatFileSize(bytes?: number | null): string {
   return `${value.toFixed(1)} ${units[index]}`
 }
 
-export default function ShareDownloadPage() {
+export default function ShareDownloadPage(props: ShareDownloadPageProps = {}) {
+  return (
+    <Suspense fallback={<ShareDownloadSuspenseFallback />}>
+      <ShareDownloadPageContent {...props} />
+    </Suspense>
+  )
+}
+
+function ShareDownloadPageContent({
+  initialCode,
+  initialPassword,
+}: ShareDownloadPageProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const code = useMemo(
-    () => extractShareCodeFromRouter(pathname, searchParams),
-    [pathname, searchParams],
+    () => initialCode ?? extractShareCodeFromRouter(pathname, searchParams),
+    [initialCode, pathname, searchParams],
   )
-  const initialPassword = useMemo(
-    () => searchParams?.get("password") ?? undefined,
-    [searchParams],
+  const passwordFromUrl = useMemo(
+    () => initialPassword ?? searchParams?.get("password") ?? undefined,
+    [initialPassword, searchParams],
   )
   const [share, setShare] = useState<ShareInterstitial | null>(null)
   const [loading, setLoading] = useState(true)
@@ -121,12 +137,12 @@ export default function ShareDownloadPage() {
     setPassword("")
     setPasswordError(null)
     setDownloadError(null)
-    loadShare(initialPassword)
+    loadShare(passwordFromUrl)
 
     return () => {
       cancelled = true
     }
-  }, [code, initialPassword])
+  }, [code, passwordFromUrl])
 
   async function refreshShare(withPassword?: string) {
     if (!code) {
@@ -203,27 +219,11 @@ export default function ShareDownloadPage() {
   }
 
   if (loading && !share) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md space-y-4 text-center">
-          <h1 className="text-2xl font-semibold">Đang tải thông tin chia sẻ…</h1>
-          <p className="text-muted-foreground">Vui lòng chờ trong giây lát.</p>
-        </div>
-      </div>
-    )
+    return <ShareDownloadLoadingState />
   }
 
   if (!code || !share) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md space-y-4 text-center">
-          <h1 className="text-2xl font-semibold">Không thể mở liên kết chia sẻ</h1>
-          <p className="text-muted-foreground">
-            {error ?? "Liên kết chia sẻ không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại."}
-          </p>
-        </div>
-      </div>
-    )
+    return <ShareDownloadErrorState message={error} />
   }
 
   const file = share.file
@@ -354,6 +354,34 @@ function translateStatus(status: ShareInterstitial["status"]): string {
     default:
       return status
   }
+}
+
+function ShareDownloadSuspenseFallback(): JSX.Element {
+  return <ShareDownloadLoadingState />
+}
+
+function ShareDownloadLoadingState(): JSX.Element {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="w-full max-w-md space-y-4 text-center">
+        <h1 className="text-2xl font-semibold">Đang tải thông tin chia sẻ…</h1>
+        <p className="text-muted-foreground">Vui lòng chờ trong giây lát.</p>
+      </div>
+    </div>
+  )
+}
+
+function ShareDownloadErrorState({ message }: { message: string | null }): JSX.Element {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="w-full max-w-md space-y-4 text-center">
+        <h1 className="text-2xl font-semibold">Không thể mở liên kết chia sẻ</h1>
+        <p className="text-muted-foreground">
+          {message ?? "Liên kết chia sẻ không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại."}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 function extractShareCodeFromRouter(
