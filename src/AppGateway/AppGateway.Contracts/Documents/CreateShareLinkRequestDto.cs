@@ -10,8 +10,9 @@ public sealed record CreateShareLinkRequestDto(
     string FileContentType,
     long FileSizeBytes,
     DateTimeOffset? FileCreatedAtUtc,
-    bool IsPublic,
-    int? ExpiresInMinutes)
+    string SubjectType = "public",
+    Guid? SubjectId = null,
+    int? ExpiresInMinutes = null)
 {
     private const int DefaultLifetimeMinutes = 1440;
     private const int MinLifetimeMinutes = 1;
@@ -37,4 +38,37 @@ public sealed record CreateShareLinkRequestDto(
 
         return minutes;
     }
+
+    public string GetNormalizedSubjectType()
+    {
+        if (string.IsNullOrWhiteSpace(SubjectType))
+        {
+            return "public";
+        }
+
+        return SubjectType.Trim().ToLowerInvariant() switch
+        {
+            "user" => "user",
+            "group" => "group",
+            _ => "public",
+        };
+    }
+
+    public Guid? GetEffectiveSubjectId()
+    {
+        var normalizedType = GetNormalizedSubjectType();
+        if (normalizedType == "public")
+        {
+            return null;
+        }
+
+        if (!SubjectId.HasValue || SubjectId.Value == Guid.Empty)
+        {
+            return null;
+        }
+
+        return SubjectId;
+    }
+
+    public bool IsPublicShare => GetNormalizedSubjectType() == "public";
 }

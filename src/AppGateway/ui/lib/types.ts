@@ -145,7 +145,8 @@ export type PaginatedResponse<T> = {
 }
 
 export type ShareOptions = {
-  isPublic: boolean
+  subjectType: ShareSubjectType
+  subjectId: string | null
   expiresInMinutes: number
 }
 
@@ -153,6 +154,8 @@ export type ShareLink = {
   url: string
   shortUrl: string
   expiresAtUtc: string
+  subjectType: ShareSubjectType
+  subjectId: string | null
   isPublic: boolean
 }
 

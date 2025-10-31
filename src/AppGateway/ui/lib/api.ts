@@ -14,6 +14,7 @@ import type {
   ShareInterstitial,
   NotificationItem,
   Group,
+  ShareSubjectType,
 } from "./types"
 import {
   mockFiles,
@@ -22,6 +23,7 @@ import {
   mockSystemTags,
   mockGroups,
   mockNotifications,
+  mockUsers,
 } from "./mock-data"
 import { normalizeRedirectTarget } from "./utils"
 import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapshot } from "./auth-state"
@@ -129,7 +131,9 @@ type ShareLinkResponse = {
   url: string
   shortUrl: string
   expiresAtUtc: string
-  isPublic: boolean
+  isPublic?: boolean
+  subjectType?: unknown
+  subjectId?: string | null
 }
 
 type ShareInterstitialResponseDto = ShareInterstitial
@@ -1056,6 +1060,23 @@ export async function fetchGroups(): Promise<Group[]> {
   }
 }
 
+export async function fetchUsers(): Promise<User[]> {
+  try {
+    const response = await gatewayRequest<UserSummaryResponse[]>("/api/iam/users")
+    if (!response?.length) {
+      return mockUsers
+    }
+
+    return response.map(mapUserSummaryToUser).sort((a, b) =>
+      a.displayName.localeCompare(b.displayName, undefined, { sensitivity: "base" }),
+    )
+  } catch (error) {
+    console.warn("[ui] Failed to fetch users from gateway, using mock data:", error)
+    await delay(120)
+    return mockUsers
+  }
+}
+
 export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<TagNode> {
   try {
     const normalizedName = data.name.trim()
@@ -1434,6 +1455,10 @@ export async function createShareLink(file: FileItem, options: ShareOptions): Pr
       ? Math.min(10080, Math.max(1, Math.round(options.expiresInMinutes)))
       : 1440
 
+    const subjectType = normalizeShareSubjectType(options.subjectType)
+    const normalizedSubjectId =
+      subjectType === "public" ? null : normalizeShareSubjectId(options.subjectId)
+
     const payload = {
       documentId: file.id,
       versionId: file.latestVersionId,
@@ -1442,7 +1467,8 @@ export async function createShareLink(file: FileItem, options: ShareOptions): Pr
       fileContentType: file.latestVersionMimeType ?? "application/octet-stream",
       fileSizeBytes: file.sizeBytes ?? 0,
       fileCreatedAtUtc: file.latestVersionCreatedAtUtc ?? null,
-      isPublic: options.isPublic,
+      subjectType,
+      subjectId: normalizedSubjectId,
       expiresInMinutes: normalizedMinutes,
     }
 
@@ -1454,11 +1480,20 @@ export async function createShareLink(file: FileItem, options: ShareOptions): Pr
       },
     )
 
+    const responseSubjectType = normalizeShareSubjectType(response.subjectType)
+    const responseSubjectId =
+      responseSubjectType === "public" ? null : normalizeShareSubjectId(response.subjectId)
+    const isPublic =
+      responseSubjectType === "public" ||
+      (response.subjectType === undefined && Boolean(response.isPublic))
+
     return {
       url: normalizeShareLinkUrl(response.url),
       shortUrl: normalizeShareShortUrl(response.shortUrl),
       expiresAtUtc: response.expiresAtUtc,
-      isPublic: response.isPublic,
+      subjectType: responseSubjectType,
+      subjectId: responseSubjectId,
+      isPublic,
     }
   } catch (error) {
     console.error(
@@ -1537,6 +1572,41 @@ function normalizeShareShortUrl(url: string): string {
 
     return url
   }
+}
+
+function normalizeShareSubjectType(raw: unknown): ShareSubjectType {
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase()
+    if (normalized === "user") {
+      return "user"
+    }
+    if (normalized === "group") {
+      return "group"
+    }
+    return "public"
+  }
+
+  if (typeof raw === "number") {
+    switch (raw) {
+      case 0:
+        return "user"
+      case 1:
+        return "group"
+      default:
+        return "public"
+    }
+  }
+
+  return "public"
+}
+
+function normalizeShareSubjectId(raw: unknown): string | null {
+  if (typeof raw !== "string") {
+    return null
+  }
+
+  const trimmed = raw.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 function extractShareCode(parsed: URL): string | null {
