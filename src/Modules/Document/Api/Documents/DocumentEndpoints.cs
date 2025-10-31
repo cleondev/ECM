@@ -58,6 +58,11 @@ public static class DocumentEndpoints
             );
 
         group
+            .MapDelete("/documents/{documentId:guid}", DeleteDocumentAsync)
+            .WithName("DeleteDocument")
+            .WithDescription("Deletes a document by identifier.");
+
+        group
             .MapGet("/files/download/{versionId:guid}", DownloadFileAsync)
             .WithName("DownloadDocumentVersion")
             .WithDescription("Redirects to a signed URL for downloading a document version.");
@@ -78,6 +83,45 @@ public static class DocumentEndpoints
             .WithDescription("Creates a temporary share link for the requested document version.");
 
         return group;
+    }
+
+    private static async Task<Results<NoContent, NotFound, ForbidHttpResult>> DeleteDocumentAsync(
+        ClaimsPrincipal principal,
+        Guid documentId,
+        DocumentDbContext context,
+        DeleteDocumentCommandHandler handler,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
+        if (userId is null)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var documentIdValue = DocumentId.FromGuid(documentId);
+
+        var hasAccess = await context.EffectiveAclEntries
+            .AsNoTracking()
+            .AnyAsync(
+                entry => entry.UserId == userId.Value
+                    && entry.IsValid
+                    && entry.DocumentId == documentIdValue,
+                cancellationToken);
+
+        if (!hasAccess)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await handler.HandleAsync(new DeleteDocumentCommand(documentId), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<Ok<DocumentListResponse>> ListDocumentsAsync(

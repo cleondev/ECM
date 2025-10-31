@@ -280,6 +280,12 @@ internal sealed class EcmApiClient(
         return await SendAsync<DocumentDto>(request, cancellationToken);
     }
 
+    public async Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/documents/{documentId}", cancellationToken);
+        return await SendAsync(request, cancellationToken);
+    }
+
     public async Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/files/download/{versionId}", cancellationToken);
