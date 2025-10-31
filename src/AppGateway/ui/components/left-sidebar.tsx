@@ -192,11 +192,8 @@ function TagTreeItem({
                 >
                   {isNamespace ? (
                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                      <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                        Namespace
-                      </span>
-                      <span className="truncate text-sm font-semibold text-foreground" title={tag.name}>
-                        {tag.name}
+                      <span className="truncate text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground" title={tag.name}>
+                         {tag.name}
                       </span>
                     </div>
                   ) : (
