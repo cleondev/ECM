@@ -135,6 +135,7 @@ type ShareLinkResponse = {
   isPublic?: boolean
   subjectType?: unknown
   subjectId?: string | null
+  requiresPassword?: boolean
 }
 
 type ShareInterstitialResponseDto = ShareInterstitial
@@ -1523,6 +1524,11 @@ export async function createShareLink(file: FileItem, options: ShareOptions): Pr
     const normalizedSubjectId =
       subjectType === "public" ? null : normalizeShareSubjectId(options.subjectId)
 
+    const normalizedPassword =
+      typeof options.password === "string" && options.password.trim().length > 0
+        ? options.password.trim()
+        : undefined
+
     const payload = {
       documentId: file.id,
       versionId: file.latestVersionId,
@@ -1534,6 +1540,7 @@ export async function createShareLink(file: FileItem, options: ShareOptions): Pr
       subjectType,
       subjectId: normalizedSubjectId,
       expiresInMinutes: normalizedMinutes,
+      ...(normalizedPassword ? { password: normalizedPassword } : {}),
     }
 
     const response = await gatewayRequest<ShareLinkResponse>(
@@ -1558,6 +1565,7 @@ export async function createShareLink(file: FileItem, options: ShareOptions): Pr
       subjectType: responseSubjectType,
       subjectId: responseSubjectId,
       isPublic,
+      requiresPassword: Boolean(response.requiresPassword),
     }
   } catch (error) {
     console.error(

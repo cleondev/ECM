@@ -7,5 +7,6 @@ public sealed record DocumentShareLinkDto(
     Uri ShortUrl,
     DateTimeOffset ExpiresAtUtc,
     bool IsPublic,
+    bool RequiresPassword,
     string SubjectType,
     Guid? SubjectId);
