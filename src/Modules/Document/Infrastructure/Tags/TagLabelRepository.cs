@@ -26,9 +26,10 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
         Guid? primaryGroupId,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.TagLabels
-            .AsNoTracking()
-            .Include(label => label.Namespace);
+        IQueryable<TagLabel> query = _context.TagLabels
+            .AsNoTracking();
+
+        query = query.Include(label => label.Namespace);
 
         query = query.Where(label => label.Namespace != null && (
             label.Namespace.Scope == "global"
