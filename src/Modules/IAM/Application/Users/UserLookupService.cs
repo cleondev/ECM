@@ -20,4 +20,17 @@ public sealed class UserLookupService(IUserRepository userRepository) : IUserLoo
         var user = await _userRepository.GetByEmailAsync(normalizedUpn, cancellationToken);
         return user?.Id;
     }
+
+    public async Task<Guid?> FindPrimaryGroupIdByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        return user?.PrimaryGroupId;
+    }
 }

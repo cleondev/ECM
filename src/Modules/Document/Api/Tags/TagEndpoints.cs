@@ -139,7 +139,14 @@ public static class TagEndpoints
         var ownerUserId = await principal
             .GetUserObjectIdAsync(userLookupService, cancellationToken)
             .ConfigureAwait(false);
-        var primaryGroupId = principal.GetPrimaryGroupId();
+        Guid? primaryGroupId = null;
+
+        if (ownerUserId.HasValue)
+        {
+            primaryGroupId = await userLookupService
+                .FindPrimaryGroupIdByUserIdAsync(ownerUserId.Value, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         var tagLabels = await handler
             .HandleAsync(ownerUserId, primaryGroupId, cancellationToken)
