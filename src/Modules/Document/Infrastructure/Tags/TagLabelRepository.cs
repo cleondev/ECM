@@ -21,15 +21,31 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
             .Include(label => label.Parent)
             .FirstOrDefaultAsync(label => label.Id == tagId, cancellationToken);
 
-    public Task<TagLabel[]> ListWithNamespaceAsync(CancellationToken cancellationToken = default)
-        => _context.TagLabels
+    public Task<TagLabel[]> ListWithNamespaceAsync(
+        Guid? ownerUserId,
+        Guid? primaryGroupId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.TagLabels
             .AsNoTracking()
-            .Include(label => label.Namespace)
+            .Include(label => label.Namespace);
+
+        query = query.Where(label => label.Namespace != null && (
+            label.Namespace.Scope == "global"
+            || (ownerUserId.HasValue
+                && label.Namespace.Scope == "user"
+                && label.Namespace.OwnerUserId == ownerUserId.Value)
+            || (primaryGroupId.HasValue
+                && label.Namespace.Scope == "group"
+                && label.Namespace.OwnerGroupId == primaryGroupId.Value)));
+
+        return query
             .OrderBy(label => label.NamespaceId)
             .ThenBy(label => label.ParentId.HasValue ? 1 : 0)
             .ThenBy(label => label.SortOrder)
             .ThenBy(label => label.Name)
             .ToArrayAsync(cancellationToken);
+    }
 
     public Task<bool> ExistsWithNameAsync(
         Guid namespaceId,

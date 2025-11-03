@@ -9,7 +9,10 @@ public interface ITagLabelRepository
 {
     Task<TagLabel?> GetByIdAsync(Guid tagId, CancellationToken cancellationToken = default);
 
-    Task<TagLabel[]> ListWithNamespaceAsync(CancellationToken cancellationToken = default);
+    Task<TagLabel[]> ListWithNamespaceAsync(
+        Guid? ownerUserId,
+        Guid? primaryGroupId,
+        CancellationToken cancellationToken = default);
 
     Task<bool> ExistsWithNameAsync(
         Guid namespaceId,
