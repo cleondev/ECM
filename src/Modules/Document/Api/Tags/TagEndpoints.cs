@@ -130,11 +130,20 @@ public static class TagEndpoints
     }
 
     private static async Task<Ok<TagLabelResponse[]>> ListTagsAsync(
+        ClaimsPrincipal principal,
         ListTagLabelsQueryHandler handler,
+        IUserLookupService userLookupService,
         CancellationToken cancellationToken
     )
     {
-        var tagLabels = await handler.HandleAsync(cancellationToken).ConfigureAwait(false);
+        var ownerUserId = await principal
+            .GetUserObjectIdAsync(userLookupService, cancellationToken)
+            .ConfigureAwait(false);
+        var primaryGroupId = principal.GetPrimaryGroupId();
+
+        var tagLabels = await handler
+            .HandleAsync(ownerUserId, primaryGroupId, cancellationToken)
+            .ConfigureAwait(false);
 
         var response = tagLabels
             .Select(tag => new TagLabelResponse(

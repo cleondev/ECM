@@ -44,4 +44,22 @@ internal static class ClaimsPrincipalExtensions
 
         return null;
     }
+
+    public static Guid? GetPrimaryGroupId(this ClaimsPrincipal? principal)
+    {
+        if (principal is null)
+        {
+            return null;
+        }
+
+        var claimValue = principal.FindFirst("primary_group_id")?.Value;
+        if (string.IsNullOrWhiteSpace(claimValue))
+        {
+            return null;
+        }
+
+        return Guid.TryParse(claimValue, out var parsed) && parsed != Guid.Empty
+            ? parsed
+            : null;
+    }
 }

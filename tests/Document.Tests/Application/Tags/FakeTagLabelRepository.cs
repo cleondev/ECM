@@ -28,7 +28,10 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
         return Task.FromResult(tagLabel);
     }
 
-    public Task<TagLabel[]> ListWithNamespaceAsync(CancellationToken cancellationToken = default)
+    public Task<TagLabel[]> ListWithNamespaceAsync(
+        Guid? ownerUserId,
+        Guid? primaryGroupId,
+        CancellationToken cancellationToken = default)
     {
         CapturedToken = cancellationToken;
 

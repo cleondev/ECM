@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,10 +11,13 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
 {
     private readonly ITagLabelRepository _tagLabelRepository = tagLabelRepository;
 
-    public async Task<TagLabelResult[]> HandleAsync(CancellationToken cancellationToken = default)
+    public async Task<TagLabelResult[]> HandleAsync(
+        Guid? ownerUserId,
+        Guid? primaryGroupId,
+        CancellationToken cancellationToken = default)
     {
         var tagLabels = await _tagLabelRepository
-            .ListWithNamespaceAsync(cancellationToken)
+            .ListWithNamespaceAsync(ownerUserId, primaryGroupId, cancellationToken)
             .ConfigureAwait(false);
 
         return [.. tagLabels
