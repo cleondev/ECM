@@ -55,9 +55,9 @@ public sealed class IamAuthenticationController(
             return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
         }
 
-        if (IsPasswordLoginPrincipal(User))
+        if (PasswordLoginClaims.IsPasswordLoginPrincipal(User))
         {
-            var profile = GetProfileFromPrincipal(User, out var invalidProfileClaim);
+            var profile = PasswordLoginClaims.GetProfileFromPrincipal(User, out var invalidProfileClaim);
 
             if (profile is not null)
             {
@@ -188,29 +188,6 @@ public sealed class IamAuthenticationController(
         return new ClaimsPrincipal(identity);
     }
 
-    private static bool IsPasswordLoginPrincipal(ClaimsPrincipal principal)
-        => principal.HasClaim(PasswordLoginClaims.MarkerClaimType, PasswordLoginClaims.MarkerClaimValue);
-
-    private static UserSummaryDto? GetProfileFromPrincipal(ClaimsPrincipal principal, out bool invalidProfileClaim)
-    {
-        invalidProfileClaim = false;
-
-        var claim = principal.FindFirst(PasswordLoginClaims.ProfileClaimType);
-        if (claim is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<UserSummaryDto>(claim.Value);
-        }
-        catch (JsonException)
-        {
-            invalidProfileClaim = true;
-            return null;
-        }
-    }
 }
 
 public sealed class PasswordLoginRequest
@@ -227,4 +204,35 @@ internal static class PasswordLoginClaims
     internal const string MarkerClaimType = "appgateway:password-login";
     internal const string MarkerClaimValue = "true";
     internal const string ProfileClaimType = "appgateway:password-login:profile";
+
+    public static bool IsPasswordLoginPrincipal(ClaimsPrincipal? principal)
+        => principal?.HasClaim(MarkerClaimType, MarkerClaimValue) == true;
+
+    public static UserSummaryDto? GetProfileFromPrincipal(
+        ClaimsPrincipal? principal,
+        out bool invalidProfileClaim)
+    {
+        invalidProfileClaim = false;
+
+        if (principal is null)
+        {
+            return null;
+        }
+
+        var claim = principal.FindFirst(ProfileClaimType);
+        if (claim is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<UserSummaryDto>(claim.Value);
+        }
+        catch (JsonException)
+        {
+            invalidProfileClaim = true;
+            return null;
+        }
+    }
 }
