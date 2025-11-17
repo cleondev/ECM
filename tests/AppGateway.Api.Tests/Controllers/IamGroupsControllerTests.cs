@@ -13,12 +13,12 @@ using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
+using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace AppGateway.Api.Tests.Controllers;
@@ -26,7 +26,7 @@ namespace AppGateway.Api.Tests.Controllers;
 public class IamGroupsControllerTests
 {
     [Fact]
-    public async Task GetAsync_ReturnsGroupsFromCachedProfile_ForPasswordLoginPrincipal()
+    public async Task GetAsync_ReturnsGroups_FromClientProfile_ForPasswordLoginPrincipal()
     {
         var groups = new[]
         {
@@ -46,8 +46,8 @@ public class IamGroupsControllerTests
             Array.Empty<RoleSummaryDto>(),
             groups);
 
-        var client = new TrackingEcmApiClient();
-        var controller = new IamGroupsController(client, NullLogger<IamGroupsController>.Instance)
+        var client = new TrackingEcmApiClient(profile);
+        var controller = new IamGroupsController(client)
         {
             ControllerContext = new ControllerContext
             {
@@ -63,7 +63,7 @@ public class IamGroupsControllerTests
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var returnedGroups = okResult.Value.Should().BeAssignableTo<IReadOnlyCollection<GroupSummaryDto>>().Subject;
         returnedGroups.Should().BeEquivalentTo(groups);
-        client.GetCurrentUserProfileCalls.Should().Be(0);
+        client.GetCurrentUserProfileCalls.Should().Be(1);
     }
 
     private static ClaimsPrincipal CreatePasswordLoginPrincipal(UserSummaryDto profile)
@@ -81,12 +81,19 @@ public class IamGroupsControllerTests
 
     private sealed class TrackingEcmApiClient : IEcmApiClient
     {
+        private readonly UserSummaryDto? _profile;
+
+        public TrackingEcmApiClient(UserSummaryDto? profile)
+        {
+            _profile = profile;
+        }
+
         public int GetCurrentUserProfileCalls { get; private set; }
 
         public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
         {
             GetCurrentUserProfileCalls++;
-            return Task.FromResult<UserSummaryDto?>(null);
+            return Task.FromResult(_profile);
         }
 
         public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)

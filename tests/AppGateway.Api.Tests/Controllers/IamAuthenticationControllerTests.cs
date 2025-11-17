@@ -14,6 +14,7 @@ using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
+using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication.Cookies;

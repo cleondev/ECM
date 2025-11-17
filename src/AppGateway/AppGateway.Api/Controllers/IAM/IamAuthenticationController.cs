@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Net.Http;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
@@ -10,6 +9,8 @@ using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Infrastructure.Ecm;
+using AppGateway.Infrastructure.Auth;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -197,42 +198,4 @@ public sealed class PasswordLoginRequest
     public string Password { get; init; } = string.Empty;
 
     public string? RedirectUri { get; init; }
-}
-
-internal static class PasswordLoginClaims
-{
-    internal const string MarkerClaimType = "appgateway:password-login";
-    internal const string MarkerClaimValue = "true";
-    internal const string ProfileClaimType = "appgateway:password-login:profile";
-
-    public static bool IsPasswordLoginPrincipal(ClaimsPrincipal? principal)
-        => principal?.HasClaim(MarkerClaimType, MarkerClaimValue) == true;
-
-    public static UserSummaryDto? GetProfileFromPrincipal(
-        ClaimsPrincipal? principal,
-        out bool invalidProfileClaim)
-    {
-        invalidProfileClaim = false;
-
-        if (principal is null)
-        {
-            return null;
-        }
-
-        var claim = principal.FindFirst(ProfileClaimType);
-        if (claim is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<UserSummaryDto>(claim.Value);
-        }
-        catch (JsonException)
-        {
-            invalidProfileClaim = true;
-            return null;
-        }
-    }
 }
