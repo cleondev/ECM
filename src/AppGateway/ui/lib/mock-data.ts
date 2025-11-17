@@ -1,4 +1,18 @@
-import type { FileItem, TagNode, Flow, SystemTag, User, NotificationItem, Group, DocumentTag } from "./types"
+import type {
+  FileItem,
+  TagNode,
+  Flow,
+  SystemTag,
+  User,
+  NotificationItem,
+  Group,
+  DocumentTag,
+  FileDetail,
+  FileComment,
+  FilePreview,
+  FileVersion,
+  FileActivity,
+} from "./types"
 
 const PERSONAL_NAMESPACE_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -584,6 +598,218 @@ export const mockFiles: FileItem[] = [
     description: "Quarterly executive summary presentation deck",
   },
 ]
+
+const SAMPLE_PREVIEW_IMAGES = [
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?auto=format&fit=crop&w=1600&q=80",
+  "https://images.unsplash.com/photo-1448932223592-d1fc686e76ea?auto=format&fit=crop&w=1600&q=80",
+]
+
+const SAMPLE_VIDEO_SOURCES = [
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/beer.mp4",
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/paint.webm",
+]
+
+const SAMPLE_DOCUMENT_EXCERPTS = [
+  "1. Tổng quan dự án với các chỉ số chính và phạm vi triển khai",
+  "2. Tóm tắt hành trình người dùng và các điểm nghẽn cần cải thiện",
+  "3. Phân tích định lượng dựa trên dữ liệu tương tác 90 ngày",
+  "4. Đề xuất thiết kế với nguyên tắc accessibility WCAG 2.2",
+  "5. Kế hoạch rollout gồm 3 giai đoạn với tiêu chí đo lường cụ thể",
+]
+
+const SAMPLE_DOCUMENT_SUMMARIES = [
+  "Bản xem trước gồm 24 trang trình bày tiến độ triển khai sản phẩm trong quý gần nhất.",
+  "Tài liệu trình bày insight chính từ chuỗi nghiên cứu người dùng và đề xuất tối ưu hóa.",
+  "Slide deck cập nhật KPI, lộ trình tính năng và trạng thái các phê duyệt quan trọng.",
+]
+
+const SAMPLE_CODE_SNIPPETS = [
+  `export async function runDataSync(jobId: string) {
+  const job = await jobRepository.get(jobId)
+  if (!job) throw new Error('Job not found')
+
+  const result = await queue.dispatch({
+    topic: 'data-sync',
+    payload: job.payload,
+  })
+
+  return { status: 'queued', id: result.id }
+}`,
+  `type AuditLogEntry = {
+  id: string
+  action: string
+  actor: string
+  timestamp: string
+}
+
+export function formatAuditLog(entries: AuditLogEntry[]) {
+  return entries
+    .map((entry) => \`\${entry.timestamp} - \${entry.actor}: \${entry.action}\`)
+    .join('\n')
+}`,
+]
+
+const SAMPLE_COMMENT_MESSAGES = [
+  "Giao diện xem trước hoạt động mượt, có thể bổ sung thêm trạng thái khi tài liệu đang xử lý?",
+  "Tôi đã để lại ghi chú trong phiên bản mới nhất, nhờ team kiểm tra lại phong cách typography.",
+  "Hãy giữ lại chart so sánh hiệu suất cũ, stakeholder vẫn cần phần đó cho buổi review tuần này.",
+]
+
+const SAMPLE_ACTIVITY_ACTIONS = [
+  "đã cập nhật metadata",
+  "đã chia sẻ liên kết",
+  "đã tải xuống",
+  "đã ghi chú phiên bản",
+  "đã gắn thẻ phê duyệt",
+]
+
+const SAMPLE_VERSION_NOTES = [
+  "Điều chỉnh màu sắc cho phù hợp brand guideline mới",
+  "Thêm biểu đồ thể hiện tốc độ tăng trưởng người dùng",
+  "Chuẩn hóa spacing và cấu trúc heading",
+  "Bổ sung phụ lục với số liệu khảo sát",
+]
+
+const SAMPLE_ACTORS = [
+  "Mai Anh",
+  "Ngọc Hà",
+  "Tuấn Phạm",
+  "Lan Nguyễn",
+  "Huy Bùi",
+  "Trung Kiên",
+  "Bảo Vy",
+]
+
+function pickFromArray<T>(items: T[], seed: number, offset = 0): T {
+  if (!items.length) {
+    throw new Error("Expected non-empty sample array")
+  }
+
+  const index = Math.abs(seed + offset) % items.length
+  return items[index]!
+}
+
+function createPreviewForFile(file: FileItem, seed: number): FilePreview {
+  const baseImage = pickFromArray(SAMPLE_PREVIEW_IMAGES, seed)
+
+  switch (file.type) {
+    case "image":
+      return { kind: "image", url: baseImage, alt: file.name }
+    case "design":
+      return { kind: "design", url: baseImage, alt: file.name }
+    case "video":
+      return {
+        kind: "video",
+        url: pickFromArray(SAMPLE_VIDEO_SOURCES, seed),
+        poster: pickFromArray(SAMPLE_PREVIEW_IMAGES, seed, 2),
+      }
+    case "code":
+      return {
+        kind: "code",
+        language: seed % 2 === 0 ? "tsx" : "json",
+        content: pickFromArray(SAMPLE_CODE_SNIPPETS, seed),
+      }
+    case "document":
+      return {
+        kind: "document",
+        summary: pickFromArray(SAMPLE_DOCUMENT_SUMMARIES, seed),
+        pages: Array.from({ length: 3 }, (_, index) => ({
+          number: index + 1,
+          excerpt: pickFromArray(SAMPLE_DOCUMENT_EXCERPTS, seed, index),
+          thumbnail: pickFromArray(SAMPLE_PREVIEW_IMAGES, seed, index + 3),
+        })),
+      }
+    default:
+      return { kind: "image", url: baseImage, alt: file.name }
+  }
+}
+
+function createMockVersions(file: FileItem, seed: number): FileVersion[] {
+  const versionCount = Math.max(2, (seed % 4) + 2)
+  const now = Date.now()
+
+  return Array.from({ length: versionCount }, (_, index) => {
+    const versionNumber = versionCount - index
+    const createdAt = new Date(now - index * 12 * 60 * 60 * 1000).toISOString()
+
+    return {
+      id: `${file.id}-v${versionNumber}`,
+      label: `Phiên bản ${versionNumber}`,
+      size: file.size,
+      createdAt,
+      author: pickFromArray(SAMPLE_ACTORS, seed, index),
+      notes: pickFromArray(SAMPLE_VERSION_NOTES, seed, index),
+    }
+  })
+}
+
+function createMockActivity(file: FileItem, seed: number): FileActivity[] {
+  const now = Date.now()
+
+  return Array.from({ length: 4 }, (_, index) => {
+    const actor = pickFromArray(SAMPLE_ACTORS, seed, index + 1)
+    const action = pickFromArray(SAMPLE_ACTIVITY_ACTIONS, seed, index)
+
+    return {
+      id: `${file.id}-activity-${index + 1}`,
+      action,
+      actor,
+      timestamp: new Date(now - (index + 1) * 60 * 60 * 1000).toISOString(),
+      description: `${actor} ${action} cho "${file.name}"`,
+    }
+  })
+}
+
+function createMockComments(file: FileItem, seed: number): FileComment[] {
+  return Array.from({ length: 3 }, (_, index) => {
+    const author = pickFromArray(SAMPLE_ACTORS, seed, index + 2)
+    return {
+      id: `${file.id}-comment-${index + 1}`,
+      author,
+      avatar: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(author)}`,
+      message: pickFromArray(SAMPLE_COMMENT_MESSAGES, seed, index),
+      createdAt: new Date(Date.now() - (index + 1) * 90 * 60 * 1000).toISOString(),
+      role: index === 0 ? "Owner" : index === 1 ? "Reviewer" : "Collaborator",
+    }
+  })
+}
+
+export function createMockDetailFromFile(file: FileItem, seed = 0): FileDetail {
+  const preview = createPreviewForFile(file, seed)
+  const versions = createMockVersions(file, seed)
+  const activity = createMockActivity(file, seed)
+  const comments = createMockComments(file, seed)
+  const latestVersion = versions[0]
+  const createdAtUtc =
+    file.createdAtUtc ?? new Date(Date.now() - (seed + 2) * 24 * 60 * 60 * 1000).toISOString()
+  const modifiedAtUtc = file.modifiedAtUtc ?? new Date(Date.now() - seed * 6 * 60 * 60 * 1000).toISOString()
+
+  const latestVersionNumber = latestVersion
+    ? Number.parseInt(latestVersion.label.replace(/[^0-9]/g, ""), 10) || versions.length
+    : file.latestVersionNumber
+
+  return {
+    ...file,
+    createdAtUtc,
+    modifiedAtUtc,
+    ownerAvatar: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(file.owner)}`,
+    preview,
+    versions,
+    activity,
+    comments,
+    latestVersionId: file.latestVersionId ?? latestVersion?.id,
+    latestVersionNumber,
+    latestVersionCreatedAtUtc: file.latestVersionCreatedAtUtc ?? latestVersion?.createdAt,
+  }
+}
+
+export const mockFileDetails = new Map<string, FileDetail>(
+  mockFiles.map((file, index) => [file.id, createMockDetailFromFile(file, index)]),
+)
 
 export const mockTagTree: TagNode[] = [
   {

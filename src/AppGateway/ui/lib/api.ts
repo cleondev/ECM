@@ -1,6 +1,7 @@
 import type {
   DocumentTag,
   FileItem,
+  FileDetail,
   TagNode,
   TagUpdateData,
   FileQueryParams,
@@ -25,6 +26,8 @@ import {
   mockGroups,
   mockNotifications,
   mockUsers,
+  mockFileDetails,
+  createMockDetailFromFile,
 } from "./mock-data"
 import { normalizeRedirectTarget } from "./utils"
 import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapshot } from "./auth-state"
@@ -1094,6 +1097,47 @@ export async function fetchFiles(params?: FileQueryParams): Promise<PaginatedRes
   }
 }
 
+export async function fetchFileDetails(fileId: string): Promise<FileDetail> {
+  if (!fileId) {
+    throw new Error("File identifier is required")
+  }
+
+  try {
+    const response = await gatewayRequest<DocumentResponse>(`/api/documents/${fileId}`)
+    const mapped = mapDocumentToFileItem(response)
+    const existing = mockFileDetails.get(fileId)
+    const detail = existing
+      ? {
+          ...existing,
+          ...mapped,
+          preview: existing.preview,
+          versions: existing.versions,
+          activity: existing.activity,
+          comments: existing.comments,
+        }
+      : createMockDetailFromFile(mapped)
+
+    mockFileDetails.set(fileId, detail)
+    return detail
+  } catch (error) {
+    console.warn(`[ui] Failed to fetch file details for '${fileId}', falling back to mock data:`, error)
+
+    const fallback = mockFileDetails.get(fileId)
+    if (fallback) {
+      return fallback
+    }
+
+    const file = mockFiles.find((item) => item.id === fileId)
+    if (file) {
+      const generated = createMockDetailFromFile(file)
+      mockFileDetails.set(fileId, generated)
+      return generated
+    }
+
+    throw (error instanceof Error ? error : new Error("Không thể tải chi tiết tệp."))
+  }
+}
+
 function resolveSortField(sortBy: NonNullable<FileQueryParams["sortBy"]>): string {
   switch (sortBy) {
     case "name":
@@ -1343,6 +1387,7 @@ export async function deleteFile(fileId: string): Promise<void> {
       throw (error instanceof Error ? error : new Error("Failed to delete file."))
     }
     mockFiles.splice(index, 1)
+    mockFileDetails.delete(fileId)
   }
 }
 
