@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, DownloadCloud, Share2, Tag } from "lucide-react"
 
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { buildDocumentDownloadUrl, fetchFileDetails } from "@/lib/api"
 import type { FileDetail } from "@/lib/types"
+import type { ViewerPreference } from "@/lib/viewer-utils"
+import { resolveViewerConfig } from "@/lib/viewer-utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,9 +23,9 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   timeStyle: "short",
 })
 
-export type FileViewClientProps = { params: { fileId: string } }
+export type FileViewClientProps = { fileId: string; preference?: ViewerPreference }
 
-export default function FileViewClient({ params }: FileViewClientProps) {
+export default function FileViewClient({ fileId, preference }: FileViewClientProps) {
   const router = useRouter()
   const { isAuthenticated, isChecking } = useAuthGuard(MAIN_APP_ROUTE)
   const [file, setFile] = useState<FileDetail | null>(null)
@@ -39,7 +41,7 @@ export default function FileViewClient({ params }: FileViewClientProps) {
     setLoading(true)
     setError(null)
 
-    fetchFileDetails(params.fileId)
+    fetchFileDetails(fileId)
       .then((detail) => {
         if (!cancelled) {
           setFile(detail)
@@ -60,7 +62,7 @@ export default function FileViewClient({ params }: FileViewClientProps) {
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, params.fileId])
+  }, [isAuthenticated, fileId])
 
   const handleDownload = () => {
     if (!file?.latestVersionId) {
@@ -97,6 +99,8 @@ export default function FileViewClient({ params }: FileViewClientProps) {
     )
   }
 
+  const viewerConfig = useMemo(() => resolveViewerConfig(file, preference), [file, preference])
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 px-4 py-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="mx-auto flex max-w-[1440px] flex-col gap-6">
@@ -128,9 +132,9 @@ export default function FileViewClient({ params }: FileViewClientProps) {
                 <CardTitle>Trình xem trực tuyến</CardTitle>
                 <CardDescription>Tương thích với nhiều định dạng tài liệu và media.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <FileViewer file={file} />
-              </CardContent>
+                <CardContent>
+                  <FileViewer file={file} viewerConfig={viewerConfig} />
+                </CardContent>
             </Card>
 
             <Card>
