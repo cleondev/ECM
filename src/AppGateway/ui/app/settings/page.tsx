@@ -312,9 +312,6 @@ export default function SettingsPage() {
             <h1 className="text-3xl font-bold">Settings</h1>
             <p className="text-muted-foreground">Manage your account settings and preferences</p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/hello">Open hello word page</Link>
-          </Button>
         </div>
 
         <Tabs defaultValue="general" className="space-y-6">
