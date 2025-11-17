@@ -26,6 +26,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
+using Shared.Extensions.Http;
 
 namespace AppGateway.Infrastructure.Ecm;
 
@@ -811,8 +812,54 @@ internal sealed class EcmApiClient(
         }
 
         ApplyForwardedHeaders(request);
+        AttachPasswordLoginHeaders(request);
 
         return request;
+    }
+
+    private void AttachPasswordLoginHeaders(HttpRequestMessage request)
+    {
+        var principal = _httpContextAccessor.HttpContext?.User;
+        if (!PasswordLoginClaims.IsPasswordLoginPrincipal(principal))
+        {
+            return;
+        }
+
+        var profile = PasswordLoginClaims.GetProfileFromPrincipal(principal, out var invalidProfileClaim);
+        if (profile is null)
+        {
+            if (invalidProfileClaim)
+            {
+                _logger.LogWarning("Password login profile claim was invalid. Skipping forwarded headers.");
+            }
+
+            return;
+        }
+
+        request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.UserId, profile.Id.ToString());
+        request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.Email, profile.Email);
+        request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.PreferredUsername, profile.Email);
+
+        if (!string.IsNullOrWhiteSpace(profile.DisplayName))
+        {
+            request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.DisplayName, profile.DisplayName);
+        }
+
+        if (profile.PrimaryGroupId is { } primaryGroupId && primaryGroupId != Guid.Empty)
+        {
+            request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.PrimaryGroupId, primaryGroupId.ToString());
+
+            var primaryGroupName = profile.Groups?
+                .FirstOrDefault(group => group.Id == primaryGroupId)?
+                .Name;
+
+            if (!string.IsNullOrWhiteSpace(primaryGroupName))
+            {
+                request.Headers.TryAddWithoutValidation(
+                    PasswordLoginForwardingHeaders.PrimaryGroupName,
+                    primaryGroupName);
+            }
+        }
     }
 
     private void ApplyForwardedHeaders(HttpRequestMessage request)

@@ -1,0 +1,92 @@
+using System;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Shared.Extensions.Http;
+
+namespace ECM.Host.Middleware;
+
+internal sealed class PasswordLoginClaimPropagationMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<PasswordLoginClaimPropagationMiddleware> _logger;
+
+    public PasswordLoginClaimPropagationMiddleware(
+        RequestDelegate next,
+        ILogger<PasswordLoginClaimPropagationMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        if (context.User.Identity?.IsAuthenticated == true && context.User.Identity is ClaimsIdentity identity)
+        {
+            ApplyForwardedClaims(identity, context.Request.Headers);
+        }
+
+        await _next(context);
+    }
+
+    private void ApplyForwardedClaims(ClaimsIdentity identity, IHeaderDictionary headers)
+    {
+        var userIdHeader = GetHeaderValue(headers, PasswordLoginForwardingHeaders.UserId);
+        if (!string.IsNullOrWhiteSpace(userIdHeader)
+            && Guid.TryParse(userIdHeader, out var userId)
+            && userId != Guid.Empty)
+        {
+            AddClaimIfMissing(identity, ClaimTypes.NameIdentifier, userId.ToString());
+        }
+
+        var email = GetHeaderValue(headers, PasswordLoginForwardingHeaders.Email);
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            AddClaimIfMissing(identity, ClaimTypes.Email, email);
+            AddClaimIfMissing(identity, ClaimTypes.Upn, email);
+            AddClaimIfMissing(identity, "preferred_username", email);
+        }
+
+        var displayName = GetHeaderValue(headers, PasswordLoginForwardingHeaders.DisplayName);
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            AddClaimIfMissing(identity, ClaimTypes.Name, displayName);
+        }
+
+        var primaryGroupIdHeader = GetHeaderValue(headers, PasswordLoginForwardingHeaders.PrimaryGroupId);
+        if (!string.IsNullOrWhiteSpace(primaryGroupIdHeader)
+            && Guid.TryParse(primaryGroupIdHeader, out var primaryGroupId)
+            && primaryGroupId != Guid.Empty)
+        {
+            AddClaimIfMissing(identity, "primary_group_id", primaryGroupId.ToString());
+        }
+
+        var primaryGroupName = GetHeaderValue(headers, PasswordLoginForwardingHeaders.PrimaryGroupName);
+        if (!string.IsNullOrWhiteSpace(primaryGroupName))
+        {
+            AddClaimIfMissing(identity, "primary_group_name", primaryGroupName);
+        }
+    }
+
+    private static string? GetHeaderValue(IHeaderDictionary headers, string headerName)
+    {
+        if (!headers.TryGetValue(headerName, out var values))
+        {
+            return null;
+        }
+
+        var value = values.ToString();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private void AddClaimIfMissing(ClaimsIdentity identity, string claimType, string value)
+    {
+        if (identity.HasClaim(claim => claim.Type == claimType))
+        {
+            return;
+        }
+
+        identity.AddClaim(new Claim(claimType, value));
+        _logger.LogDebug("Propagated password-login claim {ClaimType} for downstream request.", claimType);
+    }
+}

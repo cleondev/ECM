@@ -19,6 +19,7 @@ using ServiceDefaults;
 using ServiceDefaults.Authentication;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using ECM.Host.Middleware;
 
 namespace ECM.Host;
 
@@ -155,6 +156,7 @@ public static class Program
         app.UseStaticFiles();
 
         app.UseAuthentication();
+        app.UseMiddleware<PasswordLoginClaimPropagationMiddleware>();
         app.UseAuthorization();
         app.UseAntiforgery();
 
