@@ -21,6 +21,7 @@ public sealed class IamGroupsController(IEcmApiClient client) : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<GroupSummaryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
     {
         var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);

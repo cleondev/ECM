@@ -18,6 +18,7 @@ using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
+using AppGateway.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
@@ -70,6 +71,16 @@ internal sealed class EcmApiClient(
 
     public async Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
     {
+        var principal = _httpContextAccessor.HttpContext?.User;
+        if (PasswordLoginClaims.IsPasswordLoginPrincipal(principal))
+        {
+            var profile = await ResolvePasswordLoginProfileAsync(principal, cancellationToken);
+            if (profile is not null)
+            {
+                return profile;
+            }
+        }
+
         using var request = await CreateRequestAsync(HttpMethod.Get, "api/iam/profile", cancellationToken);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
@@ -740,6 +751,51 @@ internal sealed class EcmApiClient(
         }
 
         return uri;
+    }
+
+    private async Task<UserSummaryDto?> ResolvePasswordLoginProfileAsync(
+        ClaimsPrincipal? principal,
+        CancellationToken cancellationToken)
+    {
+        if (principal is null)
+        {
+            return null;
+        }
+
+        var cachedProfile = PasswordLoginClaims.GetProfileFromPrincipal(principal, out _);
+        var userId = ResolveUserIdentifier(principal) ?? cachedProfile?.Id;
+
+        if (userId is not null)
+        {
+            try
+            {
+                var profile = await GetUserAsync(userId.Value, cancellationToken);
+                if (profile is not null)
+                {
+                    return profile;
+                }
+            }
+            catch (HttpRequestException exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Failed to resolve profile for password login principal {UserId}; falling back to cached claims.",
+                    userId);
+            }
+        }
+
+        return cachedProfile;
+    }
+
+    private static Guid? ResolveUserIdentifier(ClaimsPrincipal? principal)
+    {
+        if (principal is null)
+        {
+            return null;
+        }
+
+        var identifier = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return Guid.TryParse(identifier, out var userId) ? userId : null;
     }
 
     private async Task<HttpRequestMessage> CreateRequestAsync(
