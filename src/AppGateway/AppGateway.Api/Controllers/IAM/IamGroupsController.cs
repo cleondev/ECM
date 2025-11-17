@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.IAM.Groups;
+using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -31,7 +32,10 @@ public sealed class IamGroupsController(IEcmApiClient client, ILogger<IamGroupsC
         var cachedProfile = PasswordLoginClaims.GetProfileFromPrincipal(User, out var invalidProfileClaim);
         if (cachedProfile is not null)
         {
-            return Ok(cachedProfile.Groups is { Count: > 0 } groups ? groups : Array.Empty<GroupSummaryDto>());
+            return Ok(
+                cachedProfile.Groups is { Count: > 0 } cachedGroups
+                    ? cachedGroups
+                    : Array.Empty<GroupSummaryDto>());
         }
 
         if (invalidProfileClaim)
