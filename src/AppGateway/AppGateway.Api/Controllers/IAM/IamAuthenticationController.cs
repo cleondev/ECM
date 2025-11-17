@@ -152,6 +152,7 @@ public sealed class IamAuthenticationController(
         identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
         identity.AddClaim(new Claim(ClaimTypes.Name, user.DisplayName));
         identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
+        identity.AddClaim(new Claim(ClaimTypes.Upn, user.Email));
         identity.AddClaim(new Claim("preferred_username", user.Email));
         identity.AddClaim(new Claim(PasswordLoginClaims.MarkerClaimType, PasswordLoginClaims.MarkerClaimValue));
         identity.AddClaim(new Claim(PasswordLoginClaims.ProfileClaimType, JsonSerializer.Serialize(user)));
