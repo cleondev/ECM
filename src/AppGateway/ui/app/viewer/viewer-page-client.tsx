@@ -9,6 +9,25 @@ import { parseViewerPreference } from "@/lib/viewer-utils"
 
 const MAIN_APP_ROUTE = "/app/"
 
+function buildViewerTargetPath(fileId?: string | null, viewer?: string | null, office?: string | null): string {
+  const params = new URLSearchParams()
+
+  if (fileId) {
+    params.set("fileId", fileId)
+  }
+
+  if (viewer) {
+    params.set("viewer", viewer)
+  }
+
+  if (office) {
+    params.set("office", office)
+  }
+
+  const query = params.toString()
+  return query ? `/viewer/?${query}` : `/viewer/`
+}
+
 export function ViewerPageClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -16,6 +35,10 @@ export function ViewerPageClient() {
   const viewer = searchParams.get("viewer") ?? undefined
   const office = searchParams.get("office") ?? undefined
   const preference = useMemo(() => parseViewerPreference(viewer, office), [viewer, office])
+  const viewerTargetPath = useMemo(
+    () => buildViewerTargetPath(fileId, viewer, office),
+    [fileId, viewer, office],
+  )
 
   if (!fileId) {
     return (
@@ -31,5 +54,5 @@ export function ViewerPageClient() {
     )
   }
 
-  return <FileViewClient fileId={fileId} preference={preference} />
+  return <FileViewClient fileId={fileId} preference={preference} targetPath={viewerTargetPath} />
 }
