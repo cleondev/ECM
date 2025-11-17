@@ -30,8 +30,6 @@ public sealed class IamAuthenticationController(
     private readonly IEcmApiClient _client = client;
     private readonly IUserProvisioningService _provisioningService = provisioningService;
     private readonly ILogger<IamAuthenticationController> _logger = logger;
-    private const string PasswordLoginInvalidProfileMessage =
-        "Password login principal had an invalid stored profile. Signing out.";
 
     [HttpGet("check-login")]
     [AllowAnonymous]
@@ -56,21 +54,22 @@ public sealed class IamAuthenticationController(
             return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
         }
 
-        if (PasswordLoginClaims.IsPasswordLoginPrincipal(User))
+        var profileResolution = await CurrentUserProfileResolver.ResolveAsync(
+            HttpContext,
+            _client,
+            _logger,
+            cancellationToken,
+            fetchFromApiWhenMissing: false);
+
+        if (profileResolution.HasProfile)
         {
-            var profile = PasswordLoginClaims.GetProfileFromPrincipal(User, out var invalidProfileClaim);
+            return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null, profileResolution.Profile));
+        }
 
-            if (profile is not null)
-            {
-                return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null, profile));
-            }
-
-            if (invalidProfileClaim)
-            {
-                _logger.LogWarning(PasswordLoginInvalidProfileMessage);
-                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
-            }
+        if (profileResolution.RequiresSignOut)
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
         }
 
         try
