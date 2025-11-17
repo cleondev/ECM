@@ -12,15 +12,9 @@ using Microsoft.Extensions.Logging;
 namespace AppGateway.Api.Auth;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public sealed class RequireCurrentUserProfileAttribute(bool fetchFromApiWhenMissing = true)
-    : TypeFilterAttribute(typeof(RequireCurrentUserProfileFilter))
+public sealed class RequireCurrentUserProfileAttribute : TypeFilterAttribute
 {
-    public RequireCurrentUserProfileAttribute()
-        : this(true)
-    {
-    }
-
-    public RequireCurrentUserProfileAttribute(bool fetchFromApiWhenMissing)
+    public RequireCurrentUserProfileAttribute(bool fetchFromApiWhenMissing = true)
         : base(typeof(RequireCurrentUserProfileFilter))
     {
         Arguments = new object[] { fetchFromApiWhenMissing };
