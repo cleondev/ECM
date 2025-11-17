@@ -24,6 +24,7 @@ type FileListItemProps = {
   onSelect: (e: React.MouseEvent) => void
   onContextMenuOpen?: () => void
   onView?: () => void
+  onDoubleClick?: () => void
   onDownload?: () => void
   onShare?: () => void
   onAssignTags?: () => void
@@ -45,6 +46,7 @@ export function FileListItem({
   onSelect,
   onContextMenuOpen,
   onView,
+  onDoubleClick,
   onDownload,
   onShare,
   onAssignTags,
@@ -59,6 +61,10 @@ export function FileListItem({
       <ContextMenuTrigger asChild>
         <button
           onClick={onSelect}
+          onDoubleClick={(event) => {
+            event.preventDefault()
+            onDoubleClick?.()
+          }}
           ref={itemRef}
           className={cn(
             "w-full flex items-center gap-3 p-3 rounded-lg border bg-card text-left transition-all hover:shadow-sm",

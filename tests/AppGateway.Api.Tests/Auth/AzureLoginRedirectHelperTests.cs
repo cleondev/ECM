@@ -33,10 +33,10 @@ public static class AzureLoginRedirectHelperTests
 
         var result = AzureLoginRedirectHelper.ResolveRedirectPath(
             context,
-            "/app/files/?view=list#details",
+            "/viewer/?view=list#details",
             "/app");
 
-        result.Should().Be("/ecm/app/files?view=list#details");
+        result.Should().Be("/ecm/viewer?view=list#details");
     }
 
     [Fact]

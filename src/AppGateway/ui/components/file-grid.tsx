@@ -238,6 +238,7 @@ export function FileGrid({
               onSelect={(e) => handleFileClick(file, index, e)}
               onContextMenuOpen={() => handleFileContextMenu(file, index)}
               onView={() => onViewFile(file)}
+              onDoubleClick={() => onViewFile(file)}
               onDownload={() => onDownloadFile(file)}
               onShare={() => onShareFile(file)}
               onAssignTags={() => onAssignTags(file)}
@@ -268,6 +269,7 @@ export function FileGrid({
             onSelect={(e) => handleFileClick(file, index, e)}
             onContextMenuOpen={() => handleFileContextMenu(file, index)}
             onView={() => onViewFile(file)}
+            onDoubleClick={() => onViewFile(file)}
             onDownload={() => onDownloadFile(file)}
             onShare={() => onShareFile(file)}
             onAssignTags={() => onAssignTags(file)}
