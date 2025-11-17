@@ -24,6 +24,7 @@ type FileCardProps = {
   onSelect: (e: React.MouseEvent) => void
   onContextMenuOpen?: () => void
   onView?: () => void
+  onDoubleClick?: () => void
   onDownload?: () => void
   onShare?: () => void
   onAssignTags?: () => void
@@ -45,6 +46,7 @@ export function FileCard({
   onSelect,
   onContextMenuOpen,
   onView,
+  onDoubleClick,
   onDownload,
   onShare,
   onAssignTags,
@@ -59,6 +61,10 @@ export function FileCard({
       <ContextMenuTrigger asChild>
         <button
           onClick={onSelect}
+          onDoubleClick={(event) => {
+            event.preventDefault()
+            onDoubleClick?.()
+          }}
           ref={cardRef}
           className={cn(
             "group relative flex h-full w-full flex-col overflow-hidden rounded-xl border bg-card text-left transition-all hover:shadow-lg",

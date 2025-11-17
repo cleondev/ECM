@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
 import { LeftSidebar } from "./left-sidebar"
 import { FileGrid } from "./file-grid"
 import { RightSidebar } from "./right-sidebar"
@@ -44,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 const PAGE_SIZE = 20
+const VIEWER_ROUTE = "/viewer"
 
 export function FileManager() {
   const [files, setFiles] = useState<FileItem[]>([])
@@ -75,7 +75,6 @@ export function FileManager() {
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false)
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false)
 
-  const router = useRouter()
   const isMobile = useIsMobile()
   const isMobileDevice = isMobile ?? false
   const hasSyncedDesktopSidebar = useRef(false)
@@ -224,7 +223,9 @@ export function FileManager() {
       params.set("office", viewerConfig.officeKind)
     }
 
-    router.push(`/app/files?${params.toString()}`)
+    const query = params.toString()
+    const viewerUrl = query ? `${VIEWER_ROUTE}?${query}` : VIEWER_ROUTE
+    window.open(viewerUrl, "_blank", "noopener,noreferrer")
   }
 
   const handleAssignTagsClick = (file?: FileItem) => {
