@@ -19,6 +19,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace AppGateway.Api.Tests.Controllers;
@@ -30,8 +31,8 @@ public class IamGroupsControllerTests
     {
         var groups = new[]
         {
-            new GroupSummaryDto(Guid.NewGuid(), "Group A"),
-            new GroupSummaryDto(Guid.NewGuid(), "Group B")
+            new GroupSummaryDto(Guid.NewGuid(), "Group A", "role", "GroupMember"),
+            new GroupSummaryDto(Guid.NewGuid(), "Group B", "role", "GroupMember")
         };
 
         var profile = new UserSummaryDto(
@@ -47,7 +48,7 @@ public class IamGroupsControllerTests
             groups);
 
         var client = new TrackingEcmApiClient(profile);
-        var controller = new IamGroupsController(client)
+        var controller = new IamGroupsController(client, NullLogger<IamGroupsController>.Instance)
         {
             ControllerContext = new ControllerContext
             {
