@@ -23,11 +23,15 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   timeStyle: "short",
 })
 
-export type FileViewClientProps = { fileId: string; preference?: ViewerPreference }
+export type FileViewClientProps = {
+  fileId: string
+  preference?: ViewerPreference
+  targetPath: string
+}
 
-export default function FileViewClient({ fileId, preference }: FileViewClientProps) {
+export default function FileViewClient({ fileId, preference, targetPath }: FileViewClientProps) {
   const router = useRouter()
-  const { isAuthenticated, isChecking } = useAuthGuard(MAIN_APP_ROUTE)
+  const { isAuthenticated, isChecking } = useAuthGuard(targetPath)
   const [file, setFile] = useState<FileDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
