@@ -54,6 +54,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SearchIndexer.Tests", "test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ocr.Tests", "tests\Ocr.Tests\Ocr.Tests.csproj", "{D91B227C-706B-4A83-B191-CBE868A4D660}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tagger.Tests", "tests\Tagger.Tests\Tagger.Tests.csproj", "{788C0732-F36D-45CD-869C-DE16A7B1F8AA}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "src\Shared\ServiceDefaults\ServiceDefaults.csproj", "{505CAA70-78FC-4746-8C40-B6EB1AB8F5F7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppGateway.Api", "src\AppGateway\AppGateway.Api\AppGateway.Api.csproj", "{2978D62D-CC1C-4189-B11A-193D5583D73B}"
@@ -67,6 +69,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Notify", "src\Workers\Notify.Worker\Notify.csproj", "{9882E492-235A-42A3-8A64-F1077BC3A286}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ocr", "src\Workers\Ocr.Worker\Ocr.csproj", "{4E04F707-4938-4569-8C7D-715E0A930701}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tagger", "src\Workers\Tagger.Worker\Tagger.csproj", "{EA879C7C-E129-425C-90BB-66AC816459BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Host", "src\ECM\ECM.Host\ECM.Host.csproj", "{2879C29D-7276-464A-B841-53ABD4F4C294}"
 EndProject
@@ -290,7 +294,15 @@ Global
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
+	                {788C0732-F36D-45CD-869C-DE16A7B1F8AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {788C0732-F36D-45CD-869C-DE16A7B1F8AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {788C0732-F36D-45CD-869C-DE16A7B1F8AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {788C0732-F36D-45CD-869C-DE16A7B1F8AA}.Release|Any CPU.Build.0 = Release|Any CPU
+                {EA879C7C-E129-425C-90BB-66AC816459BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {EA879C7C-E129-425C-90BB-66AC816459BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {EA879C7C-E129-425C-90BB-66AC816459BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {EA879C7C-E129-425C-90BB-66AC816459BA}.Release|Any CPU.Build.0 = Release|Any CPU
+EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
@@ -339,7 +351,9 @@ Global
 		{B280D780-878A-437E-A6D8-C8ADF98645C0} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
 		{AFA144C0-6B8E-4827-9274-35DCF701563D} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
-	EndGlobalSection
+	                {EA879C7C-E129-425C-90BB-66AC816459BA} = {6E0E7B25-96FE-4D18-A954-4E67804C8621}
+                {788C0732-F36D-45CD-869C-DE16A7B1F8AA} = {FFEA8955-09A4-4B2C-ACE5-CB54BFE158E2}
+EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {380B5FA8-E926-4300-88C9-4017E821C524}
 	EndGlobalSection
