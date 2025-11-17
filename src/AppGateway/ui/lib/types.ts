@@ -19,6 +19,7 @@ export type FileItem = {
   type: "design" | "document" | "image" | "video" | "code"
   size: string
   modified: string
+  createdAtUtc?: string
   modifiedAtUtc?: string
   tags: DocumentTag[]
   folder: string
@@ -32,6 +33,52 @@ export type FileItem = {
   latestVersionMimeType?: string
   latestVersionCreatedAtUtc?: string
   sizeBytes?: number
+}
+
+export type FileVersion = {
+  id: string
+  label: string
+  size: string
+  createdAt: string
+  author: string
+  notes?: string
+}
+
+export type FileActivity = {
+  id: string
+  action: string
+  actor: string
+  timestamp: string
+  description?: string
+}
+
+export type FileComment = {
+  id: string
+  author: string
+  avatar?: string
+  message: string
+  createdAt: string
+  role?: string
+}
+
+export type FileDocumentPreviewPage = {
+  number: number
+  excerpt: string
+  thumbnail?: string
+}
+
+export type FilePreview =
+  | { kind: "image" | "design"; url: string; alt?: string }
+  | { kind: "video"; url: string; poster?: string }
+  | { kind: "document"; pages: FileDocumentPreviewPage[]; summary?: string }
+  | { kind: "code"; language: string; content: string }
+
+export type FileDetail = FileItem & {
+  ownerAvatar?: string
+  preview: FilePreview
+  versions: FileVersion[]
+  activity: FileActivity[]
+  comments: FileComment[]
 }
 
 export type TagScope = "user" | "group" | "global"

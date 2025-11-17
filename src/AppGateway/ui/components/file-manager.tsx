@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { LeftSidebar } from "./left-sidebar"
 import { FileGrid } from "./file-grid"
 import { RightSidebar } from "./right-sidebar"
@@ -73,6 +74,7 @@ export function FileManager() {
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false)
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false)
 
+  const router = useRouter()
   const isMobile = useIsMobile()
   const isMobileDevice = isMobile ?? false
   const hasSyncedDesktopSidebar = useRef(false)
@@ -200,6 +202,17 @@ export function FileManager() {
 
     resetShareState()
     setShareDialogOpen(true)
+  }
+
+  const handleViewFile = (file?: FileItem) => {
+    const targetFile = file ?? selectedFile
+
+    if (!targetFile) {
+      return
+    }
+
+    ensureSingleSelection(targetFile)
+    router.push(`/app/files/${targetFile.id}`)
   }
 
   const handleAssignTagsClick = (file?: FileItem) => {
@@ -537,6 +550,7 @@ export function FileManager() {
               hasMore={hasMore}
               isLoading={isLoading}
               onLoadMore={() => loadFiles(false)}
+              onViewFile={handleViewFile}
               onDownloadFile={handleDownloadClick}
               onShareFile={handleShareClick}
               onAssignTags={handleAssignTagsClick}

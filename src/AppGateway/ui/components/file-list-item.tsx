@@ -4,7 +4,7 @@ import { useRef } from "react"
 import type React from "react"
 
 import type { FileItem } from "@/lib/types"
-import { Download, Edit3, FileText, GitBranch, MoreVertical, Share2, Tag, Trash2 } from "lucide-react"
+import { Download, Edit3, Eye, FileText, GitBranch, MoreVertical, Share2, Tag, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,7 @@ type FileListItemProps = {
   isMultiSelected?: boolean
   onSelect: (e: React.MouseEvent) => void
   onContextMenuOpen?: () => void
+  onView?: () => void
   onDownload?: () => void
   onShare?: () => void
   onAssignTags?: () => void
@@ -43,6 +44,7 @@ export function FileListItem({
   isMultiSelected,
   onSelect,
   onContextMenuOpen,
+  onView,
   onDownload,
   onShare,
   onAssignTags,
@@ -118,6 +120,10 @@ export function FileListItem({
       </ContextMenuTrigger>
 
       <ContextMenuContent className="w-48">
+        <ContextMenuItem onSelect={() => onView?.()} disabled={actionsDisabled}>
+          <Eye className="h-4 w-4" />
+          View file
+        </ContextMenuItem>
         <ContextMenuItem onSelect={() => onDownload?.()} disabled={actionsDisabled || !file.latestVersionId}>
           <Download className="h-4 w-4" />
           Download

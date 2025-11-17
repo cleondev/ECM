@@ -18,6 +18,7 @@ type FileGridProps = {
   hasMore: boolean
   isLoading: boolean
   onLoadMore: () => void
+  onViewFile: (file: FileItem) => void
   onDownloadFile: (file: FileItem) => void
   onShareFile: (file: FileItem) => void
   onOpenDetailsTab: (tab: "property" | "flow" | "form", file: FileItem) => void
@@ -67,6 +68,7 @@ export function FileGrid({
   hasMore,
   isLoading,
   onLoadMore,
+  onViewFile,
   onDownloadFile,
   onShareFile,
   onOpenDetailsTab,
@@ -235,6 +237,7 @@ export function FileGrid({
               isMultiSelected={selectedFiles.has(file.id)}
               onSelect={(e) => handleFileClick(file, index, e)}
               onContextMenuOpen={() => handleFileContextMenu(file, index)}
+              onView={() => onViewFile(file)}
               onDownload={() => onDownloadFile(file)}
               onShare={() => onShareFile(file)}
               onAssignTags={() => onAssignTags(file)}
@@ -264,6 +267,7 @@ export function FileGrid({
             isMultiSelected={selectedFiles.has(file.id)}
             onSelect={(e) => handleFileClick(file, index, e)}
             onContextMenuOpen={() => handleFileContextMenu(file, index)}
+            onView={() => onViewFile(file)}
             onDownload={() => onDownloadFile(file)}
             onShare={() => onShareFile(file)}
             onAssignTags={() => onAssignTags(file)}
