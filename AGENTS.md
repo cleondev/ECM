@@ -7,3 +7,4 @@
 - When new members are added to shared interfaces (e.g., `IEcmApiClient`), update any test doubles or fakes that implement them so builds remain green.
 - The Next.js frontend under `src/AppGateway/ui` is exported as a static site. Prefer approaches that remain compatible with static generation (e.g., avoid server-only features or APIs that require Node.js runtime at request time).
 - When adding a dynamic route (e.g., `app/.../[param]/page.tsx`) to the Next.js frontend under `src/AppGateway/ui`, always include a `generateStaticParams()` export so the static export build does not fail.
+- When creating new test projects that validate ASP.NET Core middleware or helpers scoped as `internal`, expose the necessary assemblies with `[assembly: InternalsVisibleTo("<TestProject>")]` instead of making the runtime types public.
