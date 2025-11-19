@@ -21,12 +21,46 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.User.Identity?.IsAuthenticated == true && context.User.Identity is ClaimsIdentity identity)
+        var identity = ResolveTargetIdentity(context);
+        if (identity is not null)
         {
             ApplyForwardedClaims(identity, context.Request.Headers);
         }
 
         await _next(context);
+    }
+
+    private ClaimsIdentity? ResolveTargetIdentity(HttpContext context)
+    {
+        if (context.User.Identity is ClaimsIdentity existingIdentity)
+        {
+            return existingIdentity;
+        }
+
+        if (!HasPasswordLoginForwardedHeaders(context.Request.Headers))
+        {
+            return null;
+        }
+
+        var identity = new ClaimsIdentity(
+            authenticationType: "PasswordLoginForwarding",
+            nameType: ClaimTypes.Name,
+            roleType: ClaimTypes.Role);
+
+        context.User = new ClaimsPrincipal(identity);
+        _logger.LogDebug("Created password-login identity from forwarded headers for downstream request.");
+
+        return identity;
+    }
+
+    private static bool HasPasswordLoginForwardedHeaders(IHeaderDictionary headers)
+    {
+        return headers.ContainsKey(PasswordLoginForwardingHeaders.UserId)
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.Email)
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.DisplayName)
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.PreferredUsername)
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.PrimaryGroupId)
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.PrimaryGroupName);
     }
 
     private void ApplyForwardedClaims(ClaimsIdentity identity, IHeaderDictionary headers)
