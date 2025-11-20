@@ -40,15 +40,18 @@ public class HomeController : Controller
             Title = _options.Title,
         };
 
-        return View(new UploadPageViewModel
-        {
-            BaseUrl = _options.BaseUrl,
-            HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
-            RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
-            IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
-            Form = form,
-        });
-    }
+            return View(new UploadPageViewModel
+            {
+                BaseUrl = _options.BaseUrl,
+                HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
+                RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
+                IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
+                UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
+                OnBehalfUserEmail = _options.OnBehalf.UserEmail,
+                OnBehalfUserId = _options.OnBehalf.UserId,
+                Form = form,
+            });
+        }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -117,9 +120,12 @@ public class HomeController : Controller
             return View("Index", new UploadPageViewModel
             {
                 BaseUrl = _options.BaseUrl,
-                HasAccessToken = !string.IsNullOrWhiteSpace(_options.AccessToken),
+                HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
                 RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
                 IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
+                UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
+                OnBehalfUserEmail = _options.OnBehalf.UserEmail,
+                OnBehalfUserId = _options.OnBehalf.UserId,
                 Form = new UploadFormModel
                 {
                     DocType = form.DocType,
@@ -156,6 +162,9 @@ public class HomeController : Controller
         HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
         RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
         IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
+        UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
+        OnBehalfUserEmail = _options.OnBehalf.UserEmail,
+        OnBehalfUserId = _options.OnBehalf.UserId,
         Form = form,
         Error = error,
     };

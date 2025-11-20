@@ -6,6 +6,8 @@ public sealed class EcmIntegrationOptions
 
     public string? AccessToken { get; set; }
 
+    public OnBehalfOptions OnBehalf { get; set; } = new();
+
     public Guid? OwnerId { get; set; }
 
     public Guid? CreatedBy { get; set; }
@@ -23,4 +25,15 @@ public sealed class EcmIntegrationOptions
     public bool UseAzureSso { get; set; }
 
     public string? AuthenticationScope { get; set; }
+}
+
+public sealed class OnBehalfOptions
+{
+    public bool Enabled { get; set; }
+
+    public string? ApiKey { get; set; }
+
+    public Guid? UserId { get; set; }
+
+    public string? UserEmail { get; set; }
 }
