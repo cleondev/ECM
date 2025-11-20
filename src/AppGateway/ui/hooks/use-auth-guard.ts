@@ -29,7 +29,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
         : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
     console.debug(
-      "[auth] Khởi tạo useAuthGuard với targetPath=%s, normalizedTargetPath=%s, currentLocation=%s",
+      "[auth] Initializing useAuthGuard with targetPath=%s, normalizedTargetPath=%s, currentLocation=%s",
       targetPath,
       normalizedTargetPath,
       locationSnapshot,
@@ -51,20 +51,20 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
           : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
       console.debug(
-        "[auth] redirectToLanding() được gọi tại vị trí hiện tại=%s cho guard hướng tới %s.",
+        "[auth] redirectToLanding() invoked at currentLocation=%s for guard targeting %s.",
         locationSnapshot,
         normalizedTargetPath,
       )
       clearCachedAuthSnapshot()
       setIsAuthenticated(false)
       const signInPath = createSignInRedirectPath(normalizedTargetPath, APP_HOME_FALLBACK)
-      console.debug("[auth] Chuyển hướng tới trang đăng nhập:", signInPath)
+      console.debug("[auth] Redirecting to sign-in page:", signInPath)
       router.replace(signInPath)
     }
 
     const verify = async () => {
       console.debug(
-        "[auth] Bắt đầu xác thực quyền truy cập cho đường dẫn=%s (targetPath=%s).",
+        "[auth] Beginning authentication check for path=%s (targetPath=%s).",
         normalizedTargetPath,
         targetPath,
       )
@@ -76,7 +76,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
 
         if (profile) {
           console.debug(
-            "[auth] Đã xác nhận người dùng với id %s từ profile, tiếp tục truy cập:",
+            "[auth] Confirmed user with id %s from profile; allowing access:",
             profile.id,
             normalizedTargetPath,
           )
@@ -90,7 +90,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
         }
 
         console.warn(
-          "[auth] Không tìm thấy hồ sơ người dùng sau khi gọi API, thử check-login trước khi chuyển hướng.",
+          "[auth] User profile missing after API call; attempting check-login before redirecting.",
         )
         const checkLoginResult = await checkLogin(normalizedTargetPath)
 
@@ -100,7 +100,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
 
         if (checkLoginResult.isAuthenticated && checkLoginResult.user) {
           console.debug(
-            "[auth] check-login xác nhận người dùng %s, cập nhật cache và tiếp tục tại %s.",
+            "[auth] check-login confirmed user %s; updating cache and continuing at %s.",
             checkLoginResult.user.id,
             normalizedTargetPath,
           )
@@ -114,18 +114,18 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
         }
 
         console.warn(
-          "[auth] check-login cho biết chưa đăng nhập, chuyển về trang giới thiệu.",
+          "[auth] check-login indicates unauthenticated; redirecting to landing.",
         )
         redirectToLanding()
       } catch (error) {
-        console.error("[auth] Không lấy được hồ sơ người dùng:", error)
+        console.error("[auth] Failed to retrieve user profile:", error)
         if (!active) {
           return
         }
 
         try {
           console.debug(
-            "[auth] Thử xác minh trạng thái đăng nhập bằng check-login sau lỗi profile…",
+            "[auth] Attempting check-login after profile error…",
           )
           const fallbackCheck = await checkLogin(normalizedTargetPath)
           if (!active) {
@@ -134,7 +134,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
 
           if (fallbackCheck.isAuthenticated && fallbackCheck.user) {
             console.debug(
-              "[auth] Đã xác nhận phiên từ check-login sau lỗi profile, user=%s.",
+              "[auth] check-login confirmed session after profile error, user=%s.",
               fallbackCheck.user.id,
             )
             updateCachedAuthSnapshot({
@@ -147,19 +147,19 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
           }
 
           console.warn(
-            "[auth] Phiên không hợp lệ sau khi thử check-login, chuyển hướng về landing.",
+            "[auth] Session invalid after check-login attempt; redirecting to landing.",
           )
           redirectToLanding()
         } catch (fallbackError) {
           console.error(
-            "[auth] check-login cũng thất bại, chuyển hướng về trang giới thiệu:",
+            "[auth] check-login also failed; redirecting to landing:",
             fallbackError,
           )
           redirectToLanding()
         }
       } finally {
         if (active) {
-          console.debug("[auth] Hoàn tất kiểm tra xác thực cho:", normalizedTargetPath)
+          console.debug("[auth] Completed authentication check for:", normalizedTargetPath)
           setIsChecking(false)
         }
       }

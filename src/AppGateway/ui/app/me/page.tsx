@@ -102,7 +102,7 @@ export default function ProfilePage() {
         : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
     console.debug(
-      "[profile] Trang profile được mount tại location=%s",
+      "[profile] Profile page mounted at location=%s",
       locationSnapshot,
     )
   }, [])
@@ -110,11 +110,11 @@ export default function ProfilePage() {
   useEffect(() => {
     const snapshot = getCachedAuthSnapshot()
     if (!snapshot?.user) {
-      console.debug("[profile] Không tìm thấy cached snapshot cho người dùng hiện tại.")
+      console.debug("[profile] No cached snapshot found for current user.")
       return
     }
 
-    console.debug("[profile] Khôi phục hồ sơ từ cached snapshot với id:", snapshot.user.id)
+    console.debug("[profile] Restoring profile from cached snapshot with id:", snapshot.user.id)
     setUser((previous) => previous ?? snapshot.user)
     setFormValues((previous) => {
       if (previous.displayName || previous.groupIds.length > 0) {
@@ -134,7 +134,7 @@ export default function ProfilePage() {
         setGroups(data)
       })
       .catch((error) => {
-        console.error("[profile] Không thể tải danh sách group:", error)
+        console.error("[profile] Failed to load group list:", error)
         if (!active) return
         setGroups([])
       })
@@ -148,7 +148,7 @@ export default function ProfilePage() {
     let mounted = true
 
     const loadProfile = async () => {
-      console.debug("[profile] Bắt đầu tải hồ sơ người dùng trong trang profile.")
+      console.debug("[profile] Starting to load user profile on profile page.")
 
       if (mounted) {
         setIsLoadingProfile(true)
@@ -160,7 +160,7 @@ export default function ProfilePage() {
         if (!mounted) return
 
         if (!profile) {
-          console.warn("[profile] API trả về null, chuyển hướng tới trang đăng nhập.")
+          console.warn("[profile] API returned null; redirecting to sign-in page.")
           setUser(null)
           setIsRedirecting(true)
           setIsLoadingProfile(false)
@@ -168,16 +168,16 @@ export default function ProfilePage() {
           return
         }
 
-        console.debug("[profile] Nhận được hồ sơ người dùng với id:", profile.id)
+        console.debug("[profile] Received user profile with id:", profile.id)
         setUser(profile)
         setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
         setPasswordFeedback(null)
         setFormValues(getInitialProfileFormValues(profile))
       } catch (error) {
-        console.error("[ui] Không thể tải hồ sơ người dùng:", error)
+        console.error("[ui] Failed to load user profile:", error)
         if (!mounted) return
 
-        console.warn("[profile] Giữ nguyên trạng thái hiện tại do lỗi khi tải hồ sơ.")
+        console.warn("[profile] Keeping current state due to profile load failure.")
         setFeedback({
           type: "error",
           message: "Không thể tải hồ sơ người dùng. Vui lòng thử lại.",
@@ -306,7 +306,7 @@ export default function ProfilePage() {
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" })
       setUser((prev) => (prev ? { ...prev, hasPassword: true } : prev))
     } catch (error) {
-      console.error("[ui] Không thể cập nhật mật khẩu:", error)
+      console.error("[ui] Failed to update password:", error)
       setPasswordFeedback({
         type: "error",
         message: error instanceof Error ? error.message : "Không thể cập nhật mật khẩu. Vui lòng thử lại.",
@@ -362,7 +362,7 @@ export default function ProfilePage() {
       setIsEditing(false)
       setFeedback({ type: "success", message: "Hồ sơ của bạn đã được cập nhật." })
     } catch (error) {
-      console.error("[ui] Không thể cập nhật hồ sơ:", error)
+      console.error("[ui] Failed to update profile:", error)
       setFeedback({ type: "error", message: "Không thể cập nhật hồ sơ. Vui lòng thử lại." })
     } finally {
       setIsSaving(false)

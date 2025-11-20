@@ -96,7 +96,7 @@ function SignInPageContent() {
 
         setStatus("")
       } catch (error) {
-        console.error("[ui] Không thể kiểm tra trạng thái đăng nhập tự động:", error)
+        console.error("[ui] Failed to check automatic sign-in status:", error)
         setStatus("")
       } finally {
         if (!cancelled) {
@@ -135,7 +135,7 @@ function SignInPageContent() {
 
       throw new Error('Thiếu đường dẫn đăng nhập.')
     } catch (error) {
-      console.error("[ui] Không lấy được đường dẫn đăng nhập Azure:", error)
+      console.error("[ui] Unable to retrieve Azure sign-in URL:", error)
       setStatus("Đi thẳng tới trang đăng nhập mặc định.")
       window.location.href = resolveGatewayUrl(
         `/signin-azure?redirectUri=${encodeURIComponent(safeRedirect)}`,
