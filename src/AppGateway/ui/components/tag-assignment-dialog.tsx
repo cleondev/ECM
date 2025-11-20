@@ -608,13 +608,6 @@ export function TagAssignmentDialog({ open, onOpenChange, files, onTagsAssigned 
               </div>
             ) : null}
 
-            {isBulkMode ? (
-              <div className="text-sm text-muted-foreground">
-                Changes will apply to all selected files. Existing tags will be ignored when adding, and removals will be skipped
-                if a file does not contain the tag.
-              </div>
-            ) : null}
-
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -644,10 +637,6 @@ export function TagAssignmentDialog({ open, onOpenChange, files, onTagsAssigned 
                   <label htmlFor="auto-parent-tags" className="text-sm font-medium leading-none">
                     Add parent tags automatically
                   </label>
-                  <p className="text-xs text-muted-foreground">
-                    When enabled, selecting a tag will also select its ancestor tags. Turning this off clears auto-added
-                    parents unless they were selected manually.
-                  </p>
                 </div>
               </div>
             </div>
