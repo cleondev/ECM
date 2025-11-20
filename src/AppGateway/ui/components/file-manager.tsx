@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 const PAGE_SIZE = 20
-const VIEWER_ROUTE = "/viewer"
+const VIEWER_ROUTE = "/viewer/"
 
 export function FileManager() {
   const [files, setFiles] = useState<FileItem[]>([])
