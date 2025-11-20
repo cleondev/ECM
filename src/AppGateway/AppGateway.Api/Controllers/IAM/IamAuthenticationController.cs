@@ -137,11 +137,7 @@ public sealed class IamAuthenticationController(
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-        var cookieLifetime = _cookieOptions.ExpireTimeSpan == TimeSpan.Zero
-            ? TimeSpan.FromHours(8)
-            : _cookieOptions.ExpireTimeSpan;
-
-        var expiresOn = DateTimeOffset.UtcNow + cookieLifetime;
+        var expiresOn = DateTimeOffset.UtcNow + (_cookieOptions.ExpireTimeSpan ?? TimeSpan.FromHours(8));
 
         return Ok(new OnBehalfLoginResponseDto(profile, expiresOn));
     }
