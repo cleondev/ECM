@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace samples.EcmFileIntegrationSample;
 
@@ -10,15 +11,25 @@ public sealed class EcmFileClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<EcmFileClient> _logger;
+    private readonly EcmIntegrationOptions _options;
+    private readonly EcmOnBehalfAuthenticator _onBehalfAuthenticator;
 
-    public EcmFileClient(HttpClient httpClient, ILogger<EcmFileClient> logger)
+    public EcmFileClient(
+        HttpClient httpClient,
+        ILogger<EcmFileClient> logger,
+        IOptions<EcmIntegrationOptions> options,
+        EcmOnBehalfAuthenticator onBehalfAuthenticator)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _options = options.Value;
+        _onBehalfAuthenticator = onBehalfAuthenticator;
     }
 
     public async Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken cancellationToken)
     {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
         using var response = await _httpClient.GetAsync("api/iam/profile", cancellationToken);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -55,7 +66,9 @@ public sealed class EcmFileClient
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(uploadRequest.ContentType ?? "application/octet-stream");
         content.Add(fileContent, "file", Path.GetFileName(uploadRequest.FilePath));
 
-        using var response = await _httpClient.PostAsync("api/ecm/documents", content, cancellationToken);
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.PostAsync(GetDocumentsEndpoint(), content, cancellationToken);
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -75,7 +88,9 @@ public sealed class EcmFileClient
 
     public async Task<Uri?> GetDownloadUriAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"api/ecm/files/download/{versionId}");
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{GetDownloadEndpoint()}/{versionId}");
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -106,6 +121,14 @@ public sealed class EcmFileClient
             versionId);
         return null;
     }
+
+    private string GetDocumentsEndpoint() => _options.OnBehalf.Enabled
+        ? "api/documents"
+        : "api/ecm/documents";
+
+    private string GetDownloadEndpoint() => _options.OnBehalf.Enabled
+        ? "api/documents/files/download"
+        : "api/ecm/files/download";
 
     private static bool IsRedirect(HttpStatusCode statusCode) =>
         statusCode is HttpStatusCode.Moved or HttpStatusCode.Redirect or HttpStatusCode.RedirectKeepVerb or HttpStatusCode.RedirectMethod;

@@ -23,10 +23,14 @@ public sealed class EcmAccessTokenProvider
     }
 
     public bool RequiresUserAuthentication => _options.Value.UseAzureSso
-        && string.IsNullOrWhiteSpace(_options.Value.AccessToken);
+        && string.IsNullOrWhiteSpace(_options.Value.AccessToken)
+        && !_options.Value.OnBehalf.Enabled;
 
     public bool HasConfiguredAccess => !string.IsNullOrWhiteSpace(_options.Value.AccessToken)
+        || _options.Value.OnBehalf.Enabled
         || (_options.Value.UseAzureSso && _tokenAcquisition is not null);
+
+    public bool UsingOnBehalfAuthentication => _options.Value.OnBehalf.Enabled;
 
     public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
@@ -35,6 +39,11 @@ public sealed class EcmAccessTokenProvider
         if (!string.IsNullOrWhiteSpace(options.AccessToken))
         {
             return options.AccessToken;
+        }
+
+        if (options.OnBehalf.Enabled)
+        {
+            return null;
         }
 
         if (!options.UseAzureSso)

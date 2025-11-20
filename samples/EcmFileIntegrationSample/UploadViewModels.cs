@@ -49,6 +49,12 @@ public sealed class UploadPageViewModel
 
     public bool IsAuthenticated { get; init; }
 
+    public bool UsingOnBehalfAuthentication { get; init; }
+
+    public Guid? OnBehalfUserId { get; init; }
+
+    public string? OnBehalfUserEmail { get; init; }
+
     public UploadFormModel Form { get; init; } = new();
 
     public UploadResultModel? Result { get; init; }
