@@ -23,18 +23,29 @@ public sealed class EcmAccessTokenProvider
     }
 
     public bool RequiresUserAuthentication => _options.Value.UseAzureSso
-        && string.IsNullOrWhiteSpace(_options.Value.AccessToken);
+        && string.IsNullOrWhiteSpace(_options.Value.AccessToken)
+        && !_options.Value.OnBehalf.Enabled;
 
     public bool HasConfiguredAccess => !string.IsNullOrWhiteSpace(_options.Value.AccessToken)
+        || _options.Value.OnBehalf.Enabled
         || (_options.Value.UseAzureSso && _tokenAcquisition is not null);
+
+    public bool UsingOnBehalfAuthentication => _options.Value.OnBehalf.Enabled;
 
     public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var options = _options.Value;
 
         if (!string.IsNullOrWhiteSpace(options.AccessToken))
         {
             return options.AccessToken;
+        }
+
+        if (options.OnBehalf.Enabled)
+        {
+            return null;
         }
 
         if (!options.UseAzureSso)
@@ -58,8 +69,7 @@ public sealed class EcmAccessTokenProvider
         try
         {
             return await _tokenAcquisition.GetAccessTokenForUserAsync(
-                [options.AuthenticationScope],
-                cancellationToken: cancellationToken);
+                [options.AuthenticationScope]);
         }
         catch (MsalUiRequiredException)
         {

@@ -211,6 +211,15 @@ public class IamAuthenticationControllerTests
         }
     }
 
+    private sealed class CookieOptionsSnapshot : IOptionsSnapshot<CookieAuthenticationOptions>
+    {
+        private readonly CookieAuthenticationOptions _options = new();
+
+        public CookieAuthenticationOptions Value => _options;
+
+        public CookieAuthenticationOptions Get(string? name) => _options;
+    }
+
     private sealed class TrackingEcmApiClient : IEcmApiClient
     {
         public int GetCurrentUserProfileCalls { get; private set; }

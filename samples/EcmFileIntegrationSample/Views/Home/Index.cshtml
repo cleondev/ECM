@@ -14,7 +14,18 @@
                         <div class="fs-5 fw-bold">@Model.BaseUrl</div>
                     </div>
                     <div>
-                        @if (Model.RequiresUserAuthentication)
+                        @if (Model.UsingOnBehalfAuthentication)
+                        {
+                            <div class="d-flex flex-column align-items-end">
+                                <span class="badge bg-info text-dark">auth/on-behalf qua API key</span>
+                                <small class="text-muted">
+                                    @(!string.IsNullOrWhiteSpace(Model.OnBehalfUserEmail)
+                                        ? Model.OnBehalfUserEmail
+                                        : Model.OnBehalfUserId?.ToString())
+                                </small>
+                            </div>
+                        }
+                        else if (Model.RequiresUserAuthentication)
                         {
                             @if (Model.IsAuthenticated)
                             {
@@ -22,7 +33,7 @@
                             }
                             else
                             {
-                                <a class="btn btn-outline-primary" href="~/MicrosoftIdentity/Account/SignIn?redirectUri=@Url.Action("Index", "Home", values: null, protocol: Request.Scheme)">Đăng nhập Azure SSO</a>
+                                <a class="btn btn-outline-primary" href="~/MicrosoftIdentity/Account/SignIn?redirectUri=@Url.Action("Index", "Home", values: null, protocol: ViewContext.HttpContext.Request.Scheme)">Đăng nhập Azure SSO</a>
                             }
                         }
                         else if (Model.HasAccessToken)
@@ -35,7 +46,7 @@
                         }
                     </div>
                 </div>
-                <p class="text-muted mb-0 mt-2">Ứng dụng hỗ trợ bearer token tĩnh trong <code>appsettings.json</code> hoặc đăng nhập bằng Azure SSO thông qua module Authentication của AppGateway.</p>
+                <p class="text-muted mb-0 mt-2">Ứng dụng hỗ trợ bearer token tĩnh trong <code>appsettings.json</code>, đăng nhập Azure SSO hoặc đăng nhập nền qua endpoint <code>api/iam/auth/on-behalf</code> (API key của AppGateway).</p>
             </div>
         </div>
 
