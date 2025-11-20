@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import FileViewClient from "./file-view-client"
 import { Button } from "@/components/ui/button"
@@ -9,36 +9,19 @@ import { parseViewerPreference } from "@/lib/viewer-utils"
 
 const MAIN_APP_ROUTE = "/app/"
 
-function buildViewerTargetPath(fileId?: string | null, viewer?: string | null, office?: string | null): string {
-  const baseUrl = typeof window === "undefined" ? "http://localhost" : window.location.origin
-  const url = new URL("/viewer/", baseUrl)
-
-  if (fileId) {
-    url.searchParams.set("fileId", fileId)
-  }
-
-  if (viewer) {
-    url.searchParams.set("viewer", viewer)
-  }
-
-  if (office) {
-    url.searchParams.set("office", office)
-  }
-
-  return `${url.pathname}${url.search}`
-}
-
 export function ViewerPageClient() {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const fileId = searchParams.get("fileId")?.trim()
   const viewer = searchParams.get("viewer") ?? undefined
   const office = searchParams.get("office") ?? undefined
   const preference = useMemo(() => parseViewerPreference(viewer, office), [viewer, office])
-  const viewerTargetPath = useMemo(
-    () => buildViewerTargetPath(fileId, viewer, office),
-    [fileId, viewer, office],
-  )
+  const searchParamsString = useMemo(() => searchParams.toString(), [searchParams])
+  const viewerTargetPath = useMemo(() => {
+    const normalizedPath = pathname && pathname.endsWith("/") ? pathname : `${pathname ?? "/viewer/"}/`
+    return searchParamsString ? `${normalizedPath}?${searchParamsString}` : normalizedPath
+  }, [pathname, searchParamsString])
 
   if (!fileId) {
     return (
