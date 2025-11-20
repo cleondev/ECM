@@ -15,7 +15,7 @@ export function resolveGatewayUrl(path: string): string {
   try {
     return new URL(path, runtimeBase).toString()
   } catch (error) {
-    console.warn("[auth] Không thể chuẩn hoá URL đăng nhập:", error)
+    console.warn("[auth] Unable to normalize login URL:", error)
     return path
   }
 }

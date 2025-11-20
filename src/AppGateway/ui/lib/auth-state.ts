@@ -18,7 +18,7 @@ function getSessionStorage(): Storage | null {
   try {
     return window.sessionStorage
   } catch (error) {
-    console.warn("[auth] Không thể truy cập sessionStorage:", error)
+    console.warn("[auth] Unable to access sessionStorage:", error)
     return null
   }
 }
@@ -58,7 +58,7 @@ function readSnapshot(): StoredAuthSnapshot | null {
 
     return parsed
   } catch (error) {
-    console.warn("[auth] Không thể parse sessionStorage state:", error)
+    console.warn("[auth] Unable to parse sessionStorage state:", error)
     storage.removeItem(STORAGE_KEY)
     return null
   }
@@ -73,7 +73,7 @@ function persistSnapshot(snapshot: StoredAuthSnapshot): void {
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
   } catch (error) {
-    console.warn("[auth] Không thể lưu trạng thái đăng nhập:", error)
+    console.warn("[auth] Unable to persist sign-in state:", error)
   }
 }
 

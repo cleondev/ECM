@@ -52,7 +52,7 @@ export default function FileViewClient({ fileId, preference, targetPath }: FileV
         }
       })
       .catch((err) => {
-        console.error("[ui] Không thể tải thông tin chi tiết tệp", err)
+        console.error("[ui] Failed to load file details", err)
         if (!cancelled) {
           setError("Không thể tải thông tin chi tiết. Vui lòng thử lại sau.")
         }
