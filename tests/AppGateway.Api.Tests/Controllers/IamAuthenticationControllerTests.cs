@@ -22,7 +22,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -50,7 +49,7 @@ public class IamAuthenticationControllerTests
         var controller = new IamAuthenticationController(
             client,
             provisioningService,
-            new TestOptionsSnapshot<CookieAuthenticationOptions>(new CookieAuthenticationOptions()),
+            new CookieOptionsSnapshot(),
             NullLogger<IamAuthenticationController>.Instance);
 
         var httpContext = new DefaultHttpContext();
@@ -226,87 +225,78 @@ public class IamAuthenticationControllerTests
     {
         public int GetCurrentUserProfileCalls { get; private set; }
 
-        public UserSummaryDto? UserToReturn { get; init; }
-
-        public int GetUserByEmailCalls { get; private set; }
-
-        public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
+        public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken)
         {
             GetCurrentUserProfileCalls++;
             return Task.FromResult<UserSummaryDto?>(null);
         }
 
-        public Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
-        {
-            return Task.FromResult(UserToReturn);
-        }
+        public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken)
+            => throw new NotSupportedException();
 
-        public Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
-        {
-            GetUserByEmailCalls++;
-            return Task.FromResult(UserToReturn);
-        }
+        public Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
 
-        public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
+        public Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<UserSummaryDto?> AuthenticateUserAsync(
             AuthenticateUserRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto request, CancellationToken cancellationToken = default)
+        public Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto request, CancellationToken cancellationToken = default)
+        public Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto request, CancellationToken cancellationToken = default)
+        public Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(
             UpdateUserPasswordRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto request, CancellationToken cancellationToken = default)
+        public Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<UserSummaryDto?> RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default)
+        public Task<UserSummaryDto?> RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<IReadOnlyCollection<AppGateway.Contracts.IAM.Roles.RoleSummaryDto>> GetRolesAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyCollection<AppGateway.Contracts.IAM.Roles.RoleSummaryDto>> GetRolesAsync(CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.IAM.Roles.RoleSummaryDto?> CreateRoleAsync(
             CreateRoleRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.IAM.Roles.RoleSummaryDto?> RenameRoleAsync(
             Guid roleId,
             RenameRoleRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<bool> DeleteRoleAsync(Guid roleId, CancellationToken cancellationToken = default)
+        public Task<bool> DeleteRoleAsync(Guid roleId, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<IReadOnlyCollection<AppGateway.Contracts.IAM.Relations.AccessRelationDto>> GetRelationsBySubjectAsync(
             string subjectType,
             Guid subjectId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<IReadOnlyCollection<AppGateway.Contracts.IAM.Relations.AccessRelationDto>> GetRelationsByObjectAsync(
             string objectType,
             Guid objectId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.IAM.Relations.AccessRelationDto?> CreateRelationAsync(
             CreateAccessRelationRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<bool> DeleteRelationAsync(
@@ -315,34 +305,34 @@ public class IamAuthenticationControllerTests
             string objectType,
             Guid objectId,
             string relation,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.Documents.DocumentListDto> GetDocumentsAsync(
             ListDocumentsRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.Documents.DocumentDto?> CreateDocumentAsync(
             CreateDocumentUpload request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<DocumentDto?> UpdateDocumentAsync(
             Guid documentId,
             UpdateDocumentRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+        public Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
+        public Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(
             Guid versionId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(
@@ -350,48 +340,48 @@ public class IamAuthenticationControllerTests
             int width,
             int height,
             string? fit,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
             CreateShareLinkRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<IReadOnlyCollection<AppGateway.Contracts.Tags.TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyCollection<AppGateway.Contracts.Tags.TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.Tags.TagLabelDto?> CreateTagAsync(
             CreateTagRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.Tags.TagLabelDto?> UpdateTagAsync(
             Guid tagId,
             UpdateTagRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
+        public Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<bool> AssignTagToDocumentAsync(
             Guid documentId,
             AssignTagRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken = default)
+        public Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.Workflows.WorkflowInstanceDto?> StartWorkflowAsync(
             StartWorkflowRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<AppGateway.Contracts.Signatures.SignatureReceiptDto?> CreateSignatureRequestAsync(
             SignatureRequestDto request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken)
             => throw new NotSupportedException();
     }
 
