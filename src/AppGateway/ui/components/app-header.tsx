@@ -103,7 +103,7 @@ export function AppHeader({
         }
       })
       .catch((error) => {
-        console.error("[ui] Không thể tải thông báo:", error)
+        console.error("[ui] Unable to load notifications:", error)
         if (isMounted) {
           setNotifications([])
         }

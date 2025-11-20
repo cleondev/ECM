@@ -612,19 +612,19 @@ export async function fetchCurrentUserProfile(): Promise<User | null> {
         : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
     console.debug(
-      "[ui] Bắt đầu gọi /api/iam/profile để lấy hồ sơ người dùng hiện tại (pageLocation=%s).",
+      "[ui] Starting /api/iam/profile request to load current user profile (pageLocation=%s).",
       locationSnapshot,
     )
     const response = await gatewayFetch("/api/iam/profile")
 
     console.debug(
-      "[ui] Nhận phản hồi từ /api/iam/profile với mã trạng thái:",
+      "[ui] Received response from /api/iam/profile with status:",
       response.status,
     )
 
     if ([401, 403, 404].includes(response.status)) {
       console.warn(
-        "[ui] Hồ sơ người dùng trả về trạng thái yêu cầu đăng nhập/không tìm thấy (status = %d).",
+        "[ui] Current user profile returned sign-in required/not found status (status = %d).",
         response.status,
       )
       clearCachedAuthSnapshot()
@@ -633,18 +633,18 @@ export async function fetchCurrentUserProfile(): Promise<User | null> {
 
     if (!response.ok) {
       console.error(
-        "[ui] Yêu cầu /api/iam/profile thất bại với trạng thái bất thường:",
+        "[ui] Request to /api/iam/profile failed with unexpected status:",
         response.status,
       )
       throw new Error(`Failed to fetch current user profile (${response.status})`)
     }
 
     const data = (await response.json()) as UserSummaryResponse
-    console.debug("[ui] Hồ sơ người dùng hiện tại đã được tải thành công với id:", data.id)
+    console.debug("[ui] Current user profile loaded successfully with id:", data.id)
     return mapUserSummaryToUser(data)
   } catch (error) {
     clearCachedAuthSnapshot()
-    console.error("[ui] Không lấy được hồ sơ người dùng hiện tại:", error)
+    console.error("[ui] Failed to fetch current user profile:", error)
     throw error
   }
 }
@@ -771,7 +771,7 @@ function mapCheckLoginResponse(
 
   if (result.isAuthenticated && !result.user) {
     console.warn(
-      "[auth] Thiếu hồ sơ người dùng trong phản hồi check-login, coi như chưa xác thực.",
+      "[auth] Missing user profile in check-login response; treating as unauthenticated.",
     )
     result.isAuthenticated = false
     result.redirectPath = "/"
@@ -1467,14 +1467,14 @@ export async function fetchUser(): Promise<User | null> {
       return profile
     }
   } catch (error) {
-    console.warn("[ui] Không thể lấy hồ sơ người dùng qua /api/iam/profile:", error)
+    console.warn("[ui] Unable to fetch user profile via /api/iam/profile:", error)
   }
 
   try {
     const { user } = await checkLogin()
     return user
   } catch (error) {
-    console.error("[ui] Không lấy được thông tin người dùng:", error)
+    console.error("[ui] Failed to retrieve user information:", error)
     throw error
   }
 }
@@ -1553,7 +1553,7 @@ export async function signOut(redirectUri?: string): Promise<void> {
 
     throw new Error(`Failed to sign out (${response.status})`)
   } catch (error) {
-    console.error("[ui] Đăng xuất qua fetch thất bại, thử chuyển hướng trực tiếp:", error)
+    console.error("[ui] Sign-out via fetch failed; trying direct redirect:", error)
 
     const form = document.createElement("form")
     form.method = "POST"
