@@ -1,0 +1,42 @@
+networks:
+  ecm_net:
+
+services:
+  appgateway:
+    image: harbor.local:8443/ecm/appgateway-api:${IMAGE_TAG}
+    container_name: "ecm_appgateway"
+    environment:
+      - DOTNET_ENVIRONMENT=Production
+      - Services__Ecm=${Services__Ecm}
+      - Kestrel__Endpoints__Https__Certificate__Password=${Kestrel__Endpoints__Https__Certificate__Password}
+      - AzureAd__ClientSecret=${AzureAd__ClientSecret}
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - /opt/ecm/certs/ecm-ists.pfx:/certs/ecm-ists.pfx:ro
+    networks: [ecm_net]
+    depends_on:
+      - ecm_host
+
+  ecm_host:
+    image: harbor.local:8443/ecm/ecm-host:${IMAGE_TAG}
+    container_name: "ecm_host"
+    expose:
+      - "8080"
+    networks: [ecm_net]
+
+  notify_worker:
+    image: harbor.local:8443/ecm/notify-worker:${IMAGE_TAG}
+    container_name: "ecm_notify_worker"
+    networks: [ecm_net]
+
+  outbox_worker:
+    image: harbor.local:8443/ecm/outbox-worker:${IMAGE_TAG}
+    container_name: "ecm_outbox_worker"
+    networks: [ecm_net]
+
+  searchindexer_worker:
+    image: harbor.local:8443/ecm/searchindexer-worker:${IMAGE_TAG}
+    container_name: "ecm_searchindexer_worker"
+    networks: [ecm_net]
