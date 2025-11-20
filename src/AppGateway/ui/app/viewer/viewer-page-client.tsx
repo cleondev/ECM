@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import FileViewClient from "./file-view-client"
@@ -22,6 +22,16 @@ export function ViewerPageClient() {
     const normalizedPath = pathname && pathname.endsWith("/") ? pathname : `${pathname ?? "/viewer/"}/`
     return searchParamsString ? `${normalizedPath}?${searchParamsString}` : normalizedPath
   }, [pathname, searchParamsString])
+
+  useEffect(() => {
+    console.debug(
+      "[viewer] Initialized viewer page with fileId=%s, viewer=%s, office=%s, targetPath=%s",
+      fileId ?? "(missing)",
+      viewer ?? "(none)",
+      office ?? "(none)",
+      viewerTargetPath,
+    )
+  }, [fileId, office, viewer, viewerTargetPath])
 
   if (!fileId) {
     return (

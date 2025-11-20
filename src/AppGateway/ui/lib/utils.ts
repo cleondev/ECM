@@ -65,6 +65,20 @@ export function normalizeRedirectTarget(
   return normalizedCandidate ?? normalizedFallback
 }
 
+export function normalizeRedirectTargetWithDiagnostics(
+  candidate: MaybeString,
+  fallback: string = "/app/",
+): { normalized: string; normalizedCandidate: string | null; normalizedFallback: string } {
+  const normalizedFallback = normalizeCandidatePath(fallback) ?? "/app/"
+  const normalizedCandidate = normalizeCandidatePath(candidate)
+
+  return {
+    normalized: normalizedCandidate ?? normalizedFallback,
+    normalizedCandidate,
+    normalizedFallback,
+  }
+}
+
 export function createSignInRedirectPath(
   candidate: MaybeString,
   fallback: string = "/app/",

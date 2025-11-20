@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import { checkLogin, fetchCurrentUserProfile } from "@/lib/api"
@@ -9,7 +9,10 @@ import {
   getCachedAuthSnapshot,
   updateCachedAuthSnapshot,
 } from "@/lib/auth-state"
-import { createSignInRedirectPath, normalizeRedirectTarget } from "@/lib/utils"
+import {
+  createSignInRedirectPath,
+  normalizeRedirectTargetWithDiagnostics,
+} from "@/lib/utils"
 
 const APP_HOME_FALLBACK = "/app/"
 
@@ -20,7 +23,51 @@ type AuthGuardState = {
 
 export function useAuthGuard(targetPath: string): AuthGuardState {
   const router = useRouter()
-  const normalizedTargetPath = normalizeRedirectTarget(targetPath, APP_HOME_FALLBACK)
+  const { normalizedTargetPath, resolvedFrom } = useMemo(() => {
+    const { normalized, normalizedCandidate, normalizedFallback } =
+      normalizeRedirectTargetWithDiagnostics(targetPath, APP_HOME_FALLBACK)
+
+    if (!normalizedCandidate) {
+      if (typeof window !== "undefined") {
+        const liveLocation = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        const liveNormalization = normalizeRedirectTargetWithDiagnostics(
+          liveLocation,
+          normalizedFallback,
+        )
+
+        if (liveNormalization.normalizedCandidate) {
+          console.warn(
+            "[auth] Guard targetPath=%s is invalid; using live location=%s instead of fallback=%s.",
+            targetPath,
+            liveNormalization.normalizedCandidate,
+            normalizedFallback,
+          )
+          return {
+            normalizedTargetPath: liveNormalization.normalizedCandidate,
+            resolvedFrom: "live-location" as const,
+          }
+        }
+
+        console.warn(
+          "[auth] Guard targetPath=%s is invalid and live location could not be normalized (snapshot=%s); using fallback=%s.",
+          targetPath,
+          liveLocation,
+          normalizedFallback,
+        )
+      } else {
+        console.warn(
+          "[auth] Guard targetPath=%s is invalid; defaulting to fallback=%s while window is unavailable.",
+          targetPath,
+          normalizedFallback,
+        )
+      }
+    }
+
+    return {
+      normalizedTargetPath: normalized,
+      resolvedFrom: normalizedCandidate ? "candidate" : "fallback",
+    }
+  }, [targetPath])
 
   useEffect(() => {
     const locationSnapshot =
@@ -29,17 +76,28 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
         : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
     console.debug(
-      "[auth] Initializing useAuthGuard with targetPath=%s, normalizedTargetPath=%s, currentLocation=%s",
+      "[auth] Initializing useAuthGuard with targetPath=%s, normalizedTargetPath=%s, currentLocation=%s (resolvedFrom=%s)",
       targetPath,
       normalizedTargetPath,
       locationSnapshot,
+      resolvedFrom,
     )
-  }, [targetPath, normalizedTargetPath])
+  }, [targetPath, normalizedTargetPath, resolvedFrom])
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     const cached = getCachedAuthSnapshot()
     return cached?.isAuthenticated ?? false
   })
   const [isChecking, setIsChecking] = useState(true)
+
+  useEffect(() => {
+    console.debug(
+      "[auth] Guard state updated for %s -> isAuthenticated=%s, isChecking=%s (resolvedFrom=%s)",
+      normalizedTargetPath,
+      isAuthenticated,
+      isChecking,
+      resolvedFrom,
+    )
+  }, [isAuthenticated, isChecking, normalizedTargetPath, resolvedFrom])
 
   useEffect(() => {
     let active = true
