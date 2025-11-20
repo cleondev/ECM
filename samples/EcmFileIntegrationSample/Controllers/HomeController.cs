@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 
 namespace samples.EcmFileIntegrationSample.Controllers;
 
@@ -9,17 +10,28 @@ public class HomeController : Controller
     private readonly EcmFileClient _client;
     private readonly EcmIntegrationOptions _options;
     private readonly ILogger<HomeController> _logger;
+    private readonly EcmAccessTokenProvider _accessTokenProvider;
 
-    public HomeController(EcmFileClient client, IOptions<EcmIntegrationOptions> options, ILogger<HomeController> logger)
+    public HomeController(
+        EcmFileClient client,
+        IOptions<EcmIntegrationOptions> options,
+        ILogger<HomeController> logger,
+        EcmAccessTokenProvider accessTokenProvider)
     {
         _client = client;
         _options = options.Value;
         _logger = logger;
+        _accessTokenProvider = accessTokenProvider;
     }
 
     [HttpGet]
     public IActionResult Index()
     {
+        if (RequiresUserLogin())
+        {
+            return Challenge();
+        }
+
         var form = new UploadFormModel
         {
             DocType = _options.DocType,
@@ -31,7 +43,9 @@ public class HomeController : Controller
         return View(new UploadPageViewModel
         {
             BaseUrl = _options.BaseUrl,
-            HasAccessToken = !string.IsNullOrWhiteSpace(_options.AccessToken),
+            HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
+            RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
+            IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
             Form = form,
         });
     }
@@ -40,6 +54,11 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload([Bind(Prefix = "Form")] UploadFormModel form, CancellationToken cancellationToken)
     {
+        if (RequiresUserLogin())
+        {
+            return Challenge();
+        }
+
         var documentTypeId = ParseGuidOrNull(form.DocumentTypeId, nameof(form.DocumentTypeId));
         var ownerId = ParseGuidOrNull(form.OwnerId, nameof(form.OwnerId));
         var createdBy = ParseGuidOrNull(form.CreatedBy, nameof(form.CreatedBy));
@@ -99,6 +118,8 @@ public class HomeController : Controller
             {
                 BaseUrl = _options.BaseUrl,
                 HasAccessToken = !string.IsNullOrWhiteSpace(_options.AccessToken),
+                RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
+                IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
                 Form = new UploadFormModel
                 {
                     DocType = form.DocType,
@@ -114,6 +135,10 @@ public class HomeController : Controller
                 },
             });
         }
+        catch (MsalUiRequiredException)
+        {
+            return Challenge();
+        }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Upload thất bại.");
@@ -128,7 +153,9 @@ public class HomeController : Controller
     private UploadPageViewModel BuildViewModel(UploadFormModel form, string? error = null) => new()
     {
         BaseUrl = _options.BaseUrl,
-        HasAccessToken = !string.IsNullOrWhiteSpace(_options.AccessToken),
+        HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
+        RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
+        IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
         Form = form,
         Error = error,
     };
@@ -163,4 +190,7 @@ public class HomeController : Controller
             _logger.LogWarning(exception, "Không thể xóa file tạm {Path} sau khi upload.", path);
         }
     }
+
+    private bool RequiresUserLogin() => _accessTokenProvider.RequiresUserAuthentication
+        && (User?.Identity?.IsAuthenticated != true);
 }
