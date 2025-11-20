@@ -29,6 +29,7 @@ public static class GatewayServiceConfiguration
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddGatewayInfrastructure(builder.Configuration);
+        builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
         builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
 
         var uploadLimitOptions = builder.Configuration

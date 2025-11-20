@@ -8,6 +8,8 @@ namespace ECM.Host.Middleware;
 
 internal sealed class PasswordLoginClaimPropagationMiddleware
 {
+    private const string OnBehalfClaimType = "on_behalf";
+
     private readonly RequestDelegate _next;
     private readonly ILogger<PasswordLoginClaimPropagationMiddleware> _logger;
 
@@ -60,7 +62,8 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
             || headers.ContainsKey(PasswordLoginForwardingHeaders.DisplayName)
             || headers.ContainsKey(PasswordLoginForwardingHeaders.PreferredUsername)
             || headers.ContainsKey(PasswordLoginForwardingHeaders.PrimaryGroupId)
-            || headers.ContainsKey(PasswordLoginForwardingHeaders.PrimaryGroupName);
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.PrimaryGroupName)
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.OnBehalf);
     }
 
     private void ApplyForwardedClaims(ClaimsIdentity identity, IHeaderDictionary headers)
@@ -99,6 +102,12 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
         if (!string.IsNullOrWhiteSpace(primaryGroupName))
         {
             AddClaimIfMissing(identity, "primary_group_name", primaryGroupName);
+        }
+
+        var onBehalf = GetHeaderValue(headers, PasswordLoginForwardingHeaders.OnBehalf);
+        if (!string.IsNullOrWhiteSpace(onBehalf))
+        {
+            AddClaimIfMissing(identity, OnBehalfClaimType, onBehalf);
         }
     }
 

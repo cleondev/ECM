@@ -9,6 +9,7 @@ public static class PasswordLoginClaims
     public const string MarkerClaimType = "appgateway:password-login";
     public const string MarkerClaimValue = "true";
     public const string ProfileClaimType = "appgateway:password-login:profile";
+    public const string OnBehalfClaimType = "on_behalf";
 
     public static bool IsPasswordLoginPrincipal(ClaimsPrincipal? principal)
         => principal?.HasClaim(MarkerClaimType, MarkerClaimValue) == true;

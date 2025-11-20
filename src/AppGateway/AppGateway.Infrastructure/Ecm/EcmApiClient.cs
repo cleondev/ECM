@@ -860,6 +860,11 @@ internal sealed class EcmApiClient(
                     primaryGroupName);
             }
         }
+
+        if (principal.HasClaim(PasswordLoginClaims.OnBehalfClaimType, "true"))
+        {
+            request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.OnBehalf, "true");
+        }
     }
 
     private void ApplyForwardedHeaders(HttpRequestMessage request)
