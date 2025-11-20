@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -147,13 +148,15 @@ public class IamAuthenticationControllerTests
 
         authService.LastSignInPrincipal.Should().NotBeNull();
 
+        var serializedProfile = JsonSerializer.Serialize(profile);
+
         var identity = authService.LastSignInPrincipal!.Identity.Should()
             .BeAssignableTo<ClaimsIdentity>().Which;
 
         identity.Claims.Should().Contain(c =>
             c.Type == PasswordLoginClaims.OnBehalfClaimType && c.Value == "true");
         identity.Claims.Should().Contain(c =>
-            c.Type == PasswordLoginClaims.ProfileClaimType && c.Value == JsonSerializer.Serialize(profile));
+            c.Type == PasswordLoginClaims.ProfileClaimType && c.Value == serializedProfile);
     }
 
     [Fact]
@@ -223,7 +226,10 @@ public class IamAuthenticationControllerTests
 
     private sealed class TrackingEcmApiClient : IEcmApiClient
     {
+        public int GetUserByEmailCalls { get; private set; }
         public int GetCurrentUserProfileCalls { get; private set; }
+
+        public UserSummaryDto? UserToReturn { get; set; }
 
         public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken)
         {
@@ -238,7 +244,10 @@ public class IamAuthenticationControllerTests
             => throw new NotSupportedException();
 
         public Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken)
-            => throw new NotSupportedException();
+        {
+            GetUserByEmailCalls++;
+            return Task.FromResult(UserToReturn);
+        }
 
         public Task<UserSummaryDto?> AuthenticateUserAsync(
             AuthenticateUserRequestDto request,
