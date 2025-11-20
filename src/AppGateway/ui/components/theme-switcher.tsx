@@ -25,7 +25,7 @@ export function ThemeSwitcher({ className }: ThemeSwitcherProps) {
     <Select value={theme} onValueChange={(value) => setTheme(value as ThemeId)}>
       <SelectTrigger size="sm" className={cn("w-[160px] gap-2 pl-2", className)} aria-label="Change theme">
         <Palette className="size-4 text-muted-foreground" aria-hidden="true" />
-        <SelectValue placeholder="Chọn theme" />
+        <SelectValue placeholder="Select theme" />
       </SelectTrigger>
       <SelectContent>
         {themes.map((option) => (

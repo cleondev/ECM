@@ -88,8 +88,8 @@ export function FileManager() {
     loadFiles(true)
   }, [selectedFolder, selectedTag, searchQuery, sortBy, sortOrder])
 
-  const loadFiles = async (reset = false) => {
-    if (isLoading) return
+  const loadFiles = async (reset = false, force = false) => {
+    if (isLoading && !force) return
 
     setIsLoading(true)
     const currentPage = reset ? 1 : page
@@ -345,11 +345,11 @@ export function FileManager() {
           .filter((file): file is FileItem => Boolean(file))
 
         if (deletedFiles.length > 0) {
-          const title = deletedFiles.length === 1 ? "Đã xóa tệp" : "Đã xóa các tệp"
+          const title = deletedFiles.length === 1 ? "File deleted" : "Files deleted"
           const description =
             deletedFiles.length === 1
-              ? `"${deletedFiles[0]!.name}" đã được xóa khỏi hệ thống.`
-              : `${deletedFiles.length} tệp đã được xóa khỏi hệ thống.`
+              ? `"${deletedFiles[0]!.name}" has been removed from the system.`
+              : `${deletedFiles.length} files have been removed from the system.`
 
           toast({
             title,
@@ -366,8 +366,8 @@ export function FileManager() {
         setFilesPendingDelete(failedFiles)
 
         toast({
-          title: "Không thể xóa một số tệp",
-          description: "Vui lòng thử lại sau.",
+          title: "Could not delete some files",
+          description: "Please try again in a moment.",
           variant: "destructive",
         })
 
@@ -378,8 +378,8 @@ export function FileManager() {
     } catch (error) {
       console.error(`[ui] Failed to delete files '${deletedFileIds.join(",")}'`, error)
       toast({
-        title: "Không thể xóa tệp",
-        description: "Vui lòng thử lại sau.",
+        title: "Unable to delete files",
+        description: "Please try again in a moment.",
         variant: "destructive",
       })
     } finally {
@@ -407,11 +407,14 @@ export function FileManager() {
       return { ...previous, tags: updateMap.get(previous.id)! }
     })
 
+
     setTagDialogFiles((previous) =>
       previous.map((file) =>
         updateMap.has(file.id) ? { ...file, tags: updateMap.get(file.id)! } : file,
       ),
     )
+
+    void loadFiles(true, true)
   }
 
   useEffect(() => {
@@ -661,12 +664,12 @@ export function FileManager() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {filesPendingDelete.length > 1 ? "Xóa các tệp" : "Xóa tệp"}
+              {filesPendingDelete.length > 1 ? "Delete files" : "Delete file"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {filesPendingDelete.length > 1 ? (
                 <>
-                  Bạn có chắc chắn muốn xóa {filesPendingDelete.length} tệp đã chọn? Hành động này không thể hoàn tác.
+                  Are you sure you want to delete {filesPendingDelete.length} selected files? This action cannot be undone.
                   <ul className="mt-2 space-y-1 text-foreground">
                     {filesPendingDelete.slice(0, 3).map((file) => (
                       <li key={file.id} className="truncate">
@@ -675,31 +678,28 @@ export function FileManager() {
                     ))}
                     {filesPendingDelete.length > 3 && (
                       <li className="text-muted-foreground">
-                        +{filesPendingDelete.length - 3} tệp khác
+                        +{filesPendingDelete.length - 3} more file(s)
                       </li>
                     )}
                   </ul>
                 </>
               ) : (
                 <>
-                  Bạn có chắc chắn muốn xóa {" "}
-                  <span className="font-medium text-foreground">
-                    {filesPendingDelete[0]?.name}
-                  </span>
-                  ? Hành động này không thể hoàn tác.
+                  Are you sure you want to delete <span className="font-medium text-foreground">{filesPendingDelete[0]?.name}</span>?
+                  This action cannot be undone.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingFiles}>Hủy</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeletingFiles}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteFilesConfirm}
               disabled={isDeletingFiles}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeletingFiles && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Xóa
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -710,7 +710,7 @@ export function FileManager() {
           <Drawer open={isLeftDrawerOpen} onOpenChange={setIsLeftDrawerOpen} direction="left">
             <DrawerContent className="h-full max-h-full w-full sm:max-w-sm">
               <DrawerHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-                <DrawerTitle>Danh mục &amp; thẻ</DrawerTitle>
+                <DrawerTitle>Categories &amp; tags</DrawerTitle>
                 <DrawerClose asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <X className="h-4 w-4" />

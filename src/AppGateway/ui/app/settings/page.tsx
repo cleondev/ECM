@@ -225,10 +225,10 @@ export default function SettingsPage() {
         primaryGroupId,
         groupIds: normalizedGroups,
       })
-      setFeedback({ type: "success", message: "Đã lưu thay đổi hồ sơ." })
+      setFeedback({ type: "success", message: "Profile changes saved." })
     } catch (error) {
-      console.error("[ui] Không thể cập nhật hồ sơ trong trang cài đặt:", error)
-      setFeedback({ type: "error", message: "Không thể lưu thay đổi. Vui lòng thử lại." })
+      console.error("[ui] Failed to update profile on settings page:", error)
+      setFeedback({ type: "error", message: "Unable to save your changes. Please try again." })
     } finally {
       setIsSaving(false)
     }
@@ -474,7 +474,7 @@ export default function SettingsPage() {
                   </div>
                   <Select value={theme} onValueChange={(value) => setTheme(value as ThemeId)}>
                     <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Chọn theme" />
+                      <SelectValue placeholder="Choose a theme" />
                     </SelectTrigger>
                     <SelectContent>
                       {themes.map((option) => (
@@ -505,9 +505,9 @@ export default function SettingsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="vi">Tiếng Việt</SelectItem>
-                      <SelectItem value="es">Español</SelectItem>
-                      <SelectItem value="fr">Français</SelectItem>
+                      <SelectItem value="vi">Vietnamese</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
