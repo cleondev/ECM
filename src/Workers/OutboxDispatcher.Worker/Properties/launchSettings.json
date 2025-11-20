@@ -2,12 +2,15 @@
   "profiles": {
     "OutboxDispatcher.Worker": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development",
         "Kafka__BootstrapServers": "172.20.1.22:9092",
         "ConnectionStrings__Operations": "Host=172.20.1.22;Port=5432;Database=ecm;Username=ecm_app;Password=admin123;SearchPath=ops;"
-      }
+      },
+      "dotnetRunMessages": true
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
     }
   }
 }

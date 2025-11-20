@@ -30,10 +30,11 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
 COPY --from=build /app/publish ./
-# Copy the static export (Next.js writes to dist per next.config)
 COPY --from=ui /src/dist ./wwwroot
 
-ENV ASPNETCORE_URLS=http://+:8080
+#ENV ASPNETCORE_URLS=http://+:8080
+
 EXPOSE 8080
+EXPOSE 8443
 
 ENTRYPOINT ["dotnet", "AppGateway.Api.dll"]

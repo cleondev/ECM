@@ -243,7 +243,9 @@ stages:
 
           missing=()
           optional_missing=()
-
+          require_env Kestrel__Endpoints__Https__Certificate__Password \
+            "Kestrel__Endpoints__Https__Certificate__Password (Kestrel HTTPS cert password)" \
+            '$(Kestrel__Endpoints__Https__Certificate__Password)'
           require_env MINIO_ENDPOINT \
             "MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl" \
             '$(ECM_FileStorage__ServiceUrl)'
@@ -373,7 +375,6 @@ stages:
           if [[ -n "${AzureAd__ClientSecret:-}" ]]; then
             export ECM_AzureAd__ClientSecret="${ECM_AzureAd__ClientSecret:-${AzureAd__ClientSecret}}"
           fi
-
           # ---------- Diagnostics: log each config safely ----------
           echo "---- Diagnostics: resolved configuration (masked) ----"
           # Core connections
@@ -411,6 +412,8 @@ stages:
           HARBOR_PASS_VAL="${HARBOR_PASS:-}"
           if [[ -n "$HARBOR_USER_VAL" ]]; then echo "[OK] HARBOR_USER=$(mask_value "$HARBOR_USER_VAL")"; else echo "[MISSING] HARBOR_USER"; fi
           if [[ -n "$HARBOR_PASS_VAL" ]]; then echo "[OK] HARBOR_PASS=$(mask_value "$HARBOR_PASS_VAL")"; else echo "[MISSING] HARBOR_PASS"; fi
+
+          log_var Kestrel__Endpoints__Https__Certificate__Password
 
           echo "---- End diagnostics ----"
 
