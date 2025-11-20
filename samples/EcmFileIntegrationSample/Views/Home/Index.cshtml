@@ -33,7 +33,7 @@
                             }
                             else
                             {
-                                <a class="btn btn-outline-primary" href="~/MicrosoftIdentity/Account/SignIn?redirectUri=@Url.Action("Index", "Home", values: null, protocol: Request.Scheme)">Đăng nhập Azure SSO</a>
+                                <a class="btn btn-outline-primary" href="~/MicrosoftIdentity/Account/SignIn?redirectUri=@Url.Action("Index", "Home", values: null, protocol: ViewContext.HttpContext.Request.Scheme)">Đăng nhập Azure SSO</a>
                             }
                         }
                         else if (Model.HasAccessToken)
