@@ -34,6 +34,8 @@ public sealed class EcmAccessTokenProvider
 
     public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var options = _options.Value;
 
         if (!string.IsNullOrWhiteSpace(options.AccessToken))
@@ -67,8 +69,7 @@ public sealed class EcmAccessTokenProvider
         try
         {
             return await _tokenAcquisition.GetAccessTokenForUserAsync(
-                [options.AuthenticationScope],
-                cancellationToken: cancellationToken);
+                [options.AuthenticationScope]);
         }
         catch (MsalUiRequiredException)
         {

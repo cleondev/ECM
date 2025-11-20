@@ -71,7 +71,9 @@ public sealed class EcmOnBehalfAuthenticator
             if (response.IsSuccessStatusCode)
             {
                 _hasSignedIn = true;
-                _logger.LogInformation("Signed in via auth/on-behalf for {User}.", onBehalfOptions.UserEmail ?? onBehalfOptions.UserId);
+                _logger.LogInformation(
+                    "Signed in via auth/on-behalf for {User}.",
+                    onBehalfOptions.UserEmail ?? onBehalfOptions.UserId?.ToString());
                 return;
             }
 
