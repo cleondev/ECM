@@ -59,7 +59,7 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
             {
                 var headers = new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    ["x-amz-meta-original-filename"] = normalizedFileName,
+                    ["x-amz-meta-original-filename"] = EncodeMetadataValue(normalizedFileName),
                 };
 
                 putObjectArgs = putObjectArgs.WithHeaders(headers);
@@ -182,7 +182,7 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
                 const string fileNameKey = "x-amz-meta-original-filename";
                 if (metadata.TryGetValue(fileNameKey, out var value))
                 {
-                    fileName = value;
+                    fileName = DecodeMetadataValue(value);
                 }
             }
 
@@ -213,6 +213,16 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         var normalized = Path.GetFileName(trimmed);
 
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
+
+    private static string EncodeMetadataValue(string value)
+    {
+        return Uri.EscapeDataString(value);
+    }
+
+    private static string DecodeMetadataValue(string value)
+    {
+        return Uri.UnescapeDataString(value);
     }
 
     private async Task EnsureBucketExistsAsync(CancellationToken cancellationToken)
