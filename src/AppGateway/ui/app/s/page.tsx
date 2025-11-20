@@ -187,7 +187,7 @@ function ShareDownloadPageContent({
           error: null,
         })
       } catch (err) {
-        console.error("[ui] Không thể kiểm tra trạng thái đăng nhập:", err)
+        console.error("[ui] Unable to verify sign-in status:", err)
         if (!cancelled) {
           setAuthState({
             loading: false,
@@ -195,7 +195,7 @@ function ShareDownloadPageContent({
             loginUrl: null,
             silentLoginUrl: null,
             user: null,
-            error: "Không thể kiểm tra trạng thái đăng nhập. Vui lòng thử lại.",
+            error: "Unable to verify sign-in status. Please try again.",
           })
         }
       }
@@ -214,7 +214,7 @@ function ShareDownloadPageContent({
     async function loadShare(initialPassword?: string) {
       if (!code) {
         setShare(null)
-        setError("Liên kết chia sẻ không hợp lệ.")
+        setError("Invalid share link.")
         setLoading(false)
         setAccessPassword(undefined)
         return
@@ -242,7 +242,7 @@ function ShareDownloadPageContent({
       } catch (err) {
         if (!cancelled) {
           console.error("[ui] Failed to load shared file", err)
-          setError("Không thể tải thông tin chia sẻ. Link có thể đã hết hạn hoặc bị thu hồi.")
+          setError("Unable to load share details. The link may have expired or been revoked.")
           setShare(null)
         }
       } finally {
@@ -296,7 +296,7 @@ function ShareDownloadPageContent({
       }
     } catch (err) {
       console.error("[ui] Failed to refresh shared file", err)
-      setError("Không thể cập nhật thông tin chia sẻ.")
+      setError("Unable to refresh share information.")
     }
   }
 
@@ -305,7 +305,7 @@ function ShareDownloadPageContent({
     setPasswordError(null)
 
     if (!code) {
-      setPasswordError("Liên kết chia sẻ không hợp lệ.")
+      setPasswordError("Invalid share link.")
       return
     }
 
@@ -314,7 +314,7 @@ function ShareDownloadPageContent({
     try {
       const ok = await verifySharePassword(code, password)
       if (!ok) {
-        setPasswordError("Mật khẩu không đúng. Vui lòng thử lại.")
+        setPasswordError("Incorrect password. Please try again.")
         return
       }
 
@@ -322,7 +322,7 @@ function ShareDownloadPageContent({
       setPassword("")
     } catch (err) {
       console.error("[ui] Failed to verify share password", err)
-      setPasswordError("Không thể xác thực mật khẩu. Vui lòng thử lại sau.")
+      setPasswordError("Unable to validate the password. Please try again later.")
     } finally {
       setVerifying(false)
     }
@@ -349,14 +349,14 @@ function ShareDownloadPageContent({
       window.location.href = download.url
     } catch (err) {
       console.error("[ui] Failed to download shared file", err)
-      setDownloadError("Không thể tải xuống tệp. Vui lòng thử lại sau.")
+      setDownloadError("Unable to download the file. Please try again later.")
     } finally {
       setDownloading(false)
     }
   }
 
   if (authState.loading) {
-    return <ShareDownloadLoadingState message="Đang kiểm tra trạng thái đăng nhập…" />
+    return <ShareDownloadLoadingState message="Checking sign-in status…" />
   }
 
   if (authState.error) {
@@ -391,10 +391,10 @@ function ShareDownloadPageContent({
           <Card className="border-primary/30 bg-primary/5 shadow-sm shadow-primary/10 dark:border-primary/40 dark:bg-primary/10">
             <CardHeader className="space-y-1">
               <CardTitle className="text-lg font-semibold text-primary dark:text-primary-200">
-                Đang đăng nhập
+                Signed in
               </CardTitle>
               <CardDescription>
-                Bạn đang sử dụng tài khoản {currentUser.displayName} để xem nội dung chia sẻ này.
+                You are using the account {currentUser.displayName} to view this shared content.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -404,12 +404,12 @@ function ShareDownloadPageContent({
                   <dd className="font-medium text-foreground break-all">{currentUser.email}</dd>
                 </div>
                 <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
-                  <dt className="text-muted-foreground">Mã người dùng</dt>
+                  <dt className="text-muted-foreground">User ID</dt>
                   <dd className="font-mono text-sm text-foreground">{currentUser.id}</dd>
                 </div>
                 {currentUser.roles?.length ? (
                   <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
-                    <dt className="text-muted-foreground">Vai trò</dt>
+                    <dt className="text-muted-foreground">Roles</dt>
                     <dd className="text-foreground">{currentUser.roles.join(", ")}</dd>
                   </div>
                 ) : null}
@@ -422,26 +422,26 @@ function ShareDownloadPageContent({
             <div className="space-y-2">
               <CardTitle className="text-3xl font-semibold tracking-tight text-foreground">{file.name}</CardTitle>
               <CardDescription>
-                Truy cập nhanh vào tệp được chia sẻ và xem các chỉ số quan trọng trước khi tải xuống.
+                Quickly access the shared file and view important metrics before downloading.
               </CardDescription>
             </div>
             <Badge
               variant="outline"
               className="self-start border-dashed border-primary/40 bg-primary/5 font-mono text-xs uppercase tracking-widest text-muted-foreground dark:border-primary/50 dark:bg-primary/10"
             >
-              Mã chia sẻ
+              Share code
               <span className="ml-2 text-foreground">{share.code}</span>
             </Badge>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
-              <DetailItem label="Dung lượng" value={formatFileSize(file.sizeBytes)} />
+              <DetailItem label="File size" value={formatFileSize(file.sizeBytes)} />
               <DetailItem
-                label="Ngày tạo"
+                label="Created"
                 value={file.createdAtUtc ? dateFormatter.format(new Date(file.createdAtUtc)) : "--"}
               />
               <DetailItem
-                label="Lượt xem"
+                label="Views"
                 value={
                   <span>
                     {quota.viewsUsed}
@@ -450,7 +450,7 @@ function ShareDownloadPageContent({
                 }
               />
               <DetailItem
-                label="Lượt tải"
+                label="Downloads"
                 value={
                   <span>
                     {quota.downloadsUsed}
@@ -462,7 +462,7 @@ function ShareDownloadPageContent({
 
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-muted/50 bg-muted/20 p-4 dark:bg-muted/30">
               <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Trạng thái hiện tại
+                Current status
               </span>
               <Badge variant="secondary" className="text-sm font-medium text-foreground">
                 {translateStatus(share.status)}
@@ -471,64 +471,64 @@ function ShareDownloadPageContent({
           </CardContent>
         </Card>
 
-        {share.requiresPassword && !share.passwordValid ? (
-          <Card className="border-amber-200 bg-amber-50/90 shadow-md dark:border-amber-500/60 dark:bg-amber-950/30">
-            <CardHeader className="space-y-2">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-amber-900 dark:text-amber-200">
-                <Lock className="h-4 w-4" aria-hidden />
-                Liên kết được bảo vệ bằng mật khẩu
-              </CardTitle>
-              <CardDescription className="text-amber-800 dark:text-amber-100/80">
-                Chủ sở hữu đã yêu cầu mật khẩu để truy cập tệp này. Vui lòng nhập mật khẩu được cung cấp cùng liên kết chia sẻ.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleVerifyPassword} className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="share-password">Mật khẩu truy cập</Label>
-                  <Input
-                    id="share-password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Nhập mật khẩu"
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-                {passwordError ? <p className="text-sm text-destructive">{passwordError}</p> : null}
-                <Button type="submit" disabled={verifying} className="w-full sm:w-auto">
-                  {verifying ? "Đang kiểm tra…" : "Xác nhận mật khẩu"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          {share.requiresPassword && !share.passwordValid ? (
+            <Card className="border-amber-200 bg-amber-50/90 shadow-md dark:border-amber-500/60 dark:bg-amber-950/30">
+              <CardHeader className="space-y-2">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-amber-900 dark:text-amber-200">
+                  <Lock className="h-4 w-4" aria-hidden />
+                  Password-protected link
+                </CardTitle>
+                <CardDescription className="text-amber-800 dark:text-amber-100/80">
+                  The owner requires a password to access this file. Enter the password that was provided with the shared link.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleVerifyPassword} className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="share-password">Access password</Label>
+                    <Input
+                      id="share-password"
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="Enter password"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                  {passwordError ? <p className="text-sm text-destructive">{passwordError}</p> : null}
+                  <Button type="submit" disabled={verifying} className="w-full sm:w-auto">
+                    {verifying ? "Verifying…" : "Confirm password"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
         ) : null}
 
         <Card className="shadow-lg shadow-slate-200/60 dark:shadow-slate-950/40">
           <CardHeader className="space-y-2">
-            <CardTitle>Nội dung chia sẻ</CardTitle>
+            <CardTitle>Shared content</CardTitle>
             <CardDescription>
-              Thông tin xem trước giúp bạn đánh giá nhanh tệp chia sẻ. Tính năng xem trực tuyến sẽ sớm ra mắt.
+              Preview information helps you evaluate the shared file quickly. Inline viewing is coming soon.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 lg:grid-cols-[3fr,2fr]">
               <div className="flex flex-col gap-4">
                 <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-muted-foreground/40 bg-muted/20 p-6 text-muted-foreground dark:bg-muted/30">
-                  <div className="flex flex-col items-center gap-3 text-center text-sm">
-                    <Eye className="h-5 w-5" aria-hidden />
-                    <span>Khu vực xem trước sẽ hiển thị nội dung file ngay khi tính năng sẵn sàng.</span>
-                  </div>
+                <div className="flex flex-col items-center gap-3 text-center text-sm">
+                  <Eye className="h-5 w-5" aria-hidden />
+                  <span>The preview area will display the file once the feature is ready.</span>
                 </div>
-                {downloadUrl ? (
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-muted-foreground dark:border-primary/40 dark:bg-primary/10">
-                    <span className="font-medium text-foreground">Link tải xuống:</span>{" "}
-                    <a
-                      href={downloadUrl}
-                      className="text-primary underline-offset-2 hover:underline"
-                    >
-                      {downloadUrl}
+              </div>
+              {downloadUrl ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm text-muted-foreground dark:border-primary/40 dark:bg-primary/10">
+                  <span className="font-medium text-foreground">Download link:</span>{" "}
+                  <a
+                    href={downloadUrl}
+                    className="text-primary underline-offset-2 hover:underline"
+                  >
+                    {downloadUrl}
                     </a>
                   </div>
                 ) : null}
@@ -536,9 +536,9 @@ function ShareDownloadPageContent({
               </div>
               <div className="flex flex-col gap-4 rounded-lg border border-border bg-background/80 p-5 shadow-inner dark:bg-slate-950/40">
                 <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-foreground">Hành động nhanh</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Quick actions</h3>
                   <p className="text-sm text-muted-foreground">
-                    Liên kết này có thể hết hạn hoặc bị thu hồi bất cứ lúc nào bởi người chia sẻ.
+                    This link can expire or be revoked by the sharer at any time.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3">
@@ -549,16 +549,16 @@ function ShareDownloadPageContent({
                     className="w-full justify-center"
                   >
                     <DownloadCloud className="h-4 w-4" aria-hidden />
-                    {downloading ? "Đang chuẩn bị…" : "Tải xuống ngay"}
+                    {downloading ? "Preparing…" : "Download now"}
                   </Button>
                   <Button type="button" variant="outline" disabled className="w-full justify-center">
                     <Eye className="h-4 w-4" aria-hidden />
-                    Xem trực tuyến (sắp ra mắt)
+                    View online (coming soon)
                   </Button>
                 </div>
                 {!canDownload ? (
                   <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Liên kết này hiện không khả dụng để tải xuống. Vui lòng kiểm tra lại sau hoặc liên hệ chủ sở hữu.
+                    This link is not currently available for download. Please try again later or contact the owner.
                   </p>
                 ) : null}
               </div>
@@ -573,13 +573,13 @@ function ShareDownloadPageContent({
 function translateStatus(status: ShareInterstitial["status"]): string {
   switch (status) {
     case "Active":
-      return "Đang hoạt động"
+      return "Active"
     case "Expired":
-      return "Đã hết hạn"
+      return "Expired"
     case "Revoked":
-      return "Đã thu hồi"
+      return "Revoked"
     case "Draft":
-      return "Đang chuẩn bị"
+      return "Preparing"
     default:
       return status
   }
@@ -589,12 +589,12 @@ function ShareDownloadSuspenseFallback(): JSX.Element {
   return <ShareDownloadLoadingState />
 }
 
-function ShareDownloadLoadingState({ message = "Đang tải thông tin chia sẻ…" }: { message?: string } = {}): JSX.Element {
+function ShareDownloadLoadingState({ message = "Loading share details…" }: { message?: string } = {}): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
         <h1 className="text-2xl font-semibold text-foreground">{message}</h1>
-        <p className="text-muted-foreground">Vui lòng chờ trong giây lát.</p>
+        <p className="text-muted-foreground">Please wait a moment.</p>
       </div>
     </div>
   )
@@ -604,9 +604,9 @@ function ShareDownloadErrorState({ message }: { message: string | null }): JSX.E
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
-        <h1 className="text-2xl font-semibold text-foreground">Không thể mở liên kết chia sẻ</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Unable to open shared link</h1>
         <p className="text-muted-foreground">
-          {message ?? "Liên kết chia sẻ không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại."}
+          {message ?? "The shared link is invalid or has expired. Please check again."}
         </p>
       </div>
     </div>
@@ -624,12 +624,12 @@ function ShareDownloadLoginRequired({ loginUrl, fallbackUrl }: ShareDownloadLogi
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
-        <h1 className="text-2xl font-semibold text-foreground">Yêu cầu đăng nhập</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Sign-in required</h1>
         <p className="text-muted-foreground">
-          Bạn cần đăng nhập để truy cập vào liên kết chia sẻ này. Vui lòng đăng nhập để tiếp tục.
+          You need to sign in to access this shared link. Please log in to continue.
         </p>
         <Button asChild className="w-full">
-          <a href={resolvedLoginUrl}>Đăng nhập để tiếp tục</a>
+          <a href={resolvedLoginUrl}>Sign in to continue</a>
         </Button>
       </div>
     </div>
@@ -640,10 +640,10 @@ function ShareDownloadAuthErrorState({ message }: { message: string }): JSX.Elem
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-100 p-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full max-w-md space-y-4 rounded-xl border border-border bg-background/80 p-6 text-center shadow-sm backdrop-blur">
-        <h1 className="text-2xl font-semibold text-foreground">Không thể xác minh đăng nhập</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Could not verify sign-in</h1>
         <p className="text-muted-foreground">{message}</p>
         <Button type="button" onClick={() => window.location.reload()} className="w-full">
-          Thử lại
+          Try again
         </Button>
       </div>
     </div>
