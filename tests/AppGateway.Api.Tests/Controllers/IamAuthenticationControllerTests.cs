@@ -65,8 +65,8 @@ public class IamAuthenticationControllerTests
 
         var result = await controller.CheckLoginAsync(null, CancellationToken.None);
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<CheckLoginResponseDto>().Subject;
+        var okResult = result.Should().BeOfType<OkObjectResult>().Which;
+        var response = okResult.Value.Should().BeOfType<CheckLoginResponseDto>().Which;
 
         response.IsAuthenticated.Should().BeTrue();
         response.Profile.Should().BeEquivalentTo(profile);
@@ -135,19 +135,21 @@ public class IamAuthenticationControllerTests
             new OnBehalfLoginRequest { UserEmail = profile.Email },
             CancellationToken.None);
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<OnBehalfLoginResponseDto>().Subject;
+        var okResult = result.Should().BeOfType<OkObjectResult>().Which;
+        var response = okResult.Value.Should().BeOfType<OnBehalfLoginResponseDto>().Which;
 
         response.User.Should().BeEquivalentTo(profile);
         response.ExpiresOn.Should().BeCloseTo(
-            DateTimeOffset.UtcNow.Add(cookieOptions.ExpireTimeSpan!.Value),
+            DateTimeOffset.UtcNow.Add(cookieOptions.ExpireTimeSpan),
             TimeSpan.FromSeconds(5));
 
         authService.SignInSchemes.Should().Contain(CookieAuthenticationDefaults.AuthenticationScheme);
         authService.SignOutSchemes.Should().Contain(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        var identity = authService.LastSignInPrincipal.Should().NotBeNull().Subject.Identity.Should()
-            .BeAssignableTo<ClaimsIdentity>().Subject;
+        authService.LastSignInPrincipal.Should().NotBeNull();
+
+        var identity = authService.LastSignInPrincipal!.Identity.Should()
+            .BeAssignableTo<ClaimsIdentity>().Which;
 
         identity.Claims.Should().Contain(c =>
             c.Type == PasswordLoginClaims.OnBehalfClaimType && c.Value == "true");
