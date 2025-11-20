@@ -67,7 +67,7 @@ export function FileManager() {
   const [shareError, setShareError] = useState<string | null>(null)
   const [isGeneratingShare, setIsGeneratingShare] = useState(false)
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
-  const [tagDialogFile, setTagDialogFile] = useState<FileItem | null>(null)
+  const [tagDialogFiles, setTagDialogFiles] = useState<FileItem[]>([])
   const [filesPendingDelete, setFilesPendingDelete] = useState<FileItem[]>([])
   const [isDeletingFiles, setIsDeletingFiles] = useState(false)
   const [sortBy, setSortBy] = useState<"name" | "modified" | "size">("modified")
@@ -229,17 +229,28 @@ export function FileManager() {
   }
 
   const handleAssignTagsClick = (file?: FileItem) => {
-    const targetFile = file ?? selectedFile
+    const requestedIds = new Set(selectedFiles)
+    if (file) {
+      requestedIds.add(file.id)
+    }
 
-    if (!targetFile) {
+    if (requestedIds.size === 0 && selectedFile) {
+      requestedIds.add(selectedFile.id)
+    }
+
+    const dialogFiles = files.filter((item) => requestedIds.has(item.id))
+
+    if (dialogFiles.length === 0 && file) {
+      dialogFiles.push(file)
+    }
+
+    if (dialogFiles.length === 0) {
       return
     }
 
-    if (file) {
-      ensureSingleSelection(targetFile)
-    }
-
-    setTagDialogFile(targetFile)
+    setSelectedFiles(new Set(dialogFiles.map((item) => item.id)))
+    setSelectedFile(dialogFiles[0] ?? null)
+    setTagDialogFiles(dialogFiles)
     setIsTagDialogOpen(true)
   }
 
@@ -311,12 +322,22 @@ export function FileManager() {
           resetShareState()
         }
 
-        setTagDialogFile((previous) => {
-          if (!previous || !deletedIdSet.has(previous.id)) {
+        setTagDialogFiles((previous) => {
+          if (previous.length === 0) {
             return previous
           }
-          setIsTagDialogOpen(false)
-          return null
+
+          const remaining = previous.filter((file) => !deletedIdSet.has(file.id))
+
+          if (remaining.length === previous.length) {
+            return previous
+          }
+
+          if (remaining.length === 0) {
+            setIsTagDialogOpen(false)
+          }
+
+          return remaining
         })
 
         const deletedFiles = deletedIds
@@ -366,24 +387,31 @@ export function FileManager() {
     }
   }
 
-  const handleTagsAssigned = (fileId: string, updatedTags: DocumentTag[]) => {
+  const handleTagsAssigned = (updates: Array<{ fileId: string; tags: DocumentTag[] }>) => {
+    const updateMap = new Map(updates.map((update) => [update.fileId, update.tags]))
+
+    if (updateMap.size === 0) {
+      return
+    }
+
     setFiles((previous) =>
-      previous.map((file) => (file.id === fileId ? { ...file, tags: updatedTags } : file)),
+      previous.map((file) =>
+        updateMap.has(file.id) ? { ...file, tags: updateMap.get(file.id)! } : file,
+      ),
     )
 
     setSelectedFile((previous) => {
-      if (!previous || previous.id !== fileId) {
+      if (!previous || !updateMap.has(previous.id)) {
         return previous
       }
-      return { ...previous, tags: updatedTags }
+      return { ...previous, tags: updateMap.get(previous.id)! }
     })
 
-    setTagDialogFile((previous) => {
-      if (!previous || previous.id !== fileId) {
-        return previous
-      }
-      return { ...previous, tags: updatedTags }
-    })
+    setTagDialogFiles((previous) =>
+      previous.map((file) =>
+        updateMap.has(file.id) ? { ...file, tags: updateMap.get(file.id)! } : file,
+      ),
+    )
   }
 
   useEffect(() => {
@@ -538,6 +566,7 @@ export function FileManager() {
               onDownloadClick={handleDownloadClick}
               onShareClick={handleShareClick}
               onDeleteClick={() => handleDeleteSelectionRequest(selectedFiles)}
+              onAssignTagsClick={() => handleAssignTagsClick()}
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortChange={(nextSortBy, nextSortOrder) => {
@@ -545,6 +574,7 @@ export function FileManager() {
                 setSortOrder(nextSortOrder)
               }}
               disableFileActions={!selectedFile?.latestVersionId || !isSingleSelection}
+              disableTagActions={!hasSelectedFiles}
               disableDeleteAction={!hasSelectedFiles || isDeletingFiles}
               isRightSidebarOpen={detailsPanelOpen}
               onToggleRightSidebar={handleToggleRightSidebar}
@@ -617,10 +647,10 @@ export function FileManager() {
         onOpenChange={(open) => {
           setIsTagDialogOpen(open)
           if (!open) {
-            setTagDialogFile(null)
+            setTagDialogFiles([])
           }
         }}
-        file={tagDialogFile}
+        files={tagDialogFiles}
         onTagsAssigned={handleTagsAssigned}
       />
 

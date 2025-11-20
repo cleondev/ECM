@@ -31,6 +31,7 @@ type FileCardProps = {
   onOpenDetails?: (tab: "property" | "flow" | "form") => void
   onDelete?: () => void
   actionsDisabled?: boolean
+  assignTagsDisabled?: boolean
 }
 
 const statusColors: Record<NonNullable<FileItem['status']>, string> = {
@@ -53,6 +54,7 @@ export function FileCard({
   onOpenDetails,
   onDelete,
   actionsDisabled,
+  assignTagsDisabled,
 }: FileCardProps) {
   const cardRef = useRef<HTMLButtonElement>(null)
 
@@ -144,7 +146,7 @@ export function FileCard({
           <Share2 className="h-4 w-4" />
           Share
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onAssignTags?.()} disabled={actionsDisabled}>
+        <ContextMenuItem onSelect={() => onAssignTags?.()} disabled={assignTagsDisabled}>
           <Tag className="h-4 w-4" />
           Add Tags
         </ContextMenuItem>
