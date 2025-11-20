@@ -10,8 +10,6 @@ public sealed class EcmIntegrationOptions
 
     public Guid? CreatedBy { get; set; }
 
-    public string FilePath { get; set; } = "sample-data/hello-world.txt";
-
     public string DocType { get; set; } = "General";
 
     public string Status { get; set; } = "Draft";
