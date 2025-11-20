@@ -10,6 +10,7 @@ import {
   List,
   Share2,
   SlidersHorizontal,
+  Tag,
   Upload,
   Trash2,
 } from "lucide-react"
@@ -24,11 +25,13 @@ type FileToolbarProps = {
   onUploadClick: () => void
   onDownloadClick?: () => void
   onShareClick?: () => void
+  onAssignTagsClick?: () => void
   onDeleteClick?: () => void
   sortBy: "name" | "modified" | "size"
   sortOrder: "asc" | "desc"
   onSortChange: (sortBy: "name" | "modified" | "size", sortOrder: "asc" | "desc") => void
   disableFileActions?: boolean
+  disableTagActions?: boolean
   disableDeleteAction?: boolean
   isRightSidebarOpen: boolean
   onToggleRightSidebar: () => void
@@ -57,11 +60,13 @@ export function FileToolbar({
   onUploadClick,
   onDownloadClick,
   onShareClick,
+  onAssignTagsClick,
   onDeleteClick,
   sortBy,
   sortOrder,
   onSortChange,
   disableFileActions = false,
+  disableTagActions = false,
   disableDeleteAction = false,
   isRightSidebarOpen,
   onToggleRightSidebar,
@@ -136,6 +141,17 @@ export function FileToolbar({
                 <Share2 className="h-4 w-4" />
                 <span className="sr-only">Share</span>
                 <span className="hidden sm:inline">Share</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="gap-0 sm:gap-2 flex-1 justify-center sm:flex-none sm:w-auto"
+                onClick={() => onAssignTagsClick?.()}
+                disabled={disableTagActions}
+              >
+                <Tag className="h-4 w-4" />
+                <span className="sr-only">Edit tags</span>
+                <span className="hidden sm:inline">Tags</span>
               </Button>
 
               <Button

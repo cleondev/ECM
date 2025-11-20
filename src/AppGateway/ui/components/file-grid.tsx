@@ -80,7 +80,8 @@ export function FileGrid({
   const lastSelectedIndexRef = useRef<number>(-1)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const areActionsDisabled = selectedFiles.size > 1
+  const disableSingleFileActions = selectedFiles.size > 1
+  const disableTagActions = selectedFiles.size === 0
 
   useEffect(() => {
     if (!loadMoreRef.current || !hasMore || isLoading) return
@@ -244,7 +245,8 @@ export function FileGrid({
               onAssignTags={() => onAssignTags(file)}
               onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
               onDelete={() => onDeleteFile(file)}
-              actionsDisabled={areActionsDisabled}
+              actionsDisabled={disableSingleFileActions}
+              assignTagsDisabled={disableTagActions}
             />
           ))}
         </div>
@@ -275,7 +277,8 @@ export function FileGrid({
             onAssignTags={() => onAssignTags(file)}
             onOpenDetails={(tab) => onOpenDetailsTab(tab, file)}
             onDelete={() => onDeleteFile(file)}
-            actionsDisabled={areActionsDisabled}
+            actionsDisabled={disableSingleFileActions}
+            assignTagsDisabled={disableTagActions}
           />
         ))}
       </div>

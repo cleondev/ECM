@@ -31,6 +31,7 @@ type FileListItemProps = {
   onOpenDetails?: (tab: "property" | "flow" | "form") => void
   onDelete?: () => void
   actionsDisabled?: boolean
+  assignTagsDisabled?: boolean
 }
 
 const statusColors: Record<NonNullable<FileItem['status']>, string> = {
@@ -53,6 +54,7 @@ export function FileListItem({
   onOpenDetails,
   onDelete,
   actionsDisabled,
+  assignTagsDisabled,
 }: FileListItemProps) {
   const itemRef = useRef<HTMLButtonElement>(null)
 
@@ -138,7 +140,7 @@ export function FileListItem({
           <Share2 className="h-4 w-4" />
           Share
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onAssignTags?.()} disabled={actionsDisabled}>
+        <ContextMenuItem onSelect={() => onAssignTags?.()} disabled={assignTagsDisabled}>
           <Tag className="h-4 w-4" />
           Add Tags
         </ContextMenuItem>
