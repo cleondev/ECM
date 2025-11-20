@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { applyTagsToDocument, fetchTags } from "@/lib/api"
 import type { DocumentTag, FileItem, SelectedTag, TagNode } from "@/lib/types"
@@ -63,6 +64,9 @@ export function TagAssignmentDialog({ open, onOpenChange, files, onTagsAssigned 
   const [selectionMode, setSelectionMode] = useState<SelectionMode>("add")
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [autoSelectParents, setAutoSelectParents] = useState(false)
+  const [autoParentByChild, setAutoParentByChild] = useState<Map<string, Set<string>>>(new Map())
+  const [explicitAddSelections, setExplicitAddSelections] = useState<Set<string>>(new Set())
   const { toast } = useToast()
 
   const tagMap = useMemo(() => flattenTagTree(tagTree), [tagTree])
@@ -101,16 +105,35 @@ export function TagAssignmentDialog({ open, onOpenChange, files, onTagsAssigned 
   }, [files])
   const hasChanges = tagsToAdd.size > 0 || tagsToRemove.size > 0
 
+  const getAncestorIds = (tagId: string) => {
+    const ancestors: string[] = []
+    let current = tagMap.get(tagId)
+
+    while (current?.parentId) {
+      const parent = tagMap.get(current.parentId)
+      if (!parent) break
+      ancestors.push(parent.id)
+      current = parent
+    }
+
+    return ancestors
+  }
+
   useEffect(() => {
     if (!open) {
       setTagsToAdd(new Set())
       setTagsToRemove(new Set())
       setSelectionMode("add")
+      setAutoSelectParents(false)
+      setAutoParentByChild(new Map())
+      setExplicitAddSelections(new Set())
       return
     }
 
     setTagsToAdd(new Set())
     setTagsToRemove(new Set())
+    setAutoParentByChild(new Map())
+    setExplicitAddSelections(new Set())
   }, [open, files])
 
   useEffect(() => {
@@ -141,40 +164,99 @@ export function TagAssignmentDialog({ open, onOpenChange, files, onTagsAssigned 
     setExpandedTags((previous) => ({ ...previous, [tagId]: !previous[tagId] }))
   }
 
+  const handleAutoParentToggle = (enabled: boolean) => {
+    if (!enabled) {
+      const autoAddedParents = new Set<string>()
+      for (const parents of autoParentByChild.values()) {
+        for (const parentId of parents) {
+          autoAddedParents.add(parentId)
+        }
+      }
+
+      setTagsToAdd((previous) => {
+        const next = new Set(previous)
+        for (const parentId of autoAddedParents) {
+          if (!explicitAddSelections.has(parentId)) {
+            next.delete(parentId)
+          }
+        }
+        return next
+      })
+
+      setAutoParentByChild(new Map())
+    }
+
+    setAutoSelectParents(enabled)
+  }
+
   const toggleTagSelection = (tag: TagNode) => {
     if (!isSelectableTag(tag)) {
       return
     }
 
     if (selectionMode === "add") {
-      setTagsToAdd((previous) => {
-        const next = new Set(previous)
-        next.has(tag.id) ? next.delete(tag.id) : next.add(tag.id)
-        return next
-      })
-      setTagsToRemove((previous) => {
-        if (!previous.has(tag.id)) {
-          return previous
+      const isSelected = tagsToAdd.has(tag.id)
+      const nextTagsToAdd = new Set(tagsToAdd)
+      const nextTagsToRemove = new Set(tagsToRemove)
+      const nextExplicitSelections = new Set(explicitAddSelections)
+      const nextAutoMap = new Map(autoParentByChild)
+
+      if (isSelected) {
+        nextTagsToAdd.delete(tag.id)
+        nextExplicitSelections.delete(tag.id)
+
+        const parents = nextAutoMap.get(tag.id)
+        nextAutoMap.delete(tag.id)
+
+        if (parents) {
+          for (const parentId of parents) {
+            const referencedElsewhere = Array.from(nextAutoMap.values()).some((set) => set.has(parentId))
+            const isExplicitParent = nextExplicitSelections.has(parentId)
+
+            if (!referencedElsewhere && !isExplicitParent) {
+              nextTagsToAdd.delete(parentId)
+            }
+          }
         }
-        const next = new Set(previous)
-        next.delete(tag.id)
-        return next
-      })
-    } else {
-      setTagsToRemove((previous) => {
-        const next = new Set(previous)
-        next.has(tag.id) ? next.delete(tag.id) : next.add(tag.id)
-        return next
-      })
-      setTagsToAdd((previous) => {
-        if (!previous.has(tag.id)) {
-          return previous
+      } else {
+        nextTagsToAdd.add(tag.id)
+        nextExplicitSelections.add(tag.id)
+        nextTagsToRemove.delete(tag.id)
+
+        if (autoSelectParents) {
+          const parentIds = new Set(getAncestorIds(tag.id))
+          nextAutoMap.set(tag.id, parentIds)
+
+          for (const parentId of parentIds) {
+            nextTagsToAdd.add(parentId)
+            nextTagsToRemove.delete(parentId)
+          }
+        } else {
+          nextAutoMap.delete(tag.id)
         }
-        const next = new Set(previous)
-        next.delete(tag.id)
-        return next
-      })
+      }
+
+      setTagsToAdd(nextTagsToAdd)
+      setTagsToRemove(nextTagsToRemove)
+      setExplicitAddSelections(nextExplicitSelections)
+      setAutoParentByChild(nextAutoMap)
+
+      return
     }
+
+    setTagsToRemove((previous) => {
+      const next = new Set(previous)
+      next.has(tag.id) ? next.delete(tag.id) : next.add(tag.id)
+      return next
+    })
+    setTagsToAdd((previous) => {
+      if (!previous.has(tag.id)) {
+        return previous
+      }
+      const next = new Set(previous)
+      next.delete(tag.id)
+      return next
+    })
   }
 
   const buildTagsToAdd = (): SelectedTag[] => {
@@ -533,21 +615,41 @@ export function TagAssignmentDialog({ open, onOpenChange, files, onTagsAssigned 
               </div>
             ) : null}
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={selectionMode === "add" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectionMode("add")}
-              >
-                Add tags
-              </Button>
-              <Button
-                variant={selectionMode === "remove" ? "destructive" : "outline"}
-                size="sm"
-                onClick={() => setSelectionMode("remove")}
-              >
-                Remove tags
-              </Button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectionMode === "add" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectionMode("add")}
+                >
+                  Add tags
+                </Button>
+                <Button
+                  variant={selectionMode === "remove" ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectionMode("remove")}
+                >
+                  Remove tags
+                </Button>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-md border border-border/60 bg-muted/30 p-3 sm:items-center">
+                <Switch
+                  id="auto-parent-tags"
+                  checked={autoSelectParents}
+                  disabled={selectionMode !== "add"}
+                  onCheckedChange={handleAutoParentToggle}
+                />
+                <div className="space-y-1">
+                  <label htmlFor="auto-parent-tags" className="text-sm font-medium leading-none">
+                    Add parent tags automatically
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    When enabled, selecting a tag will also select its ancestor tags. Turning this off clears auto-added
+                    parents unless they were selected manually.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="text-sm text-muted-foreground">
