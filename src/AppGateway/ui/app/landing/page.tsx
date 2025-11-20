@@ -57,7 +57,7 @@ export default function ECMLandingPage() {
         router.replace(normalizeRedirectTarget(result.redirectPath, "/app/"))
       })
       .catch((error) => {
-        console.error("[landing] Failed to verify login status", error)
+        console.error("[landing] Không kiểm tra được trạng thái đăng nhập", error)
       })
 
     return () => {
