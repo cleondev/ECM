@@ -14,7 +14,18 @@
                         <div class="fs-5 fw-bold">@Model.BaseUrl</div>
                     </div>
                     <div>
-                        @if (Model.HasAccessToken)
+                        @if (Model.RequiresUserAuthentication)
+                        {
+                            @if (Model.IsAuthenticated)
+                            {
+                                <span class="badge bg-success">Azure SSO: đã đăng nhập</span>
+                            }
+                            else
+                            {
+                                <a class="btn btn-outline-primary" href="~/MicrosoftIdentity/Account/SignIn?redirectUri=@Url.Action("Index", "Home", values: null, protocol: Request.Scheme)">Đăng nhập Azure SSO</a>
+                            }
+                        }
+                        else if (Model.HasAccessToken)
                         {
                             <span class="badge bg-success">Access token đã cấu hình</span>
                         }
@@ -24,7 +35,7 @@
                         }
                     </div>
                 </div>
-                <p class="text-muted mb-0 mt-2">Ứng dụng MVC này không yêu cầu đăng nhập. Hãy đặt bearer token hợp lệ trong <code>appsettings.json</code> để gọi API.</p>
+                <p class="text-muted mb-0 mt-2">Ứng dụng hỗ trợ bearer token tĩnh trong <code>appsettings.json</code> hoặc đăng nhập bằng Azure SSO thông qua module Authentication của AppGateway.</p>
             </div>
         </div>
 

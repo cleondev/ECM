@@ -45,6 +45,10 @@ public sealed class UploadPageViewModel
 
     public bool HasAccessToken { get; init; }
 
+    public bool RequiresUserAuthentication { get; init; }
+
+    public bool IsAuthenticated { get; init; }
+
     public UploadFormModel Form { get; init; } = new();
 
     public UploadResultModel? Result { get; init; }
