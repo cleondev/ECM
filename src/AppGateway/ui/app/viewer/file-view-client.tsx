@@ -37,11 +37,34 @@ export default function FileViewClient({ fileId, preference, targetPath }: FileV
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.debug(
+      "[viewer] FileViewClient mounted with fileId=%s, preference=%o, targetPath=%s",
+      fileId,
+      preference,
+      targetPath,
+    )
+  }, [fileId, preference, targetPath])
+
+  useEffect(() => {
+    console.debug(
+      "[viewer] Auth guard resolved for %s -> isAuthenticated=%s, isChecking=%s",
+      targetPath,
+      isAuthenticated,
+      isChecking,
+    )
+  }, [isAuthenticated, isChecking, targetPath])
+
+  useEffect(() => {
     if (!isAuthenticated) {
       return
     }
 
     let cancelled = false
+    console.debug(
+      "[viewer] Starting file detail fetch for fileId=%s (targetPath=%s)",
+      fileId,
+      targetPath,
+    )
     setLoading(true)
     setError(null)
 
@@ -66,7 +89,7 @@ export default function FileViewClient({ fileId, preference, targetPath }: FileV
     return () => {
       cancelled = true
     }
-  }, [isAuthenticated, fileId])
+  }, [isAuthenticated, fileId, targetPath])
 
   const handleDownload = () => {
     if (!file?.latestVersionId) {
