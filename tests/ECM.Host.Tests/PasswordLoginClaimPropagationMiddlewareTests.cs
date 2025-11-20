@@ -49,4 +49,18 @@ public class PasswordLoginClaimPropagationMiddlewareTests
 
         Assert.Same(identity, context.User.Identity);
     }
+
+    [Fact]
+    public async Task InvokeAsync_PropagatesOnBehalfClaim_WhenHeaderPresent()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Headers[PasswordLoginForwardingHeaders.Email] = "onbehalf@example.com";
+        context.Request.Headers[PasswordLoginForwardingHeaders.OnBehalf] = "true";
+
+        var middleware = new PasswordLoginClaimPropagationMiddleware(_ => Task.CompletedTask, NullLogger<PasswordLoginClaimPropagationMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal("true", context.User.FindFirstValue("on_behalf"));
+    }
 }

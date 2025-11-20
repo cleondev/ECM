@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace AppGateway.Api.Controllers.IAM;
 
@@ -25,10 +26,13 @@ namespace AppGateway.Api.Controllers.IAM;
 public sealed class IamAuthenticationController(
     IEcmApiClient client,
     IUserProvisioningService provisioningService,
+    IOptionsSnapshot<CookieAuthenticationOptions> cookieOptions,
     ILogger<IamAuthenticationController> logger) : ControllerBase
 {
     private readonly IEcmApiClient _client = client;
     private readonly IUserProvisioningService _provisioningService = provisioningService;
+    private readonly CookieAuthenticationOptions _cookieOptions = cookieOptions
+        .Get(CookieAuthenticationDefaults.AuthenticationScheme);
     private readonly ILogger<IamAuthenticationController> _logger = logger;
 
     [HttpGet("check-login")]
@@ -91,6 +95,51 @@ public sealed class IamAuthenticationController(
             _logger.LogError(ex, "An error occurred while checking the current user's login state.");
             return Ok(new CheckLoginResponseDto(false, resolvedRedirect, loginUrl, silentLoginUrl, null));
         }
+    }
+
+    [HttpPost("auth/on-behalf")]
+    [Authorize(AuthenticationSchemes = ApiKeyAuthenticationHandler.AuthenticationScheme)]
+    [ProducesResponseType(typeof(OnBehalfLoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SignInOnBehalfAsync(
+        [FromBody] OnBehalfLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.UserEmail) && request.UserId is null)
+        {
+            return BadRequest(new { message = "Either user email or user id must be provided." });
+        }
+
+        UserSummaryDto? profile = null;
+
+        if (request.UserId is { } userId && userId != Guid.Empty)
+        {
+            profile = await _client.GetUserAsync(userId, cancellationToken);
+        }
+
+        if (profile is null && !string.IsNullOrWhiteSpace(request.UserEmail))
+        {
+            profile = await _client.GetUserByEmailAsync(request.UserEmail.Trim(), cancellationToken);
+        }
+
+        if (profile is null)
+        {
+            return NotFound(new { message = "User not found." });
+        }
+
+        var principal = CreateLocalUserPrincipal(profile);
+        if (principal.Identity is ClaimsIdentity identity)
+        {
+            identity.AddClaim(new Claim(PasswordLoginClaims.OnBehalfClaimType, "true"));
+        }
+
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+        var expiresOn = DateTimeOffset.UtcNow + (_cookieOptions.ExpireTimeSpan ?? TimeSpan.FromHours(8));
+
+        return Ok(new OnBehalfLoginResponseDto(profile, expiresOn));
     }
 
     [HttpPost("password-login")]
@@ -199,3 +248,12 @@ public sealed class PasswordLoginRequest
 
     public string? RedirectUri { get; init; }
 }
+
+public sealed class OnBehalfLoginRequest
+{
+    public string? UserEmail { get; init; }
+
+    public Guid? UserId { get; init; }
+}
+
+public sealed record OnBehalfLoginResponseDto(UserSummaryDto User, DateTimeOffset ExpiresOn);

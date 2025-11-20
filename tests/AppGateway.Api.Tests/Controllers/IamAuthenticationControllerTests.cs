@@ -17,10 +17,13 @@ using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace AppGateway.Api.Tests.Controllers;
@@ -44,7 +47,11 @@ public class IamAuthenticationControllerTests
 
         var client = new TrackingEcmApiClient();
         var provisioningService = new TrackingProvisioningService();
-        var controller = new IamAuthenticationController(client, provisioningService, NullLogger<IamAuthenticationController>.Instance);
+        var controller = new IamAuthenticationController(
+            client,
+            provisioningService,
+            new TestOptionsSnapshot<CookieAuthenticationOptions>(new CookieAuthenticationOptions()),
+            NullLogger<IamAuthenticationController>.Instance);
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = "https";
@@ -80,6 +87,119 @@ public class IamAuthenticationControllerTests
         return new ClaimsPrincipal(identity);
     }
 
+    [Fact]
+    public async Task SignInOnBehalfAsync_SignsInWithOnBehalfClaimAndReturnsExpiry()
+    {
+        var profile = new UserSummaryDto(
+            Guid.NewGuid(),
+            "impersonated@example.com",
+            "Impersonated User",
+            true,
+            false,
+            DateTimeOffset.UtcNow,
+            Guid.NewGuid(),
+            [Guid.NewGuid()],
+            [],
+            []);
+
+        var client = new TrackingEcmApiClient
+        {
+            UserToReturn = profile
+        };
+
+        var cookieOptions = new CookieAuthenticationOptions
+        {
+            ExpireTimeSpan = TimeSpan.FromHours(2)
+        };
+
+        var controller = new IamAuthenticationController(
+            client,
+            new TrackingProvisioningService(),
+            new TestOptionsSnapshot<CookieAuthenticationOptions>(cookieOptions),
+            NullLogger<IamAuthenticationController>.Instance);
+
+        var authService = new RecordingAuthenticationService();
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton<IAuthenticationService>(authService)
+                .BuildServiceProvider(),
+        };
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        var result = await controller.SignInOnBehalfAsync(
+            new OnBehalfLoginRequest { UserEmail = profile.Email },
+            CancellationToken.None);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        var response = okResult.Value.Should().BeOfType<OnBehalfLoginResponseDto>().Subject;
+
+        response.User.Should().BeEquivalentTo(profile);
+        response.ExpiresOn.Should().BeCloseTo(
+            DateTimeOffset.UtcNow.Add(cookieOptions.ExpireTimeSpan!.Value),
+            TimeSpan.FromSeconds(5));
+
+        authService.SignInSchemes.Should().Contain(CookieAuthenticationDefaults.AuthenticationScheme);
+        authService.SignOutSchemes.Should().Contain(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        var identity = authService.LastSignInPrincipal.Should().NotBeNull().Subject.Identity.Should()
+            .BeAssignableTo<ClaimsIdentity>().Subject;
+
+        identity.Claims.Should().Contain(c =>
+            c.Type == PasswordLoginClaims.OnBehalfClaimType && c.Value == "true");
+        identity.Claims.Should().Contain(c =>
+            c.Type == PasswordLoginClaims.ProfileClaimType && c.Value == JsonSerializer.Serialize(profile));
+    }
+
+    [Fact]
+    public async Task SignInOnBehalfAsync_ReturnsBadRequestWhenNoIdentifierProvided()
+    {
+        var controller = new IamAuthenticationController(
+            new TrackingEcmApiClient(),
+            new TrackingProvisioningService(),
+            new TestOptionsSnapshot<CookieAuthenticationOptions>(new CookieAuthenticationOptions()),
+            NullLogger<IamAuthenticationController>.Instance)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
+
+        var result = await controller.SignInOnBehalfAsync(new OnBehalfLoginRequest(), CancellationToken.None);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+    }
+
+    [Fact]
+    public async Task SignInOnBehalfAsync_ReturnsNotFoundWhenUserMissing()
+    {
+        var client = new TrackingEcmApiClient();
+
+        var controller = new IamAuthenticationController(
+            client,
+            new TrackingProvisioningService(),
+            new TestOptionsSnapshot<CookieAuthenticationOptions>(new CookieAuthenticationOptions()),
+            NullLogger<IamAuthenticationController>.Instance)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
+        };
+
+        var result = await controller.SignInOnBehalfAsync(
+            new OnBehalfLoginRequest { UserEmail = "missing@example.com" },
+            CancellationToken.None);
+
+        result.Should().BeOfType<NotFoundObjectResult>();
+        client.GetUserByEmailCalls.Should().Be(1);
+    }
+
     private sealed class TrackingProvisioningService : IUserProvisioningService
     {
         public int CallCount { get; private set; }
@@ -95,19 +215,28 @@ public class IamAuthenticationControllerTests
     {
         public int GetCurrentUserProfileCalls { get; private set; }
 
+        public UserSummaryDto? UserToReturn { get; init; }
+
+        public int GetUserByEmailCalls { get; private set; }
+
         public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
         {
             GetCurrentUserProfileCalls++;
             return Task.FromResult<UserSummaryDto?>(null);
         }
 
-        public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
         public Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        {
+            return Task.FromResult(UserToReturn);
+        }
 
         public Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
+        {
+            GetUserByEmailCalls++;
+            return Task.FromResult(UserToReturn);
+        }
+
+        public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
         public Task<UserSummaryDto?> AuthenticateUserAsync(
@@ -253,5 +382,56 @@ public class IamAuthenticationControllerTests
             SignatureRequestDto request,
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+    }
+
+    private sealed class RecordingAuthenticationService : IAuthenticationService
+    {
+        public ClaimsPrincipal? LastSignInPrincipal { get; private set; }
+
+        public List<string> SignInSchemes { get; } = new();
+
+        public List<string> SignOutSchemes { get; } = new();
+
+        public Task<AuthenticateResult> AuthenticateAsync(HttpContext context, string? scheme)
+            => Task.FromResult(AuthenticateResult.NoResult());
+
+        public Task ChallengeAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+            => Task.CompletedTask;
+
+        public Task ForbidAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+            => Task.CompletedTask;
+
+        public Task SignInAsync(HttpContext context, string? scheme, ClaimsPrincipal principal, AuthenticationProperties? properties)
+        {
+            LastSignInPrincipal = principal;
+            if (scheme is not null)
+            {
+                SignInSchemes.Add(scheme);
+            }
+
+            context.User = principal;
+            return Task.CompletedTask;
+        }
+
+        public Task SignOutAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+        {
+            if (scheme is not null)
+            {
+                SignOutSchemes.Add(scheme);
+            }
+
+            context.User = new ClaimsPrincipal(new ClaimsIdentity());
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class TestOptionsSnapshot<T>(T value) : IOptionsSnapshot<T>
+        where T : class
+    {
+        private readonly T _value = value;
+
+        public T Value => _value;
+
+        public T Get(string? name) => _value;
     }
 }
