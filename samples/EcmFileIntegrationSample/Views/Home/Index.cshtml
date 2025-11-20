@@ -1,0 +1,151 @@
+@model UploadPageViewModel
+@{
+    ViewData["Title"] = "Upload tài liệu";
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header">Thông tin kết nối</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <div class="text-uppercase text-muted small fw-semibold">Base URL</div>
+                        <div class="fs-5 fw-bold">@Model.BaseUrl</div>
+                    </div>
+                    <div>
+                        @if (Model.HasAccessToken)
+                        {
+                            <span class="badge bg-success">Access token đã cấu hình</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">Chưa cấu hình access token</span>
+                        }
+                    </div>
+                </div>
+                <p class="text-muted mb-0 mt-2">Ứng dụng MVC này không yêu cầu đăng nhập. Hãy đặt bearer token hợp lệ trong <code>appsettings.json</code> để gọi API.</p>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Error))
+        {
+            <div class="alert alert-danger" role="alert">
+                @Model.Error
+            </div>
+        }
+
+        <div class="card shadow-sm">
+            <div class="card-header">Upload tài liệu lên ECM</div>
+            <div class="card-body">
+                <form asp-action="Upload" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Form.Title" class="form-label"></label>
+                            <input asp-for="Form.Title" class="form-control" placeholder="Tiêu đề hiển thị" />
+                            <span asp-validation-for="Form.Title" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.DocumentTypeId" class="form-label"></label>
+                            <input asp-for="Form.DocumentTypeId" class="form-control" placeholder="Tuỳ chọn" />
+                            <span asp-validation-for="Form.DocumentTypeId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Form.DocType" class="form-label"></label>
+                            <input asp-for="Form.DocType" class="form-control" />
+                            <span asp-validation-for="Form.DocType" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Form.Status" class="form-label"></label>
+                            <input asp-for="Form.Status" class="form-control" />
+                            <span asp-validation-for="Form.Status" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Form.Sensitivity" class="form-label"></label>
+                            <input asp-for="Form.Sensitivity" class="form-control" />
+                            <span asp-validation-for="Form.Sensitivity" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.OwnerId" class="form-label"></label>
+                            <input asp-for="Form.OwnerId" class="form-control" placeholder="Để trống để lấy từ token" />
+                            <span asp-validation-for="Form.OwnerId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.CreatedBy" class="form-label"></label>
+                            <input asp-for="Form.CreatedBy" class="form-control" placeholder="Để trống để lấy từ token" />
+                            <span asp-validation-for="Form.CreatedBy" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Form.File" class="form-label fw-semibold"></label>
+                            <input asp-for="Form.File" class="form-control" />
+                            <span asp-validation-for="Form.File" class="text-danger"></span>
+                            <div class="form-text">Chọn bất kỳ file (PDF, hình ảnh, văn bản, ...) để thử upload.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4">
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                        <button type="reset" class="btn btn-outline-secondary">Làm mới</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="position-sticky" style="top: 1rem;">
+            @if (Model.Result is not null)
+            {
+                <div class="card border-success shadow-sm mb-3">
+                    <div class="card-header bg-success text-white">Upload thành công</div>
+                    <div class="card-body">
+                        <p class="mb-1"><strong>Tiêu đề:</strong> @Model.Result.Document.Title</p>
+                        <p class="mb-1"><strong>ID tài liệu:</strong> @Model.Result.Document.Id</p>
+                        <p class="mb-1"><strong>Owner:</strong> @Model.Result.Document.OwnerId</p>
+                        <p class="mb-1"><strong>Doc type:</strong> @Model.Result.Document.DocType</p>
+                        <p class="mb-1"><strong>Trạng thái:</strong> @Model.Result.Document.Status</p>
+                        <p class="mb-1"><strong>Độ nhạy:</strong> @Model.Result.Document.Sensitivity</p>
+                        @if (Model.Result.Document.DocumentTypeId is not null)
+                        {
+                            <p class="mb-1"><strong>Document type ID:</strong> @Model.Result.Document.DocumentTypeId</p>
+                        }
+                        @if (Model.Result.Document.LatestVersion is not null)
+                        {
+                            <p class="mb-1"><strong>Phiên bản mới nhất:</strong> v@Model.Result.Document.LatestVersion.VersionNo ( @Model.Result.Document.LatestVersion.Bytes bytes)</p>
+                        }
+                        @if (Model.Result.DownloadUri is not null)
+                        {
+                            <a class="btn btn-success mt-2" href="@Model.Result.DownloadUri" target="_blank" rel="noreferrer">Tải file</a>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header">Hướng dẫn nhanh</div>
+                    <div class="card-body">
+                        <ol class="mb-0 ps-3">
+                            <li class="mb-2">Điền metadata (doc type, status, sensitivity) nếu muốn.</li>
+                            <li class="mb-2">Chọn file cần upload.</li>
+                            <li class="mb-0">Nhấn <strong>Upload</strong> để gửi file trực tiếp đến ECM.</li>
+                        </ol>
+                    </div>
+                </div>
+            }
+
+            @if (Model.Result?.Profile is not null)
+            {
+                <div class="card mt-3 shadow-sm">
+                    <div class="card-header">Thông tin người dùng từ token</div>
+                    <div class="card-body">
+                        <p class="mb-1 fw-semibold">@Model.Result.Profile.DisplayName</p>
+                        <p class="mb-1">Email: @Model.Result.Profile.Email</p>
+                        <p class="mb-0">User ID: @Model.Result.Profile.Id</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
