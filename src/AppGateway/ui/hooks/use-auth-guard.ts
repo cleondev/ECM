@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
-import { fetchCurrentUserProfile } from "@/lib/api"
+import { checkLogin, fetchCurrentUserProfile } from "@/lib/api"
 import {
   clearCachedAuthSnapshot,
   getCachedAuthSnapshot,
@@ -76,7 +76,7 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
 
         if (profile) {
           console.debug(
-            "[auth] Đã xác nhận người dùng với id %s, tiếp tục truy cập:",
+            "[auth] Đã xác nhận người dùng với id %s từ profile, tiếp tục truy cập:",
             profile.id,
             normalizedTargetPath,
           )
@@ -90,7 +90,31 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
         }
 
         console.warn(
-          "[auth] Không tìm thấy hồ sơ người dùng sau khi gọi API, chuyển về trang giới thiệu.",
+          "[auth] Không tìm thấy hồ sơ người dùng sau khi gọi API, thử check-login trước khi chuyển hướng.",
+        )
+        const checkLoginResult = await checkLogin(normalizedTargetPath)
+
+        if (!active) {
+          return
+        }
+
+        if (checkLoginResult.isAuthenticated && checkLoginResult.user) {
+          console.debug(
+            "[auth] check-login xác nhận người dùng %s, cập nhật cache và tiếp tục tại %s.",
+            checkLoginResult.user.id,
+            normalizedTargetPath,
+          )
+          updateCachedAuthSnapshot({
+            isAuthenticated: true,
+            redirectPath: normalizedTargetPath,
+            user: checkLoginResult.user,
+          })
+          setIsAuthenticated(true)
+          return
+        }
+
+        console.warn(
+          "[auth] check-login cho biết chưa đăng nhập, chuyển về trang giới thiệu.",
         )
         redirectToLanding()
       } catch (error) {
@@ -99,8 +123,40 @@ export function useAuthGuard(targetPath: string): AuthGuardState {
           return
         }
 
-        console.warn("[auth] Chuyển hướng về trang giới thiệu do lỗi xác thực.")
-        redirectToLanding()
+        try {
+          console.debug(
+            "[auth] Thử xác minh trạng thái đăng nhập bằng check-login sau lỗi profile…",
+          )
+          const fallbackCheck = await checkLogin(normalizedTargetPath)
+          if (!active) {
+            return
+          }
+
+          if (fallbackCheck.isAuthenticated && fallbackCheck.user) {
+            console.debug(
+              "[auth] Đã xác nhận phiên từ check-login sau lỗi profile, user=%s.",
+              fallbackCheck.user.id,
+            )
+            updateCachedAuthSnapshot({
+              isAuthenticated: true,
+              redirectPath: normalizedTargetPath,
+              user: fallbackCheck.user,
+            })
+            setIsAuthenticated(true)
+            return
+          }
+
+          console.warn(
+            "[auth] Phiên không hợp lệ sau khi thử check-login, chuyển hướng về landing.",
+          )
+          redirectToLanding()
+        } catch (fallbackError) {
+          console.error(
+            "[auth] check-login cũng thất bại, chuyển hướng về trang giới thiệu:",
+            fallbackError,
+          )
+          redirectToLanding()
+        }
       } finally {
         if (active) {
           console.debug("[auth] Hoàn tất kiểm tra xác thực cho:", normalizedTargetPath)

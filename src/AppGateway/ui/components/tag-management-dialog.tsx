@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import type { TagNode, TagUpdateData } from "@/lib/types"
 
@@ -253,33 +254,36 @@ export function TagManagementDialog({
 
           <div className="space-y-2">
             <Label>Icon (Optional)</Label>
-            <div className="grid grid-cols-10 gap-1">
-              <button
-                type="button"
-                onClick={() => setTagIcon(NO_ICON_VALUE)}
-                className={cn(
-                  "aspect-square rounded border flex items-center justify-center text-xs transition-colors",
-                  tagIcon === NO_ICON_VALUE
-                    ? "border-foreground bg-accent font-bold"
-                    : "border-border hover:bg-accent/50",
-                )}
-                title="No icon"
-              >
-                ✕
-              </button>
-              {iconOptions.map((icon) => (
+            <ScrollArea className="max-h-48 rounded-md border border-border/60 p-2">
+              <div className="grid grid-cols-8 gap-1">
                 <button
-                  key={icon}
-                  onClick={() => setTagIcon(icon)}
+                  type="button"
+                  onClick={() => setTagIcon(NO_ICON_VALUE)}
                   className={cn(
-                    "aspect-square rounded border flex items-center justify-center transition-colors",
-                    tagIcon === icon ? "border-foreground bg-accent scale-110" : "border-border hover:bg-accent/50",
+                    "aspect-square rounded border flex items-center justify-center text-xs transition-colors",
+                    tagIcon === NO_ICON_VALUE
+                      ? "border-foreground bg-accent font-bold"
+                      : "border-border hover:bg-accent/50",
                   )}
+                  title="No icon"
                 >
-                  {icon}
+                  ✕
                 </button>
-              ))}
-            </div>
+                {iconOptions.map((icon) => (
+                  <button
+                    key={icon}
+                    onClick={() => setTagIcon(icon)}
+                    className={cn(
+                      "aspect-square rounded border flex items-center justify-center transition-colors",
+                      tagIcon === icon ? "border-foreground bg-accent scale-110" : "border-border hover:bg-accent/50",
+                    )}
+                  >
+                    {icon}
+                  </button>
+                ))}
+              </div>
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
           </div>
 
           {mode === "edit" && editingTag && editingTag.children && editingTag.children.length > 0 && (
