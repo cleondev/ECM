@@ -1,0 +1,2 @@
+This is a sample file used by the ECM integration demo.
+You can replace this file or point the configuration to another file path.
