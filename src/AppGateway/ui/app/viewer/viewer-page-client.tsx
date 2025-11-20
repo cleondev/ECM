@@ -10,22 +10,22 @@ import { parseViewerPreference } from "@/lib/viewer-utils"
 const MAIN_APP_ROUTE = "/app/"
 
 function buildViewerTargetPath(fileId?: string | null, viewer?: string | null, office?: string | null): string {
-  const params = new URLSearchParams()
+  const baseUrl = typeof window === "undefined" ? "http://localhost" : window.location.origin
+  const url = new URL("/viewer/", baseUrl)
 
   if (fileId) {
-    params.set("fileId", fileId)
+    url.searchParams.set("fileId", fileId)
   }
 
   if (viewer) {
-    params.set("viewer", viewer)
+    url.searchParams.set("viewer", viewer)
   }
 
   if (office) {
-    params.set("office", office)
+    url.searchParams.set("office", office)
   }
 
-  const query = params.toString()
-  return query ? `/viewer/?${query}` : `/viewer/`
+  return `${url.pathname}${url.search}`
 }
 
 export function ViewerPageClient() {

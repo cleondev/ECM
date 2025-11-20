@@ -215,6 +215,8 @@ export function FileManager() {
     const viewerConfig = inferViewerConfigFromFileItem(targetFile)
     const params = new URLSearchParams({ fileId: targetFile.id })
 
+    const viewerUrl = new URL(VIEWER_ROUTE, window.location.origin)
+
     if (viewerConfig.category && viewerConfig.category !== "unsupported") {
       params.set("viewer", viewerConfig.category)
     }
@@ -223,9 +225,11 @@ export function FileManager() {
       params.set("office", viewerConfig.officeKind)
     }
 
-    const query = params.toString()
-    const viewerUrl = query ? `${VIEWER_ROUTE}?${query}` : VIEWER_ROUTE
-    window.open(viewerUrl, "_blank", "noopener,noreferrer")
+    for (const [key, value] of params.entries()) {
+      viewerUrl.searchParams.set(key, value)
+    }
+
+    window.open(viewerUrl.toString(), "_blank", "noopener,noreferrer")
   }
 
   const handleAssignTagsClick = (file?: FileItem) => {
