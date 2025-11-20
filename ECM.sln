@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{FFEA8955-0
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{ED699F67-46A0-40B1-8EEB-63AF8513F18D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{A31FD1C8-64B3-4C73-8024-CBB2A46EC932}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHost", "src\Aspire\ECM.AppHost\AppHost.csproj", "{56D5ECF6-25EB-4DD9-8EC7-601F8A14258B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults.Tests", "tests\ServiceDefaults.Tests\ServiceDefaults.Tests.csproj", "{211451B8-E711-4A6A-8A16-696984F1F651}"
@@ -58,6 +60,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tagger.Tests", "tests\Tagger.Tests\Tagger.Tests.csproj", "{788C0732-F36D-45CD-869C-DE16A7B1F8AA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Host.Tests", "tests\ECM.Host.Tests\ECM.Host.Tests.csproj", "{2BE1FE4F-1F6D-4827-AEA9-D7FE7601E34D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EcmFileIntegrationSample", "samples\EcmFileIntegrationSample\EcmFileIntegrationSample.csproj", "{ACA97E64-F48D-4E36-B409-76A2F77D4AF4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "src\Shared\ServiceDefaults\ServiceDefaults.csproj", "{505CAA70-78FC-4746-8C40-B6EB1AB8F5F7}"
 EndProject
@@ -309,11 +313,15 @@ Global
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
+		{ACA97E64-F48D-4E36-B409-76A2F77D4AF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACA97E64-F48D-4E36-B409-76A2F77D4AF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACA97E64-F48D-4E36-B409-76A2F77D4AF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACA97E64-F48D-4E36-B409-76A2F77D4AF4}.Release|Any CPU.Build.0 = Release|Any CPU
+EndGlobalSection
+GlobalSection(SolutionProperties) = preSolution
+HideSolutionNode = FALSE
+EndGlobalSection
+GlobalSection(NestedProjects) = preSolution
 		{BA15B61B-0E0A-4B11-BC65-8F81EEA605A2} = {A50F26A7-81F7-4A19-A7E9-5A6AAE3C4C23}
 		{7A90AA6D-3567-43F6-8F4F-3DC3C2E1777F} = {A50F26A7-81F7-4A19-A7E9-5A6AAE3C4C23}
 		{6E0E7B25-96FE-4D18-A954-4E67804C8621} = {A50F26A7-81F7-4A19-A7E9-5A6AAE3C4C23}
@@ -361,8 +369,9 @@ Global
 		{B280D780-878A-437E-A6D8-C8ADF98645C0} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
 		{AFA144C0-6B8E-4827-9274-35DCF701563D} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {380B5FA8-E926-4300-88C9-4017E821C524}
-	EndGlobalSection
+		{ACA97E64-F48D-4E36-B409-76A2F77D4AF4} = {A31FD1C8-64B3-4C73-8024-CBB2A46EC932}
+EndGlobalSection
+GlobalSection(ExtensibilityGlobals) = postSolution
+SolutionGuid = {380B5FA8-E926-4300-88C9-4017E821C524}
+EndGlobalSection
 EndGlobal
