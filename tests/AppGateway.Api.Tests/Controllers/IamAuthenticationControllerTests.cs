@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace AppGateway.Api.Tests.Controllers;
@@ -44,7 +45,11 @@ public class IamAuthenticationControllerTests
 
         var client = new TrackingEcmApiClient();
         var provisioningService = new TrackingProvisioningService();
-        var controller = new IamAuthenticationController(client, provisioningService, NullLogger<IamAuthenticationController>.Instance);
+        var controller = new IamAuthenticationController(
+            client,
+            provisioningService,
+            new CookieOptionsSnapshot(),
+            NullLogger<IamAuthenticationController>.Instance);
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = "https";
@@ -89,6 +94,15 @@ public class IamAuthenticationControllerTests
             CallCount++;
             return Task.FromResult<UserSummaryDto?>(null);
         }
+    }
+
+    private sealed class CookieOptionsSnapshot : IOptionsSnapshot<CookieAuthenticationOptions>
+    {
+        private readonly CookieAuthenticationOptions _options = new();
+
+        public CookieAuthenticationOptions Value => _options;
+
+        public CookieAuthenticationOptions Get(string? name) => _options;
     }
 
     private sealed class TrackingEcmApiClient : IEcmApiClient
