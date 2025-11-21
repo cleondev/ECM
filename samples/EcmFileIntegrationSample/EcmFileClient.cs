@@ -30,7 +30,7 @@ public sealed class EcmFileClient
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
 
-        using var response = await _httpClient.GetAsync("api/iam/profile", cancellationToken);
+        using var response = await _httpClient.GetAsync("/api/iam/profile", cancellationToken);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
             _logger.LogError("Request to {Url} was unauthorized. Ensure AccessToken is configured.", response.RequestMessage?.RequestUri);
@@ -123,12 +123,12 @@ public sealed class EcmFileClient
     }
 
     private string GetDocumentsEndpoint() => _options.OnBehalf.Enabled
-        ? "api/documents"
-        : "api/ecm/documents";
+        ? "/api/documents"
+        : "/api/ecm/documents";
 
     private string GetDownloadEndpoint() => _options.OnBehalf.Enabled
-        ? "api/documents/files/download"
-        : "api/ecm/files/download";
+        ? "/api/documents/files/download"
+        : "/api/ecm/files/download";
 
     private static bool IsRedirect(HttpStatusCode statusCode) =>
         statusCode is HttpStatusCode.Moved or HttpStatusCode.Redirect or HttpStatusCode.RedirectKeepVerb or HttpStatusCode.RedirectMethod;
