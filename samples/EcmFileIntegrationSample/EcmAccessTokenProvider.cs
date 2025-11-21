@@ -1,8 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client;
-using Microsoft.Identity.Web;
 
 namespace samples.EcmFileIntegrationSample;
 
@@ -10,25 +7,17 @@ public sealed class EcmAccessTokenProvider
 {
     private readonly IOptions<EcmIntegrationOptions> _options;
     private readonly ILogger<EcmAccessTokenProvider> _logger;
-    private readonly ITokenAcquisition? _tokenAcquisition;
 
     public EcmAccessTokenProvider(
         IOptions<EcmIntegrationOptions> options,
-        ILogger<EcmAccessTokenProvider> logger,
-        IServiceProvider serviceProvider)
+        ILogger<EcmAccessTokenProvider> logger)
     {
         _options = options;
         _logger = logger;
-        _tokenAcquisition = serviceProvider.GetService<ITokenAcquisition>();
     }
 
-    public bool RequiresUserAuthentication => _options.Value.UseAzureSso
-        && string.IsNullOrWhiteSpace(_options.Value.AccessToken)
-        && !_options.Value.OnBehalf.Enabled;
-
     public bool HasConfiguredAccess => !string.IsNullOrWhiteSpace(_options.Value.AccessToken)
-        || _options.Value.OnBehalf.Enabled
-        || (_options.Value.UseAzureSso && _tokenAcquisition is not null);
+        || _options.Value.OnBehalf.Enabled;
 
     public bool UsingOnBehalfAuthentication => _options.Value.OnBehalf.Enabled;
 
@@ -38,48 +27,17 @@ public sealed class EcmAccessTokenProvider
 
         var options = _options.Value;
 
-        if (!string.IsNullOrWhiteSpace(options.AccessToken))
-        {
-            return options.AccessToken;
-        }
-
         if (options.OnBehalf.Enabled)
         {
             return null;
         }
 
-        if (!options.UseAzureSso)
+        if (!string.IsNullOrWhiteSpace(options.AccessToken))
         {
-            return null;
+            return options.AccessToken;
         }
 
-        if (_tokenAcquisition is null)
-        {
-            _logger.LogWarning(
-                "Azure SSO is enabled but Microsoft Identity was not configured. Check AzureAd settings in appsettings.json.");
-            return null;
-        }
-
-        if (string.IsNullOrWhiteSpace(options.AuthenticationScope))
-        {
-            _logger.LogWarning("Azure SSO is enabled but Ecm:AuthenticationScope is missing.");
-            return null;
-        }
-
-        try
-        {
-            return await _tokenAcquisition.GetAccessTokenForUserAsync(
-                [options.AuthenticationScope]);
-        }
-        catch (MsalUiRequiredException)
-        {
-            _logger.LogWarning("User interaction is required to acquire an access token.");
-            throw;
-        }
-        catch (MsalException ex)
-        {
-            _logger.LogError(ex, "Failed to acquire access token for scope {Scope} from Azure AD.", options.AuthenticationScope);
-            throw;
-        }
+        _logger.LogWarning("Không tìm thấy AccessToken và OnBehalf chưa được bật. Request sẽ không có bearer token.");
+        return null;
     }
 }

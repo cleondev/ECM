@@ -21,10 +21,6 @@ public sealed class EcmIntegrationOptions
     public Guid? DocumentTypeId { get; set; }
 
     public string? Title { get; set; }
-
-    public bool UseAzureSso { get; set; }
-
-    public string? AuthenticationScope { get; set; }
 }
 
 public sealed class OnBehalfOptions

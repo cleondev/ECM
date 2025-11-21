@@ -45,10 +45,6 @@ public sealed class UploadPageViewModel
 
     public bool HasAccessToken { get; init; }
 
-    public bool RequiresUserAuthentication { get; init; }
-
-    public bool IsAuthenticated { get; init; }
-
     public bool UsingOnBehalfAuthentication { get; init; }
 
     public Guid? OnBehalfUserId { get; init; }

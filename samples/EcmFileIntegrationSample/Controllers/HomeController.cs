@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client;
 
 namespace samples.EcmFileIntegrationSample.Controllers;
 
@@ -27,11 +26,6 @@ public class HomeController : Controller
     [HttpGet]
     public IActionResult Index()
     {
-        if (RequiresUserLogin())
-        {
-            return Challenge();
-        }
-
         var form = new UploadFormModel
         {
             DocType = _options.DocType,
@@ -40,28 +34,21 @@ public class HomeController : Controller
             Title = _options.Title,
         };
 
-            return View(new UploadPageViewModel
-            {
-                BaseUrl = _options.BaseUrl,
-                HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
-                RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
-                IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
-                UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
-                OnBehalfUserEmail = _options.OnBehalf.UserEmail,
-                OnBehalfUserId = _options.OnBehalf.UserId,
-                Form = form,
-            });
-        }
+        return View(new UploadPageViewModel
+        {
+            BaseUrl = _options.BaseUrl,
+            HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
+            UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
+            OnBehalfUserEmail = _options.OnBehalf.UserEmail,
+            OnBehalfUserId = _options.OnBehalf.UserId,
+            Form = form,
+        });
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload([Bind(Prefix = "Form")] UploadFormModel form, CancellationToken cancellationToken)
     {
-        if (RequiresUserLogin())
-        {
-            return Challenge();
-        }
-
         var documentTypeId = ParseGuidOrNull(form.DocumentTypeId, nameof(form.DocumentTypeId));
         var ownerId = ParseGuidOrNull(form.OwnerId, nameof(form.OwnerId));
         var createdBy = ParseGuidOrNull(form.CreatedBy, nameof(form.CreatedBy));
@@ -121,8 +108,6 @@ public class HomeController : Controller
             {
                 BaseUrl = _options.BaseUrl,
                 HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
-                RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
-                IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
                 UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
                 OnBehalfUserEmail = _options.OnBehalf.UserEmail,
                 OnBehalfUserId = _options.OnBehalf.UserId,
@@ -141,10 +126,6 @@ public class HomeController : Controller
                 },
             });
         }
-        catch (MsalUiRequiredException)
-        {
-            return Challenge();
-        }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Upload thất bại.");
@@ -160,8 +141,6 @@ public class HomeController : Controller
     {
         BaseUrl = _options.BaseUrl,
         HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
-        RequiresUserAuthentication = _accessTokenProvider.RequiresUserAuthentication,
-        IsAuthenticated = User?.Identity?.IsAuthenticated ?? false,
         UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
         OnBehalfUserEmail = _options.OnBehalf.UserEmail,
         OnBehalfUserId = _options.OnBehalf.UserId,
@@ -200,6 +179,4 @@ public class HomeController : Controller
         }
     }
 
-    private bool RequiresUserLogin() => _accessTokenProvider.RequiresUserAuthentication
-        && (User?.Identity?.IsAuthenticated != true);
 }

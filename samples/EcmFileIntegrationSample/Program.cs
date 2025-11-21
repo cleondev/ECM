@@ -1,12 +1,8 @@
 using System.Net;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Web;
-using Microsoft.Identity.Web.UI;
 
 using samples.EcmFileIntegrationSample;
 
@@ -39,28 +35,9 @@ builder.Services.AddHttpClient<EcmFileClient>((serviceProvider, client) =>
         UseCookies = true,
     });
 
-var azureAdSection = builder.Configuration.GetSection("AzureAd");
-var ecmOptions = builder.Configuration.GetSection("Ecm").Get<EcmIntegrationOptions>() ?? new EcmIntegrationOptions();
-var enableAzureSso = ecmOptions.UseAzureSso;
-
-if (enableAzureSso)
-{
-    builder.Services
-        .AddAuthentication(options =>
-        {
-            options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-        })
-        .AddMicrosoftIdentityWebApp(azureAdSection)
-        .EnableTokenAcquisitionToCallDownstreamApi()
-        .AddInMemoryTokenCaches();
-
-    builder.Services.AddAuthorization();
-}
-
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
+builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
@@ -74,12 +51,6 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
-if (enableAzureSso)
-{
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
 
 app.MapControllerRoute(
     name: "default",
