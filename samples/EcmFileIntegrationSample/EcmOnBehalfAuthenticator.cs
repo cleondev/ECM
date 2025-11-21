@@ -55,7 +55,7 @@ public sealed class EcmOnBehalfAuthenticator
                     "Either Ecm:OnBehalf:UserEmail or Ecm:OnBehalf:UserId must be provided when OnBehalf.Enabled=true.");
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, "api/iam/auth/on-behalf")
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/iam/auth/on-behalf")
             {
                 Content = JsonContent.Create(new
                 {
