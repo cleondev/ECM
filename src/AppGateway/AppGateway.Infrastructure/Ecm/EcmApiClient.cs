@@ -964,7 +964,13 @@ internal sealed class EcmApiClient(
         var oidcIdentity = principal?.Identities.FirstOrDefault(identity =>
             identity.IsAuthenticated &&
             string.Equals(identity.AuthenticationType, authenticationScheme, StringComparison.OrdinalIgnoreCase));
-        var tokenPrincipal = oidcIdentity is null ? null : new ClaimsPrincipal(oidcIdentity);
+
+        var tokenPrincipal = oidcIdentity switch
+        {
+            not null => new ClaimsPrincipal(oidcIdentity),
+            _ when principal?.Identity?.IsAuthenticated == true => principal,
+            _ => null,
+        };
 
         if (tokenPrincipal?.Identity?.IsAuthenticated == true)
         {
