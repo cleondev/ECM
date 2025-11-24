@@ -903,9 +903,11 @@ internal sealed class EcmApiClient(
     private async Task AttachAuthenticationAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var authorization = _httpContextAccessor.HttpContext?.Request.Headers.Authorization;
-        if (!string.IsNullOrWhiteSpace(authorization))
+        if (!string.IsNullOrWhiteSpace(authorization)
+            && AuthenticationHeaderValue.TryParse(authorization, out var authorizationHeader)
+            && string.Equals(authorizationHeader.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
         {
-            request.Headers.TryAddWithoutValidation("Authorization", authorization.ToString());
+            request.Headers.Authorization = authorizationHeader;
             return;
         }
 
@@ -933,8 +935,12 @@ internal sealed class EcmApiClient(
 
         var httpContext = _httpContextAccessor.HttpContext;
         var principal = EnsureHomeAccountIdentifiers(httpContext?.User);
+        var oidcIdentity = principal?.Identities.FirstOrDefault(identity =>
+            identity.IsAuthenticated &&
+            string.Equals(identity.AuthenticationType, authenticationScheme, StringComparison.OrdinalIgnoreCase));
+        var tokenPrincipal = oidcIdentity is null ? null : new ClaimsPrincipal(oidcIdentity);
 
-        if (principal?.Identity?.IsAuthenticated == true)
+        if (tokenPrincipal?.Identity?.IsAuthenticated == true)
         {
             try
             {
@@ -942,7 +948,7 @@ internal sealed class EcmApiClient(
                     scopes,
                     authenticationScheme: authenticationScheme,
                     tenantId: _options.TenantId,
-                    user: principal,
+                    user: tokenPrincipal,
                     tokenAcquisitionOptions: tokenAcquisitionOptions);
 
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
