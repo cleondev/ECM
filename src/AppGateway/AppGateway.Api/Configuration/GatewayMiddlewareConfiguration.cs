@@ -2,6 +2,7 @@ using System.IO;
 using AppGateway.Api.Middlewares;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.StaticFiles;
 using ServiceDefaults;
 
@@ -11,6 +12,18 @@ public static class GatewayMiddlewareConfiguration
 {
     public static WebApplication UseGatewayMiddleware(this WebApplication app)
     {
+        var forwardedOptions = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedProto |
+                               ForwardedHeaders.XForwardedFor |
+                               ForwardedHeaders.XForwardedHost
+        };
+
+        forwardedOptions.KnownNetworks.Clear();
+        forwardedOptions.KnownProxies.Clear();
+
+        app.UseForwardedHeaders(forwardedOptions);
+
         app.UseSerilogEnrichedRequestLogging();
         app.UseMiddleware<RequestLoggingMiddleware>();
 
