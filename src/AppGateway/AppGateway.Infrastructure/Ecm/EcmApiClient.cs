@@ -903,9 +903,11 @@ internal sealed class EcmApiClient(
     private async Task AttachAuthenticationAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var authorization = _httpContextAccessor.HttpContext?.Request.Headers.Authorization;
-        if (!string.IsNullOrWhiteSpace(authorization))
+        if (!string.IsNullOrWhiteSpace(authorization)
+            && AuthenticationHeaderValue.TryParse(authorization, out var authorizationHeader)
+            && string.Equals(authorizationHeader.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
         {
-            request.Headers.TryAddWithoutValidation("Authorization", authorization.ToString());
+            request.Headers.Authorization = authorizationHeader;
             return;
         }
 
