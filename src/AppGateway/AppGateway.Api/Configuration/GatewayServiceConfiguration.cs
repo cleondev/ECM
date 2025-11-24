@@ -65,6 +65,11 @@ public static class GatewayServiceConfiguration
             options.ResponseMode = OpenIdConnectResponseMode.FormPost;
             options.Events ??= new OpenIdConnectEvents();
 
+            if (!options.Scope.Contains("email", StringComparer.OrdinalIgnoreCase))
+            {
+                options.Scope.Add("email");
+            }
+
             foreach (var scope in ecmScopes)
             {
                 if (!options.Scope.Contains(scope, StringComparer.Ordinal))

@@ -82,7 +82,11 @@ internal sealed class EcmApiClient(
             }
         }
 
-        using var request = await CreateRequestAsync(HttpMethod.Get, "api/iam/profile", cancellationToken);
+        using var request = await CreateRequestAsync(
+            HttpMethod.Get,
+            "api/iam/profile",
+            cancellationToken,
+            allowAppTokenFallback: false);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
@@ -130,14 +134,22 @@ internal sealed class EcmApiClient(
 
     public async Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Put, "api/iam/profile", cancellationToken);
+        using var request = await CreateRequestAsync(
+            HttpMethod.Put,
+            "api/iam/profile",
+            cancellationToken,
+            allowAppTokenFallback: false);
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
 
     public async Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Put, "api/iam/profile/password", cancellationToken);
+        using var request = await CreateRequestAsync(
+            HttpMethod.Put,
+            "api/iam/profile/password",
+            cancellationToken,
+            allowAppTokenFallback: false);
         request.Content = JsonContent.Create(requestDto);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -803,12 +815,13 @@ internal sealed class EcmApiClient(
         HttpMethod method,
         string uri,
         CancellationToken cancellationToken,
-        bool includeAuthentication = true)
+        bool includeAuthentication = true,
+        bool allowAppTokenFallback = true)
     {
         var request = new HttpRequestMessage(method, uri);
         if (includeAuthentication)
         {
-            await AttachAuthenticationAsync(request, cancellationToken);
+            await AttachAuthenticationAsync(request, cancellationToken, allowAppTokenFallback);
         }
 
         ApplyForwardedHeaders(request);
@@ -900,7 +913,10 @@ internal sealed class EcmApiClient(
         }
     }
 
-    private async Task AttachAuthenticationAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    private async Task AttachAuthenticationAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken,
+        bool allowAppTokenFallback)
     {
         var authorization = _httpContextAccessor.HttpContext?.Request.Headers.Authorization;
         if (!string.IsNullOrWhiteSpace(authorization)
@@ -913,12 +929,22 @@ internal sealed class EcmApiClient(
 
         if (string.IsNullOrWhiteSpace(_options.Scope))
         {
+            if (!allowAppTokenFallback)
+            {
+                throw new UnauthorizedAccessException("No user access token could be acquired because no API scope is configured.");
+            }
+
             return;
         }
 
         var scopes = ScopeUtilities.ParseScopes(_options.Scope);
         if (scopes.Length == 0)
         {
+            if (!allowAppTokenFallback)
+            {
+                throw new UnauthorizedAccessException("No user access token could be acquired because no valid scopes are configured.");
+            }
+
             return;
         }
 
@@ -959,7 +985,19 @@ internal sealed class EcmApiClient(
                 _logger.LogWarning(
                     exception,
                     "Falling back to app-only token while calling ECM API because acquiring a user token failed.");
+
+                if (!allowAppTokenFallback)
+                {
+                    throw new UnauthorizedAccessException(
+                        "Failed to acquire a user access token required to call the ECM API.",
+                        exception);
+                }
             }
+        }
+
+        if (!allowAppTokenFallback)
+        {
+            throw new UnauthorizedAccessException("User authentication is required to call the ECM API but no authenticated principal was available.");
         }
 
         try
