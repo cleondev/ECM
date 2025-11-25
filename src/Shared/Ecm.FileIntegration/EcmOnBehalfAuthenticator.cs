@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace samples.EcmFileIntegrationSample;
+namespace Ecm.FileIntegration;
 
 public sealed class EcmOnBehalfAuthenticator
 {
