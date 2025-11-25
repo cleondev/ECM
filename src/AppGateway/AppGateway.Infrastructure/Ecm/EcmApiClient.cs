@@ -933,6 +933,13 @@ internal sealed class EcmApiClient(
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(authorization)
+            && AuthenticationHeaderValue.TryParse(authorization, out var parsedAuthorization))
+        {
+            request.Headers.Authorization = parsedAuthorization;
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_options.Scope))
         {
             if (!allowAppTokenFallback)
