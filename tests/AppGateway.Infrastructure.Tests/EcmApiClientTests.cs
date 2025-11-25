@@ -130,5 +130,50 @@ public sealed class EcmApiClientTests
 
         public Task<IEnumerable<string>> GetAccountIdentifiersAsync(string? authenticationScheme = null)
             => Task.FromResult<IEnumerable<string>>([]);
+
+        Task<string> ITokenAcquisition.GetAccessTokenForUserAsync(IEnumerable<string> scopes, string? tenantId, string? userFlow, ClaimsPrincipal? user, TokenAcquisitionOptions? tokenAcquisitionOptions)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<string> ITokenAcquisition.GetAccessTokenForUserAsync(IEnumerable<string> scopes, string? authenticationScheme, string? tenantId, string? userFlow, ClaimsPrincipal? user, TokenAcquisitionOptions? tokenAcquisitionOptions)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<AuthenticationResult> ITokenAcquisition.GetAuthenticationResultForUserAsync(IEnumerable<string> scopes, string? tenantId, string? userFlow, ClaimsPrincipal? user, TokenAcquisitionOptions? tokenAcquisitionOptions)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<AuthenticationResult> ITokenAcquisition.GetAuthenticationResultForUserAsync(IEnumerable<string> scopes, string? authenticationScheme, string? tenantId, string? userFlow, ClaimsPrincipal? user, TokenAcquisitionOptions? tokenAcquisitionOptions)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<string> ITokenAcquisition.GetAccessTokenForAppAsync(string scope, string? authenticationScheme, string? tenant, TokenAcquisitionOptions? tokenAcquisitionOptions)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<AuthenticationResult> ITokenAcquisition.GetAuthenticationResultForAppAsync(string scope, string? authenticationScheme, string? tenant, TokenAcquisitionOptions? tokenAcquisitionOptions)
+        {
+            throw new NotImplementedException();
+        }
+
+        void ITokenAcquisition.ReplyForbiddenWithWwwAuthenticateHeader(IEnumerable<string> scopes, MsalUiRequiredException msalServiceException, string? authenticationScheme, HttpResponse? httpResponse)
+        {
+            throw new NotImplementedException();
+        }
+
+        string ITokenAcquisition.GetEffectiveAuthenticationScheme(string? authenticationScheme)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task ITokenAcquisition.ReplyForbiddenWithWwwAuthenticateHeaderAsync(IEnumerable<string> scopes, MsalUiRequiredException msalServiceException, HttpResponse? httpResponse)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

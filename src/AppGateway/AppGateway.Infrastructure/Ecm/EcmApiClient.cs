@@ -841,15 +841,14 @@ internal sealed class EcmApiClient(
 
     private void AttachApiKeyHeader(HttpRequestMessage request)
     {
-        var apiKey = _httpContextAccessor.HttpContext?.Request.Headers[ApiKeyHeaderName];
-
-        if (StringValues.IsNullOrEmpty(apiKey))
+        if (_httpContextAccessor.HttpContext?.Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKey) == true &&
+            apiKey is { } nonNullApiKey && !StringValues.IsNullOrEmpty(nonNullApiKey))
         {
-            return;
+            request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, nonNullApiKey.ToArray());
         }
-
-        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, apiKey.AsEnumerable());
     }
+
+
 
     private void AttachPasswordLoginHeaders(HttpRequestMessage request)
     {
