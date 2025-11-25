@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Globalization;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -122,6 +124,114 @@ public sealed class EcmFileClient
         return null;
     }
 
+    public async Task<IReadOnlyCollection<TagLabelDto>> ListTagsAsync(CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.GetAsync(GetTagsEndpoint(), cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var tags = await response.Content.ReadFromJsonAsync<TagLabelDto[]>(cancellationToken: cancellationToken);
+        return tags ?? Array.Empty<TagLabelDto>();
+    }
+
+    public async Task<TagLabelDto?> CreateTagAsync(TagCreateRequest request, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.PostAsJsonAsync(GetTagsEndpoint(), request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<TagLabelDto?> UpdateTagAsync(Guid tagId, TagUpdateRequest request, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.PutAsJsonAsync($"{GetTagsEndpoint()}/{tagId}", request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Không tìm thấy tag {TagId} khi cập nhật.", tagId);
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.DeleteAsync($"{GetTagsEndpoint()}/{tagId}", cancellationToken);
+
+        if (response.StatusCode is HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Không tìm thấy tag {TagId} khi xoá.", tagId);
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    public async Task<DocumentListResult?> ListDocumentsAsync(DocumentListQuery query, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        var url = QueryHelpers.AddQueryString(GetDocumentsEndpoint(), BuildDocumentQueryParameters(query));
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<DocumentListResult>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<DocumentListItem?> UpdateDocumentAsync(Guid documentId, DocumentUpdateRequest request, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.PutAsJsonAsync($"{GetDocumentsEndpoint()}/{documentId}", request, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Document {DocumentId} không tồn tại khi cập nhật.", documentId);
+            return null;
+        }
+
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            _logger.LogWarning("Không đủ quyền cập nhật document {DocumentId}.", documentId);
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<DocumentListItem>(cancellationToken: cancellationToken);
+    }
+
+    public async Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.DeleteAsync($"{GetDocumentsEndpoint()}/{documentId}", cancellationToken);
+
+        if (response.StatusCode is HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Document {DocumentId} không tồn tại khi xoá.", documentId);
+            return false;
+        }
+
+        if (response.StatusCode is HttpStatusCode.Forbidden)
+        {
+            _logger.LogWarning("Không đủ quyền xoá document {DocumentId}.", documentId);
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
     private string GetDocumentsEndpoint() => _options.OnBehalf.Enabled
         ? "/api/documents"
         : "/api/ecm/documents";
@@ -129,6 +239,43 @@ public sealed class EcmFileClient
     private string GetDownloadEndpoint() => _options.OnBehalf.Enabled
         ? "/api/documents/files/download"
         : "/api/ecm/files/download";
+
+    private string GetTagsEndpoint() => _options.OnBehalf.Enabled
+        ? "/api/tags"
+        : "/api/ecm/tags";
+
+    private static Dictionary<string, string?> BuildDocumentQueryParameters(DocumentListQuery query)
+    {
+        var parameters = new Dictionary<string, string?>();
+
+        AddIfNotEmpty(parameters, "q", query.Query);
+        AddIfNotEmpty(parameters, "doc_type", query.DocType);
+        AddIfNotEmpty(parameters, "status", query.Status);
+        AddIfNotEmpty(parameters, "sensitivity", query.Sensitivity);
+
+        if (query.OwnerId is { } owner)
+        {
+            parameters["owner_id"] = owner.ToString();
+        }
+
+        if (query.GroupId is { } groupId)
+        {
+            parameters["group_id"] = groupId.ToString();
+        }
+
+        parameters["page"] = query.Page.ToString(CultureInfo.InvariantCulture);
+        parameters["pageSize"] = query.PageSize.ToString(CultureInfo.InvariantCulture);
+
+        return parameters;
+    }
+
+    private static void AddIfNotEmpty(IDictionary<string, string?> parameters, string key, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            parameters[key] = value;
+        }
+    }
 
     private static bool IsRedirect(HttpStatusCode statusCode) =>
         statusCode is HttpStatusCode.Moved or HttpStatusCode.Redirect or HttpStatusCode.RedirectKeepVerb or HttpStatusCode.RedirectMethod;

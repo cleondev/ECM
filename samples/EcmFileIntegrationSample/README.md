@@ -55,3 +55,8 @@ Trên giao diện, bạn có thể:
 1. Gọi `GET /api/iam/profile` để xác định người dùng (để dùng làm owner/creator nếu để trống).
 2. Upload file qua `POST /api/ecm/documents` (hoặc `POST /api/documents` khi tích hợp AppGateway + auth/on-behalf) bằng `multipart/form-data` cùng metadata (`ownerId`, `createdBy`, `docType`, `status`, `sensitivity`).
 3. Hiển thị thông tin tài liệu, phiên bản mới nhất và presigned URL tải file (`GET /api/ecm/files/download/{versionId}` hoặc `GET /api/documents/files/download/{versionId}`) ngay trên giao diện.
+
+Ngoài upload, trang mẫu còn cung cấp form mẫu cho các API ECM:
+
+- CRUD tag (`GET/POST/PUT/DELETE /api/ecm/tags`) để tạo, cập nhật, xoá tag label.
+- Liệt kê tài liệu (`GET /api/ecm/documents`), cập nhật metadata (`PUT /api/ecm/documents/{id}`) và xoá tài liệu (`DELETE /api/ecm/documents/{id}`).
