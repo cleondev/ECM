@@ -53,7 +53,7 @@ export function FileManager() {
   const [searchQuery, setSearchQuery] = useState("")
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(320)
-  const [activeRightTab, setActiveRightTab] = useState<"property" | "flow" | "form">("property")
+  const [activeRightTab, setActiveRightTab] = useState<"info" | "flow" | "form" | "chat">("info")
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(true)
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
@@ -495,11 +495,11 @@ export function FileManager() {
     setIsRightSidebarOpen((prev) => !prev)
   }
 
-  const handleRightTabChange = (tab: "property" | "flow" | "form") => {
+  const handleRightTabChange = (tab: "info" | "flow" | "form" | "chat") => {
     setActiveRightTab(tab)
   }
 
-  const handleOpenDetailsPanel = (tab: "property" | "flow" | "form", file?: FileItem) => {
+  const handleOpenDetailsPanel = (tab: "info" | "flow" | "form" | "chat", file?: FileItem) => {
     const targetFile = file ?? selectedFile
 
     if (!targetFile) {

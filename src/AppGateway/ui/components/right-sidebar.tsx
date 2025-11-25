@@ -3,17 +3,34 @@
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import type { FileItem } from "@/lib/types"
-import { Calendar, ChevronDown, ChevronRight, Clock, FileText, FolderOpen, GitBranch, Tag, User, X } from "lucide-react"
+import {
+  AtSign,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  FileText,
+  FolderOpen,
+  GitBranch,
+  MessageCircle,
+  Paperclip,
+  Send,
+  Smile,
+  Tag,
+  User,
+  X,
+} from "lucide-react"
+import type React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { fetchFlows, fetchSystemTags, fetchTags, updateFile, type UpdateFileRequest } from "@/lib/api"
 import type { Flow, SystemTag, TagNode } from "@/lib/types"
 import { FileTypeIcon } from "./file-type-icon"
 
-type ActiveTab = "property" | "flow" | "form"
+type ActiveTab = "info" | "flow" | "form" | "chat"
 
 type RightSidebarProps = {
   selectedFile: FileItem | null
@@ -21,6 +38,15 @@ type RightSidebarProps = {
   onTabChange: (tab: ActiveTab) => void
   onClose: () => void
   onFileUpdate?: (file: FileItem) => void
+}
+
+type ChatMessage = {
+  id: string
+  author: string
+  content: string
+  timestamp: string
+  mentions?: string[]
+  attachments?: string[]
 }
 
 const statusColors: Record<NonNullable<FileItem['status']>, string> = {
@@ -58,6 +84,10 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
   const [systemTags, setSystemTags] = useState<SystemTag[]>([])
   const [tagTree, setTagTree] = useState<TagNode[]>([])
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState("")
+  const [chatAttachments, setChatAttachments] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
@@ -69,6 +99,39 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
 
   useEffect(() => {
     setEditValues(createEditableState(selectedFile))
+  }, [selectedFile])
+
+  useEffect(() => {
+    const ownerHandle = selectedFile?.owner ? `@${selectedFile.owner}` : "@owner"
+    const starterMessages: ChatMessage[] = [
+      {
+        id: "intro",
+        author: "System",
+        content: `Discuss updates to ${selectedFile?.name ?? "this file"} here.`,
+        timestamp: "Just now",
+      },
+      {
+        id: "owner",
+        author: selectedFile?.owner ?? "Owner",
+        content: `Let's keep ${ownerHandle} in the loop as we make changes.`,
+        timestamp: "3h ago",
+        mentions: [ownerHandle],
+      },
+      {
+        id: "review",
+        author: "Reviewer",
+        content: "Please attach the latest changes when ready.",
+        timestamp: "1d ago",
+        attachments: [selectedFile?.name ? `${selectedFile.name}-v1.pdf` : "design-spec.pdf"],
+      },
+    ]
+
+    setChatMessages(starterMessages)
+    setChatInput("")
+    setChatAttachments([])
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }, [selectedFile])
 
   useEffect(() => {
@@ -165,6 +228,71 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       return null
     }
     return findTag(tagTree)
+  }
+
+  const renderMessageContent = (message: ChatMessage) => {
+    const parts = message.content.split(/(@[\w.-]+)/g)
+
+    return (
+      <p className="text-sm text-sidebar-foreground/90 leading-relaxed">
+        {parts.map((part, index) => {
+          if (part.startsWith("@")) {
+            return (
+              <span key={`${message.id}-mention-${index}`} className="font-semibold text-primary">
+                {part}
+              </span>
+            )
+          }
+
+          return <span key={`${message.id}-text-${index}`}>{part}</span>
+        })}
+      </p>
+    )
+  }
+
+  const handleInsertMention = () => {
+    const mention = selectedFile?.owner ? `@${selectedFile.owner}` : "@mention"
+    setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}${mention} `)
+  }
+
+  const handleAddEmoji = () => {
+    setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}😊 `)
+  }
+
+  const handleAttachmentClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAttachmentChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    if (!files.length) return
+
+    setChatAttachments((previous) => [...previous, ...files])
+  }
+
+  const handleRemoveAttachment = (name: string) => {
+    setChatAttachments((previous) => previous.filter((file) => file.name !== name))
+  }
+
+  const handleSendMessage = () => {
+    const trimmed = chatInput.trim()
+    if (!trimmed && chatAttachments.length === 0) return
+
+    const newMessage: ChatMessage = {
+      id: `${Date.now()}`,
+      author: "You",
+      content: trimmed || "Shared attachments",
+      timestamp: "Just now",
+      mentions: trimmed ? trimmed.match(/@[\w.-]+/g) ?? undefined : undefined,
+      attachments: chatAttachments.length ? chatAttachments.map((file) => file.name) : undefined,
+    }
+
+    setChatMessages((previous) => [newMessage, ...previous])
+    setChatInput("")
+    setChatAttachments([])
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   if (!selectedFile) {
@@ -268,13 +396,18 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     [selectedFile, onFileUpdate],
   )
 
-  const activeTabLabel =
-    activeTab === "flow" ? "Flow" : activeTab === "form" ? "Form" : "Property"
+  const tabLabels: Record<ActiveTab, string> = {
+    info: "Info",
+    flow: "Flow",
+    form: "Form",
+    chat: "Chat",
+  }
 
   const tabBadgeStyles: Record<ActiveTab, string> = {
-    property: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
+    info: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
     flow: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
     form: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
+    chat: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
   }
 
   return (
@@ -283,7 +416,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
         <div>
           <h2 className="font-semibold text-sidebar-foreground">File Details</h2>
           <Badge variant="outline" className={cn("text-[10px] mt-2", tabBadgeStyles[activeTab])}>
-            {activeTabLabel}
+            {tabLabels[activeTab]}
           </Badge>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
@@ -295,11 +428,11 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
         value={activeTab}
         onValueChange={(value) => {
           if (!value) return
-          onTabChange((value as ActiveTab) || "property")
+          onTabChange((value as ActiveTab) || "info")
         }}
         className="flex-1 flex flex-col min-h-0"
       >
-        <TabsContent value="property" className="flex-1 overflow-y-auto mt-0">
+        <TabsContent value="info" className="flex-1 overflow-y-auto mt-0">
           <div className="p-4">
             <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center mb-4">
               <FileTypeIcon file={selectedFile} size="lg" />
@@ -622,6 +755,132 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                   <option value="in-progress">In Progress</option>
                   <option value="completed">Completed</option>
                 </select>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="chat" className="flex-1 overflow-y-auto mt-0">
+          <div className="p-4 flex flex-col gap-4 h-full">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Team chat</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Mention teammates, react with emoji, or drop files for a quick review.
+                </p>
+              </div>
+              <Badge variant="outline" className="text-[10px]">Live</Badge>
+            </div>
+
+            <div className="space-y-3">
+              {chatMessages.map((message) => (
+                <div key={message.id} className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-sidebar-foreground truncate">{message.author}</p>
+                        <p className="text-xs text-muted-foreground">{message.timestamp}</p>
+                      </div>
+                    </div>
+
+                    {message.mentions?.length ? (
+                      <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                        {message.mentions.length} mention{message.mentions.length > 1 ? "s" : ""}
+                      </Badge>
+                    ) : null}
+                  </div>
+
+                  {renderMessageContent(message)}
+
+                  {message.attachments?.length ? (
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      {message.attachments.map((file) => (
+                        <div
+                          key={`${message.id}-${file}`}
+                          className="flex items-center gap-2 rounded-md border border-border px-2 py-1 bg-muted/50"
+                        >
+                          <Paperclip className="h-3.5 w-3.5" />
+                          <span className="truncate max-w-[200px]" title={file}>
+                            {file}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-auto space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleInsertMention}>
+                  <AtSign className="h-4 w-4" />
+                  Mention
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleAddEmoji}>
+                  <Smile className="h-4 w-4" />
+                  Emoji
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleAttachmentClick}>
+                  <Paperclip className="h-4 w-4" />
+                  File
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleAttachmentChange}
+                />
+              </div>
+
+              {chatAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {chatAttachments.map((file) => (
+                    <div
+                      key={`${file.name}-${file.lastModified}`}
+                      className="flex items-center gap-2 rounded-md border border-border px-2 py-1 bg-muted/60"
+                    >
+                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs truncate max-w-[160px]" title={file.name}>
+                        {file.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(file.name)}
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label={`Remove ${file.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <textarea
+                  value={chatInput}
+                  onChange={(event) => setChatInput(event.target.value)}
+                  placeholder="Write a message with mentions, emoji, or file notes..."
+                  className="w-full min-h-[90px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none transition-all"
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    Tip: use @mentions, emoji, or attach files for richer context.
+                  </p>
+                  <Button
+                    className="gap-2"
+                    onClick={handleSendMessage}
+                    disabled={!chatInput.trim() && chatAttachments.length === 0}
+                  >
+                    <Send className="h-4 w-4" />
+                    <span>Send</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

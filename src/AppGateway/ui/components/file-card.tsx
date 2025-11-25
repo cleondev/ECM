@@ -4,7 +4,7 @@ import { useRef } from "react"
 import type React from "react"
 
 import type { FileItem } from "@/lib/types"
-import { Download, Edit3, Eye, FileText, GitBranch, MoreVertical, Share2, Tag, Trash2 } from "lucide-react"
+import { Download, Edit3, Eye, FileText, GitBranch, MessageCircle, MoreVertical, Share2, Tag, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,7 +28,7 @@ type FileCardProps = {
   onDownload?: () => void
   onShare?: () => void
   onAssignTags?: () => void
-  onOpenDetails?: (tab: "property" | "flow" | "form") => void
+  onOpenDetails?: (tab: "info" | "flow" | "form" | "chat") => void
   onDelete?: () => void
   actionsDisabled?: boolean
   assignTagsDisabled?: boolean
@@ -83,7 +83,7 @@ export function FileCard({
             ) : null}
           </div>
 
-          <div className="px-4 py-3 sm:p-4 flex-1 flex flex-col gap-2">
+          <div className="px-3.5 py-3 sm:p-3.5 flex-1 flex flex-col gap-2">
             <div className="flex items-start justify-between gap-3">
               <h3 className="flex-1 min-w-0 text-sm sm:text-base font-medium leading-5 text-card-foreground break-words line-clamp-2">
                 {file.name}
@@ -151,9 +151,9 @@ export function FileCard({
           Add Tags
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => onOpenDetails?.("property")} disabled={actionsDisabled}>
+        <ContextMenuItem onSelect={() => onOpenDetails?.("info")} disabled={actionsDisabled}>
           <FileText className="h-4 w-4" />
-          Open Property
+          Open Info
         </ContextMenuItem>
         <ContextMenuItem onSelect={() => onOpenDetails?.("flow")} disabled={actionsDisabled}>
           <GitBranch className="h-4 w-4" />
@@ -162,6 +162,10 @@ export function FileCard({
         <ContextMenuItem onSelect={() => onOpenDetails?.("form")} disabled={actionsDisabled}>
           <Edit3 className="h-4 w-4" />
           Open Form
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onOpenDetails?.("chat")} disabled={actionsDisabled}>
+          <MessageCircle className="h-4 w-4" />
+          Open Chat
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
