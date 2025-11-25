@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-using Ecm.FileIntegration;
+using Ecm.Sdk;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEcmFileIntegration(builder.Configuration);
+builder.Services.AddEcmSdk(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 

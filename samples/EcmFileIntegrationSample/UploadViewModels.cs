@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-using Ecm.FileIntegration;
+using Ecm.Sdk;
 
 namespace samples.EcmFileIntegrationSample;
 

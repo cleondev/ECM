@@ -3,20 +3,20 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.FileIntegration;
+namespace Ecm.Sdk;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddEcmFileIntegration(this IServiceCollection services, IConfiguration configuration) =>
-        services.AddEcmFileIntegration(configuration.GetSection("Ecm"));
+    public static IServiceCollection AddEcmSdk(this IServiceCollection services, IConfiguration configuration) =>
+        services.AddEcmSdk(configuration.GetSection("Ecm"));
 
-    public static IServiceCollection AddEcmFileIntegration(this IServiceCollection services, IConfigurationSection section)
+    public static IServiceCollection AddEcmSdk(this IServiceCollection services, IConfigurationSection section)
     {
         services.AddEcmIntegrationOptions(section.Bind);
         return services.RegisterEcmIntegration();
     }
 
-    public static IServiceCollection AddEcmFileIntegration(
+    public static IServiceCollection AddEcmSdk(
         this IServiceCollection services,
         Action<EcmIntegrationOptions> configureOptions)
     {
@@ -38,6 +38,16 @@ public static class ServiceCollectionExtensions
             .Validate(
                 options => !options.OnBehalf.Enabled || !string.IsNullOrWhiteSpace(options.OnBehalf.UserEmail) || options.OnBehalf.UserId is not null,
                 "Ecm:OnBehalf:UserEmail or UserId must be configured when OnBehalf.Enabled=true.")
+            .Validate(
+                options => !options.OnBehalf.Sso.Enabled || options.OnBehalf.Enabled,
+                "Ecm:OnBehalf:Sso.Enabled requires OnBehalf.Enabled=true.")
+            .Validate(
+                options => !options.OnBehalf.Sso.Enabled
+                    || (!string.IsNullOrWhiteSpace(options.OnBehalf.Sso.Authority)
+                        && !string.IsNullOrWhiteSpace(options.OnBehalf.Sso.ClientId)
+                        && !string.IsNullOrWhiteSpace(options.OnBehalf.Sso.ClientSecret)
+                        && options.OnBehalf.Sso.Scopes.Length > 0),
+                "Ecm:OnBehalf:Sso settings are incomplete when OnBehalf:Sso:Enabled=true.")
             .ValidateOnStart();
     }
 
@@ -45,6 +55,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton(new CookieContainer());
         services.AddScoped<EcmAccessTokenProvider>();
+        services.AddScoped<EcmSsoTokenProvider>();
         services.AddScoped<EcmOnBehalfAuthenticator>();
         services.AddTransient<EcmAccessTokenHandler>();
 

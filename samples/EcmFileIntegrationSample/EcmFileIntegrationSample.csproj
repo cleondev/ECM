@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Shared\Ecm.FileIntegration\Ecm.FileIntegration.csproj" />
+    <ProjectReference Include="..\..\src\Shared\Ecm.SDK\Ecm.SDK.csproj" />
   </ItemGroup>
 
 </Project>

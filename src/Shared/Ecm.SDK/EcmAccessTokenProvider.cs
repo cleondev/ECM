@@ -1,19 +1,22 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.FileIntegration;
+namespace Ecm.Sdk;
 
 public sealed class EcmAccessTokenProvider
 {
     private readonly IOptions<EcmIntegrationOptions> _options;
     private readonly ILogger<EcmAccessTokenProvider> _logger;
+    private readonly EcmSsoTokenProvider _ssoTokenProvider;
 
     public EcmAccessTokenProvider(
         IOptions<EcmIntegrationOptions> options,
-        ILogger<EcmAccessTokenProvider> logger)
+        ILogger<EcmAccessTokenProvider> logger,
+        EcmSsoTokenProvider ssoTokenProvider)
     {
         _options = options;
         _logger = logger;
+        _ssoTokenProvider = ssoTokenProvider;
     }
 
     public bool HasConfiguredAccess => !string.IsNullOrWhiteSpace(_options.Value.AccessToken)
@@ -27,7 +30,17 @@ public sealed class EcmAccessTokenProvider
 
         var options = _options.Value;
 
-        if (options.OnBehalf.Enabled)
+        if (options.OnBehalf.Sso.Enabled)
+        {
+            var ssoToken = await _ssoTokenProvider.GetAccessTokenAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(ssoToken))
+            {
+                return ssoToken;
+            }
+        }
+
+        if (options.OnBehalf.Enabled && !options.OnBehalf.Sso.Enabled)
         {
             return null;
         }

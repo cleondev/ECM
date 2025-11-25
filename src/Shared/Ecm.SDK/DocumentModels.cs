@@ -1,4 +1,4 @@
-namespace Ecm.FileIntegration;
+namespace Ecm.Sdk;
 
 public sealed record DocumentUploadRequest(
     Guid OwnerId,

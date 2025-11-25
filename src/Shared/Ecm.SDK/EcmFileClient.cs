@@ -8,7 +8,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.FileIntegration;
+namespace Ecm.Sdk;
 
 public sealed class EcmFileClient
 {
