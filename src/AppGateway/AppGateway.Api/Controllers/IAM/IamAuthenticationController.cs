@@ -128,11 +128,12 @@ public sealed class IamAuthenticationController(
             return NotFound(new { message = "User not found." });
         }
 
-        var principal = CreateLocalUserPrincipal(profile);
-        if (principal.Identity is ClaimsIdentity identity)
-        {
-            identity.AddClaim(new Claim(PasswordLoginClaims.OnBehalfClaimType, "true"));
-        }
+        var caller = HttpContext.User?.Identity?.Name;
+        var principal = CreateLocalUserPrincipal(
+            profile,
+            authenticationMethod: "on-behalf",
+            isOnBehalf: true,
+            onBehalfBy: caller);
 
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
@@ -186,7 +187,7 @@ public sealed class IamAuthenticationController(
             return Unauthorized(new { message = "Invalid email or password." });
         }
 
-        var principal = CreateLocalUserPrincipal(profile);
+        var principal = CreateLocalUserPrincipal(profile, authenticationMethod: "password");
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
@@ -195,7 +196,11 @@ public sealed class IamAuthenticationController(
         return Ok(new CheckLoginResponseDto(true, resolvedRedirect, null, null, profile));
     }
 
-    private static ClaimsPrincipal CreateLocalUserPrincipal(UserSummaryDto user)
+    private static ClaimsPrincipal CreateLocalUserPrincipal(
+        UserSummaryDto user,
+        string authenticationMethod,
+        bool isOnBehalf = false,
+        string? onBehalfBy = null)
     {
         var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
         identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
@@ -203,6 +208,7 @@ public sealed class IamAuthenticationController(
         identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
         identity.AddClaim(new Claim(ClaimTypes.Upn, user.Email));
         identity.AddClaim(new Claim("preferred_username", user.Email));
+        identity.AddClaim(new Claim("auth_method", authenticationMethod));
         identity.AddClaim(new Claim(PasswordLoginClaims.MarkerClaimType, PasswordLoginClaims.MarkerClaimValue));
         identity.AddClaim(new Claim(PasswordLoginClaims.ProfileClaimType, JsonSerializer.Serialize(user)));
 
@@ -233,6 +239,16 @@ public sealed class IamAuthenticationController(
         foreach (var group in user.Groups ?? [])
         {
             identity.AddClaim(new Claim("group", group.Name));
+        }
+
+        if (isOnBehalf)
+        {
+            identity.AddClaim(new Claim(PasswordLoginClaims.OnBehalfClaimType, "true"));
+
+            if (!string.IsNullOrWhiteSpace(onBehalfBy))
+            {
+                identity.AddClaim(new Claim("on_behalf_by", onBehalfBy.Trim()));
+            }
         }
 
         return new ClaimsPrincipal(identity);

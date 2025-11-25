@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
 using AppGateway.Api.Auth;
 using AppGateway.Infrastructure;
 using AppGateway.Infrastructure.Ecm;
@@ -93,6 +94,12 @@ public static class GatewayServiceConfiguration
                 await provisioningService.EnsureUserExistsAsync(
                     context.Principal,
                     context.HttpContext.RequestAborted);
+
+                if (context.Principal?.Identity is ClaimsIdentity identity
+                    && !identity.HasClaim(claim => claim.Type == "auth_method"))
+                {
+                    identity.AddClaim(new Claim("auth_method", "oidc"));
+                }
             };
 
             var previousRedirectHandler = options.Events.OnRedirectToIdentityProvider;
