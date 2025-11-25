@@ -316,6 +316,7 @@ export default function FileViewClient({
             </button>
           </div>
         </div>
+      </header>
 
         <div className="flex min-h-0 flex-1">
           <div
@@ -475,6 +476,8 @@ export default function FileViewClient({
                   >
                     {message.content}
                   </div>
+                  <p className="text-muted-foreground">{version.notes}</p>
+                  <p className="text-xs text-muted-foreground/90">{dateFormatter.format(new Date(version.createdAt))}</p>
                 </div>
               </div>
             ))}
