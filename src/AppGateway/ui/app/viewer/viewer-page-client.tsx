@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import FileViewClient from "./file-view-client"
@@ -15,28 +15,45 @@ export function ViewerPageClient() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const fileId = searchParams.get("fileId")?.trim()
-  const viewer = searchParams.get("viewer") ?? undefined
-  const office = searchParams.get("office") ?? undefined
-  const preference = useMemo(() => parseViewerPreference(viewer, office), [viewer, office])
-  const searchParamsString = useMemo(() => searchParams.toString(), [searchParams])
-  const viewerTargetPath = useMemo(() => {
-    const normalizedPath = pathname && pathname.endsWith("/") ? pathname : `${pathname ?? "/viewer/"}/`
-    return searchParamsString ? `${normalizedPath}?${searchParamsString}` : normalizedPath
-  }, [pathname, searchParamsString])
-  const { isAuthenticated, isChecking } = useAuthGuard(viewerTargetPath || VIEWER_ROUTE)
+  const [viewerParams, setViewerParams] = useState<{
+    fileId?: string
+    viewer?: string
+    office?: string
+    preference: ReturnType<typeof parseViewerPreference>
+    viewerTargetPath: string
+  }>()
 
   useEffect(() => {
+    const fileId = searchParams.get("fileId")?.trim()
+    const viewer = searchParams.get("viewer") ?? undefined
+    const office = searchParams.get("office") ?? undefined
+    const preference = parseViewerPreference(viewer, office)
+    const searchParamsString = searchParams.toString()
+    const normalizedPath = pathname && pathname.endsWith("/") ? pathname : `${pathname ?? VIEWER_ROUTE}/`
+    const viewerTargetPath = searchParamsString ? `${normalizedPath}?${searchParamsString}` : normalizedPath
+
+    setViewerParams({ fileId, viewer, office, preference, viewerTargetPath })
+  }, [pathname, searchParams])
+
+  const { isAuthenticated, isChecking } = useAuthGuard(viewerParams?.viewerTargetPath || VIEWER_ROUTE)
+
+  useEffect(() => {
+    if (!viewerParams) return
+
     console.debug(
       "[viewer] Initialized viewer page with fileId=%s, viewer=%s, office=%s, targetPath=%s",
-      fileId ?? "(missing)",
-      viewer ?? "(none)",
-      office ?? "(none)",
-      viewerTargetPath,
+      viewerParams.fileId ?? "(missing)",
+      viewerParams.viewer ?? "(none)",
+      viewerParams.office ?? "(none)",
+      viewerParams.viewerTargetPath,
     )
-  }, [fileId, office, viewer, viewerTargetPath])
+  }, [viewerParams])
 
-  if (!fileId) {
+  if (!viewerParams) {
+    return <ViewerLoading />
+  }
+
+  if (!viewerParams.fileId) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
         <div className="max-w-md space-y-4 rounded-2xl border border-border bg-background/95 p-6 text-center shadow-sm">
@@ -52,11 +69,22 @@ export function ViewerPageClient() {
 
   return (
     <FileViewClient
-      fileId={fileId}
-      preference={preference}
-      targetPath={viewerTargetPath}
+      fileId={viewerParams.fileId}
+      preference={viewerParams.preference}
+      targetPath={viewerParams.viewerTargetPath}
       isAuthenticated={isAuthenticated}
       isChecking={isChecking}
     />
+  )
+}
+
+export function ViewerLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-md space-y-4 rounded-2xl border border-border bg-background/95 p-6 text-center shadow-sm">
+        <p className="text-lg font-semibold text-foreground">Đang tải trình xem tệp…</p>
+        <p className="text-sm text-muted-foreground">Đang khởi tạo liên kết xem trước, vui lòng chờ trong giây lát.</p>
+      </div>
+    </div>
   )
 }
