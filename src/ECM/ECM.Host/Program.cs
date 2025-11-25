@@ -8,8 +8,10 @@ using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
 using ECM.Ocr.Api;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using ECM.IAM.Api.Auth;
+using ECM.Host.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
@@ -51,11 +53,24 @@ public static class Program
 
         builder.Services.AddSearchIndexerInfrastructure();
 
+        builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
+
         builder.Services.AddAuthentication(options =>
         {
-            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = AuthenticationSchemeNames.BearerOrApiKey;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+        })
+        .AddPolicyScheme(AuthenticationSchemeNames.BearerOrApiKey, AuthenticationSchemeNames.BearerOrApiKey, options =>
+        {
+            options.ForwardDefaultSelector = context =>
+                context.Request.Headers.ContainsKey(ApiKeyAuthenticationHandler.HeaderName)
+                    ? ApiKeyAuthenticationHandler.AuthenticationScheme
+                    : JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"))
+        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+            ApiKeyAuthenticationHandler.AuthenticationScheme,
+            _ => { });
 
         var azureAdSection = builder.Configuration.GetSection("AzureAd");
         var azureInstance = azureAdSection["Instance"];
