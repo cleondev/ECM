@@ -15,14 +15,16 @@ namespace AppGateway.Infrastructure.Tests;
 public sealed class EcmApiClientTests
 {
     [Fact]
-    public async Task ForwardApiKeyAuthorizationHeaderWhenNoBearerToken()
+    public async Task ForwardApiKeyHeaderWhenNoBearerToken()
     {
-        const string apiKey = "ApiKey test-key";
-        var capturedAuthorization = default(string?);
+        const string apiKey = "test-key";
+        var capturedApiKey = default(string?);
 
         var handler = new RecordingHttpHandler(message =>
         {
-            capturedAuthorization = message.Headers.Authorization?.ToString();
+            capturedApiKey = message.Headers.TryGetValues("X-Api-Key", out var values)
+                ? values.FirstOrDefault()
+                : null;
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = JsonContent.Create(new UserSummaryDto(
@@ -45,7 +47,7 @@ public sealed class EcmApiClientTests
         };
 
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers.Authorization = apiKey;
+        httpContext.Request.Headers.Add("X-Api-Key", apiKey);
 
         var client = new EcmApiClient(
             httpClient,
@@ -57,7 +59,7 @@ public sealed class EcmApiClientTests
         var profile = await client.GetUserByEmailAsync("user@example.com");
 
         Assert.NotNull(profile);
-        Assert.Equal(apiKey, capturedAuthorization);
+        Assert.Equal(apiKey, capturedApiKey);
     }
 
     private sealed class RecordingHttpHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
