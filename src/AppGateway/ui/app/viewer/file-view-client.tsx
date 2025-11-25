@@ -237,7 +237,7 @@ export default function FileViewClient({
   return (
     <div className="flex min-h-screen bg-[#0f1116] text-slate-50">
       <div className="flex min-w-0 flex-[3] flex-col border-r border-slate-800 bg-[#12151c]">
-        <div className="flex h-12 items-center justify-between bg-[#2a2a2a] px-4 text-xs text-slate-100">
+      <header className="flex h-12 items-center justify-between bg-[#2a2a2a] px-4 text-xs text-slate-100">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => router.push(MAIN_APP_ROUTE)} className="h-8 gap-2 px-2">
               <ArrowLeft className="h-4 w-4" />
