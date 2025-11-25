@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
+using ServiceDefaults.Authentication;
 
 namespace ECM.Host.Auth;
 
@@ -15,7 +16,7 @@ internal static class AuthenticationConfigurationExtensions
     {
         services.Configure<ApiKeyOptions>(configuration.GetSection(ApiKeyOptions.SectionName));
 
-        services
+        var authenticationBuilder = services
             .AddAuthentication(options =>
             {
                 options.DefaultScheme = AuthenticationSchemeNames.BearerOrApiKey;
@@ -31,10 +32,11 @@ internal static class AuthenticationConfigurationExtensions
                             ? ApiKeyAuthenticationHandler.AuthenticationScheme
                             : JwtBearerDefaults.AuthenticationScheme;
                 })
-            .AddMicrosoftIdentityWebApi(configuration.GetSection("AzureAd"))
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
                 ApiKeyAuthenticationHandler.AuthenticationScheme,
                 _ => { });
+
+        authenticationBuilder.AddMicrosoftIdentityWebApi(configuration.GetSection("AzureAd"));
 
         var azureAdSection = configuration.GetSection("AzureAd");
         var azureInstance = azureAdSection["Instance"];
