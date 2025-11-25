@@ -18,7 +18,7 @@ import {
   PanelLeft,
   Paperclip,
   Percent,
-  Print,
+  Printer,
   RotateCw,
   Send,
   Smile,
@@ -295,7 +295,7 @@ export default function FileViewClient({
               <RotateCw className="h-4 w-4" />
             </button>
             <button className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10" aria-label="In">
-              <Print className="h-4 w-4" />
+              <Printer className="h-4 w-4" />
             </button>
             <button
               className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-white/10"
