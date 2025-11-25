@@ -1,13 +1,14 @@
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Globalization;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace samples.EcmFileIntegrationSample;
+namespace Ecm.FileIntegration;
 
 public sealed class EcmFileClient
 {
@@ -150,6 +151,7 @@ public sealed class EcmFileClient
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
 
         using var response = await _httpClient.PutAsJsonAsync($"{GetTagsEndpoint()}/{tagId}", request, cancellationToken);
+
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             _logger.LogWarning("Không tìm thấy tag {TagId} khi cập nhật.", tagId);
@@ -181,7 +183,7 @@ public sealed class EcmFileClient
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
 
-        var url = QueryHelpers.AddQueryString(GetDocumentsEndpoint(), BuildDocumentQueryParameters(query));
+        var url = AppendQueryString(GetDocumentsEndpoint(), BuildDocumentQueryParameters(query));
         using var response = await _httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -275,6 +277,21 @@ public sealed class EcmFileClient
         {
             parameters[key] = value;
         }
+    }
+
+    private static string AppendQueryString(string basePath, IReadOnlyDictionary<string, string?> parameters)
+    {
+        var filtered = parameters
+            .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Value))
+            .Select(kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value!)}")
+            .ToArray();
+
+        if (filtered.Length == 0)
+        {
+            return basePath;
+        }
+
+        return string.Concat(basePath, '?', string.Join('&', filtered));
     }
 
     private static bool IsRedirect(HttpStatusCode statusCode) =>

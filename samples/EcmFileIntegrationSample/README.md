@@ -1,6 +1,6 @@
 # ECM file integration sample
 
-Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Bạn có thể cấu hình bearer token tĩnh hoặc đăng nhập nền bằng API key qua endpoint `api/iam/auth/on-behalf`.
+Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Phần tích hợp HTTP đã được tách thành thư viện NuGet `Ecm.FileIntegration` (đặt tại `src/Shared/Ecm.FileIntegration`) để có thể tái sử dụng cho các ứng dụng khác. Bạn có thể cấu hình bearer token tĩnh hoặc đăng nhập nền bằng API key qua endpoint `api/iam/auth/on-behalf`.
 
 ## Chuẩn bị
 
@@ -27,13 +27,27 @@
     "DocType": "General",
     "Status": "Draft",
     "Sensitivity": "Internal"
-  }
+ }
 }
 ```
 
 > Nếu không chỉ định `OwnerId`/`CreatedBy`, ứng dụng sẽ dùng thông tin người dùng trong token (`/api/iam/profile`).
 >
 > Với `OnBehalf.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key`) để đăng nhập nền cho `UserEmail`/`UserId`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file).
+
+## Dùng lại SDK `Ecm.FileIntegration`
+
+1. Thêm reference tới dự án (hoặc gói NuGet sau khi publish) `Ecm.FileIntegration`.
+2. Đăng ký DI trong `Program.cs`:
+
+   ```csharp
+   builder.Services.AddEcmFileIntegration(builder.Configuration);
+   ```
+
+   Thư viện sẽ bind cấu hình từ section `Ecm`, tạo `HttpClient` có `UserAgent` mặc định và tự xử lý cookie, bearer token hoặc đăng nhập on-behalf.
+3. Inject `EcmFileClient` ở nơi cần dùng và gọi các method như `UploadDocumentAsync`, `GetDownloadUriAsync`, `ListTagsAsync`, `ListDocumentsAsync`, v.v.
+
+`EcmIntegrationOptions` hỗ trợ cả bearer token tĩnh (`AccessToken`) và đăng nhập on-behalf (`OnBehalf:*`). Các validate cơ bản (base URL, API key, định danh người dùng) được thực thi khi khởi động.
 
 ## Chạy thử
 
