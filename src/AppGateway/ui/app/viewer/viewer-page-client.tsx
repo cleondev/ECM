@@ -50,14 +50,7 @@ export function ViewerPageClient() {
   }, [viewerParams])
 
   if (!viewerParams) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-md space-y-4 rounded-2xl border border-border bg-background/95 p-6 text-center shadow-sm">
-          <p className="text-lg font-semibold text-foreground">Đang tải trình xem tệp…</p>
-          <p className="text-sm text-muted-foreground">Đang khởi tạo liên kết xem trước, vui lòng chờ trong giây lát.</p>
-        </div>
-      </div>
-    )
+    return <ViewerLoading />
   }
 
   if (!viewerParams.fileId) {
@@ -82,5 +75,16 @@ export function ViewerPageClient() {
       isAuthenticated={isAuthenticated}
       isChecking={isChecking}
     />
+  )
+}
+
+export function ViewerLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-md space-y-4 rounded-2xl border border-border bg-background/95 p-6 text-center shadow-sm">
+        <p className="text-lg font-semibold text-foreground">Đang tải trình xem tệp…</p>
+        <p className="text-sm text-muted-foreground">Đang khởi tạo liên kết xem trước, vui lòng chờ trong giây lát.</p>
+      </div>
+    </div>
   )
 }
