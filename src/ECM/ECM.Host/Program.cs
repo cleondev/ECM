@@ -8,13 +8,11 @@ using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
 using ECM.Ocr.Api;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using ECM.IAM.Api.Auth;
 using ECM.Host.Auth;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Identity.Web;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using ServiceDefaults;
@@ -52,59 +50,7 @@ public static class Program
         builder.AddModule<OcrModule>();
 
         builder.Services.AddSearchIndexerInfrastructure();
-
-        builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
-
-        builder.Services.AddAuthentication(options =>
-        {
-            options.DefaultScheme = AuthenticationSchemeNames.BearerOrApiKey;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddPolicyScheme(AuthenticationSchemeNames.BearerOrApiKey, AuthenticationSchemeNames.BearerOrApiKey, options =>
-        {
-            options.ForwardDefaultSelector = context =>
-                context.Request.Headers.ContainsKey(ApiKeyAuthenticationHandler.HeaderName)
-                    ? ApiKeyAuthenticationHandler.AuthenticationScheme
-                    : JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"))
-        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
-            ApiKeyAuthenticationHandler.AuthenticationScheme,
-            _ => { });
-
-        var azureAdSection = builder.Configuration.GetSection("AzureAd");
-        var azureInstance = azureAdSection["Instance"];
-        var azureTenantId = azureAdSection["TenantId"];
-
-        builder.Services.PostConfigure<MicrosoftIdentityOptions>(
-            JwtBearerDefaults.AuthenticationScheme,
-            options => options.Authority = AuthorityUtilities.EnsureV2Authority(
-                options.Authority,
-                options.TenantId,
-                options.Instance));
-
-        builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
-        {
-            options.Authority = AuthorityUtilities.EnsureV2Authority(options.Authority, azureTenantId, azureInstance);
-            options.Events ??= new JwtBearerEvents();
-            var previousHandler = options.Events.OnTokenValidated;
-
-            options.Events.OnTokenValidated = async context =>
-            {
-                if (previousHandler is not null)
-                {
-                    await previousHandler(context);
-                }
-
-                var provisioningService = context.HttpContext.RequestServices
-                    .GetRequiredService<IUserProvisioningService>();
-
-                await provisioningService.EnsureUserExistsAsync(
-                    context.Principal,
-                    context.HttpContext.RequestAborted);
-            };
-        });
-
+        builder.Services.AddHostAuthentication(builder.Configuration);
         builder.Services.AddAuthorization();
 
         builder.Services.AddAntiforgery(options =>
@@ -134,6 +80,29 @@ public static class Program
                         {
                             Type = ReferenceType.SecurityScheme,
                             Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+
+            options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+            {
+                Description = "API Key header for on-behalf requests. Example: 'X-Api-Key: {key}'",
+                Name = ApiKeyAuthenticationHandler.HeaderName,
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey
+            });
+
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "ApiKey"
                         }
                     },
                     Array.Empty<string>()
