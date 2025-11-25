@@ -90,7 +90,7 @@ public static class GatewayEndpointConfiguration
             return;
         }
 
-        app.MapFallback("/api/{*path}", Results.NotFound()).AllowAnonymous();
+        app.MapFallback("/api/{*path}", () => Results.NotFound()).AllowAnonymous();
 
         MapExportedRouteFallback(app, Program.MainAppPath, "app/index.html");
         MapExportedRouteFallback(app, "/me", "me/index.html");
