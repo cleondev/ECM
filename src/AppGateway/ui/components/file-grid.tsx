@@ -21,7 +21,7 @@ type FileGridProps = {
   onViewFile: (file: FileItem) => void
   onDownloadFile: (file: FileItem) => void
   onShareFile: (file: FileItem) => void
-  onOpenDetailsTab: (tab: "property" | "flow" | "form", file: FileItem) => void
+  onOpenDetailsTab: (tab: "info" | "flow" | "form" | "chat", file: FileItem) => void
   onAssignTags: (file: FileItem) => void
   onDeleteFile: (file: FileItem) => void
   onDeleteSelection: (fileIds: Set<string>) => void
@@ -46,9 +46,9 @@ function FileGridSkeleton({ viewMode }: { viewMode: "grid" | "list" }) {
   }
 
   return (
-    <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+    <div className="grid gap-3 sm:gap-3.5 lg:gap-4 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="rounded-lg border border-border p-3 sm:p-4 space-y-3">
+        <div key={i} className="rounded-lg border border-border p-3 sm:p-3.5 space-y-3">
           <Skeleton className="aspect-video w-full rounded" />
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-3 w-1/2" />
@@ -260,8 +260,8 @@ export function FileGrid({
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8" tabIndex={0}>
-      <div className="grid gap-3 sm:gap-4 lg:gap-5 grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+    <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 lg:p-7" tabIndex={0}>
+      <div className="grid gap-3 sm:gap-3.5 lg:gap-4 grid-cols-[repeat(auto-fill,minmax(160px,1fr))]">
         {files.map((file, index) => (
           <FileCard
             key={file.id}

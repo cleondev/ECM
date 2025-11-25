@@ -8,6 +8,7 @@ import {
   GitBranch,
   Grid3x3,
   List,
+  MessageCircle,
   Share2,
   SlidersHorizontal,
   Tag,
@@ -35,8 +36,8 @@ type FileToolbarProps = {
   disableDeleteAction?: boolean
   isRightSidebarOpen: boolean
   onToggleRightSidebar: () => void
-  activeRightTab: "property" | "flow" | "form"
-  onRightTabChange: (tab: "property" | "flow" | "form") => void
+  activeRightTab: "info" | "flow" | "form" | "chat"
+  onRightTabChange: (tab: "info" | "flow" | "form" | "chat") => void
   disableRightSidebarTabs?: boolean
 }
 
@@ -86,7 +87,7 @@ export function FileToolbar({
       return
     }
 
-    if (value === "property" || value === "flow" || value === "form") {
+    if (value === "info" || value === "flow" || value === "form" || value === "chat") {
       if (value === activeRightTab) {
         onToggleRightSidebar()
         return
@@ -102,11 +103,11 @@ export function FileToolbar({
 
   const tabValue = disableRightSidebarTabs ? undefined : isRightSidebarOpen ? activeRightTab : ""
 
-  const tabStyles: Record<"property" | "flow" | "form", string> = {
-    property:
-      "data-[state=on]:bg-sky-500 data-[state=on]:text-white data-[state=on]:border-sky-500 data-[state=on]:shadow-sm",
+  const tabStyles: Record<"info" | "flow" | "form" | "chat", string> = {
+    info: "data-[state=on]:bg-sky-500 data-[state=on]:text-white data-[state=on]:border-sky-500 data-[state=on]:shadow-sm",
     flow: "data-[state=on]:bg-emerald-500 data-[state=on]:text-white data-[state=on]:border-emerald-500 data-[state=on]:shadow-sm",
     form: "data-[state=on]:bg-violet-500 data-[state=on]:text-white data-[state=on]:border-violet-500 data-[state=on]:shadow-sm",
+    chat: "data-[state=on]:bg-amber-500 data-[state=on]:text-white data-[state=on]:border-amber-500 data-[state=on]:shadow-sm",
   }
 
   return (
@@ -175,16 +176,16 @@ export function FileToolbar({
               aria-label="File details sections"
             >
               <ToggleGroupItem
-                value="property"
+                value="info"
                 className={cn(
                   "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
-                  tabStyles.property,
+                  tabStyles.info,
                   disableRightSidebarTabs && "pointer-events-none opacity-60",
                 )}
                 disabled={disableRightSidebarTabs}
               >
                 <FileText className="h-4 w-4" />
-                <span className="text-sm font-medium">Property</span>
+                <span className="text-sm font-medium">Info</span>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="flow"
@@ -209,6 +210,18 @@ export function FileToolbar({
               >
                 <Edit3 className="h-4 w-4" />
                 <span className="text-sm font-medium">Form</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="chat"
+                className={cn(
+                  "gap-2 px-3 transition-colors flex-1 sm:flex-initial",
+                  tabStyles.chat,
+                  disableRightSidebarTabs && "pointer-events-none opacity-60",
+                )}
+                disabled={disableRightSidebarTabs}
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">Chat</span>
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
