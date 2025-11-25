@@ -97,6 +97,8 @@ export default function FileViewClient({
     }
   }, [isAuthenticated, fileId, targetPath])
 
+  const viewerConfig = useMemo(() => (file ? resolveViewerConfig(file, preference) : undefined), [file, preference])
+
   const handleDownload = () => {
     if (!file?.latestVersionId) {
       return
@@ -132,7 +134,9 @@ export default function FileViewClient({
     )
   }
 
-  const viewerConfig = useMemo(() => resolveViewerConfig(file, preference), [file, preference])
+  if (!viewerConfig) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 px-4 py-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
