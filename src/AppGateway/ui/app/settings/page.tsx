@@ -35,7 +35,8 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command"
-import { cn, createSignInRedirectPath } from "@/lib/utils"
+import { cn } from "@/lib/utils"
+import { useAuthGuard } from "@/hooks/use-auth-guard"
 
 const APP_HOME_ROUTE = "/app/"
 const SETTINGS_ROUTE = "/app/settings/"
@@ -48,6 +49,7 @@ type ProfileFormState = {
 
 export default function SettingsPage() {
   const { theme, setTheme, themes } = useTheme()
+  const { isAuthenticated, isChecking } = useAuthGuard(SETTINGS_ROUTE)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [pushNotifications, setPushNotifications] = useState(true)
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
@@ -65,21 +67,24 @@ export default function SettingsPage() {
   useEffect(() => {
     let mounted = true
 
-    const redirectToSignIn = () => {
-      const target =
-        typeof window === "undefined"
-          ? SETTINGS_ROUTE
-          : `${window.location.pathname}${window.location.search}${window.location.hash}`
-      const signInPath = createSignInRedirectPath(target, SETTINGS_ROUTE)
-      window.location.href = signInPath
+    if (!isAuthenticated) {
+      return () => {
+        mounted = false
+      }
     }
+
+    setFeedback(null)
 
     fetchCurrentUserProfile()
       .then((data) => {
         if (!mounted) return
 
         if (!data) {
-          redirectToSignIn()
+          setProfile(null)
+          setFeedback({
+            type: "error",
+            message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+          })
           return
         }
 
@@ -95,15 +100,19 @@ export default function SettingsPage() {
           groupIds: normalizedGroups,
         })
       })
-      .catch(() => {
+      .catch((error) => {
         if (!mounted) return
-        redirectToSignIn()
+        console.error("[settings] Failed to load profile:", error)
+        setFeedback({
+          type: "error",
+          message: "Không thể tải thông tin người dùng. Vui lòng thử lại.",
+        })
       })
 
     return () => {
       mounted = false
     }
-  }, [])
+  }, [isAuthenticated])
 
   useEffect(() => {
     let active = true
@@ -272,6 +281,30 @@ export default function SettingsPage() {
       return "—"
     }
   }, [profile?.createdAtUtc])
+
+  if (!isAuthenticated && !isChecking) {
+    return null
+  }
+
+  if (isChecking && !profile) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <Button variant="ghost" size="sm" asChild>
+              <a href={APP_HOME_ROUTE} className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Files
+              </a>
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-24">
+          <div className="text-muted-foreground">Loading settings…</div>
+        </div>
+      </div>
+    )
+  }
 
   if (!profile) {
     return (

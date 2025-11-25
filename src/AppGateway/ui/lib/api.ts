@@ -849,12 +849,12 @@ async function startWorkflowForDocument(documentId: string, flowDefinition?: str
   }
 }
 
-export async function checkLogin(redirectUri?: string): Promise<CheckLoginResult> {
-  const normalizedRedirect = normalizeRedirectTarget(redirectUri, "/app/")
+export async function checkLogin(returnUrl?: string): Promise<CheckLoginResult> {
+  const normalizedRedirect = normalizeRedirectTarget(returnUrl, "/app/")
   const params = new URLSearchParams()
 
   if (normalizedRedirect) {
-    params.set("redirectUri", normalizedRedirect)
+    params.set("returnUrl", normalizedRedirect)
   }
 
   const search = params.toString()
@@ -889,19 +889,19 @@ export class PasswordLoginError extends Error {
 type PasswordLoginRequest = {
   email: string
   password: string
-  redirectUri?: string
+  returnUrl?: string
 }
 
 export async function passwordLogin({
   email,
   password,
-  redirectUri,
+  returnUrl,
 }: PasswordLoginRequest): Promise<CheckLoginResult> {
-  const normalizedRedirect = normalizeRedirectTarget(redirectUri, "/app/")
+  const normalizedRedirect = normalizeRedirectTarget(returnUrl, "/app/")
   const payload = {
     email,
     password,
-    redirectUri: normalizedRedirect,
+    returnUrl: normalizedRedirect,
   }
 
   const response = await gatewayFetch(`/api/iam/password-login`, {
@@ -1513,8 +1513,8 @@ function resolveRedirectLocation(location: string): string {
   return `/${location}`
 }
 
-export async function signOut(redirectUri?: string): Promise<void> {
-  const search = redirectUri ? `?redirectUri=${encodeURIComponent(redirectUri)}` : ""
+export async function signOut(returnUrl?: string): Promise<void> {
+  const search = returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""
 
   if (typeof window === "undefined") {
     return
@@ -1529,8 +1529,8 @@ export async function signOut(redirectUri?: string): Promise<void> {
     })
 
     if (response.type === "opaqueredirect") {
-      if (redirectUri) {
-        window.location.href = redirectUri
+      if (returnUrl) {
+        window.location.href = returnUrl
       }
       return
     }
@@ -1543,8 +1543,8 @@ export async function signOut(redirectUri?: string): Promise<void> {
     }
 
     if (response.ok) {
-      if (redirectUri) {
-        window.location.href = redirectUri
+      if (returnUrl) {
+        window.location.href = returnUrl
       } else {
         window.location.reload()
       }

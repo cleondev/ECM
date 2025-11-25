@@ -84,5 +84,5 @@ export function createSignInRedirectPath(
   fallback: string = "/app/",
 ): string {
   const normalizedTarget = normalizeRedirectTarget(candidate, fallback)
-  return `/signin/?redirectUri=${encodeURIComponent(normalizedTarget)}`
+  return `/signin/?returnUrl=${encodeURIComponent(normalizedTarget)}`
 }

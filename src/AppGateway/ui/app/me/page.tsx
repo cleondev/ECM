@@ -40,10 +40,10 @@ import {
   CommandItem,
 } from "@/components/ui/command"
 import { cn } from "@/lib/utils"
+import { useAuthGuard } from "@/hooks/use-auth-guard"
 
 const APP_HOME_ROUTE = "/app/"
 const ME_ROUTE = "/me/"
-const SIGN_IN_ROUTE = `/signin/?redirectUri=${encodeURIComponent(ME_ROUTE)}`
 
 type ProfileFormState = {
   displayName: string
@@ -73,6 +73,7 @@ function getInitialProfileFormValues(user: User | null): ProfileFormState {
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { isAuthenticated, isChecking } = useAuthGuard(ME_ROUTE)
   const [user, setUser] = useState<User | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
@@ -93,7 +94,6 @@ export default function ProfilePage() {
     message: string
   } | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
-  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
     const locationSnapshot =
@@ -147,6 +147,13 @@ export default function ProfilePage() {
   useEffect(() => {
     let mounted = true
 
+    if (!isAuthenticated) {
+      setIsLoadingProfile(false)
+      return () => {
+        mounted = false
+      }
+    }
+
     const loadProfile = async () => {
       console.debug("[profile] Starting to load user profile on profile page.")
 
@@ -160,11 +167,12 @@ export default function ProfilePage() {
         if (!mounted) return
 
         if (!profile) {
-          console.warn("[profile] API returned null; redirecting to sign-in page.")
+          console.warn("[profile] API returned null; stopping profile render.")
           setUser(null)
-          setIsRedirecting(true)
-          setIsLoadingProfile(false)
-          router.replace(SIGN_IN_ROUTE)
+          setFeedback({
+            type: "error",
+            message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+          })
           return
         }
 
@@ -194,7 +202,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false
     }
-  }, [router])
+  }, [isAuthenticated])
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -422,15 +430,13 @@ export default function ProfilePage() {
     trimmedNewPassword === trimmedConfirmPassword &&
     (!requiresCurrentPassword || passwordForm.currentPassword.length > 0)
 
-  if (isRedirecting) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-muted-foreground">Đang chuyển hướng tới trang đăng nhập…</div>
-      </div>
-    )
+  const isProfileLoading = isChecking || isLoadingProfile
+
+  if (!isAuthenticated && !isChecking) {
+    return null
   }
 
-  if (isLoadingProfile && !user) {
+  if (isProfileLoading && !user) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-muted-foreground">Đang tải hồ sơ người dùng…</div>
