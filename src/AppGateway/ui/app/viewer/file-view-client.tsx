@@ -315,7 +315,6 @@ export default function FileViewClient({
               <MoreVertical className="h-4 w-4" />
             </button>
           </div>
-        </div>
       </header>
 
         <div className="flex min-h-0 flex-1">
