@@ -6,7 +6,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import FileViewClient from "./file-view-client"
 import { Button } from "@/components/ui/button"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
-import { parseViewerPreference } from "@/lib/viewer-utils"
 
 const MAIN_APP_ROUTE = "/app/"
 const VIEWER_ROUTE = "/viewer/"
@@ -17,22 +16,16 @@ export function ViewerPageClient() {
   const searchParams = useSearchParams()
   const [viewerParams, setViewerParams] = useState<{
     fileId?: string
-    viewer?: string
-    office?: string
-    preference: ReturnType<typeof parseViewerPreference>
     viewerTargetPath: string
   }>()
 
   useEffect(() => {
     const fileId = searchParams.get("fileId")?.trim()
-    const viewer = searchParams.get("viewer") ?? undefined
-    const office = searchParams.get("office") ?? undefined
-    const preference = parseViewerPreference(viewer, office)
     const searchParamsString = searchParams.toString()
     const normalizedPath = pathname && pathname.endsWith("/") ? pathname : `${pathname ?? VIEWER_ROUTE}/`
     const viewerTargetPath = searchParamsString ? `${normalizedPath}?${searchParamsString}` : normalizedPath
 
-    setViewerParams({ fileId, viewer, office, preference, viewerTargetPath })
+    setViewerParams({ fileId, viewerTargetPath })
   }, [pathname, searchParams])
 
   const { isAuthenticated, isChecking } = useAuthGuard(viewerParams?.viewerTargetPath || VIEWER_ROUTE)
@@ -41,10 +34,8 @@ export function ViewerPageClient() {
     if (!viewerParams) return
 
     console.debug(
-      "[viewer] Initialized viewer page with fileId=%s, viewer=%s, office=%s, targetPath=%s",
+      "[viewer] Initialized viewer page with fileId=%s, targetPath=%s",
       viewerParams.fileId ?? "(missing)",
-      viewerParams.viewer ?? "(none)",
-      viewerParams.office ?? "(none)",
       viewerParams.viewerTargetPath,
     )
   }, [viewerParams])
@@ -70,7 +61,6 @@ export function ViewerPageClient() {
   return (
     <FileViewClient
       fileId={viewerParams.fileId}
-      preference={viewerParams.preference}
       targetPath={viewerParams.viewerTargetPath}
       isAuthenticated={isAuthenticated}
       isChecking={isChecking}
