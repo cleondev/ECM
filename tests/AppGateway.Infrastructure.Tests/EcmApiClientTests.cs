@@ -74,7 +74,7 @@ public sealed class EcmApiClientTests
     private sealed class NoopTokenAcquisition : ITokenAcquisition
     {
         public Task<string> GetAccessTokenForAppAsync(
-            string? scope = null,
+            string scope,
             string? authenticationScheme = null,
             string? tenant = null,
             TokenAcquisitionOptions? tokenAcquisitionOptions = null)
@@ -84,6 +84,7 @@ public sealed class EcmApiClientTests
             IEnumerable<string> scopes,
             string? authenticationScheme = null,
             string? tenantId = null,
+            string? userFlow = null,
             ClaimsPrincipal? user = null,
             TokenAcquisitionOptions? tokenAcquisitionOptions = null)
             => throw new NotImplementedException();
@@ -98,6 +99,7 @@ public sealed class EcmApiClientTests
             IEnumerable<string> scopes,
             string? authenticationScheme = null,
             string? tenantId = null,
+            string? userFlow = null,
             ClaimsPrincipal? user = null,
             TokenAcquisitionOptions? tokenAcquisitionOptions = null)
             => throw new NotImplementedException();
@@ -116,6 +118,30 @@ public sealed class EcmApiClientTests
             MsalUiRequiredException msalServiceException,
             string? authenticationScheme = null,
             string? userflow = null,
+            HttpResponse? httpResponse = null)
+            => Task.CompletedTask;
+
+        public Task<AuthenticationResult> GetAuthenticationResultForAppAsync(
+            string scope,
+            string? authenticationScheme,
+            string? tenant = null,
+            TokenAcquisitionOptions? tokenAcquisitionOptions = null)
+            => throw new NotImplementedException();
+
+        public void ReplyForbiddenWithWwwAuthenticateHeader(
+            IEnumerable<string> scopes,
+            MsalUiRequiredException msalServiceException,
+            string? authenticationScheme,
+            HttpResponse? httpResponse = null)
+        {
+        }
+
+        public string GetEffectiveAuthenticationScheme(string? authenticationScheme)
+            => authenticationScheme ?? string.Empty;
+
+        public Task ReplyForbiddenWithWwwAuthenticateHeaderAsync(
+            IEnumerable<string> scopes,
+            MsalUiRequiredException msalServiceException,
             HttpResponse? httpResponse = null)
             => Task.CompletedTask;
 

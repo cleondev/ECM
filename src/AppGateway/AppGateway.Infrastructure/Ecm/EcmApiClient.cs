@@ -841,7 +841,8 @@ internal sealed class EcmApiClient(
 
     private void AttachApiKeyHeader(HttpRequestMessage request)
     {
-        var apiKey = _httpContextAccessor.HttpContext?.Request.Headers[ApiKeyHeaderName];
+        var apiKey = _httpContextAccessor.HttpContext?.Request.Headers[ApiKeyHeaderName]
+            ?? StringValues.Empty;
 
         if (StringValues.IsNullOrEmpty(apiKey))
         {
