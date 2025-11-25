@@ -53,6 +53,11 @@ public static class DocumentEndpoints
             .WithDescription("Liệt kê tài liệu theo các bộ lọc hỗ trợ phân trang.");
 
         group
+            .MapGet("/documents/{documentId:guid}", GetDocumentAsync)
+            .WithName("GetDocument")
+            .WithDescription("Lấy thông tin chi tiết của tài liệu theo ID.");
+
+        group
             .MapPost("/documents", CreateDocumentAsync)
             .WithName("CreateDocument")
             .WithDescription(
@@ -191,6 +196,54 @@ public static class DocumentEndpoints
 
         var response = MapDocument(result.Value!);
 
+        return TypedResults.Ok(response);
+    }
+
+    private static async Task<Results<Ok<DocumentResponse>, NotFound, ForbidHttpResult>> GetDocumentAsync(
+        ClaimsPrincipal principal,
+        Guid documentId,
+        DocumentDbContext context,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
+        if (userId is null)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var documentIdValue = DocumentId.FromGuid(documentId);
+
+        var hasAccess = await context.EffectiveAclEntries
+            .AsNoTracking()
+            .AnyAsync(
+                entry =>
+                    entry.UserId == userId.Value
+                    && entry.IsValid
+                    && entry.DocumentId == documentIdValue,
+                cancellationToken);
+
+        if (!hasAccess)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var document = await context
+            .Documents.AsNoTracking()
+            .Where(document => document.Id == documentIdValue)
+            .Include(document => document.Versions)
+            .Include(document => document.Tags)
+                .ThenInclude(documentTag => documentTag.Tag)
+                    .ThenInclude(tag => tag!.Namespace)
+            .Include(document => document.Metadata)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (document is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var response = MapDocument(document);
         return TypedResults.Ok(response);
     }
 
