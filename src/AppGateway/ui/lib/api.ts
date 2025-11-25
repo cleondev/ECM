@@ -1133,6 +1133,21 @@ export async function fetchFileDetails(fileId: string): Promise<FileDetail> {
       return generated
     }
 
+    const placeholder = createMockDetailFromFile({
+      id: fileId,
+      name: "Tệp được chia sẻ",
+      type: "document",
+      size: "0 KB",
+      modified: "Vừa cập nhật",
+      tags: [],
+      folder: "Chia sẻ",
+      owner: "Người dùng ẩn danh",
+      description: "Tệp được mở từ liên kết trực tiếp khi máy chủ không trả về thông tin chi tiết.",
+      latestVersionMimeType: "application/pdf",
+    })
+    mockFileDetails.set(fileId, placeholder)
+    return placeholder
+
     throw (error instanceof Error ? error : new Error("Không thể tải chi tiết tệp."))
   }
 }
