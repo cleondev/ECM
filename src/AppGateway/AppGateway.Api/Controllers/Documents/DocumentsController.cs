@@ -46,6 +46,27 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return Ok(documents);
     }
 
+    [HttpGet("{documentId:guid}")]
+    [ProducesResponseType(typeof(DocumentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByIdAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        if (documentId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(documentId), "A valid document identifier is required.");
+            return ValidationProblem(ModelState);
+        }
+
+        var document = await _client.GetDocumentAsync(documentId, cancellationToken);
+        if (document is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(document);
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(DocumentDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

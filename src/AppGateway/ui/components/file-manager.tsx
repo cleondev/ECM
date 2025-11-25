@@ -19,7 +19,6 @@ import type {
   ShareOptions,
 } from "@/lib/types"
 import { buildDocumentDownloadUrl, createShareLink, deleteFiles, fetchFiles } from "@/lib/api"
-import { inferViewerConfigFromFileItem } from "@/lib/viewer-utils"
 import { useIsMobile } from "@/components/ui/use-mobile"
 import {
   Drawer,
@@ -212,18 +211,9 @@ export function FileManager() {
     }
 
     ensureSingleSelection(targetFile)
-    const viewerConfig = inferViewerConfigFromFileItem(targetFile)
     const params = new URLSearchParams({ fileId: targetFile.id })
 
     const viewerUrl = new URL(VIEWER_ROUTE, window.location.origin)
-
-    if (viewerConfig.category && viewerConfig.category !== "unsupported") {
-      params.set("viewer", viewerConfig.category)
-    }
-
-    if (viewerConfig.officeKind) {
-      params.set("office", viewerConfig.officeKind)
-    }
 
     for (const [key, value] of params.entries()) {
       viewerUrl.searchParams.set(key, value)
