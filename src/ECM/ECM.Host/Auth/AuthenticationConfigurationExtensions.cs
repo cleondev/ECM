@@ -1,4 +1,6 @@
 using ECM.Abstractions;
+using ECM.IAM.Api.Auth;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
