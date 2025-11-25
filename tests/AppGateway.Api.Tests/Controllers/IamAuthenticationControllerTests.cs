@@ -322,6 +322,9 @@ public class IamAuthenticationControllerTests
             CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
+        public Task<DocumentDto?> GetDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<AppGateway.Contracts.Documents.DocumentDto?> CreateDocumentAsync(
             CreateDocumentUpload request,
             CancellationToken cancellationToken)
