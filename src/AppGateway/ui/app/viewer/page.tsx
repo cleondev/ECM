@@ -1,8 +1,11 @@
-import { ViewerPageClient } from "./viewer-page-client"
+import { Suspense } from "react"
 
-export const dynamic = "force-static"
-export const dynamicParams = false
+import { ViewerLoading, ViewerPageClient } from "./viewer-page-client"
 
 export default function FileViewPage() {
-  return <ViewerPageClient />
+  return (
+    <Suspense fallback={<ViewerLoading />}>
+      <ViewerPageClient />
+    </Suspense>
+  )
 }
