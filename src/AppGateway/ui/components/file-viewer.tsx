@@ -4,18 +4,18 @@ import { Code2, FileSpreadsheet, FileText, Film, ImageIcon, Presentation } from 
 
 function DocumentPage({ page }: { page: FileDocumentPreviewPage }): JSX.Element {
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-border bg-white/90 p-4 shadow-sm">
+    <div className="group overflow-hidden rounded-lg border border-border/60 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div
-        className="mb-3 flex-1 rounded-lg bg-gradient-to-br from-slate-100 via-white to-slate-50 text-xs text-muted-foreground"
+        className="aspect-[3/4] w-full bg-gradient-to-br from-slate-100 via-white to-slate-50 transition group-hover:brightness-95"
         style={{
           backgroundImage: page.thumbnail ? `url(${page.thumbnail})` : undefined,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       />
-      <div>
-        <p className="text-xs font-medium text-muted-foreground">Page {page.number}</p>
-        <p className="text-sm text-foreground">{page.excerpt}</p>
+      <div className="border-t border-border/70 px-3 py-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Trang {page.number}</p>
+        <p className="line-clamp-2 text-sm text-foreground">{page.excerpt}</p>
       </div>
     </div>
   )
@@ -72,15 +72,46 @@ function CodePreview({ preview }: { preview?: FileDetail["preview"] }) {
   )
 }
 
-function PdfPreview({ preview }: { preview?: FileDetail["preview"] }) {
+function PdfPreview({ preview, viewerUrl, fileName }: { preview?: FileDetail["preview"]; viewerUrl?: string; fileName: string }) {
   if (preview?.kind !== "document") {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <FileText className="h-4 w-4" />
+          <FileText className="h-4 w-4" />
           PDF viewer
         </div>
         <ViewerFallback message="No PDF content available for preview." />
+      </div>
+    )
+  }
+
+  if (viewerUrl) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>{fileName}</span>
+          </div>
+          <span className="text-xs font-medium text-foreground">Xem trực tiếp</span>
+        </div>
+        <div className="overflow-hidden rounded-xl border border-border bg-slate-900 shadow-lg">
+          <iframe
+            className="h-[min(1024px,calc(100vh-280px))] min-h-[640px] w-full bg-white"
+            src={viewerUrl}
+            title={`${fileName} - PDF viewer`}
+          />
+        </div>
+        {preview.pages?.length ? (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-foreground">Trang xem nhanh</p>
+            <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {preview.pages.map((page) => (
+                <DocumentPage key={page.number} page={page} />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -193,9 +224,10 @@ function PowerPointPreview() {
 type FileViewerProps = {
   file: FileDetail
   viewerConfig: ViewerConfig
+  viewerUrl?: string
 }
 
-export function FileViewer({ file, viewerConfig }: FileViewerProps): JSX.Element {
+export function FileViewer({ file, viewerConfig, viewerUrl }: FileViewerProps): JSX.Element {
   const { category, officeKind } = viewerConfig
   const preview = file.preview
 
@@ -223,7 +255,7 @@ export function FileViewer({ file, viewerConfig }: FileViewerProps): JSX.Element
         return <PowerPointPreview />
       }
 
-      return <PdfPreview preview={preview} />
+      return <PdfPreview preview={preview} viewerUrl={viewerUrl} fileName={file.name} />
     case "unsupported":
     default:
       return <ViewerFallback message="This format is not supported for inline viewing yet." />
