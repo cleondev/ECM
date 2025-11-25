@@ -23,14 +23,19 @@ public class HomeController : Controller
         _accessTokenProvider = accessTokenProvider;
     }
 
+    // ----------------------------------------------------
+    // Index
+    // ----------------------------------------------------
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         var form = BuildDefaultUploadForm();
-        var viewModel = await BuildPageViewModelAsync(form, cancellationToken: cancellationToken);
-        return View(viewModel);
+        return View(await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
     }
 
+    // ----------------------------------------------------
+    // Upload
+    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload([Bind(Prefix = "Form")] UploadFormModel form, CancellationToken cancellationToken)
@@ -46,19 +51,17 @@ public class HomeController : Controller
 
         if (!ModelState.IsValid)
         {
-            var viewModel = await BuildPageViewModelAsync(form, cancellationToken: cancellationToken);
-            return View("Index", viewModel);
+            return View("Index", await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
         }
 
         var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
         if (profile is null)
         {
-            var viewModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 form,
                 cancellationToken: cancellationToken,
                 error: "Không lấy được thông tin người dùng từ ECM. Kiểm tra AccessToken trong cấu hình."
-            );
-            return View("Index", viewModel);
+            ));
         }
 
         ownerId ??= profile.Id;
@@ -89,19 +92,18 @@ public class HomeController : Controller
             var document = await _client.UploadDocumentAsync(uploadRequest, cancellationToken);
             if (document is null)
             {
-                var viewModel = await BuildPageViewModelAsync(
+                return View("Index", await BuildPageViewModelAsync(
                     form,
                     cancellationToken: cancellationToken,
                     error: "ECM không trả về thông tin tài liệu sau khi upload."
-                );
-                return View("Index", viewModel);
+                ));
             }
 
             var downloadUri = document.LatestVersion is { } version
                 ? await _client.GetDownloadUriAsync(version.Id, cancellationToken)
                 : null;
 
-            var viewModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 new UploadFormModel
                 {
                     DocType = form.DocType,
@@ -116,18 +118,16 @@ public class HomeController : Controller
                     Profile = profile,
                 },
                 cancellationToken: cancellationToken
-            );
-            return View("Index", viewModel);
+            ));
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Upload thất bại.");
-            var viewModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 form,
                 cancellationToken: cancellationToken,
                 error: "Upload thất bại. Kiểm tra log để biết thêm chi tiết."
-            );
-            return View("Index", viewModel);
+            ));
         }
         finally
         {
@@ -135,30 +135,33 @@ public class HomeController : Controller
         }
     }
 
+    // ----------------------------------------------------
+    // List Documents
+    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ListDocuments(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
-            var invalidModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 BuildDefaultUploadForm(),
                 documentQuery: documentQuery,
                 cancellationToken: cancellationToken
-            );
-            return View("Index", invalidModel);
+            ));
         }
 
-        var viewModel = await BuildPageViewModelAsync(
+        return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
             documentQuery: documentQuery,
             cancellationToken: cancellationToken,
             documentMessage: "Đã tải danh sách tài liệu theo bộ lọc."
-        );
-
-        return View("Index", viewModel);
+        ));
     }
 
+    // ----------------------------------------------------
+    // Create Tag
+    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateTag(TagCreateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
@@ -168,29 +171,29 @@ public class HomeController : Controller
 
         if (!ModelState.IsValid)
         {
-            var invalidModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 BuildDefaultUploadForm(),
                 documentQuery: documentQuery,
                 tagCreate: form,
                 cancellationToken: cancellationToken
-            );
-            return View("Index", invalidModel);
+            ));
         }
 
         var request = new TagCreateRequest(namespaceId, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, null);
         await _client.CreateTagAsync(request, cancellationToken);
 
-        var viewModel = await BuildPageViewModelAsync(
+        return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
             documentQuery: documentQuery,
             tagMessage: "Đã tạo tag mới.",
             cancellationToken: cancellationToken,
             tagCreate: new TagCreateForm()
-        );
-
-        return View("Index", viewModel);
+        ));
     }
 
+    // ----------------------------------------------------
+    // Update Tag
+    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateTag(TagUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
@@ -201,13 +204,12 @@ public class HomeController : Controller
 
         if (!ModelState.IsValid || tagId is null || namespaceId is null)
         {
-            var invalidModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 BuildDefaultUploadForm(),
                 documentQuery: documentQuery,
                 tagUpdate: form,
                 cancellationToken: cancellationToken
-            );
-            return View("Index", invalidModel);
+            ));
         }
 
         var request = new TagUpdateRequest(namespaceId.Value, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, form.IsActive, null);
@@ -215,17 +217,18 @@ public class HomeController : Controller
 
         var message = updated is null ? "Không tìm thấy tag cần cập nhật." : "Đã cập nhật tag.";
 
-        var viewModel = await BuildPageViewModelAsync(
+        return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
             documentQuery: documentQuery,
             tagMessage: message,
             cancellationToken: cancellationToken,
             tagUpdate: new TagUpdateForm()
-        );
-
-        return View("Index", viewModel);
+        ));
     }
 
+    // ----------------------------------------------------
+    // Delete Tag
+    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteTag(TagDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
@@ -234,28 +237,28 @@ public class HomeController : Controller
 
         if (!ModelState.IsValid || tagId is null)
         {
-            var invalidModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 BuildDefaultUploadForm(),
                 documentQuery: documentQuery,
                 tagDelete: form,
                 cancellationToken: cancellationToken
-            );
-            return View("Index", invalidModel);
+            ));
         }
 
         var deleted = await _client.DeleteTagAsync(tagId.Value, cancellationToken);
 
-        var viewModel = await BuildPageViewModelAsync(
+        return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
             documentQuery: documentQuery,
             tagMessage: deleted ? "Đã xoá tag." : "Không tìm thấy hoặc không xoá được tag.",
             cancellationToken: cancellationToken,
             tagDelete: new TagDeleteForm()
-        );
-
-        return View("Index", viewModel);
+        ));
     }
 
+    // ----------------------------------------------------
+    // Update Document
+    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateDocument(DocumentUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
@@ -265,13 +268,12 @@ public class HomeController : Controller
 
         if (!ModelState.IsValid || documentId is null)
         {
-            var invalidModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 BuildDefaultUploadForm(),
                 documentQuery: documentQuery,
                 documentUpdate: form,
                 cancellationToken: cancellationToken
-            );
-            return View("Index", invalidModel);
+            ));
         }
 
         var request = new DocumentUpdateRequest
@@ -288,17 +290,18 @@ public class HomeController : Controller
             ? "Không thể cập nhật document (không tồn tại hoặc không đủ quyền)."
             : "Đã cập nhật document.";
 
-        var viewModel = await BuildPageViewModelAsync(
+        return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
             documentQuery: documentQuery,
             documentMessage: message,
             cancellationToken: cancellationToken,
             documentUpdate: new DocumentUpdateForm()
-        );
-
-        return View("Index", viewModel);
+        ));
     }
 
+    // ----------------------------------------------------
+    // Delete Document
+    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteDocument(DocumentDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
@@ -307,13 +310,12 @@ public class HomeController : Controller
 
         if (!ModelState.IsValid || documentId is null)
         {
-            var invalidModel = await BuildPageViewModelAsync(
+            return View("Index", await BuildPageViewModelAsync(
                 BuildDefaultUploadForm(),
                 documentQuery: documentQuery,
                 documentDelete: form,
                 cancellationToken: cancellationToken
-            );
-            return View("Index", invalidModel);
+            ));
         }
 
         var deleted = await _client.DeleteDocumentAsync(documentId.Value, cancellationToken);
@@ -321,17 +323,18 @@ public class HomeController : Controller
             ? "Đã xoá document."
             : "Không tìm thấy document hoặc không đủ quyền xoá.";
 
-        var viewModel = await BuildPageViewModelAsync(
+        return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
             documentQuery: documentQuery,
             documentMessage: message,
             cancellationToken: cancellationToken,
             documentDelete: new DocumentDeleteForm()
-        );
-
-        return View("Index", viewModel);
+        ));
     }
 
+    // ----------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------
     private UploadFormModel BuildDefaultUploadForm() => new()
     {
         DocType = _options.DocType,
@@ -392,7 +395,7 @@ public class HomeController : Controller
         DocumentQueryForm documentQuery,
         CancellationToken cancellationToken)
     {
-        var tags = Array.Empty<TagLabelDto>();
+        IReadOnlyCollection<TagLabelDto> tags = Array.Empty<TagLabelDto>();
         DocumentListResult? documents = null;
 
         try
@@ -468,5 +471,4 @@ public class HomeController : Controller
             _logger.LogWarning(exception, "Không thể xóa file tạm {Path} sau khi upload.", path);
         }
     }
-
 }
