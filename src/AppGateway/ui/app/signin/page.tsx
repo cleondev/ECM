@@ -34,7 +34,10 @@ function SignInPageContent() {
   const searchParams = useSearchParams()
   const silentLoginAttempted = useRef(false)
   const targetAfterLogin = useMemo(() => {
-    const candidate = searchParams?.get("redirectUri") ?? searchParams?.get("redirect")
+    const candidate =
+      searchParams?.get("returnUrl") ??
+      searchParams?.get("redirectUri") ??
+      searchParams?.get("redirect")
     return normalizeRedirectTarget(candidate)
   }, [searchParams])
 
@@ -137,9 +140,9 @@ function SignInPageContent() {
     } catch (error) {
       console.error("[ui] Unable to retrieve Azure sign-in URL:", error)
       setStatus("Đi thẳng tới trang đăng nhập mặc định.")
-      window.location.href = resolveGatewayUrl(
-        `/signin-azure?redirectUri=${encodeURIComponent(safeRedirect)}`,
-      )
+        window.location.href = resolveGatewayUrl(
+          `/signin-azure?returnUrl=${encodeURIComponent(safeRedirect)}`,
+        )
     } finally {
       setIsLoading(false)
     }
@@ -153,7 +156,7 @@ function SignInPageContent() {
       const result = await passwordLogin({
         email,
         password,
-        redirectUri: targetAfterLogin,
+        returnUrl: targetAfterLogin,
       })
 
       if (result.isAuthenticated) {

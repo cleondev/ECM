@@ -90,7 +90,7 @@ export default function ECMLandingPage() {
               ))}
             </nav>
             <div className="hidden md:flex items-center gap-3">
-              <Link href="/signin/?redirectUri=/app/">
+              <Link href="/signin/?returnUrl=/app/">
                 <Button variant="ghost" size="sm" className="text-foreground hover:text-primary hover:scale-105">
                   Sign In
                 </Button>
@@ -136,7 +136,7 @@ export default function ECMLandingPage() {
                   </nav>
                   <div className="flex flex-col gap-3 pt-4">
                     <SheetClose asChild>
-                      <Link href="/signin/?redirectUri=/app/">
+                      <Link href="/signin/?returnUrl=/app/">
                         <Button variant="outline" className="w-full border-border text-foreground hover:text-primary">
                           Sign In
                         </Button>
