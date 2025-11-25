@@ -89,15 +89,13 @@ public static class GatewayEndpointConfiguration
         {
             return;
         }
-
         app.MapFallback("/api/{*path}", () => Results.NotFound()).AllowAnonymous();
-
         MapExportedRouteFallback(app, Program.MainAppPath, "app/index.html");
         MapExportedRouteFallback(app, "/me", "me/index.html");
         MapExportedRouteFallback(app, "/s", "s/index.html");
         MapExportedRouteFallback(app, "/settings", "settings/index.html");
+        MapExportedRouteFallback(app, "/viewer", "viewer/index.html");
         MapExportedRouteFallback(app, Program.UiRequestPath, "index.html");
-
         app.MapFallbackToFile("index.html").AllowAnonymous();
     }
 
