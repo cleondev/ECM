@@ -1,4 +1,4 @@
-namespace Ecm.FileIntegration;
+namespace Ecm.Sdk;
 
 public sealed class EcmIntegrationOptions
 {
@@ -32,4 +32,21 @@ public sealed class OnBehalfOptions
     public Guid? UserId { get; set; }
 
     public string? UserEmail { get; set; }
+
+    public SsoOptions Sso { get; set; } = new();
+}
+
+public sealed class SsoOptions
+{
+    public bool Enabled { get; set; }
+
+    public string? Authority { get; set; }
+
+    public string? ClientId { get; set; }
+
+    public string? ClientSecret { get; set; }
+
+    public string[] Scopes { get; set; } = Array.Empty<string>();
+
+    public string? UserAccessToken { get; set; }
 }

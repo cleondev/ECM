@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-using Ecm.FileIntegration;
+using Ecm.Sdk;
 
 namespace samples.EcmFileIntegrationSample.Controllers;
 

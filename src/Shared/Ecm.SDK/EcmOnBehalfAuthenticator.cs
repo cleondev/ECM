@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.FileIntegration;
+namespace Ecm.Sdk;
 
 public sealed class EcmOnBehalfAuthenticator
 {
@@ -25,6 +25,11 @@ public sealed class EcmOnBehalfAuthenticator
     public async Task EnsureSignedInAsync(HttpClient httpClient, CancellationToken cancellationToken)
     {
         if (!IsEnabled)
+        {
+            return;
+        }
+
+        if (_options.Value.OnBehalf.Sso.Enabled)
         {
             return;
         }

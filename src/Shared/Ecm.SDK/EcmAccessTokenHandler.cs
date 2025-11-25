@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
 
-namespace Ecm.FileIntegration;
+namespace Ecm.Sdk;
 
 public sealed class EcmAccessTokenHandler : DelegatingHandler
 {
