@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 using Shared.Extensions.Http;
@@ -38,6 +39,7 @@ internal sealed class EcmApiClient(
     ILogger<EcmApiClient> logger) : IEcmApiClient
 {
     private const string HomeAccountIdClaimType = "homeAccountId";
+    private const string ApiKeyHeaderName = "X-Api-Key";
 
     private readonly HttpClient _httpClient = httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
@@ -825,6 +827,7 @@ internal sealed class EcmApiClient(
         bool allowAppTokenFallback = true)
     {
         var request = new HttpRequestMessage(method, uri);
+        AttachApiKeyHeader(request);
         if (includeAuthentication)
         {
             await AttachAuthenticationAsync(request, cancellationToken, allowAppTokenFallback);
@@ -834,6 +837,18 @@ internal sealed class EcmApiClient(
         AttachPasswordLoginHeaders(request);
 
         return request;
+    }
+
+    private void AttachApiKeyHeader(HttpRequestMessage request)
+    {
+        var apiKey = _httpContextAccessor.HttpContext?.Request.Headers[ApiKeyHeaderName];
+
+        if (StringValues.IsNullOrEmpty(apiKey))
+        {
+            return;
+        }
+
+        request.Headers.TryAddWithoutValidation(ApiKeyHeaderName, apiKey.AsEnumerable());
     }
 
     private void AttachPasswordLoginHeaders(HttpRequestMessage request)
@@ -930,6 +945,13 @@ internal sealed class EcmApiClient(
             && string.Equals(authorizationHeader.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
         {
             request.Headers.Authorization = authorizationHeader;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(authorization)
+            && AuthenticationHeaderValue.TryParse(authorization, out var parsedAuthorization))
+        {
+            request.Headers.Authorization = parsedAuthorization;
             return;
         }
 
