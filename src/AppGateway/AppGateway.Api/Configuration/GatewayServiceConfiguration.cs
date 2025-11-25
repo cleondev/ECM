@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using AppGateway.Api.Auth;
+using AppGateway.Api.Notifications;
 using AppGateway.Infrastructure;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authentication;
@@ -30,6 +31,7 @@ public static class GatewayServiceConfiguration
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddGatewayInfrastructure(builder.Configuration);
+        builder.Services.AddSingleton<INotificationProvider, MockNotificationProvider>();
         builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
         builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();
 

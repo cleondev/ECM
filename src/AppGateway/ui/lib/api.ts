@@ -24,7 +24,6 @@ import {
   mockFlowsByFile,
   mockSystemTags,
   mockGroups,
-  mockNotifications,
   mockUsers,
   mockFileDetails,
   createMockDetailFromFile,
@@ -1437,9 +1436,9 @@ export async function fetchNotifications(): Promise<NotificationItem[]> {
     const notifications = await gatewayRequest<NotificationItem[]>("/api/notifications")
     return notifications
   } catch (error) {
-    console.warn("[ui] Failed to fetch notifications via gateway, using mock data:", error)
+    console.warn("[ui] Failed to fetch notifications via gateway, returning empty list:", error)
     await delay(150)
-    return mockNotifications
+    return []
   }
 }
 
