@@ -5,9 +5,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 import FileViewClient from "./file-view-client"
 import { Button } from "@/components/ui/button"
+import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { parseViewerPreference } from "@/lib/viewer-utils"
 
 const MAIN_APP_ROUTE = "/app/"
+const VIEWER_ROUTE = "/viewer/"
 
 export function ViewerPageClient() {
   const router = useRouter()
@@ -22,6 +24,7 @@ export function ViewerPageClient() {
     const normalizedPath = pathname && pathname.endsWith("/") ? pathname : `${pathname ?? "/viewer/"}/`
     return searchParamsString ? `${normalizedPath}?${searchParamsString}` : normalizedPath
   }, [pathname, searchParamsString])
+  const { isAuthenticated, isChecking } = useAuthGuard(viewerTargetPath || VIEWER_ROUTE)
 
   useEffect(() => {
     console.debug(
@@ -47,5 +50,13 @@ export function ViewerPageClient() {
     )
   }
 
-  return <FileViewClient fileId={fileId} preference={preference} targetPath={viewerTargetPath} />
+  return (
+    <FileViewClient
+      fileId={fileId}
+      preference={preference}
+      targetPath={viewerTargetPath}
+      isAuthenticated={isAuthenticated}
+      isChecking={isChecking}
+    />
+  )
 }

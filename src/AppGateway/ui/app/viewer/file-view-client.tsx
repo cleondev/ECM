@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, DownloadCloud, Share2, Tag } from "lucide-react"
 
-import { useAuthGuard } from "@/hooks/use-auth-guard"
 import { buildDocumentDownloadUrl, fetchFileDetails } from "@/lib/api"
 import type { FileDetail } from "@/lib/types"
 import type { ViewerPreference } from "@/lib/viewer-utils"
@@ -27,11 +26,18 @@ export type FileViewClientProps = {
   fileId: string
   preference?: ViewerPreference
   targetPath: string
+  isAuthenticated: boolean
+  isChecking: boolean
 }
 
-export default function FileViewClient({ fileId, preference, targetPath }: FileViewClientProps) {
+export default function FileViewClient({
+  fileId,
+  preference,
+  targetPath,
+  isAuthenticated,
+  isChecking,
+}: FileViewClientProps) {
   const router = useRouter()
-  const { isAuthenticated, isChecking } = useAuthGuard(targetPath)
   const [file, setFile] = useState<FileDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
