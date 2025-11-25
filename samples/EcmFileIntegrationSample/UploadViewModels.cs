@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+using Ecm.FileIntegration;
+
 namespace samples.EcmFileIntegrationSample;
 
 public sealed class UploadFormModel

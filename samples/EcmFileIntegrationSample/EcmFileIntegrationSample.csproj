@@ -5,4 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Shared\Ecm.FileIntegration\Ecm.FileIntegration.csproj" />
+  </ItemGroup>
+
 </Project>

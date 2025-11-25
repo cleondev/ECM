@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using Ecm.FileIntegration;
+
 namespace samples.EcmFileIntegrationSample.Controllers;
 
 public class HomeController : Controller

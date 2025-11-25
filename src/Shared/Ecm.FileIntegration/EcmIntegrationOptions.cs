@@ -1,4 +1,4 @@
-namespace samples.EcmFileIntegrationSample;
+namespace Ecm.FileIntegration;
 
 public sealed class EcmIntegrationOptions
 {
