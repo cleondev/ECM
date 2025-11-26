@@ -1,20 +1,5 @@
 namespace Ecm.Sdk;
 
-public sealed record DocumentUploadRequest(
-    Guid OwnerId,
-    Guid CreatedBy,
-    string DocType,
-    string Status,
-    string Sensitivity,
-    string FilePath)
-{
-    public Guid? DocumentTypeId { get; init; }
-
-    public string? Title { get; init; }
-
-    public string? ContentType { get; init; }
-}
-
 public sealed record DocumentDto(
     Guid Id,
     string Title,
