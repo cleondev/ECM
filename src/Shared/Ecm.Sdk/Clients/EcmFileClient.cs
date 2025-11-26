@@ -122,6 +122,28 @@ public sealed class EcmFileClient
     }
 
     /// <summary>
+    /// Retrieves detailed information for a specific document.
+    /// </summary>
+    /// <param name="documentId">Identifier of the document to retrieve.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The document details when found; otherwise, <c>null</c>.</returns>
+    public async Task<DocumentDto?> GetDocumentAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.GetAsync($"{GetDocumentsEndpoint()}/{documentId}", cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Document {DocumentId} không tồn tại.", documentId);
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<DocumentDto>(cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Requests a download URI for the specified document version.
     /// </summary>
     /// <param name="versionId">Identifier of the document version to download.</param>
@@ -161,6 +183,42 @@ public sealed class EcmFileClient
             response.StatusCode,
             versionId);
         return null;
+    }
+
+    /// <summary>
+    /// Downloads the binary content for the specified document version.
+    /// </summary>
+    /// <param name="versionId">Identifier of the document version.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The download payload when successful; otherwise, <c>null</c> if missing.</returns>
+    public async Task<DocumentDownloadResult?> DownloadVersionAsync(Guid versionId, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.GetAsync(
+            $"{GetPreviewEndpoint()}/{versionId}",
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Version {VersionId} không tồn tại khi tải.", versionId);
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        await using var networkStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var buffer = new MemoryStream();
+        await networkStream.CopyToAsync(buffer, cancellationToken);
+        buffer.Position = 0;
+
+        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+        var lastModified = response.Content.Headers.LastModified;
+
+        return new DocumentDownloadResult(buffer, contentType, fileName, lastModified);
     }
 
     /// <summary>
@@ -384,6 +442,10 @@ public sealed class EcmFileClient
     private string GetDownloadEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/documents/files/download"
         : "/api/ecm/files/download";
+
+    private string GetPreviewEndpoint() => _options.IsOnBehalfEnabled
+        ? "/api/documents/files/preview"
+        : "/api/ecm/files/preview";
 
     private string GetTagsEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/tags"
