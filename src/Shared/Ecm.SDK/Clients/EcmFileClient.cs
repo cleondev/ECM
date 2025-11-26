@@ -10,6 +10,9 @@ using Microsoft.Extensions.Options;
 
 namespace Ecm.Sdk;
 
+/// <summary>
+/// Provides helper methods for interacting with ECM document and tag APIs.
+/// </summary>
 public sealed class EcmFileClient
 {
     private readonly HttpClient _httpClient;
@@ -17,6 +20,13 @@ public sealed class EcmFileClient
     private readonly EcmIntegrationOptions _options;
     private readonly EcmOnBehalfAuthenticator _onBehalfAuthenticator;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EcmFileClient"/> class.
+    /// </summary>
+    /// <param name="httpClient">HTTP client configured for ECM communication.</param>
+    /// <param name="logger">Logger used for diagnostics.</param>
+    /// <param name="options">Integration options injected via configuration.</param>
+    /// <param name="onBehalfAuthenticator">Authenticator used to ensure on-behalf sessions are established.</param>
     public EcmFileClient(
         HttpClient httpClient,
         ILogger<EcmFileClient> logger,
@@ -29,6 +39,11 @@ public sealed class EcmFileClient
         _onBehalfAuthenticator = onBehalfAuthenticator;
     }
 
+    /// <summary>
+    /// Retrieves the profile for the current authenticated user.
+    /// </summary>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The user profile when available; otherwise, <c>null</c> for unauthorized requests.</returns>
     public async Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -44,6 +59,12 @@ public sealed class EcmFileClient
         return await response.Content.ReadFromJsonAsync<UserProfile>(cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Uploads a document and metadata to ECM.
+    /// </summary>
+    /// <param name="uploadRequest">Metadata describing the document being uploaded.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The created document record.</returns>
     public async Task<DocumentDto?> UploadDocumentAsync(DocumentUploadRequest uploadRequest, CancellationToken cancellationToken)
     {
         await using var stream = File.OpenRead(uploadRequest.FilePath);
@@ -89,6 +110,12 @@ public sealed class EcmFileClient
         });
     }
 
+    /// <summary>
+    /// Requests a download URI for the specified document version.
+    /// </summary>
+    /// <param name="versionId">Identifier of the document version to download.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>An absolute or relative URI when available; otherwise, <c>null</c>.</returns>
     public async Task<Uri?> GetDownloadUriAsync(Guid versionId, CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -125,6 +152,11 @@ public sealed class EcmFileClient
         return null;
     }
 
+    /// <summary>
+    /// Retrieves all tags available to the current user.
+    /// </summary>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>A collection of tag labels.</returns>
     public async Task<IReadOnlyCollection<TagLabelDto>> ListTagsAsync(CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -136,6 +168,12 @@ public sealed class EcmFileClient
         return tags ?? Array.Empty<TagLabelDto>();
     }
 
+    /// <summary>
+    /// Creates a new tag.
+    /// </summary>
+    /// <param name="request">Details describing the tag to create.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The created tag information.</returns>
     public async Task<TagLabelDto?> CreateTagAsync(TagCreateRequest request, CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -146,6 +184,13 @@ public sealed class EcmFileClient
         return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Updates an existing tag.
+    /// </summary>
+    /// <param name="tagId">Identifier of the tag to update.</param>
+    /// <param name="request">Updated tag values.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The updated tag when successful; otherwise, <c>null</c> if not found or forbidden.</returns>
     public async Task<TagLabelDto?> UpdateTagAsync(Guid tagId, TagUpdateRequest request, CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -163,6 +208,12 @@ public sealed class EcmFileClient
         return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Deletes an existing tag.
+    /// </summary>
+    /// <param name="tagId">Identifier of the tag to delete.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when the tag was deleted; otherwise, <c>false</c> when missing.</returns>
     public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -179,6 +230,12 @@ public sealed class EcmFileClient
         return true;
     }
 
+    /// <summary>
+    /// Retrieves a paged list of documents using the supplied filters.
+    /// </summary>
+    /// <param name="query">Query filters for the search.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The result set of documents.</returns>
     public async Task<DocumentListResult?> ListDocumentsAsync(DocumentListQuery query, CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -190,6 +247,13 @@ public sealed class EcmFileClient
         return await response.Content.ReadFromJsonAsync<DocumentListResult>(cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Updates document metadata.
+    /// </summary>
+    /// <param name="documentId">Identifier of the document to update.</param>
+    /// <param name="request">New document values.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The updated document list item when successful; otherwise, <c>null</c>.</returns>
     public async Task<DocumentListItem?> UpdateDocumentAsync(Guid documentId, DocumentUpdateRequest request, CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
@@ -212,6 +276,12 @@ public sealed class EcmFileClient
         return await response.Content.ReadFromJsonAsync<DocumentListItem>(cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Deletes a document if the current user has permission.
+    /// </summary>
+    /// <param name="documentId">Identifier of the document to delete.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when the document was deleted; otherwise, <c>false</c> when missing or forbidden.</returns>
     public async Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken)
     {
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);

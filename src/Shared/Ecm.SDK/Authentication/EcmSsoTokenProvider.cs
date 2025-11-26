@@ -4,6 +4,9 @@ using Microsoft.Identity.Client;
 
 namespace Ecm.Sdk;
 
+/// <summary>
+/// Retrieves delegated access tokens via SSO for on-behalf authentication flows.
+/// </summary>
 public sealed class EcmSsoTokenProvider
 {
     private readonly IOptions<EcmIntegrationOptions> _options;
@@ -12,12 +15,22 @@ public sealed class EcmSsoTokenProvider
 
     private AuthenticationResult? _cachedToken;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EcmSsoTokenProvider"/> class.
+    /// </summary>
+    /// <param name="options">Integration options including SSO configuration.</param>
+    /// <param name="logger">Logger used to emit diagnostics during token acquisition.</param>
     public EcmSsoTokenProvider(IOptions<EcmIntegrationOptions> options, ILogger<EcmSsoTokenProvider> logger)
     {
         _options = options;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Retrieves or caches an access token using the on-behalf SSO flow.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token used to abort token acquisition.</param>
+    /// <returns>The delegated access token when available; otherwise, <c>null</c>.</returns>
     public async Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

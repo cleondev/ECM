@@ -5,17 +5,38 @@ using Microsoft.Extensions.Options;
 
 namespace Ecm.Sdk;
 
+/// <summary>
+/// Extension methods to register the ECM SDK with a dependency injection container.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers ECM SDK services using configuration from the provided root configuration.
+    /// </summary>
+    /// <param name="services">Service collection to configure.</param>
+    /// <param name="configuration">Configuration containing the <c>Ecm</c> section.</param>
+    /// <returns>The configured service collection.</returns>
     public static IServiceCollection AddEcmSdk(this IServiceCollection services, IConfiguration configuration) =>
         services.AddEcmSdk(configuration.GetSection("Ecm"));
 
+    /// <summary>
+    /// Registers ECM SDK services using configuration bound from the specified section.
+    /// </summary>
+    /// <param name="services">Service collection to configure.</param>
+    /// <param name="section">Configuration section containing ECM settings.</param>
+    /// <returns>The configured service collection.</returns>
     public static IServiceCollection AddEcmSdk(this IServiceCollection services, IConfigurationSection section)
     {
         services.AddEcmIntegrationOptions(section.Bind);
         return services.RegisterEcmIntegration();
     }
 
+    /// <summary>
+    /// Registers ECM SDK services using programmatic option configuration.
+    /// </summary>
+    /// <param name="services">Service collection to configure.</param>
+    /// <param name="configureOptions">Delegate used to configure <see cref="EcmIntegrationOptions"/>.</param>
+    /// <returns>The configured service collection.</returns>
     public static IServiceCollection AddEcmSdk(
         this IServiceCollection services,
         Action<EcmIntegrationOptions> configureOptions)
