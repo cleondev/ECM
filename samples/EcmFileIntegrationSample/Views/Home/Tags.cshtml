@@ -1,0 +1,162 @@
+@model TagPageViewModel
+@{
+    ViewData["Title"] = "Quản lý tag";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert alert-info" role="alert">@Model.Message</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header">Danh sách tag</div>
+            <div class="card-body">
+                @if (Model.Tags is { Count: > 0 })
+                {
+                    <div class="table-responsive mb-0">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Tên</th>
+                                    <th>Namespace</th>
+                                    <th>Parent</th>
+                                    <th>Sort</th>
+                                    <th>Kích hoạt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var tag in Model.Tags)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@tag.Name</div>
+                                            <small class="text-muted">@tag.Id</small>
+                                        </td>
+                                        <td>@tag.NamespaceDisplayName (@tag.NamespaceId)</td>
+                                        <td>@tag.ParentId</td>
+                                        <td>@tag.SortOrder</td>
+                                        <td>
+                                            @if (tag.IsActive)
+                                            {
+                                                <span class="badge bg-success">On</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Off</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Chưa có tag nào.</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Tạo tag</div>
+            <div class="card-body">
+                <form asp-action="CreateTag" method="post" class="needs-validation" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="TagCreate.UserEmail" />
+                    <div class="mb-2">
+                        <label asp-for="TagCreate.NamespaceId" class="form-label"></label>
+                        <input asp-for="TagCreate.NamespaceId" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagCreate.ParentId" class="form-label"></label>
+                        <input asp-for="TagCreate.ParentId" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagCreate.Name" class="form-label"></label>
+                        <input asp-for="TagCreate.Name" class="form-control" />
+                        <span asp-validation-for="TagCreate.Name" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagCreate.SortOrder" class="form-label"></label>
+                        <input asp-for="TagCreate.SortOrder" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagCreate.Color" class="form-label"></label>
+                        <input asp-for="TagCreate.Color" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagCreate.IconKey" class="form-label"></label>
+                        <input asp-for="TagCreate.IconKey" class="form-control" />
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-2">Tạo tag</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+            <div class="card-header">Cập nhật tag</div>
+            <div class="card-body">
+                <form asp-action="UpdateTag" method="post" class="needs-validation" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="TagUpdate.UserEmail" />
+                    <div class="mb-2">
+                        <label asp-for="TagUpdate.TagId" class="form-label"></label>
+                        <input asp-for="TagUpdate.TagId" class="form-control" />
+                        <span asp-validation-for="TagUpdate.TagId" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagUpdate.NamespaceId" class="form-label"></label>
+                        <input asp-for="TagUpdate.NamespaceId" class="form-control" />
+                        <span asp-validation-for="TagUpdate.NamespaceId" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagUpdate.ParentId" class="form-label"></label>
+                        <input asp-for="TagUpdate.ParentId" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagUpdate.Name" class="form-label"></label>
+                        <input asp-for="TagUpdate.Name" class="form-control" />
+                        <span asp-validation-for="TagUpdate.Name" class="text-danger"></span>
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagUpdate.SortOrder" class="form-label"></label>
+                        <input asp-for="TagUpdate.SortOrder" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagUpdate.Color" class="form-label"></label>
+                        <input asp-for="TagUpdate.Color" class="form-control" />
+                    </div>
+                    <div class="mb-2">
+                        <label asp-for="TagUpdate.IconKey" class="form-label"></label>
+                        <input asp-for="TagUpdate.IconKey" class="form-control" />
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="TagUpdate.IsActive" class="form-check-input" />
+                        <label asp-for="TagUpdate.IsActive" class="form-check-label"></label>
+                    </div>
+                    <button type="submit" class="btn btn-warning text-white">Cập nhật tag</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">Xoá tag</div>
+            <div class="card-body">
+                <form asp-action="DeleteTag" method="post" class="needs-validation" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <input type="hidden" asp-for="TagDelete.UserEmail" />
+                    <div class="mb-2">
+                        <label asp-for="TagDelete.TagId" class="form-label"></label>
+                        <input asp-for="TagDelete.TagId" class="form-control" />
+                        <span asp-validation-for="TagDelete.TagId" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-outline-danger">Xoá tag</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
