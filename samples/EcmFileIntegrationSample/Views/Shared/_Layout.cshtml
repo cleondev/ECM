@@ -31,10 +31,10 @@
 
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mt-3">
                 <nav class="nav nav-pills gap-2 flex-wrap">
+                    <a class="nav-link @(action == "Index" ? "active" : string.Empty)" asp-controller="Home" asp-action="Index">Tổng quan</a>
                     <a class="nav-link @(documentActive ? "active" : string.Empty)" asp-controller="Home" asp-action="Documents">Documents</a>
                     <a class="nav-link @(action == "Upload" ? "active" : string.Empty)" asp-controller="Home" asp-action="Upload">Upload</a>
                     <a class="nav-link @(action == "Tags" ? "active" : string.Empty)" asp-controller="Home" asp-action="Tags">Tags</a>
-                    <a class="nav-link @(action == "Index" ? "active" : string.Empty)" asp-controller="Home" asp-action="Index">Tổng quan</a>
                 </nav>
                 @if (connection is not null)
                 {

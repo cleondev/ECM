@@ -46,9 +46,27 @@
                         <input asp-for="Form.UpdateGroup" class="form-check-input" />
                         <label asp-for="Form.UpdateGroup" class="form-check-label"></label>
                     </div>
+                    <div class="mb-3">
+                        <label asp-for="Form.SelectedTagIds" class="form-label fw-semibold"></label>
+                        @if (Model.Tags is { Count: > 0 })
+                        {
+                            <select asp-for="Form.SelectedTagIds" class="form-select" multiple size="6">
+                                @foreach (var tag in Model.Tags)
+                                {
+                                    <option value="@tag.Id">@tag.Name (@(tag.NamespaceDisplayName ?? tag.NamespaceScope ?? "Không rõ namespace"))</option>
+                                }
+                            </select>
+                            <div class="form-text">Chọn tag để gán hoặc bỏ gán cho tài liệu.</div>
+                        }
+                        else
+                        {
+                            <input class="form-control" value="Chưa có tag nào" disabled />
+                            <div class="form-text">Tạo tag ở trang Tag để gắn vào tài liệu.</div>
+                        }
+                    </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-warning text-white">Lưu thay đổi</button>
-                        <a class="btn btn-outline-secondary" asp-action="DocumentDetail" asp-route-id="@Model.Detail?.Document.Id">Xem chi tiết</a>
+                        <a class="btn btn-outline-secondary" asp-action="DocumentDetail" asp-route-id="@Model.Detail?.Document.Id" target="_blank" rel="noreferrer">Xem chi tiết</a>
                     </div>
                 </form>
             </div>

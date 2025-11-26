@@ -104,7 +104,12 @@ public sealed class EcmFileClient
 
         var fileContent = new StreamContent(stream);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(uploadRequest.ContentType ?? "application/octet-stream");
-        content.Add(fileContent, "file", Path.GetFileName(uploadRequest.FilePath));
+
+        var fileName = string.IsNullOrWhiteSpace(uploadRequest.FileName)
+            ? Path.GetFileName(uploadRequest.FilePath)
+            : uploadRequest.FileName;
+
+        content.Add(fileContent, "file", fileName);
 
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
 
@@ -198,7 +203,7 @@ public sealed class EcmFileClient
         await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
 
         using var response = await _httpClient.GetAsync(
-            $"{GetPreviewEndpoint()}/{versionId}",
+            $"{GetDownloadEndpoint()}/{versionId}",
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 

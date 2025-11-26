@@ -99,7 +99,10 @@ public class HomeController(
         ownerId ??= profile.Id;
         createdBy ??= profile.Id;
 
-        var tempFilePath = Path.GetRandomFileName();
+        var originalFileName = Path.GetFileName(form.File?.FileName ?? string.Empty);
+        var tempFilePath = Path.Combine(
+            Path.GetTempPath(),
+            $"{Path.GetFileNameWithoutExtension(originalFileName)}-{Guid.NewGuid():N}{Path.GetExtension(originalFileName)}");
 
         try
         {
@@ -118,6 +121,7 @@ public class HomeController(
             {
                 DocumentTypeId = documentTypeId,
                 Title = string.IsNullOrWhiteSpace(form.Title) ? form.File!.FileName : form.Title,
+                FileName = originalFileName,
                 ContentType = string.IsNullOrWhiteSpace(form.File!.ContentType) ? null : form.File.ContentType
             };
 
@@ -307,7 +311,23 @@ public class HomeController(
             return RedirectToAction(nameof(Documents));
         }
 
-        var fileName = download.FileName ?? $"{detail.Document.Title ?? "document"}-{version.VersionNo}.bin";
+        var fileName = download.FileName?.Trim('"');
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            var title = detail.Document.Title;
+            var extension = Path.GetExtension(title);
+
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = ".bin";
+            }
+
+            fileName = string.IsNullOrWhiteSpace(title) ? $"document{extension}" : title;
+        }
+
+        fileName = Path.GetFileName(string.IsNullOrWhiteSpace(fileName) ? "document.bin" : fileName);
+
         return File(download.Content, download.ContentType, fileName);
     }
 
@@ -330,6 +350,7 @@ public class HomeController(
             GroupId = detail.Document.GroupId?.ToString(),
             UpdateGroup = detail.Document.GroupId is not null,
             UserEmail = Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email,
+            SelectedTagIds = detail.Document.Tags?.Select(tag => tag.Id.ToString()).ToList() ?? new List<string>(),
         };
 
         return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
@@ -340,10 +361,12 @@ public class HomeController(
     public async Task<IActionResult> EditDocument(DocumentUpdateForm form, CancellationToken cancellationToken)
     {
         ApplyUserSelection(form.UserEmail, null);
+        var selectedTagIds = ParseGuidList(form.SelectedTagIds, nameof(form.SelectedTagIds));
         var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
+        var detail = documentId is not null ? await LoadDocumentDetailAsync(documentId.Value, cancellationToken) : null;
+
         if (!ModelState.IsValid || documentId is null)
         {
-            var detail = documentId is not null ? await LoadDocumentDetailAsync(documentId.Value, cancellationToken) : null;
             return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
         }
 
@@ -366,9 +389,10 @@ public class HomeController(
         var updated = await _ecmService.UpdateDocumentAsync(documentId.Value, request, cancellationToken);
         if (updated is null)
         {
-            var detail = await LoadDocumentDetailAsync(documentId.Value, cancellationToken);
             return View(await BuildDocumentEditViewModelAsync(form, detail, "Không thể cập nhật document (không tồn tại hoặc không đủ quyền).", cancellationToken));
         }
+
+        await UpdateDocumentTagsAsync(documentId.Value, detail?.Document.Tags, selectedTagIds, cancellationToken);
 
         TempData["DocumentMessage"] = "Đã cập nhật document.";
         return RedirectToAction(nameof(Documents));
@@ -596,11 +620,19 @@ public class HomeController(
             ? await LoadDocumentDetailAsync(documentId, cancellationToken)
             : null;
 
+        var tags = await LoadTagsAsync(cancellationToken);
+
+        if (detail?.Document.Tags is { Count: > 0 } && form.SelectedTagIds.Count == 0)
+        {
+            form.SelectedTagIds = detail.Document.Tags.Select(tag => tag.Id.ToString()).ToList();
+        }
+
         return new DocumentEditPageViewModel
         {
             Connection = connection,
             Form = form,
             Detail = detail,
+            Tags = tags,
             Message = message,
         };
     }
@@ -667,6 +699,47 @@ public class HomeController(
         {
             _logger.LogError(exception, "Không thể tải chi tiết tài liệu {DocumentId}.", documentId);
             return null;
+        }
+    }
+
+    private async Task UpdateDocumentTagsAsync(
+        Guid documentId,
+        IEnumerable<DocumentTagDetailDto>? existingTags,
+        IEnumerable<Guid> selectedTagIds,
+        CancellationToken cancellationToken)
+    {
+        var desiredTags = selectedTagIds.Distinct().ToHashSet();
+        var currentTags = existingTags?.Select(tag => tag.Id).ToHashSet() ?? new HashSet<Guid>();
+
+        var tagsToRemove = currentTags.Except(desiredTags).ToList();
+        var tagsToAdd = desiredTags.Except(currentTags).ToList();
+
+        foreach (var tagId in tagsToRemove)
+        {
+            try
+            {
+                await _ecmService.RemoveTagFromDocumentAsync(documentId, tagId, cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Không thể xoá tag {TagId} khỏi document {DocumentId}.", tagId, documentId);
+            }
+        }
+
+        if (tagsToAdd.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var tags = await LoadTagsAsync(cancellationToken);
+            var profile = await _ecmService.GetProfileAsync(cancellationToken);
+            await _ecmService.AssignTagsAsync(documentId, tagsToAdd, profile?.Id, tags, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Không thể gán tag cho document {DocumentId}.", documentId);
         }
     }
 

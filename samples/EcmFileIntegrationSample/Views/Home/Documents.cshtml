@@ -19,11 +19,9 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <a class="btn btn-outline-secondary" asp-action="Documents">
-            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
             Reload list
         </a>
         <a class="btn btn-primary" asp-action="Upload" target="_blank" rel="noreferrer">
-            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
             Add new
         </a>
     </div>
@@ -67,10 +65,7 @@
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-header d-flex align-items-center justify-content-between">
-        <span>Kết quả (API lấy danh sách)</span>
-        <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
-    </div>
+    <div class="card-header">Kết quả (API lấy danh sách)</div>
     <div class="card-body">
         @if (Model.DocumentList is { Items: { Count: > 0 } items })
         {
@@ -101,8 +96,7 @@
                                 <td>@(doc.UpdatedAtFormatted ?? doc.UpdatedAtUtc.ToLocalTime().ToString("g"))</td>
                                 <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end flex-wrap">
-                                        <a class="btn btn-sm btn-outline-primary" asp-action="DocumentDetail" asp-route-id="@doc.Id">
-                                            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+                                        <a class="btn btn-sm btn-outline-primary" asp-action="DocumentDetail" asp-route-id="@doc.Id" target="_blank" rel="noreferrer">
                                             View
                                         </a>
                                         <a class="btn btn-sm btn-outline-success" asp-action="DownloadDocument" asp-route-id="@doc.Id">
@@ -110,7 +104,6 @@
                                             Tải
                                         </a>
                                         <a class="btn btn-sm btn-warning text-white" asp-action="EditDocument" asp-route-id="@doc.Id" target="_blank" rel="noreferrer">
-                                            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
                                             Edit
                                         </a>
                                         <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-document-id="@doc.Id" data-document-title="@doc.Title">
