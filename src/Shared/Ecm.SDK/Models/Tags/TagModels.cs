@@ -74,3 +74,10 @@ public sealed record TagUpdateRequest(
     string? IconKey,
     bool IsActive,
     Guid? UpdatedBy);
+
+/// <summary>
+/// Represents the information required to assign an existing tag to a document.
+/// </summary>
+/// <param name="TagId">Identifier of the tag to apply.</param>
+/// <param name="AppliedBy">Identifier of the user applying the tag.</param>
+public sealed record AssignTagRequest(Guid TagId, Guid? AppliedBy);

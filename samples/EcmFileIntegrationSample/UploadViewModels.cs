@@ -27,6 +27,9 @@ public sealed class UploadFormModel
     [Display(Name = "Tiêu đề")]
     public string? Title { get; set; }
 
+    [Display(Name = "Tags")]
+    public List<string> SelectedTagIds { get; set; } = new();
+
     [Required(ErrorMessage = "Vui lòng chọn file để upload.")]
     [Display(Name = "File")]
     public IFormFile? File { get; set; }
@@ -39,11 +42,17 @@ public sealed class UploadResultModel
     public Uri? DownloadUri { get; init; }
 
     public UserProfile? Profile { get; init; }
+
+    public IReadOnlyCollection<TagLabelDto> AppliedTags { get; init; } = Array.Empty<TagLabelDto>();
 }
 
 public sealed class UploadPageViewModel
 {
     public string BaseUrl { get; init; } = string.Empty;
+
+    public IReadOnlyCollection<EcmUserViewModel> Users { get; init; } = Array.Empty<EcmUserViewModel>();
+
+    public string SelectedUserKey { get; init; } = string.Empty;
 
     public bool HasAccessToken { get; init; }
 
@@ -78,7 +87,11 @@ public sealed class UploadPageViewModel
     public DocumentUpdateForm DocumentUpdate { get; init; } = new();
 
     public DocumentDeleteForm DocumentDelete { get; init; } = new();
+
+    public UserProfile? CurrentProfile { get; init; }
 }
+
+public sealed record EcmUserViewModel(string Key, string DisplayName, bool IsSelected);
 
 public sealed class TagCreateForm
 {
