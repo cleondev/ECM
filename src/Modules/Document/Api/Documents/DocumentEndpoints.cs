@@ -221,7 +221,7 @@ public static class DocumentEndpoints
 
         request ??= new UpdateDocumentRequest();
 
-        if (request.HasDocumentTypeId && request.DocumentTypeId == Guid.Empty)
+        if (request.DocumentTypeId != null && request.DocumentTypeId == Guid.Empty)
         {
             return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
@@ -229,7 +229,7 @@ public static class DocumentEndpoints
             });
         }
 
-        if (request.HasDocumentTypeId && request.DocumentTypeId.HasValue)
+        if (request.DocumentTypeId != null && request.DocumentTypeId.HasValue)
         {
             var typeExists = await context.DocumentTypes
                 .AsNoTracking()
@@ -250,9 +250,7 @@ public static class DocumentEndpoints
             request.Title,
             request.Status,
             request.Sensitivity,
-            request.HasGroupId,
             NormalizeGuid(request.GroupId),
-            request.HasDocumentTypeId,
             NormalizeGuid(request.DocumentTypeId));
 
         var result = await handler.HandleAsync(command, cancellationToken);

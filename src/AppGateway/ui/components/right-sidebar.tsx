@@ -130,7 +130,8 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const emojiOptions = ["😀", "😁", "😍", "😎", "🤔", "🙏", "🚀", "👍", "🎉", "🔥", "📄", "✅"]
-
+  const DOCUMENT_TYPE_NONE_VALUE = "__none"
+  const documentTypeSelectValue = editValues.documentTypeId ?? DOCUMENT_TYPE_NONE_VALUE
   useEffect(() => {
     setEditValues(createEditableState(selectedFile))
   }, [selectedFile])
@@ -170,6 +171,11 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       cancelled = true
     }
   }, [selectedFile?.owner, selectedFile?.ownerId])
+
+  
+  const ownerDisplayName = ownerProfile?.displayName ?? selectedFile?.ownerName ?? selectedFile?.owner ?? "Owner"
+  const ownerEmail = ownerProfile?.email ?? selectedFile?.ownerEmail ?? selectedFile?.owner ?? ""
+  const ownerDisplayValue = ownerProfile?.displayName ?? ownerEmail ?? selectedFile?.owner ?? ""
 
   useEffect(() => {
     if (!ownerDisplayValue || !selectedFile) {
@@ -281,9 +287,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     return value * (multipliers[unit] || 1)
   }
 
-  const ownerDisplayName = ownerProfile?.displayName ?? selectedFile?.ownerName ?? selectedFile?.owner ?? "Owner"
-  const ownerEmail = ownerProfile?.email ?? selectedFile?.ownerEmail ?? selectedFile?.owner ?? ""
-  const ownerDisplayValue = ownerProfile?.displayName ?? ownerEmail ?? selectedFile?.owner ?? ""
+
   const selectedDocumentType = useMemo(() => {
     const currentId = editValues.documentTypeId ?? selectedFile?.documentTypeId ?? null
     return currentId ? documentTypes.find((type) => type.id === currentId) : undefined
@@ -977,20 +981,33 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                 Document Type
               </Label>
               <Select
-                value={editValues.documentTypeId ?? ""}
-                onValueChange={(value) => handleDocumentTypeChange(value || null)}
+                value={documentTypeSelectValue}
+                onValueChange={(value) =>
+                  handleDocumentTypeChange(
+                    value === DOCUMENT_TYPE_NONE_VALUE ? null : value,
+                  )
+                }
                 disabled={!selectedFile || isUpdatingDocumentType}
               >
                 <SelectTrigger className="h-9">
                   <SelectValue
-                    placeholder={selectedDocumentType?.typeName ?? selectedFile?.docType ?? "Select a document type"}
+                    placeholder={
+                      selectedDocumentType?.typeName ??
+                      selectedFile?.docType ??
+                      "Select a document type"
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No document type</SelectItem>
+                  <SelectItem value={DOCUMENT_TYPE_NONE_VALUE}>
+                    No document type
+                  </SelectItem>
                   {documentTypes.map((type) => (
                     <SelectItem key={type.id} value={type.id}>
-                      {type.typeName} <span className="text-xs text-muted-foreground">({type.typeKey})</span>
+                      {type.typeName}{" "}
+                      <span className="text-xs text-muted-foreground">
+                        ({type.typeKey})
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

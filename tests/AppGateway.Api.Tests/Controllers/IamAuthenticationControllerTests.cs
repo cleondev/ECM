@@ -400,6 +400,11 @@ public class IamAuthenticationControllerTests
         {
             throw new NotImplementedException();
         }
+
+        public Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class RecordingAuthenticationService : IAuthenticationService

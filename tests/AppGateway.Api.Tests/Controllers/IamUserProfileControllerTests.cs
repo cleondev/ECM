@@ -266,5 +266,10 @@ public class IamUserProfileControllerTests
         {
             throw new NotImplementedException();
         }
+
+        public Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

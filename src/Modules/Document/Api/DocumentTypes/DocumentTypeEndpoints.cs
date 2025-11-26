@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ECM.Document.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;

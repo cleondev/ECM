@@ -366,6 +366,11 @@ public class AzureAdUserProvisioningServiceTests
             throw new NotImplementedException();
         }
 
+        public Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

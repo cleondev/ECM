@@ -8,7 +8,5 @@ public sealed record UpdateDocumentCommand(
     string? Title,
     string? Status,
     string? Sensitivity,
-    bool HasGroupId,
     Guid? GroupId,
-    bool HasDocumentTypeId,
     Guid? DocumentTypeId);

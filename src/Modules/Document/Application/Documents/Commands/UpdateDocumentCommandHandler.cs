@@ -105,7 +105,7 @@ public sealed class UpdateDocumentCommandHandler(
             }
         }
 
-        if (command.HasGroupId)
+        if (command.GroupId != null)
         {
             var normalizedGroupId = NormalizeGroupId(command.GroupId);
             if (normalizedGroupId != document.GroupId)
@@ -115,7 +115,7 @@ public sealed class UpdateDocumentCommandHandler(
             }
         }
 
-        if (command.HasDocumentTypeId)
+        if (command.DocumentTypeId != null)
         {
             var normalizedTypeId = NormalizeDocumentTypeId(command.DocumentTypeId);
             if (normalizedTypeId != document.TypeId)

@@ -1,13 +1,18 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Domain.Documents;
-using DomainDocument = ECM.Document.Domain.Documents.Document;
+using ECM.Document.Domain.DocumentTypes;
+
 using TestFixtures;
+
 using Xunit;
+
+using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace Document.Tests.Application.Documents;
 
@@ -30,8 +35,8 @@ public sealed class UpdateDocumentCommandHandlerTests
             "  Updated Title  ",
             "  Reviewed  ",
             "  Confidential  ",
-            HasGroupId: true,
-            GroupId: groupId);
+            GroupId: groupId,
+            DocumentTypeId: null);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
@@ -59,8 +64,8 @@ public sealed class UpdateDocumentCommandHandlerTests
             Title: "Quarterly Report",
             Status: null,
             Sensitivity: null,
-            HasGroupId: false,
-            GroupId: null);
+            GroupId: null,
+            DocumentTypeId: null);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
@@ -81,8 +86,8 @@ public sealed class UpdateDocumentCommandHandlerTests
             Title: "   ",
             Status: null,
             Sensitivity: null,
-            HasGroupId: false,
-            GroupId: null);
+            GroupId: null,
+            DocumentTypeId: null);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
@@ -103,8 +108,8 @@ public sealed class UpdateDocumentCommandHandlerTests
             Title: "Updated",
             Status: null,
             Sensitivity: null,
-            HasGroupId: false,
-            GroupId: null);
+            GroupId: null,
+            DocumentTypeId: null);
 
         var result = await handler.HandleAsync(command, CancellationToken.None);
 
