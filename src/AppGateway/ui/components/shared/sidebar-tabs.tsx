@@ -24,13 +24,16 @@ import {
   Calendar,
   Clock3,
   FileText,
+  Folder,
   GitBranch,
   HardDrive,
   Info,
   ListChecks,
   MessageSquare,
   NotebookPen,
+  ShieldCheck,
   Tag,
+  UserRound,
 } from "lucide-react"
 
 export type SidebarFileLike = Pick<
@@ -50,6 +53,9 @@ export type SidebarFileLike = Pick<
   | "ownerAvatar"
   | "description"
   | "folder"
+  | "status"
+  | "type"
+  | "id"
 >
 
 export type SidebarComment = FileComment & { attachments?: string[] }
@@ -60,6 +66,12 @@ export type SidebarFormValues = {
   description?: string | null
   latestVersionLabel?: string
   folder?: string
+  fileId?: string
+  type?: string
+  createdAt?: string
+  modifiedAt?: string
+  status?: string
+  sizeLabel?: string
 }
 
 type BaseSidebarProps = {
@@ -96,6 +108,7 @@ type ChatTabProps = {
   onDraftChange: (value: string) => void
   onSubmit: () => void
   composerExtras?: React.ReactNode
+  canSubmit?: boolean
 }
 
 export function formatBytes(bytes?: number, fallback?: string) {
@@ -220,32 +233,110 @@ export function SidebarInfoTab({ file, extraSections }: InfoTabProps) {
   const activity: FileActivity[] = file.activity ?? []
   const tags: DocumentTag[] = file.tags ?? []
 
+  const statusLabel: Record<NonNullable<FileDetail["status"]>, string> = {
+    draft: "Bản nháp",
+    "in-progress": "Đang xử lý",
+    completed: "Hoàn tất",
+  }
+
+  const statusTone: Record<NonNullable<FileDetail["status"]>, string> = {
+    // Tailwind text classes are applied directly on the badge
+    draft: "bg-slate-100 text-slate-700",
+    "in-progress": "bg-amber-100 text-amber-700",
+    completed: "bg-emerald-100 text-emerald-700",
+  }
+
+  const metaCards = [
+    {
+      label: "Chủ sở hữu",
+      value: file.owner || "Không rõ",
+      icon: UserRound,
+    },
+    {
+      label: "Thư mục",
+      value: file.folder || "Chưa có",
+      icon: Folder,
+    },
+    {
+      label: "Loại tệp",
+      value: file.type,
+      icon: FileText,
+    },
+    {
+      label: "Trạng thái",
+      value: file.status ? statusLabel[file.status] : "Chưa cập nhật",
+      icon: ShieldCheck,
+      badgeClass: file.status ? statusTone[file.status] : "bg-muted text-muted-foreground",
+    },
+  ]
+
+  const detailCards = [
+    {
+      label: "Kích thước",
+      value: formatBytes(file.sizeBytes, file.size),
+      icon: HardDrive,
+    },
+    {
+      label: "Định dạng",
+      value: extension ? `.${extension}` : "Chưa xác định",
+      icon: FileText,
+    },
+    {
+      label: "Ngày tạo",
+      value: formatDate(file.createdAtUtc),
+      icon: Calendar,
+    },
+    {
+      label: "Cập nhật gần nhất",
+      value: formatDate(file.modifiedAtUtc ?? file.modified),
+      icon: Clock3,
+    },
+  ]
+
+  const recentVersions = versions.slice(0, 3)
+  const recentActivity = activity.slice(0, 4)
+
   return (
     <div className="space-y-6">
       <section className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Thông tin</span>
+        <div className="text-xs font-semibold text-muted-foreground">Tổng quan nhanh</div>
+        <div className="grid grid-cols-2 gap-3">
+          {metaCards.map(({ label, value, icon: Icon, badgeClass }) => (
+            <div
+              key={label}
+              className="space-y-2 rounded-lg border border-border/60 bg-background/60 p-3 shadow-sm"
+            >
+              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </span>
+                {label === "Trạng thái" && value ? (
+                  <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${badgeClass ?? ""}`}>
+                    {value}
+                  </span>
+                ) : null}
+              </div>
+              {label !== "Trạng thái" ? (
+                <p className="text-sm font-semibold text-foreground">{value}</p>
+              ) : null}
+            </div>
+          ))}
         </div>
-        <div className="space-y-2 rounded-xl border border-border/70 bg-muted/40 p-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <HardDrive className="h-3.5 w-3.5" />
-            <span>Kích thước</span>
-          </div>
-          <div className="text-sm font-semibold text-foreground">{formatBytes(file.sizeBytes, file.size)}</div>
-          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5" />
-              <span>{formatDate(file.createdAtUtc)}</span>
+      </section>
+
+      <section className="space-y-3">
+        <div className="text-xs font-semibold text-muted-foreground">Thông tin chi tiết</div>
+        <div className="grid grid-cols-2 gap-3">
+          {detailCards.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="rounded-lg border border-border/60 bg-muted/30 p-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Icon className="h-3.5 w-3.5" />
+                <span>{label}</span>
+              </div>
+              <div className="mt-2 text-sm font-semibold text-foreground">{value}</div>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock3 className="h-3.5 w-3.5" />
-              <span>{formatDate(file.modifiedAtUtc ?? file.modified)}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <FileText className="h-3.5 w-3.5" />
-            <span>{extension ? `.${extension}` : "Định dạng chưa xác định"}</span>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -270,10 +361,10 @@ export function SidebarInfoTab({ file, extraSections }: InfoTabProps) {
 
       <Separator />
 
-      <section className="space-y-3">
-        <div className="text-xs font-semibold text-muted-foreground">Phiên bản</div>
+      <section className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          {versions.map((version) => (
+          <div className="text-xs font-semibold text-muted-foreground">Phiên bản</div>
+          {recentVersions.map((version) => (
             <div key={version.id} className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs text-muted-foreground">
               <div className="flex items-center justify-between text-sm text-foreground">
                 <span>{version.label}</span>
@@ -289,18 +380,17 @@ export function SidebarInfoTab({ file, extraSections }: InfoTabProps) {
           {versions.length === 0 ? (
             <p className="text-xs text-muted-foreground">Chưa có phiên bản nào.</p>
           ) : null}
+          {versions.length > recentVersions.length ? (
+            <p className="text-[11px] text-muted-foreground">Hiển thị {recentVersions.length}/{versions.length} phiên bản.</p>
+          ) : null}
         </div>
-      </section>
 
-      <Separator />
-
-      <section className="space-y-3">
-        <div className="text-xs font-semibold text-muted-foreground">Hoạt động</div>
         <div className="space-y-2">
-          {activity.map((item) => (
+          <div className="text-xs font-semibold text-muted-foreground">Hoạt động</div>
+          {recentActivity.map((item) => (
             <div key={item.id} className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
               <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                <span>{item.action}</span>
+                <span className="truncate">{item.action}</span>
                 <span className="text-[11px] text-muted-foreground">{item.timestamp}</span>
               </div>
               <p className="text-muted-foreground">{item.actor}</p>
@@ -309,6 +399,9 @@ export function SidebarInfoTab({ file, extraSections }: InfoTabProps) {
           ))}
           {activity.length === 0 ? (
             <p className="text-xs text-muted-foreground">Chưa có hoạt động nào.</p>
+          ) : null}
+          {activity.length > recentActivity.length ? (
+            <p className="text-[11px] text-muted-foreground">Hiển thị {recentActivity.length}/{activity.length} hoạt động.</p>
           ) : null}
         </div>
       </section>
@@ -387,6 +480,12 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
     description: values?.description ?? file.description ?? "Chưa có mô tả",
     latestVersionLabel: values?.latestVersionLabel ?? file.latestVersionNumber ?? file.latestVersionId ?? "N/A",
     folder: values?.folder ?? file.folder,
+    fileId: values?.fileId ?? file.id,
+    type: values?.type ?? file.type,
+    createdAt: values?.createdAt ?? formatDate(file.createdAtUtc),
+    modifiedAt: values?.modifiedAt ?? formatDate(file.modifiedAtUtc ?? file.modified),
+    status: values?.status ?? file.status ?? "Draft",
+    sizeLabel: values?.sizeLabel ?? formatBytes(file.sizeBytes, file.size),
   }
 
   return (
@@ -436,6 +535,36 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-type">
+              Loại tài liệu
+            </label>
+            <Input id="file-type" value={mergedValues.type ?? ""} readOnly className="bg-muted/40" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-size">
+              Kích thước
+            </label>
+            <Input id="file-size" value={mergedValues.sizeLabel ?? ""} readOnly className="bg-muted/40" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-created">
+              Ngày tạo
+            </label>
+            <Input id="file-created" value={mergedValues.createdAt ?? ""} readOnly className="bg-muted/40" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-modified">
+              Cập nhật gần nhất
+            </label>
+            <Input id="file-modified" value={mergedValues.modifiedAt ?? ""} readOnly className="bg-muted/40" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground" htmlFor="file-version">
               Phiên bản mới nhất
             </label>
@@ -459,6 +588,12 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
               onBlur={(event) => onBlur?.("folder", event.target.value)}
             />
           </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-id">
+              Mã tài liệu
+            </label>
+            <Input id="file-id" value={mergedValues.fileId ?? ""} readOnly className="bg-muted/40 font-mono" />
+          </div>
         </div>
       </div>
       {actionsSlot ?? (
@@ -476,7 +611,21 @@ export function SidebarChatTab({
   onDraftChange,
   onSubmit,
   composerExtras,
+  canSubmit,
 }: ChatTabProps) {
+  const renderMessage = (message: string) =>
+    message.split(/(@[\w.-]+)/g).map((part, index) =>
+      part.startsWith("@") ? (
+        <span key={`${part}-${index}`} className="font-semibold text-primary">
+          {part}
+        </span>
+      ) : (
+        <span key={`${part}-${index}`}>{part}</span>
+      ),
+    )
+
+  const sendDisabled = canSubmit === undefined ? !draftMessage.trim() : !canSubmit
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -497,7 +646,7 @@ export function SidebarChatTab({
                 </div>
               </div>
             </div>
-            <p className="mt-2 text-[13px] leading-relaxed text-foreground">{comment.message}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-foreground">{renderMessage(comment.message)}</p>
             {comment.attachments?.length ? (
               <div className="mt-2 space-y-1 text-[11px] text-muted-foreground">
                 {comment.attachments.map((attachment) => (
@@ -524,7 +673,7 @@ export function SidebarChatTab({
         {composerExtras}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{draftMessage.trim().length} ký tự</span>
-          <Button size="sm" onClick={onSubmit} disabled={!draftMessage.trim()}>
+          <Button size="sm" onClick={onSubmit} disabled={sendDisabled}>
             Gửi bình luận
           </Button>
         </div>
