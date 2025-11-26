@@ -79,7 +79,7 @@ public static class ServiceCollectionExtensions
 
         services.AddHttpClient<EcmFileClient>((serviceProvider, client) =>
             {
-                var options = serviceProvider.GetRequiredService<IOptions<EcmIntegrationOptions>>().Value;
+                var options = serviceProvider.GetRequiredService<IOptionsSnapshot<EcmIntegrationOptions>>().Value;
 
                 client.BaseAddress = new Uri(options.BaseUrl);
                 client.Timeout = TimeSpan.FromSeconds(100);
