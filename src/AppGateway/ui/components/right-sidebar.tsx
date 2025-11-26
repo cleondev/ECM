@@ -18,6 +18,8 @@ import {
   SidebarFormTab,
   SidebarInfoTab,
   SidebarShell,
+  formatBytes,
+  formatDate,
   type SidebarComment,
   type SidebarFormValues,
 } from "./shared/sidebar-tabs"
@@ -45,6 +47,13 @@ const statusColors: Record<NonNullable<FileItem['status']>, string> = {
   "in-progress": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
   completed: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
   draft: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
+}
+
+const tabBadgeStyles: Record<ActiveTab, string> = {
+  info: "border-sky-500/30 text-sky-600 bg-sky-500/10 dark:text-sky-200",
+  flow: "border-emerald-500/30 text-emerald-600 bg-emerald-500/10 dark:text-emerald-200",
+  form: "border-violet-500/30 text-violet-600 bg-violet-500/10 dark:text-violet-200",
+  chat: "border-amber-500/30 text-amber-600 bg-amber-500/10 dark:text-amber-200",
 }
 
 type EditableFileState = {
@@ -300,13 +309,6 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     chat: "Chat",
   }
 
-  const currentTabClass: Record<ActiveTab, string> = {
-    info: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
-    flow: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-    form: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
-    chat: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
-  }
-
   const sidebarFile = useMemo(() => {
     if (!selectedFile) return null
 
@@ -336,6 +338,12 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
         description: editValues.description,
         folder: editValues.folder,
         latestVersionLabel: sidebarFile.latestVersionNumber ?? sidebarFile.latestVersionId ?? "N/A",
+        fileId: sidebarFile.id,
+        type: sidebarFile.type,
+        createdAt: formatDate(sidebarFile.createdAtUtc),
+        modifiedAt: formatDate(sidebarFile.modifiedAtUtc ?? sidebarFile.modified),
+        status: sidebarFile.status ?? DEFAULT_FILE_STATUS,
+        sizeLabel: formatBytes(sidebarFile.sizeBytes, sidebarFile.size),
       }
     : undefined
 
@@ -520,6 +528,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
               onDraftChange={setChatInput}
               onSubmit={handleSendMessage}
               composerExtras={composerExtras}
+              canSubmit={chatInput.trim().length > 0 || chatAttachments.length > 0}
             />
           </div>
         </TabsContent>
