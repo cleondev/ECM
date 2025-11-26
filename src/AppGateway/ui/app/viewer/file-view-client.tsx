@@ -10,7 +10,7 @@ import { resolveViewerConfig, type ViewerCategory } from "@/lib/viewer-utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Separator, TabsContent } from "@/components/ui/tabs"
+import { TabsContent } from "@/components/ui/tabs"
 import {
   SidebarChatTab,
   SidebarFlowTab,
@@ -23,6 +23,7 @@ import {
 } from "@/components/shared/sidebar-tabs"
 
 import { PdfViewer } from "./pdf-viewer"
+import { Separator } from '@/components/ui/separator';
 
 const MAIN_APP_ROUTE = "/app/"
 
