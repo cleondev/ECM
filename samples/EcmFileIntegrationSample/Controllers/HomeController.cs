@@ -23,32 +23,48 @@ public class HomeController(
     private EcmIntegrationOptions Options => _optionsSnapshot.Value;
 
     // ----------------------------------------------------
-    // Index
+    // Home
     // ----------------------------------------------------
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
-        var form = BuildDefaultUploadForm();
-        return View(await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
+        var connection = BuildConnectionInfo();
+        SetConnection(connection);
+
+        var profile = await LoadProfileAsync(cancellationToken);
+
+        return View(new HomePageViewModel
+        {
+            Connection = connection,
+            Profile = profile,
+        });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SwitchUser(string userEmail, CancellationToken cancellationToken)
+    public IActionResult SwitchUser(string userEmail, string? returnUrl)
     {
         ApplyUserSelection(userEmail, null);
 
-        return View(
-            "Index",
-            await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                cancellationToken: cancellationToken));
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     // ----------------------------------------------------
     // Upload
     // ----------------------------------------------------
+    [HttpGet]
+    public async Task<IActionResult> Upload(CancellationToken cancellationToken)
+    {
+        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
+        return View(await BuildUploadViewModelAsync(BuildDefaultUploadForm(), cancellationToken: cancellationToken));
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload([Bind(Prefix = "Form")] UploadFormModel form, CancellationToken cancellationToken)
@@ -66,18 +82,17 @@ public class HomeController(
 
         if (!ModelState.IsValid)
         {
-            return View("Index", await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
+            return View(await BuildUploadViewModelAsync(form, cancellationToken: cancellationToken));
         }
 
         var profile = await _ecmService.GetProfileAsync(cancellationToken);
         if (profile is null)
         {
-                return View("Index", await BuildPageViewModelAsync(
-                    form,
-                    cancellationToken: cancellationToken,
-                    error: "Không lấy được thông tin người dùng từ ECM. Kiểm tra cấu hình ApiKey/SSO."
-                ));
-            }
+            return View(await BuildUploadViewModelAsync(
+                form,
+                cancellationToken: cancellationToken,
+                error: "Không lấy được thông tin người dùng từ ECM. Kiểm tra cấu hình ApiKey/SSO."));
+        }
 
         ownerId ??= profile.Id;
         createdBy ??= profile.Id;
@@ -107,11 +122,10 @@ public class HomeController(
             var document = await _ecmService.UploadDocumentAsync(uploadRequest, cancellationToken);
             if (document is null)
             {
-                return View("Index", await BuildPageViewModelAsync(
+                return View(await BuildUploadViewModelAsync(
                     form,
                     cancellationToken: cancellationToken,
-                    error: "ECM không trả về thông tin tài liệu sau khi upload."
-                ));
+                    error: "ECM không trả về thông tin tài liệu sau khi upload."));
             }
 
             var downloadUri = document.LatestVersion is { } version
@@ -131,7 +145,7 @@ public class HomeController(
                 _logger.LogWarning(exception, "Không thể gán tag cho document sau khi upload.");
             }
 
-            return View("Index", await BuildPageViewModelAsync(
+            return View(await BuildUploadViewModelAsync(
                 new UploadFormModel
                 {
                     DocType = form.DocType,
@@ -149,17 +163,15 @@ public class HomeController(
                     AppliedTags = appliedTags,
                 },
                 tags: tags,
-                cancellationToken: cancellationToken
-            ));
+                cancellationToken: cancellationToken));
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Upload thất bại.");
-            return View("Index", await BuildPageViewModelAsync(
+            return View(await BuildUploadViewModelAsync(
                 form,
                 cancellationToken: cancellationToken,
-                error: "Upload thất bại. Kiểm tra log để biết thêm chi tiết."
-            ));
+                error: "Upload thất bại. Kiểm tra log để biết thêm chi tiết."));
         }
         finally
         {
@@ -168,149 +180,168 @@ public class HomeController(
     }
 
     // ----------------------------------------------------
-    // List Documents
+    // Tags
     // ----------------------------------------------------
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ListDocuments(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    [HttpGet]
+    public async Task<IActionResult> Tags(CancellationToken cancellationToken)
     {
-        ApplyUserSelection(documentQuery.UserEmail, null);
-        if (!ModelState.IsValid)
-        {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                cancellationToken: cancellationToken
-            ));
-        }
-
-        return View("Index", await BuildPageViewModelAsync(
-            BuildDefaultUploadForm(),
-            documentQuery: documentQuery,
-            cancellationToken: cancellationToken,
-            documentMessage: "Đã tải danh sách tài liệu theo bộ lọc."
-        ));
+        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
+        return View(await BuildTagPageViewModelAsync(null, null, null, TempData["TagMessage"] as string, cancellationToken));
     }
 
-    // ----------------------------------------------------
-    // Create Tag
-    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateTag(TagCreateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateTag(TagCreateForm form, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail, null);
         var namespaceId = ParseGuidOrNull(form.NamespaceId, nameof(form.NamespaceId));
         var parentId = ParseGuidOrNull(form.ParentId, nameof(form.ParentId));
 
         if (!ModelState.IsValid)
         {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                tagCreate: form,
-                cancellationToken: cancellationToken
-            ));
+            return View("Tags", await BuildTagPageViewModelAsync(form, null, null, null, cancellationToken));
         }
 
         var request = new TagCreateRequest(namespaceId, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, null);
         await _ecmService.CreateTagAsync(request, cancellationToken);
 
-        return View("Index", await BuildPageViewModelAsync(
-            BuildDefaultUploadForm(),
-            documentQuery: documentQuery,
-            tagMessage: "Đã tạo tag mới.",
-            cancellationToken: cancellationToken,
-            tagCreate: new TagCreateForm()
-        ));
+        TempData["TagMessage"] = "Đã tạo tag mới.";
+        return RedirectToAction(nameof(Tags));
     }
 
-    // ----------------------------------------------------
-    // Update Tag
-    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateTag(TagUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateTag(TagUpdateForm form, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail, null);
         var tagId = ParseRequiredGuid(form.TagId, nameof(form.TagId));
         var namespaceId = ParseRequiredGuid(form.NamespaceId, nameof(form.NamespaceId));
         var parentId = ParseGuidOrNull(form.ParentId, nameof(form.ParentId));
 
         if (!ModelState.IsValid || tagId is null || namespaceId is null)
         {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                tagUpdate: form,
-                cancellationToken: cancellationToken
-            ));
+            return View("Tags", await BuildTagPageViewModelAsync(null, form, null, null, cancellationToken));
         }
 
         var request = new TagUpdateRequest(namespaceId.Value, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, form.IsActive, null);
         var updated = await _ecmService.UpdateTagAsync(tagId.Value, request, cancellationToken);
 
-        var message = updated is null ? "Không tìm thấy tag cần cập nhật." : "Đã cập nhật tag.";
-
-        return View("Index", await BuildPageViewModelAsync(
-            BuildDefaultUploadForm(),
-            documentQuery: documentQuery,
-            tagMessage: message,
-            cancellationToken: cancellationToken,
-            tagUpdate: new TagUpdateForm()
-        ));
+        TempData["TagMessage"] = updated is null ? "Không tìm thấy tag cần cập nhật." : "Đã cập nhật tag.";
+        return RedirectToAction(nameof(Tags));
     }
 
-    // ----------------------------------------------------
-    // Delete Tag
-    // ----------------------------------------------------
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteTag(TagDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteTag(TagDeleteForm form, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail, null);
         var tagId = ParseRequiredGuid(form.TagId, nameof(form.TagId));
 
         if (!ModelState.IsValid || tagId is null)
         {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                tagDelete: form,
-                cancellationToken: cancellationToken
-            ));
+            return View("Tags", await BuildTagPageViewModelAsync(null, null, form, null, cancellationToken));
         }
 
         var deleted = await _ecmService.DeleteTagAsync(tagId.Value, cancellationToken);
-
-        return View("Index", await BuildPageViewModelAsync(
-            BuildDefaultUploadForm(),
-            documentQuery: documentQuery,
-            tagMessage: deleted ? "Đã xoá tag." : "Không tìm thấy hoặc không xoá được tag.",
-            cancellationToken: cancellationToken,
-            tagDelete: new TagDeleteForm()
-        ));
+        TempData["TagMessage"] = deleted ? "Đã xoá tag." : "Không tìm thấy hoặc không xoá được tag.";
+        return RedirectToAction(nameof(Tags));
     }
 
     // ----------------------------------------------------
-    // Update Document
+    // Documents
     // ----------------------------------------------------
+    [HttpGet]
+    public async Task<IActionResult> Documents([FromQuery] DocumentQueryForm? documentQuery, CancellationToken cancellationToken)
+    {
+        documentQuery ??= new DocumentQueryForm();
+        ApplyUserSelection(documentQuery.UserEmail, documentQuery.UserEmail);
+        var message = TempData["DocumentMessage"] as string;
+        return View(await BuildDocumentListViewModelAsync(documentQuery, message, cancellationToken));
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateDocument(DocumentUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    public async Task<IActionResult> Documents(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
-        var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
-        var groupId = form.UpdateGroup ? ParseGuidOrNull(form.GroupId, nameof(form.GroupId)) : null;
+        ApplyUserSelection(documentQuery.UserEmail, documentQuery.UserEmail);
+        if (!ModelState.IsValid)
+        {
+            return View(await BuildDocumentListViewModelAsync(documentQuery, null, cancellationToken));
+        }
 
+        return View(await BuildDocumentListViewModelAsync(documentQuery, "Đã tải danh sách tài liệu theo bộ lọc.", cancellationToken));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DocumentDetail(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await LoadDocumentDetailAsync(id, cancellationToken);
+        var message = detail is null ? "Không tìm thấy tài liệu." : null;
+        return View(await BuildDocumentDetailViewModelAsync(detail, message, cancellationToken));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadDocument(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await LoadDocumentDetailAsync(id, cancellationToken);
+        if (detail?.Document.LatestVersion is not { } version)
+        {
+            TempData["DocumentMessage"] = "Không tìm thấy phiên bản mới nhất để tải.";
+            return RedirectToAction(nameof(Documents));
+        }
+
+        var download = await _ecmService.DownloadVersionAsync(version.Id, cancellationToken);
+        if (download is null)
+        {
+            TempData["DocumentMessage"] = "Không thể tải file.";
+            return RedirectToAction(nameof(Documents));
+        }
+
+        var fileName = download.FileName ?? $"{detail.Document.Title ?? "document"}-{version.VersionNo}.bin";
+        return File(download.Content, download.ContentType, fileName);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> EditDocument(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await LoadDocumentDetailAsync(id, cancellationToken);
+        if (detail is null)
+        {
+            TempData["DocumentMessage"] = "Không tìm thấy tài liệu cần cập nhật.";
+            return RedirectToAction(nameof(Documents));
+        }
+
+        var form = new DocumentUpdateForm
+        {
+            DocumentId = detail.Document.Id.ToString(),
+            Title = detail.Document.Title,
+            Status = detail.Document.Status,
+            Sensitivity = detail.Document.Sensitivity,
+            GroupId = detail.Document.GroupId?.ToString(),
+            UpdateGroup = detail.Document.GroupId is not null,
+            UserEmail = Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email,
+        };
+
+        return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditDocument(DocumentUpdateForm form, CancellationToken cancellationToken)
+    {
+        ApplyUserSelection(form.UserEmail, null);
+        var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
         if (!ModelState.IsValid || documentId is null)
         {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                documentUpdate: form,
-                cancellationToken: cancellationToken
-            ));
+            var detail = documentId is not null ? await LoadDocumentDetailAsync(documentId.Value, cancellationToken) : null;
+            return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
+        }
+
+        var groupId = form.UpdateGroup ? ParseGuidOrNull(form.GroupId, nameof(form.GroupId)) : null;
+        if (!ModelState.IsValid)
+        {
+            var detail = await LoadDocumentDetailAsync(documentId.Value, cancellationToken);
+            return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
         }
 
         var request = new DocumentUpdateRequest
@@ -323,133 +354,14 @@ public class HomeController(
         };
 
         var updated = await _ecmService.UpdateDocumentAsync(documentId.Value, request, cancellationToken);
-        var message = updated is null
-            ? "Không thể cập nhật document (không tồn tại hoặc không đủ quyền)."
-            : "Đã cập nhật document.";
-
-        return View("Index", await BuildPageViewModelAsync(
-            BuildDefaultUploadForm(),
-            documentQuery: documentQuery,
-            documentMessage: message,
-            cancellationToken: cancellationToken,
-            documentUpdate: new DocumentUpdateForm()
-        ));
-    }
-
-    // ----------------------------------------------------
-    // Delete Document
-    // ----------------------------------------------------
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteDocument(DocumentDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
-    {
-        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
-        var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
-
-        if (!ModelState.IsValid || documentId is null)
+        if (updated is null)
         {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                documentDelete: form,
-                cancellationToken: cancellationToken
-            ));
+            var detail = await LoadDocumentDetailAsync(documentId.Value, cancellationToken);
+            return View(await BuildDocumentEditViewModelAsync(form, detail, "Không thể cập nhật document (không tồn tại hoặc không đủ quyền).", cancellationToken));
         }
 
-        var deleted = await _ecmService.DeleteDocumentAsync(documentId.Value, cancellationToken);
-        var message = deleted
-            ? "Đã xoá document."
-            : "Không tìm thấy document hoặc không đủ quyền xoá.";
-
-        return View("Index", await BuildPageViewModelAsync(
-            BuildDefaultUploadForm(),
-            documentQuery: documentQuery,
-            documentMessage: message,
-            cancellationToken: cancellationToken,
-            documentDelete: new DocumentDeleteForm()
-        ));
-    }
-
-    // ----------------------------------------------------
-    // Document Details & Download
-    // ----------------------------------------------------
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> GetDocumentDetail(DocumentDetailForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
-    {
-        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
-        var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
-
-        if (!ModelState.IsValid || documentId is null)
-        {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                documentDetail: form,
-                cancellationToken: cancellationToken
-            ));
-        }
-
-        var document = await _ecmService.GetDocumentAsync(documentId.Value, cancellationToken);
-
-        if (document is null)
-        {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                documentMessage: "Không tìm thấy tài liệu.",
-                documentDetail: new DocumentDetailForm { UserEmail = form.UserEmail ?? documentQuery.UserEmail },
-                cancellationToken: cancellationToken
-            ));
-        }
-
-        Uri? downloadUri = null;
-        if (document.LatestVersion is { } version)
-        {
-            downloadUri = await _ecmService.GetDownloadUriAsync(version.Id, cancellationToken);
-        }
-
-        return View("Index", await BuildPageViewModelAsync(
-            BuildDefaultUploadForm(),
-            documentQuery: documentQuery,
-            documentMessage: "Đã tải chi tiết tài liệu.",
-            documentDetail: new DocumentDetailForm { UserEmail = form.UserEmail ?? documentQuery.UserEmail },
-            documentDetailResult: new DocumentDetailResult(document, downloadUri),
-            cancellationToken: cancellationToken
-        ));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DownloadVersion(VersionDownloadForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
-    {
-        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
-        var versionId = ParseRequiredGuid(form.VersionId, nameof(form.VersionId));
-
-        if (!ModelState.IsValid || versionId is null)
-        {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                versionDownload: form,
-                cancellationToken: cancellationToken
-            ));
-        }
-
-        var download = await _ecmService.DownloadVersionAsync(versionId.Value, cancellationToken);
-        if (download is null)
-        {
-            return View("Index", await BuildPageViewModelAsync(
-                BuildDefaultUploadForm(),
-                documentQuery: documentQuery,
-                documentMessage: "Không tìm thấy phiên bản hoặc không thể tải file.",
-                versionDownload: new VersionDownloadForm { UserEmail = form.UserEmail ?? documentQuery.UserEmail },
-                cancellationToken: cancellationToken
-            ));
-        }
-
-        var fileName = download.FileName ?? $"version-{versionId}.bin";
-        return File(download.Content, download.ContentType, fileName);
+        TempData["DocumentMessage"] = "Đã cập nhật document.";
+        return RedirectToAction(nameof(Documents));
     }
 
     // ----------------------------------------------------
@@ -471,63 +383,11 @@ public class HomeController(
         return _userSelection.ApplySelection(Options, resolvedEmail);
     }
 
-    private async Task<UploadPageViewModel> BuildPageViewModelAsync(
-        UploadFormModel form,
-        DocumentQueryForm? documentQuery = null,
-        string? error = null,
-        string? tagMessage = null,
-        string? documentMessage = null,
-        TagCreateForm? tagCreate = null,
-        TagUpdateForm? tagUpdate = null,
-        TagDeleteForm? tagDelete = null,
-        DocumentUpdateForm? documentUpdate = null,
-        DocumentDeleteForm? documentDelete = null,
-        DocumentDetailForm? documentDetail = null,
-        DocumentDetailResult? documentDetailResult = null,
-        VersionDownloadForm? versionDownload = null,
-        UploadResultModel? result = null,
-        IReadOnlyCollection<TagLabelDto>? tags = null,
-        DocumentListResult? documentList = null,
-        UserProfile? profile = null,
-        CancellationToken cancellationToken = default)
+    private ConnectionInfoViewModel BuildConnectionInfo()
     {
-        documentQuery ??= new DocumentQueryForm();
-
-        if (tags is null || documentList is null || profile is null)
-        {
-            var reference = await LoadReferenceDataAsync(documentQuery, cancellationToken);
-            tags ??= reference.Tags;
-            documentList ??= reference.Documents;
-            profile ??= reference.Profile;
-        }
-
         var currentUser = _userSelection.GetCurrentUser();
 
-        form.UserEmail ??= Options.OnBehalfUserEmail ?? currentUser.Email;
-        documentQuery.UserEmail ??= form.UserEmail;
-
-        tagCreate ??= new TagCreateForm();
-        tagCreate.UserEmail ??= documentQuery.UserEmail;
-
-        tagUpdate ??= new TagUpdateForm();
-        tagUpdate.UserEmail ??= documentQuery.UserEmail;
-
-        tagDelete ??= new TagDeleteForm();
-        tagDelete.UserEmail ??= documentQuery.UserEmail;
-
-        documentUpdate ??= new DocumentUpdateForm();
-        documentUpdate.UserEmail ??= documentQuery.UserEmail;
-
-        documentDelete ??= new DocumentDeleteForm();
-        documentDelete.UserEmail ??= documentQuery.UserEmail;
-
-        documentDetail ??= new DocumentDetailForm();
-        documentDetail.UserEmail ??= documentQuery.UserEmail;
-
-        versionDownload ??= new VersionDownloadForm();
-        versionDownload.UserEmail ??= documentQuery.UserEmail;
-
-        return new UploadPageViewModel
+        return new ConnectionInfoViewModel
         {
             BaseUrl = Options.BaseUrl,
             Users = [.. _userSelection
@@ -539,63 +399,194 @@ public class HomeController(
             UsingOnBehalfAuthentication = Options.IsOnBehalfEnabled,
             OnBehalfUserEmail = Options.OnBehalfUserEmail,
             OnBehalfUserId = Options.OnBehalfUserId,
+        };
+    }
+
+    private void SetConnection(ConnectionInfoViewModel connection)
+    {
+        ViewBag.Connection = connection;
+    }
+
+    private async Task<UploadPageViewModel> BuildUploadViewModelAsync(
+        UploadFormModel form,
+        UploadResultModel? result = null,
+        IReadOnlyCollection<TagLabelDto>? tags = null,
+        string? error = null,
+        CancellationToken cancellationToken = default)
+    {
+        form.UserEmail ??= Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email;
+
+        tags ??= await LoadTagsAsync(cancellationToken);
+        var profile = await LoadProfileAsync(cancellationToken);
+
+        var connection = BuildConnectionInfo();
+        SetConnection(connection);
+
+        return new UploadPageViewModel
+        {
+            Connection = connection,
             Form = form,
             Result = result,
             Error = error,
             Tags = tags,
-            TagMessage = tagMessage,
-            TagCreate = tagCreate ?? new TagCreateForm(),
-            TagUpdate = tagUpdate ?? new TagUpdateForm(),
-            TagDelete = tagDelete ?? new TagDeleteForm(),
-            DocumentQuery = documentQuery,
-            DocumentList = documentList,
-            DocumentMessage = documentMessage,
-            DocumentUpdate = documentUpdate ?? new DocumentUpdateForm(),
-            DocumentDelete = documentDelete ?? new DocumentDeleteForm(),
-            DocumentDetail = documentDetail ?? new DocumentDetailForm(),
-            DocumentDetailResult = documentDetailResult,
-            VersionDownload = versionDownload ?? new VersionDownloadForm(),
             CurrentProfile = profile ?? result?.Profile,
         };
     }
 
-    private async Task<ReferenceData> LoadReferenceDataAsync(
-        DocumentQueryForm documentQuery,
+    private async Task<TagPageViewModel> BuildTagPageViewModelAsync(
+        TagCreateForm? tagCreate,
+        TagUpdateForm? tagUpdate,
+        TagDeleteForm? tagDelete,
+        string? message,
         CancellationToken cancellationToken)
     {
-        IReadOnlyCollection<TagLabelDto> tags = [];
-        DocumentListResult? documents = null;
-        UserProfile? profile = null;
+        var tags = await LoadTagsAsync(cancellationToken);
+        var connection = BuildConnectionInfo();
+        SetConnection(connection);
 
+        tagCreate ??= new TagCreateForm();
+        tagCreate.UserEmail ??= connection.SelectedUserEmail;
+
+        tagUpdate ??= new TagUpdateForm();
+        tagUpdate.UserEmail ??= connection.SelectedUserEmail;
+
+        tagDelete ??= new TagDeleteForm();
+        tagDelete.UserEmail ??= connection.SelectedUserEmail;
+
+        return new TagPageViewModel
+        {
+            Connection = connection,
+            Tags = tags,
+            Message = message,
+            TagCreate = tagCreate,
+            TagUpdate = tagUpdate,
+            TagDelete = tagDelete,
+        };
+    }
+
+    private async Task<DocumentListPageViewModel> BuildDocumentListViewModelAsync(
+        DocumentQueryForm documentQuery,
+        string? message,
+        CancellationToken cancellationToken)
+    {
+        documentQuery.UserEmail ??= Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email;
+
+        var documents = await LoadDocumentsAsync(documentQuery, cancellationToken);
+        var connection = BuildConnectionInfo();
+        SetConnection(connection);
+
+        return new DocumentListPageViewModel
+        {
+            Connection = connection,
+            DocumentQuery = documentQuery,
+            DocumentList = documents,
+            DocumentMessage = message ?? TempData["DocumentMessage"] as string,
+        };
+    }
+
+    private async Task<DocumentDetailPageViewModel> BuildDocumentDetailViewModelAsync(
+        DocumentDetailResult? detail,
+        string? message,
+        CancellationToken cancellationToken)
+    {
+        var connection = BuildConnectionInfo();
+        SetConnection(connection);
+
+        return new DocumentDetailPageViewModel
+        {
+            Connection = connection,
+            Detail = detail,
+            Message = message,
+        };
+    }
+
+    private async Task<DocumentEditPageViewModel> BuildDocumentEditViewModelAsync(
+        DocumentUpdateForm form,
+        DocumentDetailResult? detail,
+        string? message,
+        CancellationToken cancellationToken)
+    {
+        var connection = BuildConnectionInfo();
+        SetConnection(connection);
+
+        form.UserEmail ??= connection.SelectedUserEmail;
+
+        detail ??= form.DocumentId is { Length: > 0 } && Guid.TryParse(form.DocumentId, out var documentId)
+            ? await LoadDocumentDetailAsync(documentId, cancellationToken)
+            : null;
+
+        return new DocumentEditPageViewModel
+        {
+            Connection = connection,
+            Form = form,
+            Detail = detail,
+            Message = message,
+        };
+    }
+
+    private async Task<UserProfile?> LoadProfileAsync(CancellationToken cancellationToken)
+    {
         try
         {
-            profile = await _ecmService.GetProfileAsync(cancellationToken);
+            return await _ecmService.GetProfileAsync(cancellationToken);
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Không thể tải profile người dùng.");
+            return null;
         }
+    }
 
+    private async Task<IReadOnlyCollection<TagLabelDto>> LoadTagsAsync(CancellationToken cancellationToken)
+    {
         try
         {
-            tags = await _ecmService.ListTagsAsync(cancellationToken);
+            return await _ecmService.ListTagsAsync(cancellationToken);
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Không thể tải danh sách tag.");
+            return Array.Empty<TagLabelDto>();
         }
+    }
 
+    private async Task<DocumentListResult?> LoadDocumentsAsync(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    {
         try
         {
             var query = BuildDocumentListQuery(documentQuery);
-            documents = await _ecmService.ListDocumentsAsync(query, cancellationToken);
+            return await _ecmService.ListDocumentsAsync(query, cancellationToken);
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Không thể tải danh sách document.");
+            return null;
         }
+    }
 
-        return new ReferenceData(tags, documents, profile);
+    private async Task<DocumentDetailResult?> LoadDocumentDetailAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var document = await _ecmService.GetDocumentAsync(documentId, cancellationToken);
+            if (document is null)
+            {
+                return null;
+            }
+
+            Uri? downloadUri = null;
+            if (document.LatestVersion is { } version)
+            {
+                downloadUri = await _ecmService.GetDownloadUriAsync(version.Id, cancellationToken);
+            }
+
+            return new DocumentDetailResult(document, downloadUri);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Không thể tải chi tiết tài liệu {DocumentId}.", documentId);
+            return null;
+        }
     }
 
     private static DocumentListQuery BuildDocumentListQuery(DocumentQueryForm documentQuery) => new(
@@ -630,11 +621,6 @@ public class HomeController(
 
         return results;
     }
-
-    private sealed record ReferenceData(
-        IReadOnlyCollection<TagLabelDto> Tags,
-        DocumentListResult? Documents,
-        UserProfile? Profile);
 
     private Guid? ParseGuidOrNull(string? value, string fieldName)
     {

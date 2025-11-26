@@ -1,0 +1,60 @@
+@model DocumentDetailPageViewModel
+@{
+    ViewData["Title"] = "Chi tiết tài liệu";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Chi tiết tài liệu</h5>
+    <a class="btn btn-outline-secondary" asp-action="Documents">Quay lại danh sách</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Message))
+{
+    <div class="alert alert-info" role="alert">@Model.Message</div>
+}
+
+@if (Model.Detail is not null)
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex align-items-start justify-content-between mb-3">
+                <div>
+                    <div class="fw-semibold">@Model.Detail.Document.Title</div>
+                    <small class="text-muted">@Model.Detail.Document.Id</small>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (Model.Detail.DownloadUri is not null)
+                    {
+                        <a class="btn btn-sm btn-success" href="@Model.Detail.DownloadUri" target="_blank" rel="noreferrer">Tải file</a>
+                    }
+                    <a class="btn btn-sm btn-warning text-white" asp-action="EditDocument" asp-route-id="@Model.Detail.Document.Id">Cập nhật</a>
+                </div>
+            </div>
+
+            <dl class="row mb-0 small">
+                <dt class="col-4">Doc type</dt>
+                <dd class="col-8">@Model.Detail.Document.DocType</dd>
+                <dt class="col-4">Status</dt>
+                <dd class="col-8">@Model.Detail.Document.Status</dd>
+                <dt class="col-4">Độ nhạy</dt>
+                <dd class="col-8">@Model.Detail.Document.Sensitivity</dd>
+                <dt class="col-4">Owner</dt>
+                <dd class="col-8">@Model.Detail.Document.OwnerId</dd>
+                <dt class="col-4">Created</dt>
+                <dd class="col-8">@Model.Detail.Document.CreatedAtUtc.ToLocalTime():g</dd>
+                <dt class="col-4">Updated</dt>
+                <dd class="col-8">@Model.Detail.Document.UpdatedAtUtc.ToLocalTime():g</dd>
+                @if (Model.Detail.Document.LatestVersion is not null)
+                {
+                    <dt class="col-4">Version</dt>
+                    <dd class="col-8">v@Model.Detail.Document.LatestVersion.VersionNo (@Model.Detail.Document.LatestVersion.Bytes bytes)</dd>
+                }
+                @if (Model.Detail.Document.Tags is { Count: > 0 })
+                {
+                    <dt class="col-4">Tags</dt>
+                    <dd class="col-8">@string.Join(", ", Model.Detail.Document.Tags.Select(tag => tag.Name))</dd>
+                }
+            </dl>
+        </div>
+    </div>
+}

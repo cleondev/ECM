@@ -50,7 +50,9 @@ public sealed class UploadResultModel
     public IReadOnlyCollection<TagLabelDto> AppliedTags { get; init; } = [];
 }
 
-public sealed class UploadPageViewModel
+public sealed record EcmUserViewModel(string Email, string DisplayName, bool IsSelected);
+
+public sealed class ConnectionInfoViewModel
 {
     public string BaseUrl { get; init; } = string.Empty;
 
@@ -67,6 +69,18 @@ public sealed class UploadPageViewModel
     public Guid? OnBehalfUserId { get; init; }
 
     public string? OnBehalfUserEmail { get; init; }
+}
+
+public sealed class HomePageViewModel
+{
+    public ConnectionInfoViewModel Connection { get; init; } = new();
+
+    public UserProfile? Profile { get; init; }
+}
+
+public sealed class UploadPageViewModel
+{
+    public ConnectionInfoViewModel Connection { get; init; } = new();
 
     public UploadFormModel Form { get; init; } = new();
 
@@ -76,34 +90,54 @@ public sealed class UploadPageViewModel
 
     public IReadOnlyCollection<TagLabelDto>? Tags { get; init; }
 
-    public string? TagMessage { get; init; }
+    public UserProfile? CurrentProfile { get; init; }
+}
+
+public sealed class TagPageViewModel
+{
+    public ConnectionInfoViewModel Connection { get; init; } = new();
+
+    public IReadOnlyCollection<TagLabelDto> Tags { get; init; } = [];
+
+    public string? Message { get; init; }
 
     public TagCreateForm TagCreate { get; init; } = new();
 
     public TagUpdateForm TagUpdate { get; init; } = new();
 
     public TagDeleteForm TagDelete { get; init; } = new();
+}
+
+public sealed class DocumentListPageViewModel
+{
+    public ConnectionInfoViewModel Connection { get; init; } = new();
 
     public DocumentQueryForm DocumentQuery { get; init; } = new();
 
     public DocumentListResult? DocumentList { get; init; }
 
     public string? DocumentMessage { get; init; }
-
-    public DocumentUpdateForm DocumentUpdate { get; init; } = new();
-
-    public DocumentDeleteForm DocumentDelete { get; init; } = new();
-
-    public DocumentDetailForm DocumentDetail { get; init; } = new();
-
-    public DocumentDetailResult? DocumentDetailResult { get; init; }
-
-    public VersionDownloadForm VersionDownload { get; init; } = new();
-
-    public UserProfile? CurrentProfile { get; init; }
 }
 
-public sealed record EcmUserViewModel(string Email, string DisplayName, bool IsSelected);
+public sealed class DocumentDetailPageViewModel
+{
+    public ConnectionInfoViewModel Connection { get; init; } = new();
+
+    public DocumentDetailResult? Detail { get; init; }
+
+    public string? Message { get; init; }
+}
+
+public sealed class DocumentEditPageViewModel
+{
+    public ConnectionInfoViewModel Connection { get; init; } = new();
+
+    public DocumentUpdateForm Form { get; init; } = new();
+
+    public DocumentDetailResult? Detail { get; init; }
+
+    public string? Message { get; init; }
+}
 
 public sealed class TagCreateForm
 {

@@ -1,0 +1,95 @@
+@model DocumentListPageViewModel
+@{
+    ViewData["Title"] = "Danh sách tài liệu";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.DocumentMessage))
+{
+    <div class="alert alert-info" role="alert">@Model.DocumentMessage</div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">Tìm kiếm tài liệu</div>
+    <div class="card-body">
+        <form asp-action="Documents" method="post" class="row g-3 align-items-end">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="DocumentQuery.UserEmail" />
+            <div class="col-md-3">
+                <label asp-for="DocumentQuery.Query" class="form-label"></label>
+                <input asp-for="DocumentQuery.Query" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="DocumentQuery.DocType" class="form-label"></label>
+                <input asp-for="DocumentQuery.DocType" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="DocumentQuery.Status" class="form-label"></label>
+                <input asp-for="DocumentQuery.Status" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label asp-for="DocumentQuery.Sensitivity" class="form-label"></label>
+                <input asp-for="DocumentQuery.Sensitivity" class="form-control" />
+            </div>
+            <div class="col-md-1">
+                <label asp-for="DocumentQuery.Page" class="form-label"></label>
+                <input asp-for="DocumentQuery.Page" class="form-control" />
+            </div>
+            <div class="col-md-1">
+                <label asp-for="DocumentQuery.PageSize" class="form-label"></label>
+                <input asp-for="DocumentQuery.PageSize" class="form-control" />
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="submit" class="btn btn-outline-primary">Lọc</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header">Kết quả</div>
+    <div class="card-body">
+        @if (Model.DocumentList is { Items: { Count: > 0 } items })
+        {
+            <div class="table-responsive mb-0">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Tiêu đề</th>
+                            <th>Doc type</th>
+                            <th>Status</th>
+                            <th>Độ nhạy</th>
+                            <th>Updated</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var doc in items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@doc.Title</div>
+                                    <small class="text-muted">@doc.Id</small>
+                                </td>
+                                <td>@doc.DocType</td>
+                                <td>@doc.Status</td>
+                                <td>@doc.Sensitivity</td>
+                                <td>@(doc.UpdatedAtFormatted ?? doc.UpdatedAtUtc.ToLocalTime().ToString("g"))</td>
+                                <td class="text-end">
+                                    <div class="d-flex gap-2 justify-content-end flex-wrap">
+                                        <a class="btn btn-sm btn-outline-primary" asp-action="DocumentDetail" asp-route-id="@doc.Id">Chi tiết</a>
+                                        <a class="btn btn-sm btn-outline-success" asp-action="DownloadDocument" asp-route-id="@doc.Id">Tải</a>
+                                        <a class="btn btn-sm btn-warning text-white" asp-action="EditDocument" asp-route-id="@doc.Id">Cập nhật</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mb-0">Chưa có tài liệu phù hợp bộ lọc.</p>
+        }
+    </div>
+</div>
