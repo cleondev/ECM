@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using Ecm.Sdk.Configuration;
+
+using Microsoft.Extensions.Options;
 
 namespace samples.EcmFileIntegrationSample;
 

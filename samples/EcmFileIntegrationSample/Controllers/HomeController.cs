@@ -1,11 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Ecm.Sdk.Configuration;
 using Ecm.Sdk.Models.Documents;
 using Ecm.Sdk.Models.Tags;
-using Ecm.Sdk.Configuration;
-using samples.EcmFileIntegrationSample;
+
 using EcmFileIntegrationSample.Services;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+
+using samples.EcmFileIntegrationSample;
 
 namespace EcmFileIntegrationSample.Controllers;
 

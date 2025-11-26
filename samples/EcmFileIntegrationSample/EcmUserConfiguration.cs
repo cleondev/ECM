@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Ecm.Sdk.Configuration;
 
 namespace samples.EcmFileIntegrationSample;

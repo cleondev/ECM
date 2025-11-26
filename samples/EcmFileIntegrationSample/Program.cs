@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using samples.EcmFileIntegrationSample;
-using Ecm.Sdk.Extensions;
 using Ecm.Sdk.Configuration;
+using Ecm.Sdk.Extensions;
+
 using EcmFileIntegrationSample.Services;
+
+using Microsoft.Extensions.Options;
+
+using samples.EcmFileIntegrationSample;
 
 var builder = WebApplication.CreateBuilder(args);
 
