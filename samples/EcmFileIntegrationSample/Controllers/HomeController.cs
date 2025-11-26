@@ -4,18 +4,18 @@ using Microsoft.Extensions.Options;
 using Ecm.Sdk.Models.Documents;
 using Ecm.Sdk.Models.Tags;
 using Ecm.Sdk.Configuration;
-using Ecm.Sdk.Clients;
 using samples.EcmFileIntegrationSample;
+using EcmFileIntegrationSample.Services;
 
 namespace EcmFileIntegrationSample.Controllers;
 
 public class HomeController(
-    EcmFileClient client,
+    IEcmIntegrationService ecmService,
     IOptionsSnapshot<EcmIntegrationOptions> options,
     ILogger<HomeController> logger,
     EcmUserSelection userSelection) : Controller
 {
-    private readonly EcmFileClient _client = client;
+    private readonly IEcmIntegrationService _ecmService = ecmService;
     private readonly IOptionsSnapshot<EcmIntegrationOptions> _optionsSnapshot = options;
     private readonly ILogger<HomeController> _logger = logger;
     private readonly EcmUserSelection _userSelection = userSelection;
@@ -69,7 +69,7 @@ public class HomeController(
             return View("Index", await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
         }
 
-        var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
+        var profile = await _ecmService.GetProfileAsync(cancellationToken);
         if (profile is null)
         {
                 return View("Index", await BuildPageViewModelAsync(
@@ -104,7 +104,7 @@ public class HomeController(
                 ContentType = string.IsNullOrWhiteSpace(form.File!.ContentType) ? null : form.File.ContentType
             };
 
-            var document = await _client.UploadDocumentAsync(uploadRequest, cancellationToken);
+            var document = await _ecmService.UploadDocumentAsync(uploadRequest, cancellationToken);
             if (document is null)
             {
                 return View("Index", await BuildPageViewModelAsync(
@@ -115,7 +115,7 @@ public class HomeController(
             }
 
             var downloadUri = document.LatestVersion is { } version
-                ? await _client.GetDownloadUriAsync(version.Id, cancellationToken)
+                ? await _ecmService.GetDownloadUriAsync(version.Id, cancellationToken)
                 : null;
 
             IReadOnlyCollection<TagLabelDto> appliedTags = [];
@@ -123,8 +123,8 @@ public class HomeController(
 
             try
             {
-                tags = await _client.ListTagsAsync(cancellationToken);
-                appliedTags = await ApplyTagsAsync(document.Id, selectedTagIds, profile.Id, tags, cancellationToken);
+                tags = await _ecmService.ListTagsAsync(cancellationToken);
+                appliedTags = await _ecmService.AssignTagsAsync(document.Id, selectedTagIds, profile.Id, tags, cancellationToken);
             }
             catch (Exception exception)
             {
@@ -214,7 +214,7 @@ public class HomeController(
         }
 
         var request = new TagCreateRequest(namespaceId, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, null);
-        await _client.CreateTagAsync(request, cancellationToken);
+        await _ecmService.CreateTagAsync(request, cancellationToken);
 
         return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
@@ -248,7 +248,7 @@ public class HomeController(
         }
 
         var request = new TagUpdateRequest(namespaceId.Value, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, form.IsActive, null);
-        var updated = await _client.UpdateTagAsync(tagId.Value, request, cancellationToken);
+        var updated = await _ecmService.UpdateTagAsync(tagId.Value, request, cancellationToken);
 
         var message = updated is null ? "Không tìm thấy tag cần cập nhật." : "Đã cập nhật tag.";
 
@@ -281,7 +281,7 @@ public class HomeController(
             ));
         }
 
-        var deleted = await _client.DeleteTagAsync(tagId.Value, cancellationToken);
+        var deleted = await _ecmService.DeleteTagAsync(tagId.Value, cancellationToken);
 
         return View("Index", await BuildPageViewModelAsync(
             BuildDefaultUploadForm(),
@@ -322,7 +322,7 @@ public class HomeController(
             HasGroupId = form.UpdateGroup,
         };
 
-        var updated = await _client.UpdateDocumentAsync(documentId.Value, request, cancellationToken);
+        var updated = await _ecmService.UpdateDocumentAsync(documentId.Value, request, cancellationToken);
         var message = updated is null
             ? "Không thể cập nhật document (không tồn tại hoặc không đủ quyền)."
             : "Đã cập nhật document.";
@@ -356,7 +356,7 @@ public class HomeController(
             ));
         }
 
-        var deleted = await _client.DeleteDocumentAsync(documentId.Value, cancellationToken);
+        var deleted = await _ecmService.DeleteDocumentAsync(documentId.Value, cancellationToken);
         var message = deleted
             ? "Đã xoá document."
             : "Không tìm thấy document hoặc không đủ quyền xoá.";
@@ -390,7 +390,7 @@ public class HomeController(
             ));
         }
 
-        var document = await _client.GetDocumentAsync(documentId.Value, cancellationToken);
+        var document = await _ecmService.GetDocumentAsync(documentId.Value, cancellationToken);
 
         if (document is null)
         {
@@ -406,7 +406,7 @@ public class HomeController(
         Uri? downloadUri = null;
         if (document.LatestVersion is { } version)
         {
-            downloadUri = await _client.GetDownloadUriAsync(version.Id, cancellationToken);
+            downloadUri = await _ecmService.GetDownloadUriAsync(version.Id, cancellationToken);
         }
 
         return View("Index", await BuildPageViewModelAsync(
@@ -436,7 +436,7 @@ public class HomeController(
             ));
         }
 
-        var download = await _client.DownloadVersionAsync(versionId.Value, cancellationToken);
+        var download = await _ecmService.DownloadVersionAsync(versionId.Value, cancellationToken);
         if (download is null)
         {
             return View("Index", await BuildPageViewModelAsync(
@@ -569,7 +569,7 @@ public class HomeController(
 
         try
         {
-            profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
+            profile = await _ecmService.GetProfileAsync(cancellationToken);
         }
         catch (Exception exception)
         {
@@ -578,7 +578,7 @@ public class HomeController(
 
         try
         {
-            tags = await _client.ListTagsAsync(cancellationToken);
+            tags = await _ecmService.ListTagsAsync(cancellationToken);
         }
         catch (Exception exception)
         {
@@ -588,7 +588,7 @@ public class HomeController(
         try
         {
             var query = BuildDocumentListQuery(documentQuery);
-            documents = await _client.ListDocumentsAsync(query, cancellationToken);
+            documents = await _ecmService.ListDocumentsAsync(query, cancellationToken);
         }
         catch (Exception exception)
         {
@@ -607,36 +607,6 @@ public class HomeController(
         null,
         documentQuery.Page,
         documentQuery.PageSize);
-
-    private async Task<IReadOnlyCollection<TagLabelDto>> ApplyTagsAsync(
-        Guid documentId,
-        List<Guid> tagIds,
-        Guid appliedBy,
-        IReadOnlyCollection<TagLabelDto> availableTags,
-        CancellationToken cancellationToken)
-    {
-        if (tagIds.Count == 0)
-        {
-            return [];
-        }
-
-        var applied = new List<TagLabelDto>();
-
-        foreach (var tagId in tagIds)
-        {
-            var assigned = await _client.AssignTagToDocumentAsync(documentId, tagId, appliedBy, cancellationToken);
-            if (assigned)
-            {
-                var tag = availableTags.FirstOrDefault(item => item.Id == tagId);
-                if (tag is not null)
-                {
-                    applied.Add(tag);
-                }
-            }
-        }
-
-        return applied;
-    }
 
     private List<Guid> ParseGuidList(IEnumerable<string> values, string fieldName)
     {

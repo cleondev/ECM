@@ -174,6 +174,21 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
         return NoContent();
     }
 
+    [HttpDelete("files/{versionId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteByVersionAsync(Guid versionId, CancellationToken cancellationToken)
+    {
+        var deleted = await _client.DeleteDocumentByVersionAsync(versionId, cancellationToken);
+
+        if (!deleted)
+        {
+            return NotFound();
+        }
+
+        return NoContent();
+    }
+
     [HttpPost("batch")]
     [ProducesResponseType(typeof(DocumentBatchDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

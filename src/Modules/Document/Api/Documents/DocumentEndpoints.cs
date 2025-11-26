@@ -75,6 +75,11 @@ public static class DocumentEndpoints
             .WithDescription("Deletes a document by identifier.");
 
         group
+            .MapDelete("/files/{versionId:guid}", DeleteDocumentByVersionAsync)
+            .WithName("DeleteDocumentByVersion")
+            .WithDescription("Deletes a document using one of its version identifiers.");
+
+        group
             .MapGet("/files/download/{versionId:guid}", DownloadFileAsync)
             .WithName("DownloadDocumentVersion")
             .WithDescription("Redirects to a signed URL for downloading a document version.");
@@ -127,6 +132,52 @@ public static class DocumentEndpoints
         }
 
         var result = await handler.HandleAsync(new DeleteDocumentCommand(documentId, userId.Value), cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return TypedResults.NotFound();
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<Results<NoContent, NotFound, ForbidHttpResult>> DeleteDocumentByVersionAsync(
+        ClaimsPrincipal principal,
+        Guid versionId,
+        IDocumentVersionReadService versionReadService,
+        DocumentDbContext context,
+        DeleteDocumentCommandHandler handler,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
+        if (userId is null)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var version = await versionReadService.GetByIdAsync(versionId, cancellationToken);
+        if (version is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var documentIdValue = DocumentId.FromGuid(version.DocumentId);
+
+        var hasAccess = await context.EffectiveAclEntries
+            .AsNoTracking()
+            .AnyAsync(
+                entry => entry.UserId == userId.Value
+                    && entry.IsValid
+                    && entry.DocumentId == documentIdValue,
+                cancellationToken);
+
+        if (!hasAccess)
+        {
+            return TypedResults.Forbid();
+        }
+
+        var result = await handler.HandleAsync(new DeleteDocumentCommand(version.DocumentId, userId.Value), cancellationToken);
 
         if (result.IsFailure)
         {

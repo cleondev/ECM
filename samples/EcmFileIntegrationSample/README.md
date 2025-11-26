@@ -1,6 +1,6 @@
 # ECM file integration sample
 
-Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Phần tích hợp HTTP đã được tách thành thư viện NuGet `Ecm.Sdk` (đặt tại `src/Shared/Ecm.Sdk`) để có thể tái sử dụng cho các ứng dụng khác. Bạn có thể đăng nhập nền bằng API key qua endpoint `api/iam/auth/on-behalf` hoặc dùng luồng OBO (on-behalf-of) dựa trên SSO để đổi token của người dùng thành token ECM AppGateway.
+Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Phần tích hợp HTTP đã được tách thành thư viện NuGet `Ecm.Sdk` (đặt tại `samples/Ecm.Sdk`) để có thể tái sử dụng cho các ứng dụng khác. Bạn có thể đăng nhập nền bằng API key qua endpoint `api/iam/auth/on-behalf` hoặc dùng luồng OBO (on-behalf-of) dựa trên SSO để đổi token của người dùng thành token ECM AppGateway.
 
 ## Chuẩn bị
 
