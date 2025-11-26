@@ -20,6 +20,7 @@ import type {
   Flow,
   SystemTag,
 } from "@/lib/types"
+import { useEffect, useRef } from "react"
 import { Clock3, FileText, Folder, GitBranch, HardDrive, Info, ListChecks, MessageSquare, NotebookPen, Tag, UserRound } from "lucide-react"
 
 export type SidebarFileLike = Pick<
@@ -534,9 +535,17 @@ export function SidebarChatTab({
 
   const sendDisabled = canSubmit === undefined ? !draftMessage.trim() : !canSubmit
 
+  const listRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!listRef.current) return
+
+    listRef.current.scrollTop = listRef.current.scrollHeight
+  }, [comments.length])
+
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="flex h-full flex-col gap-4">
+      <div ref={listRef} className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1">
         {comments.map((comment) => (
           <div key={comment.id} className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
