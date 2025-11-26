@@ -267,8 +267,9 @@ public class HomeController(
     }
 
     [HttpPost]
+    [ActionName("Documents")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Documents(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    public async Task<IActionResult> DocumentsPost(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
         ApplyUserSelection(documentQuery.UserEmail, documentQuery.UserEmail);
         if (!ModelState.IsValid)
