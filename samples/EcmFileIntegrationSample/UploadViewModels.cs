@@ -15,6 +15,12 @@ public sealed class UploadFormModel
     [Display(Name = "Sensitivity")]
     public string Sensitivity { get; set; } = "Internal";
 
+    [Display(Name = "User key")]
+    public string? UserKey { get; set; }
+
+    [Display(Name = "User email")]
+    public string? UserEmail { get; set; }
+
     [Display(Name = "Owner ID")]
     public string? OwnerId { get; set; }
 
@@ -97,6 +103,10 @@ public sealed record EcmUserViewModel(string Key, string DisplayName, bool IsSel
 
 public sealed class TagCreateForm
 {
+    public string? UserKey { get; set; }
+
+    public string? UserEmail { get; set; }
+
     [Display(Name = "Namespace ID")]
     public string? NamespaceId { get; set; }
 
@@ -119,6 +129,10 @@ public sealed class TagCreateForm
 
 public sealed class TagUpdateForm
 {
+    public string? UserKey { get; set; }
+
+    public string? UserEmail { get; set; }
+
     [Required(ErrorMessage = "Vui lòng nhập Tag ID.")]
     [Display(Name = "Tag ID")]
     public string TagId { get; set; } = string.Empty;
@@ -149,6 +163,10 @@ public sealed class TagUpdateForm
 
 public sealed class TagDeleteForm
 {
+    public string? UserKey { get; set; }
+
+    public string? UserEmail { get; set; }
+
     [Required(ErrorMessage = "Vui lòng nhập Tag ID cần xoá.")]
     [Display(Name = "Tag ID")]
     public string TagId { get; set; } = string.Empty;
@@ -156,6 +174,10 @@ public sealed class TagDeleteForm
 
 public sealed class DocumentQueryForm
 {
+    public string? UserKey { get; set; }
+
+    public string? UserEmail { get; set; }
+
     [Display(Name = "Từ khóa")]
     public string? Query { get; set; }
 
@@ -179,6 +201,10 @@ public sealed class DocumentQueryForm
 
 public sealed class DocumentUpdateForm
 {
+    public string? UserKey { get; set; }
+
+    public string? UserEmail { get; set; }
+
     [Required(ErrorMessage = "Vui lòng nhập Document ID.")]
     [Display(Name = "Document ID")]
     public string DocumentId { get; set; } = string.Empty;
@@ -201,6 +227,10 @@ public sealed class DocumentUpdateForm
 
 public sealed class DocumentDeleteForm
 {
+    public string? UserKey { get; set; }
+
+    public string? UserEmail { get; set; }
+
     [Required(ErrorMessage = "Vui lòng nhập Document ID cần xoá.")]
     [Display(Name = "Document ID")]
     public string DocumentId { get; set; } = string.Empty;

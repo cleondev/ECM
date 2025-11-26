@@ -7,7 +7,6 @@ namespace samples.EcmFileIntegrationSample;
 
 public sealed class EcmUserSelection
 {
-    private const string CookieName = "ecm-user";
     private const string ContextItemKey = "ecm-user-selected";
 
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -29,15 +28,7 @@ public sealed class EcmUserSelection
             return requestedUser;
         }
 
-        var key = context?.Request.Cookies[CookieName];
-        var user = _store.GetUserOrDefault(key);
-
-        if (string.IsNullOrWhiteSpace(key) && context is not null)
-        {
-            WriteSelectionCookie(context, user.Key);
-        }
-
-        return user;
+        return _store.DefaultUser;
     }
 
     public EcmIntegrationOptions GetCurrentOptions()
@@ -46,30 +37,34 @@ public sealed class EcmUserSelection
         return _store.BuildOptions(user);
     }
 
-    public EcmUserConfiguration SelectUser(string? key)
+    public EcmUserConfiguration ApplySelection(EcmIntegrationOptions options, string? userKey, string? userEmail)
     {
-        if (_httpContextAccessor.HttpContext is not { } context)
-        {
-            return _store.DefaultUser;
-        }
-
-        var selected = _store.GetUserOrDefault(key);
-        context.Items[ContextItemKey] = selected;
-        WriteSelectionCookie(context, selected.Key);
+        var selected = SelectUser(userKey, userEmail);
+        var configured = _store.BuildOptions(selected);
+        EcmUserOptionsConfigurator.Copy(configured, options);
         return selected;
     }
 
-    private static void WriteSelectionCookie(HttpContext context, string key)
+    public EcmUserConfiguration SelectUser(string? key, string? email = null)
     {
-        context.Response.Cookies.Append(
-            CookieName,
-            key,
-            new CookieOptions
-            {
-                IsEssential = true,
-                HttpOnly = false,
-                Expires = DateTimeOffset.UtcNow.AddDays(30),
-            });
+        if (_httpContextAccessor.HttpContext is not { } context)
+        {
+            return ResolveUser(key, email);
+        }
+
+        var selected = ResolveUser(key, email);
+        context.Items[ContextItemKey] = selected;
+        return selected;
+    }
+
+    private EcmUserConfiguration ResolveUser(string? key, string? email)
+    {
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            return _store.GetUserByEmailOrDefault(email);
+        }
+
+        return _store.GetUserOrDefault(key);
     }
 }
 

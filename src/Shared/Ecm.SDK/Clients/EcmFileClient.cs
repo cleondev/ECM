@@ -82,6 +82,11 @@ public sealed class EcmFileClient
         content.Add(new StringContent(uploadRequest.Status), "status");
         content.Add(new StringContent(uploadRequest.Sensitivity), "sensitivity");
 
+        if (!string.IsNullOrWhiteSpace(uploadRequest.OnBehalfUserEmail))
+        {
+            content.Add(new StringContent(uploadRequest.OnBehalfUserEmail), "userEmail");
+        }
+
         if (uploadRequest.DocumentTypeId is { } docTypeId)
         {
             content.Add(new StringContent(docTypeId.ToString()), "documentTypeId");

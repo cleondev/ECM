@@ -84,4 +84,18 @@ public sealed class EcmUserStore
     {
         return user.BuildOptions(_defaults);
     }
+
+    public EcmUserConfiguration GetUserByEmailOrDefault(string? email)
+    {
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var match = _users.FirstOrDefault(user => string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase));
+            if (match is not null)
+            {
+                return match;
+            }
+        }
+
+        return DefaultUser;
+    }
 }

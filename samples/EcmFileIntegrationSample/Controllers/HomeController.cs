@@ -33,6 +33,7 @@ public class HomeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
+        ApplyUserSelection(null, Options.OnBehalfUserEmail);
         var form = BuildDefaultUploadForm();
         return View(await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
     }
@@ -41,7 +42,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SwitchUser(string userKey, CancellationToken cancellationToken)
     {
-        _userSelection.SelectUser(userKey);
+        ApplyUserSelection(userKey, null);
 
         return View(
             "Index",
@@ -57,6 +58,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload([Bind(Prefix = "Form")] UploadFormModel form, CancellationToken cancellationToken)
     {
+        var selectedUser = ApplyUserSelection(form.UserKey, form.UserEmail);
         var documentTypeId = ParseGuidOrNull(form.DocumentTypeId, nameof(form.DocumentTypeId));
         var ownerId = ParseGuidOrNull(form.OwnerId, nameof(form.OwnerId));
         var createdBy = ParseGuidOrNull(form.CreatedBy, nameof(form.CreatedBy));
@@ -105,6 +107,7 @@ public class HomeController : Controller
                 DocumentTypeId = documentTypeId,
                 Title = string.IsNullOrWhiteSpace(form.Title) ? form.File!.FileName : form.Title,
                 ContentType = string.IsNullOrWhiteSpace(form.File!.ContentType) ? null : form.File.ContentType,
+                OnBehalfUserEmail = string.IsNullOrWhiteSpace(form.UserEmail) ? selectedUser.Email : form.UserEmail,
             };
 
             var document = await _client.UploadDocumentAsync(uploadRequest, cancellationToken);
@@ -141,6 +144,8 @@ public class HomeController : Controller
                     Status = form.Status,
                     Sensitivity = form.Sensitivity,
                     Title = form.Title,
+                    UserKey = selectedUser.Key,
+                    UserEmail = form.UserEmail ?? selectedUser.Email,
                     SelectedTagIds = form.SelectedTagIds,
                 },
                 result: new UploadResultModel
@@ -176,6 +181,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ListDocuments(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
+        ApplyUserSelection(documentQuery.UserKey, documentQuery.UserEmail);
         if (!ModelState.IsValid)
         {
             return View("Index", await BuildPageViewModelAsync(
@@ -200,6 +206,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateTag(TagCreateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
+        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
         var namespaceId = ParseGuidOrNull(form.NamespaceId, nameof(form.NamespaceId));
         var parentId = ParseGuidOrNull(form.ParentId, nameof(form.ParentId));
 
@@ -232,6 +239,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateTag(TagUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
+        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
         var tagId = ParseRequiredGuid(form.TagId, nameof(form.TagId));
         var namespaceId = ParseRequiredGuid(form.NamespaceId, nameof(form.NamespaceId));
         var parentId = ParseGuidOrNull(form.ParentId, nameof(form.ParentId));
@@ -267,6 +275,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteTag(TagDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
+        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
         var tagId = ParseRequiredGuid(form.TagId, nameof(form.TagId));
 
         if (!ModelState.IsValid || tagId is null)
@@ -297,6 +306,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateDocument(DocumentUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
+        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
         var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
         var groupId = form.UpdateGroup ? ParseGuidOrNull(form.GroupId, nameof(form.GroupId)) : null;
 
@@ -340,6 +350,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteDocument(DocumentDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
+        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
         var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
 
         if (!ModelState.IsValid || documentId is null)
@@ -376,7 +387,14 @@ public class HomeController : Controller
         Sensitivity = Options.Sensitivity,
         Title = Options.Title,
         DocumentTypeId = Options.DocumentTypeId?.ToString(),
+        UserKey = _userSelection.GetCurrentUser().Key,
+        UserEmail = Options.OnBehalfUserEmail,
     };
+
+    private EcmUserConfiguration ApplyUserSelection(string? userKey, string? userEmail)
+    {
+        return _userSelection.ApplySelection(Options, userKey, userEmail);
+    }
 
     private async Task<UploadPageViewModel> BuildPageViewModelAsync(
         UploadFormModel form,
@@ -406,6 +424,31 @@ public class HomeController : Controller
         }
 
         var currentUser = _userSelection.GetCurrentUser();
+
+        form.UserKey ??= currentUser.Key;
+        form.UserEmail ??= Options.OnBehalfUserEmail ?? currentUser.Email;
+        documentQuery.UserKey ??= form.UserKey;
+        documentQuery.UserEmail ??= form.UserEmail;
+
+        tagCreate ??= new TagCreateForm();
+        tagCreate.UserKey ??= documentQuery.UserKey;
+        tagCreate.UserEmail ??= documentQuery.UserEmail;
+
+        tagUpdate ??= new TagUpdateForm();
+        tagUpdate.UserKey ??= documentQuery.UserKey;
+        tagUpdate.UserEmail ??= documentQuery.UserEmail;
+
+        tagDelete ??= new TagDeleteForm();
+        tagDelete.UserKey ??= documentQuery.UserKey;
+        tagDelete.UserEmail ??= documentQuery.UserEmail;
+
+        documentUpdate ??= new DocumentUpdateForm();
+        documentUpdate.UserKey ??= documentQuery.UserKey;
+        documentUpdate.UserEmail ??= documentQuery.UserEmail;
+
+        documentDelete ??= new DocumentDeleteForm();
+        documentDelete.UserKey ??= documentQuery.UserKey;
+        documentDelete.UserEmail ??= documentQuery.UserEmail;
 
         return new UploadPageViewModel
         {
