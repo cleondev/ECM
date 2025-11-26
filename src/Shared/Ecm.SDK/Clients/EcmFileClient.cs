@@ -51,7 +51,9 @@ public sealed class EcmFileClient
         using var response = await _httpClient.GetAsync("/api/iam/profile", cancellationToken);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
-            _logger.LogError("Request to {Url} was unauthorized. Ensure AccessToken is configured.", response.RequestMessage?.RequestUri);
+            _logger.LogError(
+                "Request to {Url} was unauthorized. Ensure ApiKey/SSO on-behalf configuration is valid.",
+                response.RequestMessage?.RequestUri);
             return null;
         }
 
@@ -366,19 +368,19 @@ public sealed class EcmFileClient
         return true;
     }
 
-    private string GetDocumentsEndpoint() => _options.OnBehalf.Enabled
+    private string GetDocumentsEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/documents"
         : "/api/ecm/documents";
 
-    private string GetDownloadEndpoint() => _options.OnBehalf.Enabled
+    private string GetDownloadEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/documents/files/download"
         : "/api/ecm/files/download";
 
-    private string GetTagsEndpoint() => _options.OnBehalf.Enabled
+    private string GetTagsEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/tags"
         : "/api/ecm/tags";
 
-    private string GetDocumentTagsEndpoint(Guid documentId) => _options.OnBehalf.Enabled
+    private string GetDocumentTagsEndpoint(Guid documentId) => _options.IsOnBehalfEnabled
         ? $"/api/documents/{documentId}/tags"
         : $"/api/ecm/documents/{documentId}/tags";
 

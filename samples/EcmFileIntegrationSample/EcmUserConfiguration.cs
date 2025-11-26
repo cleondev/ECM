@@ -19,7 +19,7 @@ public sealed class EcmUserConfiguration
 
         if (!string.IsNullOrWhiteSpace(Email))
         {
-            merged.OnBehalf.UserEmail = Email;
+            merged.OnBehalfUserEmail = Email;
         }
 
         return merged;

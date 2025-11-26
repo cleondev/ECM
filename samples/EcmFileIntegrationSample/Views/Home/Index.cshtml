@@ -29,7 +29,18 @@
                         <div class="fs-5 fw-bold">@Model.BaseUrl</div>
                     </div>
                     <div>
-                        @if (Model.UsingOnBehalfAuthentication)
+                        @if (Model.UsingSsoAuthentication)
+                        {
+                            <div class="d-flex flex-column align-items-end">
+                                <span class="badge bg-primary">On-behalf qua SSO</span>
+                                <small class="text-muted">
+                                    @(!string.IsNullOrWhiteSpace(Model.OnBehalfUserEmail)
+                                        ? Model.OnBehalfUserEmail
+                                        : Model.OnBehalfUserId?.ToString() ?? "User lấy từ token")
+                                </small>
+                            </div>
+                        }
+                        else if (Model.UsingApiKeyAuthentication)
                         {
                             <div class="d-flex flex-column align-items-end">
                                 <span class="badge bg-info text-dark">auth/on-behalf qua API key</span>
@@ -40,17 +51,13 @@
                                 </small>
                             </div>
                         }
-                        else if (Model.HasAccessToken)
-                        {
-                            <span class="badge bg-success">Access token đã cấu hình</span>
-                        }
                         else
                         {
-                            <span class="badge bg-warning text-dark">Chưa cấu hình access token</span>
+                            <span class="badge bg-warning text-dark">Chưa cấu hình on-behalf</span>
                         }
                     </div>
                 </div>
-                <p class="text-muted mb-0 mt-2">Ứng dụng hỗ trợ bearer token tĩnh trong <code>appsettings.json</code> hoặc đăng nhập nền qua endpoint <code>api/iam/auth/on-behalf</code> (API key của AppGateway). Dữ liệu tài khoản, tag và tài liệu sẽ được tải ngay khi mở trang dựa trên user đang chọn.</p>
+                <p class="text-muted mb-0 mt-2">Ứng dụng hỗ trợ auth/on-behalf qua API key của AppGateway hoặc đổi token SSO thành token AppGateway (OBO). Dữ liệu tài khoản, tag và tài liệu sẽ được tải ngay khi mở trang dựa trên user đang chọn.</p>
             </div>
         </div>
 

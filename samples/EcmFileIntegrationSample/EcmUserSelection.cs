@@ -82,7 +82,6 @@ public sealed class EcmUserOptionsConfigurator : IConfigureOptions<EcmIntegratio
     public static void Copy(EcmIntegrationOptions source, EcmIntegrationOptions destination)
     {
         destination.BaseUrl = source.BaseUrl;
-        destination.AccessToken = source.AccessToken;
         destination.DocType = source.DocType;
         destination.Status = source.Status;
         destination.Sensitivity = source.Sensitivity;
@@ -91,16 +90,16 @@ public sealed class EcmUserOptionsConfigurator : IConfigureOptions<EcmIntegratio
         destination.DocumentTypeId = source.DocumentTypeId;
         destination.Title = source.Title;
 
-        destination.OnBehalf.Enabled = source.OnBehalf.Enabled;
-        destination.OnBehalf.ApiKey = source.OnBehalf.ApiKey;
-        destination.OnBehalf.UserEmail = source.OnBehalf.UserEmail;
-        destination.OnBehalf.UserId = source.OnBehalf.UserId;
+        destination.ApiKey.Enabled = source.ApiKey.Enabled;
+        destination.ApiKey.ApiKey = source.ApiKey.ApiKey;
+        destination.OnBehalfUserEmail = source.OnBehalfUserEmail;
+        destination.OnBehalfUserId = source.OnBehalfUserId;
 
-        destination.OnBehalf.Sso.Enabled = source.OnBehalf.Sso.Enabled;
-        destination.OnBehalf.Sso.Authority = source.OnBehalf.Sso.Authority;
-        destination.OnBehalf.Sso.ClientId = source.OnBehalf.Sso.ClientId;
-        destination.OnBehalf.Sso.ClientSecret = source.OnBehalf.Sso.ClientSecret;
-        destination.OnBehalf.Sso.UserAccessToken = source.OnBehalf.Sso.UserAccessToken;
-        destination.OnBehalf.Sso.Scopes = source.OnBehalf.Sso.Scopes?.ToArray() ?? Array.Empty<string>();
+        destination.Sso.Enabled = source.Sso.Enabled;
+        destination.Sso.Authority = source.Sso.Authority;
+        destination.Sso.ClientId = source.Sso.ClientId;
+        destination.Sso.ClientSecret = source.Sso.ClientSecret;
+        destination.Sso.UserAccessToken = source.Sso.UserAccessToken;
+        destination.Sso.Scopes = source.Sso.Scopes?.ToArray() ?? Array.Empty<string>();
     }
 }

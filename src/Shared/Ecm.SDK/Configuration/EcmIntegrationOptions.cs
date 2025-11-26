@@ -11,14 +11,29 @@ public sealed class EcmIntegrationOptions
     public string BaseUrl { get; set; } = string.Empty;
 
     /// <summary>
-    /// Static bearer token used for direct authentication when on-behalf is disabled.
+    /// API key based authentication settings for on-behalf flows.
     /// </summary>
-    public string? AccessToken { get; set; }
+    public ApiKeyOptions ApiKey { get; set; } = new();
 
     /// <summary>
-    /// Settings for authenticating and acting on behalf of another user.
+    /// Settings for acquiring tokens via SSO when acting on behalf of a user.
     /// </summary>
-    public OnBehalfOptions OnBehalf { get; set; } = new();
+    public SsoOptions Sso { get; set; } = new();
+
+    /// <summary>
+    /// Identifier of the user to impersonate when using on-behalf authentication.
+    /// </summary>
+    public Guid? OnBehalfUserId { get; set; }
+
+    /// <summary>
+    /// Email of the user to impersonate when using on-behalf authentication.
+    /// </summary>
+    public string? OnBehalfUserEmail { get; set; }
+
+    /// <summary>
+    /// Indicates whether the SDK should route traffic through on-behalf capable endpoints.
+    /// </summary>
+    public bool IsOnBehalfEnabled => ApiKey.Enabled || Sso.Enabled;
 
     /// <summary>
     /// Identifier of the document owner when uploading new content.
@@ -57,12 +72,12 @@ public sealed class EcmIntegrationOptions
 }
 
 /// <summary>
-/// Options controlling how the SDK performs on-behalf authentication.
+/// Options controlling API key based on-behalf authentication.
 /// </summary>
-public sealed class OnBehalfOptions
+public sealed class ApiKeyOptions
 {
     /// <summary>
-    /// Indicates whether on-behalf authentication is enabled.
+    /// Indicates whether on-behalf authentication via API key is enabled.
     /// </summary>
     public bool Enabled { get; set; }
 
@@ -70,21 +85,6 @@ public sealed class OnBehalfOptions
     /// API key used to authenticate the on-behalf sign-in request.
     /// </summary>
     public string? ApiKey { get; set; }
-
-    /// <summary>
-    /// Identifier of the user to impersonate when on-behalf authentication is enabled.
-    /// </summary>
-    public Guid? UserId { get; set; }
-
-    /// <summary>
-    /// Email of the user to impersonate when on-behalf authentication is enabled.
-    /// </summary>
-    public string? UserEmail { get; set; }
-
-    /// <summary>
-    /// Settings for acquiring tokens via SSO when acting on behalf of a user.
-    /// </summary>
-    public SsoOptions Sso { get; set; } = new();
 }
 
 /// <summary>

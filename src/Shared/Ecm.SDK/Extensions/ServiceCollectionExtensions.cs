@@ -54,21 +54,18 @@ public static class ServiceCollectionExtensions
             .Configure(configureOptions)
             .Validate(options => !string.IsNullOrWhiteSpace(options.BaseUrl), "Ecm:BaseUrl must be configured.")
             .Validate(
-                options => !options.OnBehalf.Enabled || !string.IsNullOrWhiteSpace(options.OnBehalf.ApiKey),
-                "Ecm:OnBehalf:ApiKey must be configured when OnBehalf.Enabled=true.")
+                options => !options.ApiKey.Enabled || !string.IsNullOrWhiteSpace(options.ApiKey.ApiKey),
+                "Ecm:ApiKey:ApiKey must be configured when ApiKey.Enabled=true.")
             .Validate(
-                options => !options.OnBehalf.Enabled || !string.IsNullOrWhiteSpace(options.OnBehalf.UserEmail) || options.OnBehalf.UserId is not null,
-                "Ecm:OnBehalf:UserEmail or UserId must be configured when OnBehalf.Enabled=true.")
+                options => !options.ApiKey.Enabled || !string.IsNullOrWhiteSpace(options.OnBehalfUserEmail) || options.OnBehalfUserId is not null,
+                "Ecm:OnBehalfUserEmail or OnBehalfUserId must be configured when ApiKey.Enabled=true.")
             .Validate(
-                options => !options.OnBehalf.Sso.Enabled || options.OnBehalf.Enabled,
-                "Ecm:OnBehalf:Sso.Enabled requires OnBehalf.Enabled=true.")
-            .Validate(
-                options => !options.OnBehalf.Sso.Enabled
-                    || (!string.IsNullOrWhiteSpace(options.OnBehalf.Sso.Authority)
-                        && !string.IsNullOrWhiteSpace(options.OnBehalf.Sso.ClientId)
-                        && !string.IsNullOrWhiteSpace(options.OnBehalf.Sso.ClientSecret)
-                        && options.OnBehalf.Sso.Scopes.Length > 0),
-                "Ecm:OnBehalf:Sso settings are incomplete when OnBehalf:Sso:Enabled=true.")
+                options => !options.Sso.Enabled
+                    || (!string.IsNullOrWhiteSpace(options.Sso.Authority)
+                        && !string.IsNullOrWhiteSpace(options.Sso.ClientId)
+                        && !string.IsNullOrWhiteSpace(options.Sso.ClientSecret)
+                        && options.Sso.Scopes.Length > 0),
+                "Ecm:Sso settings are incomplete when Sso:Enabled=true.")
             .ValidateOnStart();
     }
 

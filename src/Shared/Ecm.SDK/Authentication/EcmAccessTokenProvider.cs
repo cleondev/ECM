@@ -31,13 +31,12 @@ public sealed class EcmAccessTokenProvider
     /// <summary>
     /// Gets a value indicating whether any authentication method has been configured.
     /// </summary>
-    public bool HasConfiguredAccess => !string.IsNullOrWhiteSpace(_options.Value.AccessToken)
-        || _options.Value.OnBehalf.Enabled;
+    public bool HasConfiguredAccess => _options.Value.ApiKey.Enabled || _options.Value.Sso.Enabled;
 
     /// <summary>
     /// Gets a value indicating whether on-behalf authentication is configured.
     /// </summary>
-    public bool UsingOnBehalfAuthentication => _options.Value.OnBehalf.Enabled;
+    public bool UsingOnBehalfAuthentication => _options.Value.IsOnBehalfEnabled;
 
     /// <summary>
     /// Resolves an access token using either a configured static token or on-behalf SSO flow.
@@ -50,7 +49,7 @@ public sealed class EcmAccessTokenProvider
 
         var options = _options.Value;
 
-        if (options.OnBehalf.Sso.Enabled)
+        if (options.Sso.Enabled)
         {
             var ssoToken = await _ssoTokenProvider.GetAccessTokenAsync(cancellationToken);
 
@@ -60,17 +59,12 @@ public sealed class EcmAccessTokenProvider
             }
         }
 
-        if (options.OnBehalf.Enabled && !options.OnBehalf.Sso.Enabled)
+        if (options.ApiKey.Enabled)
         {
             return null;
         }
 
-        if (!string.IsNullOrWhiteSpace(options.AccessToken))
-        {
-            return options.AccessToken;
-        }
-
-        _logger.LogWarning("Không tìm thấy AccessToken và OnBehalf chưa được bật. Request sẽ không có bearer token.");
+        _logger.LogWarning("Chưa cấu hình ApiKey hoặc SSO cho on-behalf. Request sẽ không có bearer token.");
         return null;
     }
 }
