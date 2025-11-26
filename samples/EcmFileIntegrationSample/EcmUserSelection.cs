@@ -37,34 +37,29 @@ public sealed class EcmUserSelection
         return _store.BuildOptions(user);
     }
 
-    public EcmUserConfiguration ApplySelection(EcmIntegrationOptions options, string? userKey, string? userEmail)
+    public EcmUserConfiguration ApplySelection(EcmIntegrationOptions options, string? userEmail)
     {
-        var selected = SelectUser(userKey, userEmail);
+        var selected = SelectUser(userEmail);
         var configured = _store.BuildOptions(selected);
         EcmUserOptionsConfigurator.Copy(configured, options);
         return selected;
     }
 
-    public EcmUserConfiguration SelectUser(string? key, string? email = null)
+    public EcmUserConfiguration SelectUser(string? email = null)
     {
         if (_httpContextAccessor.HttpContext is not { } context)
         {
-            return ResolveUser(key, email);
+            return ResolveUser(email);
         }
 
-        var selected = ResolveUser(key, email);
+        var selected = ResolveUser(email);
         context.Items[ContextItemKey] = selected;
         return selected;
     }
 
-    private EcmUserConfiguration ResolveUser(string? key, string? email)
+    private EcmUserConfiguration ResolveUser(string? email)
     {
-        if (!string.IsNullOrWhiteSpace(email))
-        {
-            return _store.GetUserByEmailOrDefault(email);
-        }
-
-        return _store.GetUserOrDefault(key);
+        return _store.GetUserByEmailOrDefault(email);
     }
 }
 

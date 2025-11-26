@@ -11,6 +11,7 @@ public sealed class EcmOnBehalfAuthenticator
 {
     private readonly IOptionsSnapshot<EcmIntegrationOptions> _options;
     private readonly ILogger<EcmOnBehalfAuthenticator> _logger;
+    private readonly EcmSsoTokenProvider _ssoTokenProvider;
     private readonly SemaphoreSlim _signInMutex = new(1, 1);
 
     private bool _hasSignedIn;
@@ -20,18 +21,21 @@ public sealed class EcmOnBehalfAuthenticator
     /// </summary>
     /// <param name="options">Integration options that describe on-behalf behavior.</param>
     /// <param name="logger">Logger used to emit diagnostic messages.</param>
+    /// <param name="ssoTokenProvider">Provider used to acquire SSO access tokens.</param>
     public EcmOnBehalfAuthenticator(
         IOptionsSnapshot<EcmIntegrationOptions> options,
-        ILogger<EcmOnBehalfAuthenticator> logger)
+        ILogger<EcmOnBehalfAuthenticator> logger,
+        EcmSsoTokenProvider ssoTokenProvider)
     {
         _options = options;
         _logger = logger;
+        _ssoTokenProvider = ssoTokenProvider;
     }
 
     /// <summary>
     /// Gets a value indicating whether on-behalf authentication is enabled.
     /// </summary>
-    public bool IsEnabled => _options.Value.ApiKey.Enabled;
+    public bool IsEnabled => _options.Value.IsOnBehalfEnabled;
 
     /// <summary>
     /// Ensures the SDK is signed in when using on-behalf authentication.
@@ -46,11 +50,41 @@ public sealed class EcmOnBehalfAuthenticator
             return;
         }
 
-        if (_options.Value.Sso.Enabled)
+        if (await TryAuthenticateWithSsoAsync(cancellationToken))
         {
             return;
         }
 
+        if (!_options.Value.ApiKey.Enabled)
+        {
+            return;
+        }
+
+        await EnsureApiKeySignInAsync(httpClient, cancellationToken);
+    }
+
+    private async Task<bool> TryAuthenticateWithSsoAsync(CancellationToken cancellationToken)
+    {
+        if (!_options.Value.Sso.Enabled)
+        {
+            return false;
+        }
+
+        var token = await _ssoTokenProvider.GetAccessTokenAsync(cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            _logger.LogWarning(
+                "SSO is enabled but no access token is available. Falling back to API key on-behalf authentication when configured.");
+            return false;
+        }
+
+        _logger.LogDebug("SSO access token acquired; skipping API key sign-in.");
+        return true;
+    }
+
+    private async Task EnsureApiKeySignInAsync(HttpClient httpClient, CancellationToken cancellationToken)
+    {
         if (_hasSignedIn)
         {
             return;

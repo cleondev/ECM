@@ -33,16 +33,16 @@ public class HomeController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        ApplyUserSelection(null, Options.OnBehalfUserEmail);
+        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
         var form = BuildDefaultUploadForm();
         return View(await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SwitchUser(string userKey, CancellationToken cancellationToken)
+    public async Task<IActionResult> SwitchUser(string userEmail, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(userKey, null);
+        ApplyUserSelection(userEmail, null);
 
         return View(
             "Index",
@@ -58,7 +58,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload([Bind(Prefix = "Form")] UploadFormModel form, CancellationToken cancellationToken)
     {
-        var selectedUser = ApplyUserSelection(form.UserKey, form.UserEmail);
+        var selectedUser = ApplyUserSelection(form.UserEmail, null);
         var documentTypeId = ParseGuidOrNull(form.DocumentTypeId, nameof(form.DocumentTypeId));
         var ownerId = ParseGuidOrNull(form.OwnerId, nameof(form.OwnerId));
         var createdBy = ParseGuidOrNull(form.CreatedBy, nameof(form.CreatedBy));
@@ -144,7 +144,6 @@ public class HomeController : Controller
                     Status = form.Status,
                     Sensitivity = form.Sensitivity,
                     Title = form.Title,
-                    UserKey = selectedUser.Key,
                     UserEmail = form.UserEmail ?? selectedUser.Email,
                     SelectedTagIds = form.SelectedTagIds,
                 },
@@ -181,7 +180,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ListDocuments(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(documentQuery.UserKey, documentQuery.UserEmail);
+        ApplyUserSelection(documentQuery.UserEmail, null);
         if (!ModelState.IsValid)
         {
             return View("Index", await BuildPageViewModelAsync(
@@ -206,7 +205,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateTag(TagCreateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
         var namespaceId = ParseGuidOrNull(form.NamespaceId, nameof(form.NamespaceId));
         var parentId = ParseGuidOrNull(form.ParentId, nameof(form.ParentId));
 
@@ -239,7 +238,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateTag(TagUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
         var tagId = ParseRequiredGuid(form.TagId, nameof(form.TagId));
         var namespaceId = ParseRequiredGuid(form.NamespaceId, nameof(form.NamespaceId));
         var parentId = ParseGuidOrNull(form.ParentId, nameof(form.ParentId));
@@ -275,7 +274,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteTag(TagDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
         var tagId = ParseRequiredGuid(form.TagId, nameof(form.TagId));
 
         if (!ModelState.IsValid || tagId is null)
@@ -306,7 +305,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateDocument(DocumentUpdateForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
         var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
         var groupId = form.UpdateGroup ? ParseGuidOrNull(form.GroupId, nameof(form.GroupId)) : null;
 
@@ -350,7 +349,7 @@ public class HomeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteDocument(DocumentDeleteForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(form.UserKey ?? documentQuery.UserKey, form.UserEmail ?? documentQuery.UserEmail);
+        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
         var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
 
         if (!ModelState.IsValid || documentId is null)
@@ -387,13 +386,13 @@ public class HomeController : Controller
         Sensitivity = Options.Sensitivity,
         Title = Options.Title,
         DocumentTypeId = Options.DocumentTypeId?.ToString(),
-        UserKey = _userSelection.GetCurrentUser().Key,
         UserEmail = Options.OnBehalfUserEmail,
     };
 
-    private EcmUserConfiguration ApplyUserSelection(string? userKey, string? userEmail)
+    private EcmUserConfiguration ApplyUserSelection(string? userEmail, string? fallbackEmail)
     {
-        return _userSelection.ApplySelection(Options, userKey, userEmail);
+        var resolvedEmail = userEmail ?? fallbackEmail ?? Options.OnBehalfUserEmail;
+        return _userSelection.ApplySelection(Options, resolvedEmail);
     }
 
     private async Task<UploadPageViewModel> BuildPageViewModelAsync(
@@ -425,29 +424,22 @@ public class HomeController : Controller
 
         var currentUser = _userSelection.GetCurrentUser();
 
-        form.UserKey ??= currentUser.Key;
         form.UserEmail ??= Options.OnBehalfUserEmail ?? currentUser.Email;
-        documentQuery.UserKey ??= form.UserKey;
         documentQuery.UserEmail ??= form.UserEmail;
 
         tagCreate ??= new TagCreateForm();
-        tagCreate.UserKey ??= documentQuery.UserKey;
         tagCreate.UserEmail ??= documentQuery.UserEmail;
 
         tagUpdate ??= new TagUpdateForm();
-        tagUpdate.UserKey ??= documentQuery.UserKey;
         tagUpdate.UserEmail ??= documentQuery.UserEmail;
 
         tagDelete ??= new TagDeleteForm();
-        tagDelete.UserKey ??= documentQuery.UserKey;
         tagDelete.UserEmail ??= documentQuery.UserEmail;
 
         documentUpdate ??= new DocumentUpdateForm();
-        documentUpdate.UserKey ??= documentQuery.UserKey;
         documentUpdate.UserEmail ??= documentQuery.UserEmail;
 
         documentDelete ??= new DocumentDeleteForm();
-        documentDelete.UserKey ??= documentQuery.UserKey;
         documentDelete.UserEmail ??= documentQuery.UserEmail;
 
         return new UploadPageViewModel
@@ -455,9 +447,9 @@ public class HomeController : Controller
             BaseUrl = Options.BaseUrl,
             Users = _userSelection
                 .GetUsers()
-                .Select(user => new EcmUserViewModel(user.Key, user.DisplayName, user.Key == currentUser.Key))
+                .Select(user => new EcmUserViewModel(user.Email ?? string.Empty, user.DisplayName, user.Email == currentUser.Email))
                 .ToArray(),
-            SelectedUserKey = currentUser.Key,
+            SelectedUserEmail = currentUser.Email ?? string.Empty,
             UsingApiKeyAuthentication = Options.ApiKey.Enabled,
             UsingSsoAuthentication = Options.Sso.Enabled,
             UsingOnBehalfAuthentication = Options.IsOnBehalfEnabled,
