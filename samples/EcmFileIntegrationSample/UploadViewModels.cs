@@ -15,9 +15,6 @@ public sealed class UploadFormModel
     [Display(Name = "Sensitivity")]
     public string Sensitivity { get; set; } = "Internal";
 
-    [Display(Name = "User key")]
-    public string? UserKey { get; set; }
-
     [Display(Name = "User email")]
     public string? UserEmail { get; set; }
 
@@ -58,7 +55,7 @@ public sealed class UploadPageViewModel
 
     public IReadOnlyCollection<EcmUserViewModel> Users { get; init; } = Array.Empty<EcmUserViewModel>();
 
-    public string SelectedUserKey { get; init; } = string.Empty;
+    public string SelectedUserEmail { get; init; } = string.Empty;
 
     public bool UsingApiKeyAuthentication { get; init; }
 
@@ -99,12 +96,10 @@ public sealed class UploadPageViewModel
     public UserProfile? CurrentProfile { get; init; }
 }
 
-public sealed record EcmUserViewModel(string Key, string DisplayName, bool IsSelected);
+public sealed record EcmUserViewModel(string Email, string DisplayName, bool IsSelected);
 
 public sealed class TagCreateForm
 {
-    public string? UserKey { get; set; }
-
     public string? UserEmail { get; set; }
 
     [Display(Name = "Namespace ID")]
@@ -129,8 +124,6 @@ public sealed class TagCreateForm
 
 public sealed class TagUpdateForm
 {
-    public string? UserKey { get; set; }
-
     public string? UserEmail { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Tag ID.")]
@@ -163,8 +156,6 @@ public sealed class TagUpdateForm
 
 public sealed class TagDeleteForm
 {
-    public string? UserKey { get; set; }
-
     public string? UserEmail { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Tag ID cần xoá.")]
@@ -174,8 +165,6 @@ public sealed class TagDeleteForm
 
 public sealed class DocumentQueryForm
 {
-    public string? UserKey { get; set; }
-
     public string? UserEmail { get; set; }
 
     [Display(Name = "Từ khóa")]
@@ -201,8 +190,6 @@ public sealed class DocumentQueryForm
 
 public sealed class DocumentUpdateForm
 {
-    public string? UserKey { get; set; }
-
     public string? UserEmail { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Document ID.")]
@@ -227,8 +214,6 @@ public sealed class DocumentUpdateForm
 
 public sealed class DocumentDeleteForm
 {
-    public string? UserKey { get; set; }
-
     public string? UserEmail { get; set; }
 
     [Required(ErrorMessage = "Vui lòng nhập Document ID cần xoá.")]

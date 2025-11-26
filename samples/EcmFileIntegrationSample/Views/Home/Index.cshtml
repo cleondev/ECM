@@ -11,10 +11,10 @@
                 <form asp-action="SwitchUser" method="post" class="row g-2 align-items-end" asp-antiforgery="true">
                     <div class="col-md-6 col-lg-4">
                         <label class="form-label">User cấu hình</label>
-                        <select name="userKey" class="form-select">
+                        <select name="userEmail" class="form-select">
                             @foreach (var user in Model.Users)
                             {
-                                <option value="@user.Key" selected="@(user.IsSelected ? "selected" : null)">@user.DisplayName</option>
+                                <option value="@user.Email" selected="@(user.IsSelected ? "selected" : null)">@user.DisplayName</option>
                             }
                         </select>
                     </div>
@@ -73,7 +73,6 @@
             <div class="card-body">
                 <form asp-action="Upload" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <input type="hidden" asp-for="Form.UserKey" />
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label asp-for="Form.UserEmail" class="form-label"></label>
@@ -209,7 +208,6 @@
                         <h6 class="fw-semibold">Tạo mới</h6>
                         <form asp-action="CreateTag" method="post" class="needs-validation" novalidate>
                             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                            <input type="hidden" asp-for="TagCreate.UserKey" />
                             <input type="hidden" asp-for="TagCreate.UserEmail" />
                             <div class="mb-2">
                                 <label asp-for="TagCreate.NamespaceId" class="form-label"></label>
@@ -244,7 +242,6 @@
                         <h6 class="fw-semibold">Cập nhật</h6>
                         <form asp-action="UpdateTag" method="post" class="needs-validation" novalidate>
                             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                            <input type="hidden" asp-for="TagUpdate.UserKey" />
                             <input type="hidden" asp-for="TagUpdate.UserEmail" />
                             <div class="mb-2">
                                 <label asp-for="TagUpdate.TagId" class="form-label"></label>
@@ -289,7 +286,6 @@
                         <h6 class="fw-semibold">Xoá</h6>
                         <form asp-action="DeleteTag" method="post" class="needs-validation" novalidate>
                             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                            <input type="hidden" asp-for="TagDelete.UserKey" />
                             <input type="hidden" asp-for="TagDelete.UserEmail" />
                             <div class="mb-2">
                                 <label asp-for="TagDelete.TagId" class="form-label"></label>
@@ -314,7 +310,6 @@
                 <h6 class="fw-semibold">Tìm kiếm tài liệu</h6>
                 <form asp-action="ListDocuments" method="post" class="row g-3 align-items-end">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <input type="hidden" asp-for="DocumentQuery.UserKey" />
                     <input type="hidden" asp-for="DocumentQuery.UserEmail" />
                     <div class="col-md-3">
                         <label asp-for="DocumentQuery.Query" class="form-label"></label>
@@ -389,7 +384,6 @@
                         <h6 class="fw-semibold">Cập nhật tài liệu</h6>
                         <form asp-action="UpdateDocument" method="post" class="needs-validation" novalidate>
                             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                            <input type="hidden" asp-for="DocumentUpdate.UserKey" />
                             <input type="hidden" asp-for="DocumentUpdate.UserEmail" />
                             <div class="mb-2">
                                 <label asp-for="DocumentUpdate.DocumentId" class="form-label"></label>
@@ -425,7 +419,6 @@
                         <h6 class="fw-semibold">Xoá tài liệu</h6>
                         <form asp-action="DeleteDocument" method="post" class="needs-validation" novalidate>
                             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                            <input type="hidden" asp-for="DocumentDelete.UserKey" />
                             <input type="hidden" asp-for="DocumentDelete.UserEmail" />
                             <div class="mb-2">
                                 <label asp-for="DocumentDelete.DocumentId" class="form-label"></label>

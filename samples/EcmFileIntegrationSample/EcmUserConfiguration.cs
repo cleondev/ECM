@@ -6,8 +6,6 @@ namespace samples.EcmFileIntegrationSample;
 
 public sealed class EcmUserConfiguration
 {
-    public string Key { get; set; } = string.Empty;
-
     public string DisplayName { get; set; } = string.Empty;
 
     public string? Email { get; set; }
@@ -38,8 +36,8 @@ public sealed class EcmUserStore
         _users = users;
         _defaultUser = new EcmUserConfiguration
         {
-            Key = "default",
             DisplayName = "Cấu hình mặc định",
+            Email = defaults.OnBehalfUserEmail,
         };
     }
 
@@ -49,10 +47,10 @@ public sealed class EcmUserStore
         var configuredUsers = configuration.GetSection("EcmUsers").Get<EcmUserConfiguration[]>() ?? [];
 
         var normalizedUsers = configuredUsers
-            .Where(user => !string.IsNullOrWhiteSpace(user.Key))
+            .Where(user => !string.IsNullOrWhiteSpace(user.Email))
             .Select(user =>
             {
-                user.DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Key : user.DisplayName;
+                user.DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email! : user.DisplayName;
                 return user;
             })
             .ToArray();
@@ -65,20 +63,6 @@ public sealed class EcmUserStore
     public IReadOnlyCollection<EcmUserConfiguration> Users => _users.Count > 0 ? _users : new[] { DefaultUser };
 
     public EcmIntegrationOptions DefaultOptions => BuildOptions(DefaultUser);
-
-    public EcmUserConfiguration GetUserOrDefault(string? key)
-    {
-        if (!string.IsNullOrWhiteSpace(key))
-        {
-            var match = _users.FirstOrDefault(user => string.Equals(user.Key, key, StringComparison.OrdinalIgnoreCase));
-            if (match is not null)
-            {
-                return match;
-            }
-        }
-
-        return DefaultUser;
-    }
 
     public EcmIntegrationOptions BuildOptions(EcmUserConfiguration user)
     {

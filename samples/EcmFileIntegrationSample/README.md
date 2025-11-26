@@ -6,10 +6,10 @@
 
 1. Cài **.NET SDK 9**.
 2. Đảm bảo một instance ECM đang chạy và có thể truy cập qua HTTP (ví dụ `http://localhost:8080/`).
-3. Chọn phương thức xác thực on-behalf:
+3. Chọn phương thức xác thực on-behalf (thư viện ưu tiên SSO, nếu bật `Sso:Enabled=true` và lấy được token thì sẽ bỏ qua bước đăng nhập API key; nếu token SSO thiếu sẽ fallback sang API key nếu được cấu hình):
    - **auth/on-behalf qua API key**: bật `Ecm:ApiKey:Enabled=true` và điền `Ecm:ApiKey:ApiKey` (API key `X-Api-Key` **duy nhất cho ứng dụng**). Email người dùng đăng nhập nền được lấy từ dropdown `EcmUsers`.
    - **OBO qua SSO**: cấu hình một lần ở `Ecm:Sso` (authority, client, client secret, scope) và bật `Ecm:Sso:Enabled=true`. Thư viện sẽ dùng token người dùng (truyền vào `Ecm:Sso:UserAccessToken`) để thực hiện MSAL `AcquireTokenOnBehalfOf` lấy bearer token AppGateway (scope `api://<appgateway-client-id>/.default`).
-4. Tạo (hoặc cập nhật) `samples/EcmFileIntegrationSample/appsettings.json` với thông tin kết nối và metadata mặc định. Phần `Ecm` là cấu hình chung (base URL, API key, SSO). `EcmUsers` chỉ còn danh sách người dùng (email) để chọn nhanh trên giao diện; API key và cấu hình SSO không lặp lại tại đây. Khi dùng auth/on-behalf hãy đặt `BaseUrl` trỏ tới AppGateway (ví dụ `https://localhost:5443/`). Ứng dụng luôn chọn user đầu tiên khi mở trang và bạn có thể chuyển user nhanh qua dropdown:
+4. Tạo (hoặc cập nhật) `samples/EcmFileIntegrationSample/appsettings.json` với thông tin kết nối và metadata mặc định. Phần `Ecm` là cấu hình chung (base URL, API key, SSO). `EcmUsers` chỉ cần danh sách người dùng (email + tên hiển thị) để chọn nhanh trên giao diện; API key và cấu hình SSO không lặp lại tại đây. Khi dùng auth/on-behalf hãy đặt `BaseUrl` trỏ tới AppGateway (ví dụ `https://localhost:5443/`). Ứng dụng luôn chọn user đầu tiên khi mở trang và bạn có thể chuyển user nhanh qua dropdown:
 
   ```json
   {
@@ -36,17 +36,14 @@
     },
     "EcmUsers": [
       {
-        "Key": "user1",
         "DisplayName": "User A",
         "Email": "user1@example.com"
       },
       {
-        "Key": "user2",
         "DisplayName": "User B",
         "Email": "user2@example.com"
       },
       {
-        "Key": "user3",
         "DisplayName": "User C",
         "Email": "user3@example.com"
       }
@@ -56,7 +53,7 @@
 
 > Nếu không chỉ định `OwnerId`/`CreatedBy`, ứng dụng sẽ dùng thông tin người dùng trong token (`/api/iam/profile`).
 
-> Với `ApiKey.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key` trong cấu hình chung) để đăng nhập nền cho email đang chọn trong dropdown `EcmUsers`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `Sso.Enabled=true`, thư viện bỏ qua bước này và lấy bearer token AppGateway bằng MSAL OBO dựa trên `Sso:UserAccessToken`.
+> Với `ApiKey.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key` trong cấu hình chung) để đăng nhập nền cho email đang chọn trong dropdown `EcmUsers`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `Sso.Enabled=true`, thư viện ưu tiên bearer token AppGateway qua MSAL OBO dựa trên `Sso:UserAccessToken`; nếu không lấy được token, SDK sẽ fallback đăng nhập bằng API key (nếu bật).
 
 ## Dùng lại SDK `Ecm.SDK`
 
