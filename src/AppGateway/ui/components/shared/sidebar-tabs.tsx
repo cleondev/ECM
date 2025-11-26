@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { FileTypeIcon } from "../file-type-icon"
 import type {
   DocumentTag,
   FileActivity,
@@ -74,6 +75,7 @@ type BaseSidebarProps = {
   activeTab: string
   onTabChange: (value: string) => void
   headerBadge?: string
+  showTabsList?: boolean
 }
 
 type InfoTabProps = {
@@ -172,47 +174,58 @@ export function SidebarShell({
   onTabChange,
   tabs,
   headerBadge,
+  showTabsList = true,
 }: React.PropsWithChildren<BaseSidebarProps>) {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-4 pt-4">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <Tag className="h-4 w-4 text-primary" />
-          Bảng điều khiển
-        </div>
-        {headerBadge ? (
+      {showTabsList ? (
+        <>
+          <div className="flex items-center justify-between px-4 pt-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Tag className="h-4 w-4 text-primary" />
+              Bảng điều khiển
+            </div>
+            {headerBadge ? (
+              <Badge variant="outline" className="text-[11px]">
+                {headerBadge}
+              </Badge>
+            ) : null}
+          </div>
+          <TabsList className="grid grid-cols-4 gap-2 px-4 pb-3 pt-2">
+            {tabs.info ? (
+              <TabsTrigger value="info" className="flex items-center gap-1 text-xs">
+                <Info className="h-3.5 w-3.5" />
+                Info
+              </TabsTrigger>
+            ) : null}
+            {tabs.flow ? (
+              <TabsTrigger value="flow" className="flex items-center gap-1 text-xs">
+                <GitBranch className="h-3.5 w-3.5" />
+                Flow
+              </TabsTrigger>
+            ) : null}
+            {tabs.form ? (
+              <TabsTrigger value="form" className="flex items-center gap-1 text-xs">
+                <NotebookPen className="h-3.5 w-3.5" />
+                Form
+              </TabsTrigger>
+            ) : null}
+            {tabs.chat ? (
+              <TabsTrigger value="chat" className="flex items-center gap-1 text-xs">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Chat
+              </TabsTrigger>
+            ) : null}
+          </TabsList>
+          <Separator />
+        </>
+      ) : headerBadge ? (
+        <div className="flex items-center justify-end px-4 pt-4">
           <Badge variant="outline" className="text-[11px]">
             {headerBadge}
           </Badge>
-        ) : null}
-      </div>
-      <TabsList className="grid grid-cols-4 gap-2 px-4 pb-3 pt-2">
-        {tabs.info ? (
-          <TabsTrigger value="info" className="flex items-center gap-1 text-xs">
-            <Info className="h-3.5 w-3.5" />
-            Info
-          </TabsTrigger>
-        ) : null}
-        {tabs.flow ? (
-          <TabsTrigger value="flow" className="flex items-center gap-1 text-xs">
-            <GitBranch className="h-3.5 w-3.5" />
-            Flow
-          </TabsTrigger>
-        ) : null}
-        {tabs.form ? (
-          <TabsTrigger value="form" className="flex items-center gap-1 text-xs">
-            <NotebookPen className="h-3.5 w-3.5" />
-            Form
-          </TabsTrigger>
-        ) : null}
-        {tabs.chat ? (
-          <TabsTrigger value="chat" className="flex items-center gap-1 text-xs">
-            <MessageSquare className="h-3.5 w-3.5" />
-            Chat
-          </TabsTrigger>
-        ) : null}
-      </TabsList>
-      <Separator />
+        </div>
+      ) : null}
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3 text-sm">{children}</div>
     </Tabs>
   )
@@ -225,6 +238,12 @@ export function SidebarInfoTab({ file, extraSections, systemTags }: InfoTabProps
     draft: "Draft",
     "in-progress": "In Progress",
     completed: "Completed",
+  }
+
+  const statusColors: Record<NonNullable<FileDetail["status"]>, string> = {
+    "in-progress": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+    completed: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+    draft: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
   }
 
   const infoItems = [
@@ -262,12 +281,31 @@ export function SidebarInfoTab({ file, extraSections, systemTags }: InfoTabProps
 
   return (
     <div className="space-y-6">
+      <div className="space-y-3">
+        <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center">
+          <FileTypeIcon file={file} size="lg" />
+        </div>
+
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold text-foreground text-pretty">{file.name}</h3>
+          {file.description ? (
+            <p className="text-sm text-muted-foreground text-pretty">{file.description}</p>
+          ) : null}
+        </div>
+
+        {file.status ? (
+          <Badge className={statusColors[file.status]}>{statusLabel[file.status] ?? file.status}</Badge>
+        ) : null}
+
+        <Separator className="my-2" />
+      </div>
+
       <section className="space-y-3">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Information</span>
-          {file.status ? (
+          {file.latestVersionNumber || file.latestVersionId ? (
             <Badge variant="outline" className="text-[11px]">
-              {statusLabel[file.status] ?? file.status}
+              Version {file.latestVersionNumber ?? file.latestVersionId}
             </Badge>
           ) : null}
         </div>
@@ -284,28 +322,39 @@ export function SidebarInfoTab({ file, extraSections, systemTags }: InfoTabProps
         </div>
       </section>
 
-      <section className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Tags</span>
-        </div>
-        {tags.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <Badge key={tag.id} className={`text-[11px] ${getTagColor(tag.color)}`}>
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">No tags added</p>
-        )}
-      </section>
-
-      {systemTags?.length ? (
+      {file.versions?.length ? (
         <section className="space-y-2">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>SYSTEM</span>
+            <h4 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+              <FileText className="h-3 w-3" /> Versions
+            </h4>
           </div>
+          <div className="space-y-2">
+            {file.versions.map((version) => (
+              <div key={version.id} className="rounded-lg border border-border/70 bg-background/70 p-3">
+                <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                  <span>{version.label}</span>
+                  <span className="text-xs text-muted-foreground">{version.createdAt}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <HardDrive className="h-3 w-3" />
+                  <span>{version.size}</span>
+                  <Separator orientation="vertical" className="h-3" />
+                  <span>{version.author}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <h4 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+            <Tag className="h-3 w-3" /> Tags
+          </h4>
+        </div>
+        {systemTags?.length ? (
           <div className="grid gap-2">
             {systemTags.map((tag) => (
               <div key={tag.name} className="rounded-lg border border-border/70 bg-muted/30 p-3">
@@ -319,8 +368,20 @@ export function SidebarInfoTab({ file, extraSections, systemTags }: InfoTabProps
               </div>
             ))}
           </div>
-        </section>
-      ) : null}
+        ) : null}
+
+        {tags.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <Badge key={tag.id} className={`text-[11px] ${getTagColor(tag.color)}`}>
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">No tags added</p>
+        )}
+      </section>
 
       {extraSections}
     </div>
