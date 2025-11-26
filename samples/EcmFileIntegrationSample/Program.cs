@@ -11,9 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 var userStore = EcmUserStore.FromConfiguration(builder.Configuration);
 
 builder.Services.AddSingleton(userStore);
-builder.Services.AddScoped<EcmUserSelection>();
+builder.Services.AddSingleton<EcmUserSelection>();
 
-builder.Services.AddScoped<IConfigureOptions<EcmIntegrationOptions>>(serviceProvider =>
+builder.Services.AddSingleton<IConfigureOptions<EcmIntegrationOptions>>(serviceProvider =>
     new EcmUserOptionsConfigurator(serviceProvider.GetRequiredService<EcmUserSelection>()));
 
 builder.Services.AddEcmSdk(options => EcmUserOptionsConfigurator.Copy(userStore.DefaultOptions, options));
