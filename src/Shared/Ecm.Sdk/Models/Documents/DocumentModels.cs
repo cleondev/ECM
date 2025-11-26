@@ -1,4 +1,4 @@
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Models.Documents;
 
 /// <summary>
 /// Represents a document returned by the ECM APIs.

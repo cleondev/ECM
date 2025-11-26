@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-
-using Ecm.Sdk;
+using Ecm.Sdk.Configuration;
 
 namespace samples.EcmFileIntegrationSample;
 
@@ -99,6 +98,6 @@ public sealed class EcmUserOptionsConfigurator : IPostConfigureOptions<EcmIntegr
         destination.Sso.ClientId = source.Sso.ClientId;
         destination.Sso.ClientSecret = source.Sso.ClientSecret;
         destination.Sso.UserAccessToken = source.Sso.UserAccessToken;
-        destination.Sso.Scopes = source.Sso.Scopes?.ToArray() ?? Array.Empty<string>();
+        destination.Sso.Scopes = source.Sso.Scopes?.ToArray() ?? [];
     }
 }

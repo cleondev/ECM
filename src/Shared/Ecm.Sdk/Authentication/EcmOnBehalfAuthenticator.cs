@@ -1,36 +1,32 @@
 using System.Net.Http.Json;
+
+using Ecm.Sdk.Configuration;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Authentication;
 
 /// <summary>
 /// Handles signing in to ECM using on-behalf authentication flows.
 /// </summary>
-public sealed class EcmOnBehalfAuthenticator
+/// <remarks>
+/// Initializes a new instance of the <see cref="EcmOnBehalfAuthenticator"/> class.
+/// </remarks>
+/// <param name="options">Integration options that describe on-behalf behavior.</param>
+/// <param name="logger">Logger used to emit diagnostic messages.</param>
+/// <param name="ssoTokenProvider">Provider used to acquire SSO access tokens.</param>
+public sealed class EcmOnBehalfAuthenticator(
+    IOptionsSnapshot<EcmIntegrationOptions> options,
+    ILogger<EcmOnBehalfAuthenticator> logger,
+    EcmSsoTokenProvider ssoTokenProvider)
 {
-    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options;
-    private readonly ILogger<EcmOnBehalfAuthenticator> _logger;
-    private readonly EcmSsoTokenProvider _ssoTokenProvider;
+    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options = options;
+    private readonly ILogger<EcmOnBehalfAuthenticator> _logger = logger;
+    private readonly EcmSsoTokenProvider _ssoTokenProvider = ssoTokenProvider;
     private readonly SemaphoreSlim _signInMutex = new(1, 1);
 
     private bool _hasSignedIn;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EcmOnBehalfAuthenticator"/> class.
-    /// </summary>
-    /// <param name="options">Integration options that describe on-behalf behavior.</param>
-    /// <param name="logger">Logger used to emit diagnostic messages.</param>
-    /// <param name="ssoTokenProvider">Provider used to acquire SSO access tokens.</param>
-    public EcmOnBehalfAuthenticator(
-        IOptionsSnapshot<EcmIntegrationOptions> options,
-        ILogger<EcmOnBehalfAuthenticator> logger,
-        EcmSsoTokenProvider ssoTokenProvider)
-    {
-        _options = options;
-        _logger = logger;
-        _ssoTokenProvider = ssoTokenProvider;
-    }
 
     /// <summary>
     /// Gets a value indicating whether on-behalf authentication is enabled.

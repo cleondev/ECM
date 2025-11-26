@@ -1,9 +1,14 @@
 using System.Net;
+
+using Ecm.Sdk.Authentication;
+using Ecm.Sdk.Clients;
+using Ecm.Sdk.Configuration;
+
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Extensions;
 
 /// <summary>
 /// Extension methods to register the ECM SDK with a dependency injection container.
@@ -61,10 +66,10 @@ public static class ServiceCollectionExtensions
                 "Ecm:OnBehalfUserEmail or OnBehalfUserId must be configured when ApiKey.Enabled=true.")
             .Validate(
                 options => !options.Sso.Enabled
-                    || (!string.IsNullOrWhiteSpace(options.Sso.Authority)
+                    || !string.IsNullOrWhiteSpace(options.Sso.Authority)
                         && !string.IsNullOrWhiteSpace(options.Sso.ClientId)
                         && !string.IsNullOrWhiteSpace(options.Sso.ClientSecret)
-                        && options.Sso.Scopes.Length > 0),
+                        && options.Sso.Scopes.Length > 0,
                 "Ecm:Sso settings are incomplete when Sso:Enabled=true.")
             .ValidateOnStart();
     }

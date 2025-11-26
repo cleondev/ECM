@@ -592,10 +592,10 @@ internal sealed class EcmApiClient(
         if (!string.IsNullOrWhiteSpace(extension))
         {
             var trimmed = extension.Trim();
-            return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed[1..] : trimmed;
+            return trimmed.StartsWith('.') ? trimmed[1..] : trimmed;
         }
 
-        var lastDot = fileName.LastIndexOf(".", StringComparison.Ordinal);
+        var lastDot = fileName.LastIndexOf('.');
         if (lastDot >= 0 && lastDot < fileName.Length - 1)
         {
             return fileName[(lastDot + 1)..];
@@ -830,7 +830,7 @@ internal sealed class EcmApiClient(
         AttachApiKeyHeader(request);
         if (includeAuthentication)
         {
-            await AttachAuthenticationAsync(request, cancellationToken, allowAppTokenFallback);
+            await AttachAuthenticationAsync(request, allowAppTokenFallback, cancellationToken);
         }
 
         ApplyForwardedHeaders(request);
@@ -896,7 +896,7 @@ internal sealed class EcmApiClient(
             }
         }
 
-        if (principal.HasClaim(PasswordLoginClaims.OnBehalfClaimType, "true"))
+        if (principal?.HasClaim(PasswordLoginClaims.OnBehalfClaimType, "true") == true)
         {
             request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.OnBehalf, "true");
         }
@@ -936,137 +936,151 @@ internal sealed class EcmApiClient(
     }
 
     private async Task AttachAuthenticationAsync(
-        HttpRequestMessage request,
-        CancellationToken cancellationToken,
-        bool allowAppTokenFallback)
+    HttpRequestMessage request,
+    bool allowAppTokenFallback,
+    CancellationToken cancellationToken)
     {
-        var authorization = _httpContextAccessor.HttpContext?.Request.Headers.Authorization;
-        if (!string.IsNullOrWhiteSpace(authorization)
-            && AuthenticationHeaderValue.TryParse(authorization, out var authorizationHeader)
-            && string.Equals(authorizationHeader.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
+        // 1. Try attach Authorization from current HttpContext
+        if (TryGetAuthorizationFromContext(request))
+            return;
+
+        // 2. Validate scopes
+        var scopes = ValidateScopes(allowAppTokenFallback);
+        if (scopes is null)
+            return;
+
+        var scheme = string.IsNullOrWhiteSpace(_options.AuthenticationScheme)
+            ? OpenIdConnectDefaults.AuthenticationScheme
+            : _options.AuthenticationScheme;
+
+        var principal = EnsureHomeAccountIdentifiers(_httpContextAccessor.HttpContext?.User);
+        var identity = principal?.Identities.FirstOrDefault(i =>
+            i.IsAuthenticated &&
+            string.Equals(i.AuthenticationType, scheme, StringComparison.OrdinalIgnoreCase));
+
+        ClaimsPrincipal? tokenPrincipal = null;
+
+        if (identity is not null)
         {
-            request.Headers.Authorization = authorizationHeader;
+            tokenPrincipal = new ClaimsPrincipal(identity);
+        }
+        else if (principal?.Identity?.IsAuthenticated == true)
+        {
+            tokenPrincipal = principal;
+        }
+
+
+        // 3. Try user token first
+        var userToken = await TryAcquireUserTokenAsync(
+            tokenPrincipal,
+            scopes,
+            scheme,
+            allowAppTokenFallback,
+            cancellationToken);
+
+        if (!string.IsNullOrEmpty(userToken))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userToken);
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(authorization)
-            && AuthenticationHeaderValue.TryParse(authorization, out var parsedAuthorization))
+        if (tokenPrincipal?.Identity?.IsAuthenticated != true && !allowAppTokenFallback)
+            throw new UnauthorizedAccessException("User authentication is required but no principal was available.");
+
+        // 4. Fallback: App token
+        var appScope = ScopeUtilities.TryGetAppScope(scopes);
+        if (string.IsNullOrWhiteSpace(appScope))
         {
-            request.Headers.Authorization = parsedAuthorization;
+            _logger.LogWarning("Unable to determine an app scope from configured scopes: {Scopes}", string.Join(", ", scopes));
             return;
         }
 
+        try
+        {
+            var appToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
+                appScope,
+                authenticationScheme: scheme,
+                tenant: _options.TenantId,
+                tokenAcquisitionOptions: new TokenAcquisitionOptions { CancellationToken = cancellationToken });
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", appToken);
+        }
+        catch (MsalException ex)
+        {
+            _logger.LogError(ex, "Unable to acquire application token for scope {Scope}", _options.Scope);
+            throw new HttpRequestException("Failed to acquire app token.", ex);
+        }
+    }
+
+    private bool TryGetAuthorizationFromContext(HttpRequestMessage request)
+    {
+        var headerValues = _httpContextAccessor.HttpContext?.Request.Headers.Authorization;
+
+        var header = headerValues.GetValueOrDefault();
+
+        if (StringValues.IsNullOrEmpty(header))
+            return false;
+
+        if (!AuthenticationHeaderValue.TryParse(header.ToString(), out var parsed))
+            return false;
+
+        request.Headers.Authorization = parsed;
+        return true;
+    }
+
+
+
+    private string[]? ValidateScopes(bool allowFallback)
+    {
         if (string.IsNullOrWhiteSpace(_options.Scope))
         {
-            if (!allowAppTokenFallback)
-            {
-                throw new UnauthorizedAccessException("No user access token could be acquired because no API scope is configured.");
-            }
-
-            return;
+            if (!allowFallback)
+                throw new UnauthorizedAccessException("No API scope configured.");
+            return null;
         }
 
         var scopes = ScopeUtilities.ParseScopes(_options.Scope);
         if (scopes.Length == 0)
         {
-            if (!allowAppTokenFallback)
-            {
-                throw new UnauthorizedAccessException("No user access token could be acquired because no valid scopes are configured.");
-            }
-
-            return;
+            if (!allowFallback)
+                throw new UnauthorizedAccessException("No valid scopes configured.");
+            return null;
         }
 
-        var appScope = ScopeUtilities.TryGetAppScope(scopes);
+        return scopes;
+    }
 
-        var tokenAcquisitionOptions = new TokenAcquisitionOptions
-        {
-            CancellationToken = cancellationToken,
-        };
 
-        var authenticationScheme = string.IsNullOrWhiteSpace(_options.AuthenticationScheme)
-            ? OpenIdConnectDefaults.AuthenticationScheme
-            : _options.AuthenticationScheme;
-
-        var httpContext = _httpContextAccessor.HttpContext;
-        var principal = EnsureHomeAccountIdentifiers(httpContext?.User);
-        var oidcIdentity = principal?.Identities.FirstOrDefault(identity =>
-            identity.IsAuthenticated &&
-            string.Equals(identity.AuthenticationType, authenticationScheme, StringComparison.OrdinalIgnoreCase));
-
-        var tokenPrincipal = oidcIdentity switch
-        {
-            not null => new ClaimsPrincipal(oidcIdentity),
-            _ when principal?.Identity?.IsAuthenticated == true => principal,
-            _ => null,
-        };
-
-        if (tokenPrincipal?.Identity?.IsAuthenticated == true)
-        {
-            try
-            {
-                var accessToken = await _tokenAcquisition.GetAccessTokenForUserAsync(
-                    scopes,
-                    authenticationScheme: authenticationScheme,
-                    tenantId: _options.TenantId,
-                    user: tokenPrincipal,
-                    tokenAcquisitionOptions: tokenAcquisitionOptions);
-
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                return;
-            }
-            catch (Exception exception) when (exception is MsalException or MicrosoftIdentityWebChallengeUserException)
-            {
-                _logger.LogWarning(
-                    exception,
-                    "Falling back to app-only token while calling ECM API because acquiring a user token failed.");
-
-                if (!allowAppTokenFallback)
-                {
-                    throw new UnauthorizedAccessException(
-                        "Failed to acquire a user access token required to call the ECM API.",
-                        exception);
-                }
-            }
-        }
-
-        if (!allowAppTokenFallback)
-        {
-            throw new UnauthorizedAccessException("User authentication is required to call the ECM API but no authenticated principal was available.");
-        }
+    private async Task<string?> TryAcquireUserTokenAsync(
+    ClaimsPrincipal? user,
+    string[] scopes,
+    string scheme,
+    bool allowFallback,
+    CancellationToken ct)
+    {
+        if (user?.Identity?.IsAuthenticated != true)
+            return null;
 
         try
         {
-            if (string.IsNullOrWhiteSpace(appScope))
-            {
-                _logger.LogWarning(
-                    "Unable to determine an application scope from the configured scopes: {Scopes}.",
-                    string.Join(", ", scopes));
-
-                return;
-            }
-
-            var appToken = await _tokenAcquisition.GetAccessTokenForAppAsync(
-                appScope,
-                authenticationScheme: authenticationScheme,
-                tenant: _options.TenantId,
-                tokenAcquisitionOptions: tokenAcquisitionOptions);
-
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", appToken);
+            return await _tokenAcquisition.GetAccessTokenForUserAsync(
+                scopes,
+                authenticationScheme: scheme,
+                tenantId: _options.TenantId,
+                user: user,
+                tokenAcquisitionOptions: new TokenAcquisitionOptions { CancellationToken = ct });
         }
-        catch (MsalException exception)
+        catch (Exception ex) when (ex is MsalException or MicrosoftIdentityWebChallengeUserException)
         {
-            _logger.LogError(
-                exception,
-                "Unable to acquire an application access token for the ECM API using scope {Scope} and tenant {TenantId}.",
-                _options.Scope,
-                _options.TenantId);
+            _logger.LogWarning(ex, "User token acquisition failed. Fallback to app token.");
+            if (!allowFallback)
+                throw new UnauthorizedAccessException("Failed to acquire user access token.", ex);
 
-            throw new HttpRequestException(
-                "Failed to acquire an application access token required to call the ECM API.",
-                exception);
+            return null;
         }
     }
+
+
 
     private static ClaimsPrincipal? EnsureHomeAccountIdentifiers(ClaimsPrincipal? principal)
     {

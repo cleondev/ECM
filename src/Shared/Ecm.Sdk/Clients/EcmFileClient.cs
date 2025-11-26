@@ -1,14 +1,18 @@
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+
+using Ecm.Sdk.Authentication;
+using Ecm.Sdk.Configuration;
+using Ecm.Sdk.Models.Documents;
+using Ecm.Sdk.Models.Tags;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Clients;
 
 /// <summary>
 /// Provides helper methods for interacting with ECM document and tag APIs.
@@ -19,6 +23,10 @@ public sealed class EcmFileClient
     private readonly ILogger<EcmFileClient> _logger;
     private readonly EcmIntegrationOptions _options;
     private readonly EcmOnBehalfAuthenticator _onBehalfAuthenticator;
+    private readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EcmFileClient"/> class.
@@ -75,17 +83,14 @@ public sealed class EcmFileClient
     {
         await using var stream = File.OpenRead(uploadRequest.FilePath);
 
-        using var content = new MultipartFormDataContent();
-        content.Add(new StringContent(uploadRequest.OwnerId.ToString()), "ownerId");
-        content.Add(new StringContent(uploadRequest.CreatedBy.ToString()), "createdBy");
-        content.Add(new StringContent(uploadRequest.DocType), "docType");
-        content.Add(new StringContent(uploadRequest.Status), "status");
-        content.Add(new StringContent(uploadRequest.Sensitivity), "sensitivity");
-
-        if (!string.IsNullOrWhiteSpace(uploadRequest.OnBehalfUserEmail))
+        using var content = new MultipartFormDataContent
         {
-            content.Add(new StringContent(uploadRequest.OnBehalfUserEmail), "userEmail");
-        }
+            { new StringContent(uploadRequest.OwnerId.ToString()), "ownerId" },
+            { new StringContent(uploadRequest.CreatedBy.ToString()), "createdBy" },
+            { new StringContent(uploadRequest.DocType), "docType" },
+            { new StringContent(uploadRequest.Status), "status" },
+            { new StringContent(uploadRequest.Sensitivity), "sensitivity" }
+        };
 
         if (uploadRequest.DocumentTypeId is { } docTypeId)
         {
@@ -115,10 +120,7 @@ public sealed class EcmFileClient
             throw new HttpRequestException($"Upload failed with status {(int)response.StatusCode}: {body}");
         }
 
-        return JsonSerializer.Deserialize<DocumentDto>(body, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-        });
+        return JsonSerializer.Deserialize<DocumentDto>(body, _jsonOptions);
     }
 
     /// <summary>
@@ -234,7 +236,7 @@ public sealed class EcmFileClient
         response.EnsureSuccessStatusCode();
 
         var tags = await response.Content.ReadFromJsonAsync<TagLabelDto[]>(cancellationToken: cancellationToken);
-        return tags ?? Array.Empty<TagLabelDto>();
+        return tags ?? [];
     }
 
     /// <summary>
@@ -480,7 +482,7 @@ public sealed class EcmFileClient
         return parameters;
     }
 
-    private static void AddIfNotEmpty(IDictionary<string, string?> parameters, string key, string? value)
+    private static void AddIfNotEmpty(Dictionary<string, string?> parameters, string key, string? value)
     {
         if (!string.IsNullOrWhiteSpace(value))
         {

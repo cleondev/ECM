@@ -1,4 +1,4 @@
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Configuration;
 
 /// <summary>
 /// Configures the ECM SDK integration details used to connect to the ECM APIs.
@@ -115,7 +115,7 @@ public sealed class SsoOptions
     /// <summary>
     /// API scopes requested during token acquisition.
     /// </summary>
-    public string[] Scopes { get; set; } = Array.Empty<string>();
+    public string[] Scopes { get; set; } = [];
 
     /// <summary>
     /// Access token received from the calling user that is exchanged for a delegated token.

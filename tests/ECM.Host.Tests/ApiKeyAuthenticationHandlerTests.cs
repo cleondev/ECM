@@ -79,17 +79,18 @@ public class ApiKeyAuthenticationHandlerTests
         return services;
     }
 
-    private sealed class FakeJwtAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    private sealed class FakeJwtAuthenticationHandler
+        : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         public FakeJwtAuthenticationHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
-            UrlEncoder encoder,
-            ISystemClock clock) : base(options, logger, encoder, clock)
+            UrlEncoder encoder)
+            : base(options, logger, encoder)
         {
         }
-
-        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
             var identity = new ClaimsIdentity(JwtBearerDefaults.AuthenticationScheme);
             identity.AddClaim(new Claim(ClaimTypes.Name, "jwt-user"));

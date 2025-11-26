@@ -1,26 +1,21 @@
 using System.Net.Http.Headers;
+
 using Microsoft.Extensions.Logging;
 
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Authentication;
 
 /// <summary>
 /// HTTP message handler that attaches ECM access tokens and logs transient errors.
 /// </summary>
-public sealed class EcmAccessTokenHandler : DelegatingHandler
+/// <remarks>
+/// Initializes a new instance of the <see cref="EcmAccessTokenHandler"/> class.
+/// </remarks>
+/// <param name="provider">Provider used to resolve access tokens.</param>
+/// <param name="logger">Logger used for request diagnostics.</param>
+public sealed class EcmAccessTokenHandler(EcmAccessTokenProvider provider, ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
 {
-    private readonly EcmAccessTokenProvider _provider;
-    private readonly ILogger<EcmAccessTokenHandler> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EcmAccessTokenHandler"/> class.
-    /// </summary>
-    /// <param name="provider">Provider used to resolve access tokens.</param>
-    /// <param name="logger">Logger used for request diagnostics.</param>
-    public EcmAccessTokenHandler(EcmAccessTokenProvider provider, ILogger<EcmAccessTokenHandler> logger)
-    {
-        _provider = provider;
-        _logger = logger;
-    }
+    private readonly EcmAccessTokenProvider _provider = provider;
+    private readonly ILogger<EcmAccessTokenHandler> _logger = logger;
 
     /// <summary>
     /// Adds the bearer token to outgoing requests and delegates execution to the next handler.

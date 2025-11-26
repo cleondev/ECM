@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
-using Ecm.Sdk;
+using Ecm.Sdk.Models.Documents;
+using Ecm.Sdk.Models.Tags;
 
 namespace samples.EcmFileIntegrationSample;
 
@@ -46,14 +47,14 @@ public sealed class UploadResultModel
 
     public UserProfile? Profile { get; init; }
 
-    public IReadOnlyCollection<TagLabelDto> AppliedTags { get; init; } = Array.Empty<TagLabelDto>();
+    public IReadOnlyCollection<TagLabelDto> AppliedTags { get; init; } = [];
 }
 
 public sealed class UploadPageViewModel
 {
     public string BaseUrl { get; init; } = string.Empty;
 
-    public IReadOnlyCollection<EcmUserViewModel> Users { get; init; } = Array.Empty<EcmUserViewModel>();
+    public IReadOnlyCollection<EcmUserViewModel> Users { get; init; } = [];
 
     public string SelectedUserEmail { get; init; } = string.Empty;
 

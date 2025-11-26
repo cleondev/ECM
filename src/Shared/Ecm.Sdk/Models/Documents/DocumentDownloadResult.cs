@@ -1,4 +1,4 @@
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Models.Documents;
 
 /// <summary>
 /// Represents the binary content returned when downloading a document version.

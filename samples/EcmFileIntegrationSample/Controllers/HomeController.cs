@@ -1,31 +1,26 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Ecm.Sdk.Models.Documents;
+using Ecm.Sdk.Models.Tags;
+using Ecm.Sdk.Configuration;
+using Ecm.Sdk.Clients;
+using samples.EcmFileIntegrationSample;
 
-using Ecm.Sdk;
+namespace EcmFileIntegrationSample.Controllers;
 
-namespace samples.EcmFileIntegrationSample.Controllers;
-
-public class HomeController : Controller
+public class HomeController(
+    EcmFileClient client,
+    IOptionsSnapshot<EcmIntegrationOptions> options,
+    ILogger<HomeController> logger,
+    EcmUserSelection userSelection) : Controller
 {
-    private readonly EcmFileClient _client;
-    private readonly IOptionsSnapshot<EcmIntegrationOptions> _optionsSnapshot;
-    private readonly ILogger<HomeController> _logger;
-    private readonly EcmUserSelection _userSelection;
+    private readonly EcmFileClient _client = client;
+    private readonly IOptionsSnapshot<EcmIntegrationOptions> _optionsSnapshot = options;
+    private readonly ILogger<HomeController> _logger = logger;
+    private readonly EcmUserSelection _userSelection = userSelection;
 
     private EcmIntegrationOptions Options => _optionsSnapshot.Value;
-
-    public HomeController(
-        EcmFileClient client,
-        IOptionsSnapshot<EcmIntegrationOptions> options,
-        ILogger<HomeController> logger,
-        EcmUserSelection userSelection)
-    {
-        _client = client;
-        _optionsSnapshot = options;
-        _logger = logger;
-        _userSelection = userSelection;
-    }
 
     // ----------------------------------------------------
     // Index
@@ -87,7 +82,7 @@ public class HomeController : Controller
         ownerId ??= profile.Id;
         createdBy ??= profile.Id;
 
-        var tempFilePath = Path.GetTempFileName();
+        var tempFilePath = Path.GetRandomFileName();
 
         try
         {
@@ -106,8 +101,7 @@ public class HomeController : Controller
             {
                 DocumentTypeId = documentTypeId,
                 Title = string.IsNullOrWhiteSpace(form.Title) ? form.File!.FileName : form.Title,
-                ContentType = string.IsNullOrWhiteSpace(form.File!.ContentType) ? null : form.File.ContentType,
-                OnBehalfUserEmail = string.IsNullOrWhiteSpace(form.UserEmail) ? selectedUser.Email : form.UserEmail,
+                ContentType = string.IsNullOrWhiteSpace(form.File!.ContentType) ? null : form.File.ContentType
             };
 
             var document = await _client.UploadDocumentAsync(uploadRequest, cancellationToken);
@@ -124,8 +118,8 @@ public class HomeController : Controller
                 ? await _client.GetDownloadUriAsync(version.Id, cancellationToken)
                 : null;
 
-            IReadOnlyCollection<TagLabelDto> appliedTags = Array.Empty<TagLabelDto>();
-            IReadOnlyCollection<TagLabelDto> tags = Array.Empty<TagLabelDto>();
+            IReadOnlyCollection<TagLabelDto> appliedTags = [];
+            IReadOnlyCollection<TagLabelDto> tags = [];
 
             try
             {
@@ -536,10 +530,9 @@ public class HomeController : Controller
         return new UploadPageViewModel
         {
             BaseUrl = Options.BaseUrl,
-            Users = _userSelection
+            Users = [.. _userSelection
                 .GetUsers()
-                .Select(user => new EcmUserViewModel(user.Email ?? string.Empty, user.DisplayName, user.Email == currentUser.Email))
-                .ToArray(),
+                .Select(user => new EcmUserViewModel(user.Email ?? string.Empty, user.DisplayName, user.Email == currentUser.Email))],
             SelectedUserEmail = currentUser.Email ?? string.Empty,
             UsingApiKeyAuthentication = Options.ApiKey.Enabled,
             UsingSsoAuthentication = Options.Sso.Enabled,
@@ -570,7 +563,7 @@ public class HomeController : Controller
         DocumentQueryForm documentQuery,
         CancellationToken cancellationToken)
     {
-        IReadOnlyCollection<TagLabelDto> tags = Array.Empty<TagLabelDto>();
+        IReadOnlyCollection<TagLabelDto> tags = [];
         DocumentListResult? documents = null;
         UserProfile? profile = null;
 
@@ -617,14 +610,14 @@ public class HomeController : Controller
 
     private async Task<IReadOnlyCollection<TagLabelDto>> ApplyTagsAsync(
         Guid documentId,
-        IReadOnlyCollection<Guid> tagIds,
+        List<Guid> tagIds,
         Guid appliedBy,
         IReadOnlyCollection<TagLabelDto> availableTags,
         CancellationToken cancellationToken)
     {
         if (tagIds.Count == 0)
         {
-            return Array.Empty<TagLabelDto>();
+            return [];
         }
 
         var applied = new List<TagLabelDto>();
@@ -645,7 +638,7 @@ public class HomeController : Controller
         return applied;
     }
 
-    private IReadOnlyCollection<Guid> ParseGuidList(IEnumerable<string> values, string fieldName)
+    private List<Guid> ParseGuidList(IEnumerable<string> values, string fieldName)
     {
         var results = new List<Guid>();
 

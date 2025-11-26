@@ -47,7 +47,7 @@ public sealed class EcmApiClientTests
         };
 
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers.Add("X-Api-Key", apiKey);
+        httpContext.Request.Headers.Append("X-Api-Key", apiKey);
 
         var client = new EcmApiClient(
             httpClient,
@@ -75,51 +75,28 @@ public sealed class EcmApiClientTests
     {
         public Task<string> GetAccessTokenForAppAsync(
             string scope,
-            string? authenticationScheme = null,
+            string? authenticationScheme,
             string? tenant = null,
             TokenAcquisitionOptions? tokenAcquisitionOptions = null)
             => throw new NotImplementedException();
 
         public Task<string> GetAccessTokenForUserAsync(
             IEnumerable<string> scopes,
-            string? authenticationScheme = null,
+            string? authenticationScheme,
             string? tenantId = null,
             string? userFlow = null,
             ClaimsPrincipal? user = null,
-            TokenAcquisitionOptions? tokenAcquisitionOptions = null)
-            => throw new NotImplementedException();
-
-        public Task<string> GetAccessTokenOnBehalfOfAsync(
-            IEnumerable<string> scopes,
-            string? authenticationScheme = null,
             TokenAcquisitionOptions? tokenAcquisitionOptions = null)
             => throw new NotImplementedException();
 
         public Task<AuthenticationResult> GetAuthenticationResultForUserAsync(
             IEnumerable<string> scopes,
-            string? authenticationScheme = null,
+            string? authenticationScheme,
             string? tenantId = null,
             string? userFlow = null,
             ClaimsPrincipal? user = null,
             TokenAcquisitionOptions? tokenAcquisitionOptions = null)
             => throw new NotImplementedException();
-
-        public Task<AuthenticationResult> GetAuthenticationResultOnBehalfOfAsync(
-            IEnumerable<string> scopes,
-            string? authenticationScheme = null,
-            TokenAcquisitionOptions? tokenAcquisitionOptions = null)
-            => throw new NotImplementedException();
-
-        public Task RemoveAccountAsync(ClaimsPrincipal user, string? authenticationScheme = null)
-            => Task.CompletedTask;
-
-        public Task ReplyForbiddenWithWwwAuthenticateHeaderAsync(
-            IEnumerable<string> scopes,
-            MsalUiRequiredException msalServiceException,
-            string? authenticationScheme = null,
-            string? userflow = null,
-            HttpResponse? httpResponse = null)
-            => Task.CompletedTask;
 
         public Task<AuthenticationResult> GetAuthenticationResultForAppAsync(
             string scope,
@@ -144,17 +121,5 @@ public sealed class EcmApiClientTests
             MsalUiRequiredException msalServiceException,
             HttpResponse? httpResponse = null)
             => Task.CompletedTask;
-
-        public Task AddAccountToCacheFromAuthorizationCodeAsync(
-            IEnumerable<string> scopes,
-            string authorizationCode,
-            string? redirectUri = null,
-            string? authenticationScheme = null,
-            ClaimsPrincipal? user = null,
-            TokenAcquisitionOptions? tokenAcquisitionOptions = null)
-            => Task.CompletedTask;
-
-        public Task<IEnumerable<string>> GetAccountIdentifiersAsync(string? authenticationScheme = null)
-            => Task.FromResult<IEnumerable<string>>([]);
     }
 }

@@ -27,7 +27,7 @@ internal static class DocumentFormFieldReader
         return null;
     }
 
-    public static IReadOnlyList<string> GetStringList(IFormCollection form, string propertyName)
+    public static List<string?> GetStringList(IFormCollection form, string propertyName)
     {
         foreach (var field in EnumerateListFieldNames(propertyName))
         {
@@ -67,7 +67,7 @@ internal static class DocumentFormFieldReader
             }
         }
 
-        var buffer = new List<string>();
+        var buffer = new List<string?>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var key in form.Keys)
@@ -97,7 +97,7 @@ internal static class DocumentFormFieldReader
             return buffer;
         }
 
-        return Array.Empty<string>();
+        return new List<string?>();
     }
 
     public static Guid? GetGuid(IFormCollection form, string propertyName)

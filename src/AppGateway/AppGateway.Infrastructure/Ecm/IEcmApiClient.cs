@@ -24,26 +24,26 @@ public interface IEcmApiClient
     Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default);
 
     Task<UserSummaryDto?> AuthenticateUserAsync(
-        AuthenticateUserRequestDto request,
+        AuthenticateUserRequestDto requestDto,
         CancellationToken cancellationToken = default);
 
-    Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto request, CancellationToken cancellationToken = default);
+    Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken = default);
 
-    Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto request, CancellationToken cancellationToken = default);
+    Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto requestDto, CancellationToken cancellationToken = default);
 
-    Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto request, CancellationToken cancellationToken = default);
+    Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto requestDto, CancellationToken cancellationToken = default);
 
-    Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto request, CancellationToken cancellationToken = default);
+    Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto requestDto, CancellationToken cancellationToken = default);
 
-    Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto request, CancellationToken cancellationToken = default);
+    Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken = default);
 
     Task<UserSummaryDto?> RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<RoleSummaryDto>> GetRolesAsync(CancellationToken cancellationToken = default);
 
-    Task<RoleSummaryDto?> CreateRoleAsync(CreateRoleRequestDto request, CancellationToken cancellationToken = default);
+    Task<RoleSummaryDto?> CreateRoleAsync(CreateRoleRequestDto requestDto, CancellationToken cancellationToken = default);
 
-    Task<RoleSummaryDto?> RenameRoleAsync(Guid roleId, RenameRoleRequestDto request, CancellationToken cancellationToken = default);
+    Task<RoleSummaryDto?> RenameRoleAsync(Guid roleId, RenameRoleRequestDto requestDto, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteRoleAsync(Guid roleId, CancellationToken cancellationToken = default);
 
@@ -51,19 +51,19 @@ public interface IEcmApiClient
 
     Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsByObjectAsync(string objectType, Guid objectId, CancellationToken cancellationToken = default);
 
-    Task<AccessRelationDto?> CreateRelationAsync(CreateAccessRelationRequestDto request, CancellationToken cancellationToken = default);
+    Task<AccessRelationDto?> CreateRelationAsync(CreateAccessRelationRequestDto requestDto, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteRelationAsync(string subjectType, Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default);
 
-    Task<DocumentListDto> GetDocumentsAsync(ListDocumentsRequestDto request, CancellationToken cancellationToken = default);
+    Task<DocumentListDto> GetDocumentsAsync(ListDocumentsRequestDto requestDto, CancellationToken cancellationToken = default);
 
     Task<DocumentDto?> GetDocumentAsync(Guid documentId, CancellationToken cancellationToken = default);
 
-    Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload request, CancellationToken cancellationToken = default);
+    Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload requestDto, CancellationToken cancellationToken = default);
 
     Task<DocumentDto?> UpdateDocumentAsync(
         Guid documentId,
-        UpdateDocumentRequestDto request,
+        UpdateDocumentRequestDto requestDto,
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default);
@@ -80,24 +80,24 @@ public interface IEcmApiClient
         CancellationToken cancellationToken = default);
 
     Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
-        CreateShareLinkRequestDto request,
+        CreateShareLinkRequestDto requestDto,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default);
 
-    Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default);
+    Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto requestDto, CancellationToken cancellationToken = default);
 
-    Task<TagLabelDto?> UpdateTagAsync(Guid tagId, UpdateTagRequestDto request, CancellationToken cancellationToken = default);
+    Task<TagLabelDto?> UpdateTagAsync(Guid tagId, UpdateTagRequestDto requestDto, CancellationToken cancellationToken = default);
 
     Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default);
 
-    Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto request, CancellationToken cancellationToken = default);
+    Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto requestDto, CancellationToken cancellationToken = default);
 
     Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken = default);
 
-    Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto request, CancellationToken cancellationToken = default);
+    Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto requestDto, CancellationToken cancellationToken = default);
 
-    Task<SignatureReceiptDto?> CreateSignatureRequestAsync(SignatureRequestDto request, CancellationToken cancellationToken = default);
+    Task<SignatureReceiptDto?> CreateSignatureRequestAsync(SignatureRequestDto requestDto, CancellationToken cancellationToken = default);
 }
 
 public sealed record PasswordUpdateResult(HttpStatusCode StatusCode, string? Content = null, string? ContentType = null)

@@ -1,4 +1,4 @@
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Models.Tags;
 
 /// <summary>
 /// Represents a tag label available within ECM.

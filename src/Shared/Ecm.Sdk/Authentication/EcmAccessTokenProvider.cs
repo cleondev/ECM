@@ -1,32 +1,27 @@
+using Ecm.Sdk.Configuration;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Authentication;
 
 /// <summary>
 /// Provides access tokens for communicating with the ECM APIs.
 /// </summary>
-public sealed class EcmAccessTokenProvider
+/// <remarks>
+/// Initializes a new instance of the <see cref="EcmAccessTokenProvider"/> class.
+/// </remarks>
+/// <param name="options">Integration options containing authentication settings.</param>
+/// <param name="logger">Logger used to emit diagnostic messages.</param>
+/// <param name="ssoTokenProvider">Provider used to retrieve delegated SSO tokens.</param>
+public sealed class EcmAccessTokenProvider(
+    IOptionsSnapshot<EcmIntegrationOptions> options,
+    ILogger<EcmAccessTokenProvider> logger,
+    EcmSsoTokenProvider ssoTokenProvider)
 {
-    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options;
-    private readonly ILogger<EcmAccessTokenProvider> _logger;
-    private readonly EcmSsoTokenProvider _ssoTokenProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EcmAccessTokenProvider"/> class.
-    /// </summary>
-    /// <param name="options">Integration options containing authentication settings.</param>
-    /// <param name="logger">Logger used to emit diagnostic messages.</param>
-    /// <param name="ssoTokenProvider">Provider used to retrieve delegated SSO tokens.</param>
-    public EcmAccessTokenProvider(
-        IOptionsSnapshot<EcmIntegrationOptions> options,
-        ILogger<EcmAccessTokenProvider> logger,
-        EcmSsoTokenProvider ssoTokenProvider)
-    {
-        _options = options;
-        _logger = logger;
-        _ssoTokenProvider = ssoTokenProvider;
-    }
+    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options = options;
+    private readonly ILogger<EcmAccessTokenProvider> _logger = logger;
+    private readonly EcmSsoTokenProvider _ssoTokenProvider = ssoTokenProvider;
 
     /// <summary>
     /// Gets a value indicating whether any authentication method has been configured.

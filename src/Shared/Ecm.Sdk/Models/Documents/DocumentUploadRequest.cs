@@ -1,4 +1,4 @@
-namespace Ecm.Sdk;
+namespace Ecm.Sdk.Models.Documents;
 
 /// <summary>
 /// Represents the information required to upload a document to ECM.
@@ -68,9 +68,4 @@ public sealed record DocumentUploadRequest
     /// Optional MIME type sent to ECM when it cannot be inferred from the file.
     /// </summary>
     public string? ContentType { get; init; }
-
-    /// <summary>
-    /// Email of the acting user for on-behalf scenarios.
-    /// </summary>
-    public string? OnBehalfUserEmail { get; init; }
 }
