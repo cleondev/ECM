@@ -4,9 +4,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
   <ItemGroup>
-    <ProjectReference Include="..\Ecm.Sdk\Ecm.Sdk.csproj" />
+    <ProjectReference Include="..\..\sdk\Ecm.Sdk\Ecm.Sdk.csproj" />
   </ItemGroup>
 
 </Project>
