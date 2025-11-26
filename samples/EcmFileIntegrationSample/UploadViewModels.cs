@@ -93,6 +93,12 @@ public sealed class UploadPageViewModel
 
     public DocumentDeleteForm DocumentDelete { get; init; } = new();
 
+    public DocumentDetailForm DocumentDetail { get; init; } = new();
+
+    public DocumentDetailResult? DocumentDetailResult { get; init; }
+
+    public VersionDownloadForm VersionDownload { get; init; } = new();
+
     public UserProfile? CurrentProfile { get; init; }
 }
 
@@ -220,3 +226,23 @@ public sealed class DocumentDeleteForm
     [Display(Name = "Document ID")]
     public string DocumentId { get; set; } = string.Empty;
 }
+
+public sealed class DocumentDetailForm
+{
+    public string? UserEmail { get; set; }
+
+    [Required(ErrorMessage = "Vui lòng nhập Document ID.")]
+    [Display(Name = "Document ID")]
+    public string DocumentId { get; set; } = string.Empty;
+}
+
+public sealed class VersionDownloadForm
+{
+    public string? UserEmail { get; set; }
+
+    [Required(ErrorMessage = "Vui lòng nhập Version ID.")]
+    [Display(Name = "Version ID")]
+    public string VersionId { get; set; } = string.Empty;
+}
+
+public sealed record DocumentDetailResult(DocumentDto Document, Uri? DownloadUri);

@@ -1,6 +1,6 @@
 # ECM file integration sample
 
-Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Phần tích hợp HTTP đã được tách thành thư viện NuGet `Ecm.SDK` (đặt tại `src/Shared/Ecm.SDK`) để có thể tái sử dụng cho các ứng dụng khác. Bạn có thể đăng nhập nền bằng API key qua endpoint `api/iam/auth/on-behalf` hoặc dùng luồng OBO (on-behalf-of) dựa trên SSO để đổi token của người dùng thành token ECM AppGateway.
+Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Phần tích hợp HTTP đã được tách thành thư viện NuGet `Ecm.Sdk` (đặt tại `src/Shared/Ecm.Sdk`) để có thể tái sử dụng cho các ứng dụng khác. Bạn có thể đăng nhập nền bằng API key qua endpoint `api/iam/auth/on-behalf` hoặc dùng luồng OBO (on-behalf-of) dựa trên SSO để đổi token của người dùng thành token ECM AppGateway.
 
 ## Chuẩn bị
 
@@ -55,9 +55,9 @@
 
 > Với `ApiKey.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key` trong cấu hình chung) để đăng nhập nền cho email đang chọn trong dropdown `EcmUsers`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `Sso.Enabled=true`, thư viện ưu tiên bearer token AppGateway qua MSAL OBO dựa trên `Sso:UserAccessToken`; nếu không lấy được token, SDK sẽ fallback đăng nhập bằng API key (nếu bật).
 
-## Dùng lại SDK `Ecm.SDK`
+## Dùng lại SDK `Ecm.Sdk`
 
-1. Thêm reference tới dự án (hoặc gói NuGet sau khi publish) `Ecm.SDK`.
+1. Thêm reference tới dự án (hoặc gói NuGet sau khi publish) `Ecm.Sdk`.
 2. Đăng ký DI trong `Program.cs`:
 
    ```csharp
@@ -95,3 +95,5 @@ Ngoài upload, trang mẫu còn cung cấp form mẫu cho các API ECM:
 
 - CRUD tag (`GET/POST/PUT/DELETE /api/ecm/tags`) để tạo, cập nhật, xoá tag label.
 - Liệt kê tài liệu (`GET /api/ecm/documents`), cập nhật metadata (`PUT /api/ecm/documents/{id}`) và xoá tài liệu (`DELETE /api/ecm/documents/{id}`).
+- Xem chi tiết tài liệu (`GET /api/ecm/documents/{id}`) và lấy presigned URL download cho phiên bản mới nhất.
+- Tải trực tiếp nội dung file qua API preview (`GET /api/ecm/files/preview/{versionId}`) bằng cách nhập Version ID.

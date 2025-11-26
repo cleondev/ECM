@@ -111,7 +111,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Utilities", "src\Sha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Extensions", "src\Shared\Extensions\Shared.Extensions.csproj", "{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecm.Sdk", "src\Shared\Ecm.SDK\Ecm.Sdk.csproj", "{FE6508EE-8DE1-44AE-B0FE-B74B238D9497}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ecm.Sdk", "src\Shared\Ecm.Sdk\Ecm.Sdk.csproj", "{FE6508EE-8DE1-44AE-B0FE-B74B238D9497}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject

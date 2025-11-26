@@ -377,6 +377,88 @@ public class HomeController : Controller
     }
 
     // ----------------------------------------------------
+    // Document Details & Download
+    // ----------------------------------------------------
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GetDocumentDetail(DocumentDetailForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    {
+        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
+        var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
+
+        if (!ModelState.IsValid || documentId is null)
+        {
+            return View("Index", await BuildPageViewModelAsync(
+                BuildDefaultUploadForm(),
+                documentQuery: documentQuery,
+                documentDetail: form,
+                cancellationToken: cancellationToken
+            ));
+        }
+
+        var document = await _client.GetDocumentAsync(documentId.Value, cancellationToken);
+
+        if (document is null)
+        {
+            return View("Index", await BuildPageViewModelAsync(
+                BuildDefaultUploadForm(),
+                documentQuery: documentQuery,
+                documentMessage: "Không tìm thấy tài liệu.",
+                documentDetail: new DocumentDetailForm { UserEmail = form.UserEmail ?? documentQuery.UserEmail },
+                cancellationToken: cancellationToken
+            ));
+        }
+
+        Uri? downloadUri = null;
+        if (document.LatestVersion is { } version)
+        {
+            downloadUri = await _client.GetDownloadUriAsync(version.Id, cancellationToken);
+        }
+
+        return View("Index", await BuildPageViewModelAsync(
+            BuildDefaultUploadForm(),
+            documentQuery: documentQuery,
+            documentMessage: "Đã tải chi tiết tài liệu.",
+            documentDetail: new DocumentDetailForm { UserEmail = form.UserEmail ?? documentQuery.UserEmail },
+            documentDetailResult: new DocumentDetailResult(document, downloadUri),
+            cancellationToken: cancellationToken
+        ));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DownloadVersion(VersionDownloadForm form, DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    {
+        ApplyUserSelection(form.UserEmail ?? documentQuery.UserEmail, documentQuery.UserEmail);
+        var versionId = ParseRequiredGuid(form.VersionId, nameof(form.VersionId));
+
+        if (!ModelState.IsValid || versionId is null)
+        {
+            return View("Index", await BuildPageViewModelAsync(
+                BuildDefaultUploadForm(),
+                documentQuery: documentQuery,
+                versionDownload: form,
+                cancellationToken: cancellationToken
+            ));
+        }
+
+        var download = await _client.DownloadVersionAsync(versionId.Value, cancellationToken);
+        if (download is null)
+        {
+            return View("Index", await BuildPageViewModelAsync(
+                BuildDefaultUploadForm(),
+                documentQuery: documentQuery,
+                documentMessage: "Không tìm thấy phiên bản hoặc không thể tải file.",
+                versionDownload: new VersionDownloadForm { UserEmail = form.UserEmail ?? documentQuery.UserEmail },
+                cancellationToken: cancellationToken
+            ));
+        }
+
+        var fileName = download.FileName ?? $"version-{versionId}.bin";
+        return File(download.Content, download.ContentType, fileName);
+    }
+
+    // ----------------------------------------------------
     // Helpers
     // ----------------------------------------------------
     private UploadFormModel BuildDefaultUploadForm() => new()
@@ -406,6 +488,9 @@ public class HomeController : Controller
         TagDeleteForm? tagDelete = null,
         DocumentUpdateForm? documentUpdate = null,
         DocumentDeleteForm? documentDelete = null,
+        DocumentDetailForm? documentDetail = null,
+        DocumentDetailResult? documentDetailResult = null,
+        VersionDownloadForm? versionDownload = null,
         UploadResultModel? result = null,
         IReadOnlyCollection<TagLabelDto>? tags = null,
         DocumentListResult? documentList = null,
@@ -442,6 +527,12 @@ public class HomeController : Controller
         documentDelete ??= new DocumentDeleteForm();
         documentDelete.UserEmail ??= documentQuery.UserEmail;
 
+        documentDetail ??= new DocumentDetailForm();
+        documentDetail.UserEmail ??= documentQuery.UserEmail;
+
+        versionDownload ??= new VersionDownloadForm();
+        versionDownload.UserEmail ??= documentQuery.UserEmail;
+
         return new UploadPageViewModel
         {
             BaseUrl = Options.BaseUrl,
@@ -468,6 +559,9 @@ public class HomeController : Controller
             DocumentMessage = documentMessage,
             DocumentUpdate = documentUpdate ?? new DocumentUpdateForm(),
             DocumentDelete = documentDelete ?? new DocumentDeleteForm(),
+            DocumentDetail = documentDetail ?? new DocumentDetailForm(),
+            DocumentDetailResult = documentDetailResult,
+            VersionDownload = versionDownload ?? new VersionDownloadForm(),
             CurrentProfile = profile ?? result?.Profile,
         };
     }

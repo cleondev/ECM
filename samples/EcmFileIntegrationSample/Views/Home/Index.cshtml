@@ -122,7 +122,7 @@
                                 <select asp-for="Form.SelectedTagIds" class="form-select" multiple size="6">
                                     @foreach (var tag in Model.Tags)
                                     {
-                                        <option value="@tag.Id">@tag.Name (@tag.NamespaceDisplayName ?? tag.NamespaceScope)</option>
+                                        <option value="@tag.Id">@tag.Name (@(tag.NamespaceDisplayName ?? tag.NamespaceScope ?? "Không rõ namespace"))</option>
                                     }
                                 </select>
                                 <div class="form-text">Chọn nhiều tag để gán ngay sau khi upload (tuỳ chọn).</div>
@@ -378,6 +378,82 @@
                 {
                     <p class="text-muted">Chưa có tài liệu phù hợp bộ lọc.</p>
                 }
+
+                <div class="row g-4 mb-3">
+                    <div class="col-lg-6">
+                        <h6 class="fw-semibold">Xem chi tiết tài liệu</h6>
+                        <form asp-action="GetDocumentDetail" method="post" class="row g-2" novalidate>
+                            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                            <input type="hidden" asp-for="DocumentDetail.UserEmail" />
+                            <div class="col-12">
+                                <label asp-for="DocumentDetail.DocumentId" class="form-label"></label>
+                                <input asp-for="DocumentDetail.DocumentId" class="form-control" />
+                                <span asp-validation-for="DocumentDetail.DocumentId" class="text-danger"></span>
+                            </div>
+                            <div class="col-12 d-grid">
+                                <button type="submit" class="btn btn-outline-secondary">Lấy chi tiết</button>
+                            </div>
+                        </form>
+
+                        @if (Model.DocumentDetailResult is not null)
+                        {
+                            <div class="alert alert-secondary mt-3" role="alert">
+                                <div class="d-flex align-items-start justify-content-between">
+                                    <div>
+                                        <div class="fw-semibold">@Model.DocumentDetailResult.Document.Title</div>
+                                        <small class="text-muted">@Model.DocumentDetailResult.Document.Id</small>
+                                    </div>
+                                    @if (Model.DocumentDetailResult.DownloadUri is not null)
+                                    {
+                                        <a class="btn btn-sm btn-success" href="@Model.DocumentDetailResult.DownloadUri" target="_blank" rel="noreferrer">Tải file</a>
+                                    }
+                                </div>
+
+                                <dl class="row mb-0 small mt-2">
+                                    <dt class="col-4">Doc type</dt>
+                                    <dd class="col-8">@Model.DocumentDetailResult.Document.DocType</dd>
+                                    <dt class="col-4">Status</dt>
+                                    <dd class="col-8">@Model.DocumentDetailResult.Document.Status</dd>
+                                    <dt class="col-4">Độ nhạy</dt>
+                                    <dd class="col-8">@Model.DocumentDetailResult.Document.Sensitivity</dd>
+                                    <dt class="col-4">Owner</dt>
+                                    <dd class="col-8">@Model.DocumentDetailResult.Document.OwnerId</dd>
+                                    <dt class="col-4">Created</dt>
+                                    <dd class="col-8">@Model.DocumentDetailResult.Document.CreatedAtUtc.ToLocalTime():g</dd>
+                                    <dt class="col-4">Updated</dt>
+                                    <dd class="col-8">@Model.DocumentDetailResult.Document.UpdatedAtUtc.ToLocalTime():g</dd>
+                                    @if (Model.DocumentDetailResult.Document.LatestVersion is not null)
+                                    {
+                                        <dt class="col-4">Version</dt>
+                                        <dd class="col-8">v@Model.DocumentDetailResult.Document.LatestVersion.VersionNo (@Model.DocumentDetailResult.Document.LatestVersion.Bytes bytes)</dd>
+                                    }
+                                    @if (Model.DocumentDetailResult.Document.Tags is { Count: > 0 })
+                                    {
+                                        <dt class="col-4">Tags</dt>
+                                        <dd class="col-8">@string.Join(", ", Model.DocumentDetailResult.Document.Tags.Select(tag => tag.Name))</dd>
+                                    }
+                                </dl>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="fw-semibold">Tải file theo Version ID</h6>
+                        <form asp-action="DownloadVersion" method="post" class="row g-2" novalidate>
+                            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                            <input type="hidden" asp-for="VersionDownload.UserEmail" />
+                            <div class="col-12">
+                                <label asp-for="VersionDownload.VersionId" class="form-label"></label>
+                                <input asp-for="VersionDownload.VersionId" class="form-control" />
+                                <span asp-validation-for="VersionDownload.VersionId" class="text-danger"></span>
+                            </div>
+                            <div class="col-12 d-grid">
+                                <button type="submit" class="btn btn-outline-success">Tải file trực tiếp</button>
+                            </div>
+                            <div class="form-text">Form này gọi API preview để stream nội dung file.</div>
+                        </form>
+                    </div>
+                </div>
 
                 <div class="row g-4">
                     <div class="col-lg-6">
