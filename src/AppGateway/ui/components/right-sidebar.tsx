@@ -1,15 +1,16 @@
 "use client"
 
-import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import type { FileItem } from "@/lib/types"
+import type { FileItem, User } from "@/lib/types"
 import { AtSign, Paperclip, Smile, X } from "lucide-react"
 import type React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TabsContent } from "@/components/ui/tabs"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
-import { fetchFlows, fetchSystemTags, updateFile, type UpdateFileRequest } from "@/lib/api"
+import { fetchFlows, fetchSystemTags, searchUsers, updateFile, type UpdateFileRequest } from "@/lib/api"
 import type { Flow, SystemTag } from "@/lib/types"
 import { FileTypeIcon } from "./file-type-icon"
 import {
@@ -43,12 +44,6 @@ type ChatMessage = {
   attachments?: string[]
 }
 
-const statusColors: Record<NonNullable<FileItem['status']>, string> = {
-  "in-progress": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  completed: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
-  draft: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
-}
-
 const tabBadgeStyles: Record<ActiveTab, string> = {
   info: "border-sky-500/30 text-sky-600 bg-sky-500/10 dark:text-sky-200",
   flow: "border-emerald-500/30 text-emerald-600 bg-emerald-500/10 dark:text-emerald-200",
@@ -63,6 +58,7 @@ type EditableFileState = {
   folder: string
   tags: string
   status: NonNullable<FileItem['status']>
+  docType: string
 }
 
 const DEFAULT_FILE_STATUS: NonNullable<FileItem['status']> = "draft"
@@ -75,6 +71,7 @@ function createEditableState(file: FileItem | null): EditableFileState {
     folder: file?.folder ?? "",
     tags: file ? file.tags.map((tag) => tag.name).join(", ") : "",
     status: file?.status ?? DEFAULT_FILE_STATUS,
+    docType: file?.docType ?? "Document",
   }
 }
 
@@ -87,7 +84,13 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [chatAttachments, setChatAttachments] = useState<File[]>([])
+  const [mentionSuggestions, setMentionSuggestions] = useState<User[]>([])
+  const [mentionQuery, setMentionQuery] = useState("")
+  const [mentionOpen, setMentionOpen] = useState(false)
+  const [mentionLoading, setMentionLoading] = useState(false)
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const emojiOptions = ["😀", "😁", "😍", "😎", "🤔", "🙏", "🚀", "👍", "🎉", "🔥", "📄", "✅"]
 
   useEffect(() => {
     setEditValues(createEditableState(selectedFile))
@@ -147,6 +150,25 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     fetchSystemTags(selectedFile.id).then(setSystemTags)
   }, [selectedFile?.id])
 
+  useEffect(() => {
+    setMentionQuery("")
+    setMentionSuggestions([])
+    setMentionOpen(false)
+    setEmojiOpen(false)
+  }, [selectedFile?.id])
+
+  useEffect(() => {
+    if (!mentionOpen) {
+      return
+    }
+
+    setMentionLoading(true)
+    searchUsers(mentionQuery)
+      .then((users) => setMentionSuggestions(users))
+      .catch((error) => console.warn("[ui] Failed to load mention suggestions:", error))
+      .finally(() => setMentionLoading(false))
+  }, [mentionOpen, mentionQuery])
+
   const parseTimeAgo = (timeStr: string): number => {
     const match = timeStr.match(/(\d+)\s+(hour|day|week|month)/)
     if (!match) return 0
@@ -156,13 +178,22 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     return value * (multipliers[unit] || 1)
   }
 
-  const handleInsertMention = () => {
-    const mention = selectedFile?.owner ? `@${selectedFile.owner}` : "@mention"
-    setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}${mention} `)
+  const appendToken = (token: string) => {
+    setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}${token} `)
   }
 
-  const handleAddEmoji = () => {
-    setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}😊 `)
+  const handleInsertMention = (user?: User) => {
+    const mentionHandle = user
+      ? `@${user.displayName.replace(/\s+/g, "")}`
+      : selectedFile?.owner
+        ? `@${selectedFile.owner}`
+        : "@mention"
+    appendToken(mentionHandle)
+    setMentionOpen(false)
+  }
+
+  const handleInsertEmoji = (emoji: string) => {
+    appendToken(emoji)
   }
 
   const handleAttachmentClick = () => {
@@ -314,6 +345,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
 
     return {
       ...selectedFile,
+      docType: selectedFile.docType ?? "Document",
       versions: [],
       activity: [],
     }
@@ -336,6 +368,8 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
         name: editValues.name,
         owner: editValues.owner,
         description: editValues.description,
+        docType: sidebarFile.docType ?? editValues.docType,
+        tags: editValues.tags,
         folder: editValues.folder,
         latestVersionLabel: sidebarFile.latestVersionNumber ?? sidebarFile.latestVersionId ?? "N/A",
         fileId: sidebarFile.id,
@@ -347,43 +381,73 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       }
     : undefined
 
-  const infoExtraSections = sidebarFile ? (
-    <>
-      {sidebarFile.status ? (
-        <section className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Trạng thái</span>
-          </div>
-          <Badge className={cn("text-xs", statusColors[sidebarFile.status])}>{sidebarFile.status}</Badge>
-        </section>
-      ) : null}
-
-      {systemTags.length ? (
-        <section className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>System tags</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {systemTags.map((tag) => (
-              <Badge key={tag.name} variant="outline" className="text-[11px]">
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </>
-  ) : null
+  const infoExtraSections = null
 
   const composerExtras = (
     <div className="space-y-2 text-xs text-muted-foreground">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleInsertMention}>
-          <AtSign className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleAddEmoji}>
-          <Smile className="h-4 w-4" />
-        </Button>
+        <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <AtSign className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 space-y-2 p-3" align="start">
+            <div className="text-xs font-semibold text-foreground">Mention someone</div>
+            <Input
+              value={mentionQuery}
+              onChange={(event) => setMentionQuery(event.target.value)}
+              placeholder="Search by name or email"
+              className="h-8"
+            />
+            <div className="max-h-48 space-y-1 overflow-y-auto">
+              {mentionLoading ? (
+                <p className="text-[11px] text-muted-foreground">Loading mentions…</p>
+              ) : mentionSuggestions.length ? (
+                mentionSuggestions.map((user) => (
+                  <Button
+                    key={user.id}
+                    variant="ghost"
+                    className="h-auto w-full justify-start px-2 py-1.5"
+                    onClick={() => handleInsertMention(user)}
+                  >
+                    <div className="flex flex-col text-left">
+                      <span className="text-sm font-medium text-foreground">{user.displayName}</span>
+                      <span className="text-[11px] text-muted-foreground">{user.email}</span>
+                    </div>
+                  </Button>
+                ))
+              ) : (
+                <p className="text-[11px] text-muted-foreground">No matches found</p>
+              )}
+            </div>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => handleInsertMention()}>
+              Mention owner {selectedFile?.owner ? `(@${selectedFile.owner})` : ""}
+            </Button>
+          </PopoverContent>
+        </Popover>
+        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Smile className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 space-y-2 p-3" align="start">
+            <div className="grid grid-cols-6 gap-2">
+              {emojiOptions.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-border/50 bg-background text-lg hover:bg-muted"
+                  onClick={() => handleInsertEmoji(emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Pick multiple emojis to add to your comment.</p>
+          </PopoverContent>
+        </Popover>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleAttachmentClick}>
           <Paperclip className="h-4 w-4" />
         </Button>
@@ -445,7 +509,9 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                 <p className="text-sm text-muted-foreground text-pretty">{selectedFile.description}</p>
               ) : null}
             </div>
-            {sidebarFile ? <SidebarInfoTab file={sidebarFile} extraSections={infoExtraSections} /> : null}
+            {sidebarFile ? (
+              <SidebarInfoTab file={sidebarFile} systemTags={systemTags} extraSections={infoExtraSections} />
+            ) : null}
           </div>
         </TabsContent>
 
@@ -467,52 +533,9 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                 }
                 onBlur={(field, value) => handleBlur(field as keyof EditableFileState, value)}
                 actionsSlot={
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <Label htmlFor="tags" className="text-xs text-muted-foreground">
-                        Tags
-                      </Label>
-                      <input
-                        id="tags"
-                        value={editValues.tags}
-                        onChange={(e) => setEditValues({ ...editValues, tags: e.target.value })}
-                        onBlur={(e) => handleBlur("tags", e.target.value)}
-                        placeholder="Separate tags with commas"
-                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                      />
-                      <div className="flex flex-wrap gap-1">
-                        {editValues.tags
-                          .split(',')
-                          .filter((t) => t.trim())
-                          .map((tag, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {tag.trim()}
-                            </Badge>
-                          ))}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor="status" className="text-xs text-muted-foreground">
-                        Status
-                      </Label>
-                      <select
-                        id="status"
-                        value={editValues.status}
-                        onChange={(e) => {
-                          const nextStatus = e.target.value as NonNullable<FileItem['status']>
-                          setEditValues({ ...editValues, status: nextStatus })
-                          handleBlur('status', nextStatus)
-                        }}
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
-                    <Button className="w-full" variant="secondary" onClick={() => undefined}>
-                      Lưu thay đổi (auto-save khi rời ô)
-                    </Button>
+                  <div className="space-y-2 rounded-md border border-dashed border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+                    <p>Changes are auto-saved when you leave a field.</p>
+                    <p>Use the fields above to update tags or status.</p>
                   </div>
                 }
               />

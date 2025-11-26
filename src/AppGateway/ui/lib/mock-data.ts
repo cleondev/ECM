@@ -793,6 +793,7 @@ export function createMockDetailFromFile(file: FileItem, seed = 0): FileDetail {
 
   return {
     ...file,
+    docType: file.docType ?? (file.type ? `${file.type.charAt(0).toUpperCase()}${file.type.slice(1)}` : "Document"),
     createdAtUtc,
     modifiedAtUtc,
     ownerAvatar: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(file.owner)}`,
