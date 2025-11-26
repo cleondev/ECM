@@ -17,6 +17,9 @@ import type {
   Group,
   ShareSubjectType,
   TagScope,
+  WorkflowDefinition,
+  WorkflowInstance,
+  WorkflowInstanceStep,
 } from "./types"
 import {
   mockFiles,
@@ -171,6 +174,38 @@ type GroupSummaryResponse = {
   id: string
   name: string
   description?: string | null
+}
+
+type WorkflowDefinitionResponse = {
+  id: string
+  name: string
+  spec?: string
+  isActive?: boolean
+  createdAtUtc?: string
+  updatedAtUtc?: string
+}
+
+type WorkflowInstanceStepResponse = {
+  id: string
+  name: string
+  assignee?: string | null
+  status?: string
+  createdAtUtc?: string
+  updatedAtUtc?: string
+  completedAtUtc?: string
+  notes?: string | null
+}
+
+type WorkflowInstanceResponse = {
+  id: string
+  definitionId: string
+  definitionName?: string
+  documentId: string
+  state: string
+  startedAtUtc?: string
+  updatedAtUtc?: string
+  variables?: Record<string, unknown>
+  steps?: WorkflowInstanceStepResponse[]
 }
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
@@ -563,6 +598,7 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     id: document.id,
     name: document.title || "Untitled document",
     type: "document",
+    docType: document.docType,
     size: formatFileSize(latestVersion?.bytes ?? null),
     modified: displayModified,
     modifiedAtUtc: updatedAtUtc,
@@ -845,6 +881,178 @@ async function startWorkflowForDocument(documentId: string, flowDefinition?: str
       `[ui] Failed to start workflow '${flowDefinition}' for document '${documentId}':`,
       error,
     )
+  }
+}
+
+function mapWorkflowInstance(response: WorkflowInstanceResponse): WorkflowInstance {
+  return {
+    id: response.id,
+    definitionId: response.definitionId,
+    definitionName: response.definitionName,
+    documentId: response.documentId,
+    state: response.state,
+    startedAtUtc: response.startedAtUtc,
+    updatedAtUtc: response.updatedAtUtc,
+    variables: response.variables,
+    steps: response.steps?.map((step) => ({
+      id: step.id,
+      name: step.name,
+      assignee: step.assignee ?? null,
+      status: step.status as WorkflowInstanceStep["status"],
+      createdAtUtc: step.createdAtUtc,
+      updatedAtUtc: step.updatedAtUtc,
+      completedAtUtc: step.completedAtUtc,
+      notes: step.notes,
+    })),
+  }
+}
+
+function normalizeWorkflowState(state?: string): Flow["status"] {
+  const normalized = state?.toLowerCase()
+  if (normalized === "completed" || normalized === "done" || normalized === "finished") {
+    return "completed"
+  }
+
+  if (normalized === "active" || normalized === "running" || normalized === "in-progress") {
+    return "active"
+  }
+
+  return "pending"
+}
+
+function toFlowStep(instance: WorkflowInstance, step: WorkflowInstanceStep, index: number) {
+  const stepTimestamp = step.updatedAtUtc ?? step.completedAtUtc ?? step.createdAtUtc ?? instance.updatedAtUtc
+  const iconColor =
+    step.status === "completed"
+      ? "text-emerald-500"
+      : step.status === "in-progress"
+        ? "text-primary"
+        : "text-muted-foreground"
+
+  return {
+    id: step.id || `${instance.id}-step-${index + 1}`,
+    title: step.name,
+    description: step.notes ?? step.status ?? "",
+    timestamp: formatDocumentTimestamp(stepTimestamp ?? instance.startedAtUtc ?? new Date().toISOString()),
+    user: step.assignee || "System",
+    icon: "ListChecks",
+    iconColor,
+  }
+}
+
+function mapWorkflowInstanceToFlow(instance: WorkflowInstance): Flow {
+  const steps = instance.steps?.map((step, index) => toFlowStep(instance, step, index)) ?? []
+  const lastStep = steps[0]?.title || instance.steps?.[0]?.name || ""
+  const lastUpdated = instance.updatedAtUtc ?? instance.startedAtUtc ?? new Date().toISOString()
+  return {
+    id: instance.id,
+    name: instance.definitionName || "Workflow",
+    status: normalizeWorkflowState(instance.state),
+    lastUpdated: formatDocumentTimestamp(lastUpdated),
+    lastStep: lastStep || "Chưa có bước",
+    steps,
+  }
+}
+
+export async function fetchWorkflowDefinitions(params?: {
+  page?: number
+  pageSize?: number
+  active?: boolean
+}): Promise<WorkflowDefinition[]> {
+  const query = new URLSearchParams()
+  if (params?.page) query.set("page", params.page.toString())
+  if (params?.pageSize) query.set("pageSize", params.pageSize.toString())
+  if (params?.active !== undefined) query.set("active", String(params.active))
+
+  try {
+    const path = `/api/workflows/definitions${query.toString() ? `?${query}` : ""}`
+    const response = await gatewayRequest<{ items?: WorkflowDefinitionResponse[]; data?: WorkflowDefinitionResponse[] }>(path)
+    const definitions = response.items ?? response.data ?? []
+    return definitions.map((item) => ({
+      id: item.id,
+      name: item.name,
+      spec: item.spec,
+      isActive: item.isActive,
+      createdAtUtc: item.createdAtUtc,
+      updatedAtUtc: item.updatedAtUtc,
+    }))
+  } catch (error) {
+    console.warn("[ui] Failed to fetch workflow definitions:", error)
+    return []
+  }
+}
+
+export async function fetchWorkflowInstances(params?: {
+  documentId?: string
+  state?: string
+  page?: number
+  pageSize?: number
+}): Promise<WorkflowInstance[]> {
+  const query = new URLSearchParams()
+  if (params?.documentId) query.set("documentId", params.documentId)
+  if (params?.state) query.set("state", params.state)
+  if (params?.page) query.set("page", params.page.toString())
+  if (params?.pageSize) query.set("pageSize", params.pageSize.toString())
+
+  try {
+    const path = `/api/workflows/instances${query.toString() ? `?${query}` : ""}`
+    const response = await gatewayRequest<{ items?: WorkflowInstanceResponse[]; data?: WorkflowInstanceResponse[] }>(path)
+    const instances = response.items ?? response.data ?? []
+    return instances.map(mapWorkflowInstance)
+  } catch (error) {
+    console.warn("[ui] Failed to fetch workflow instances:", error)
+    return []
+  }
+}
+
+export async function fetchWorkflowInstance(instanceId: string): Promise<WorkflowInstance | null> {
+  if (!instanceId) {
+    return null
+  }
+
+  try {
+    const response = await gatewayRequest<WorkflowInstanceResponse>(`/api/workflows/instances/${instanceId}`)
+    return mapWorkflowInstance(response)
+  } catch (error) {
+    console.warn(`[ui] Failed to fetch workflow instance '${instanceId}':`, error)
+    return null
+  }
+}
+
+export async function createWorkflowInstance(request: {
+  documentId: string
+  definitionId: string
+  variables?: Record<string, unknown>
+}): Promise<WorkflowInstance | null> {
+  try {
+    const response = await gatewayRequest<WorkflowInstanceResponse>(`/api/workflows/instances`, {
+      method: "POST",
+      body: JSON.stringify({
+        documentId: request.documentId,
+        definitionId: request.definitionId,
+        variables: request.variables,
+      }),
+    })
+
+    return mapWorkflowInstance(response)
+  } catch (error) {
+    console.warn("[ui] Failed to create workflow instance:", error)
+    return null
+  }
+}
+
+export async function cancelWorkflowInstance(instanceId: string, reason?: string): Promise<void> {
+  if (!instanceId) {
+    return
+  }
+
+  try {
+    await gatewayRequest(`/api/workflows/instances/${instanceId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    })
+  } catch (error) {
+    console.warn(`[ui] Failed to cancel workflow instance '${instanceId}':`, error)
   }
 }
 
@@ -1430,6 +1638,15 @@ export async function deleteFiles(fileIds: string[]): Promise<DeleteFilesResult>
 
 export async function fetchFlows(fileId: string): Promise<Flow[]> {
   try {
+    const workflowInstances = await fetchWorkflowInstances({ documentId: fileId })
+    if (workflowInstances.length) {
+      return workflowInstances.map(mapWorkflowInstanceToFlow)
+    }
+  } catch (error) {
+    console.warn("[ui] Unable to fetch workflow instances, falling back to gateway flows:", error)
+  }
+
+  try {
     return await gatewayRequest<Flow[]>(`/api/documents/${fileId}/flows`)
   } catch (error) {
     console.warn("[ui] Failed to fetch flows via gateway, using mock data:", error)
@@ -1490,6 +1707,29 @@ export async function fetchUser(): Promise<User | null> {
   } catch (error) {
     console.error("[ui] Failed to retrieve user information:", error)
     throw error
+  }
+}
+
+export async function searchUsers(query: string): Promise<User[]> {
+  const normalized = query.trim()
+  const params = new URLSearchParams()
+
+  if (normalized) {
+    params.set("search", normalized)
+  }
+
+  try {
+    const response = await gatewayRequest<{ items?: User[]; data?: User[] }>(
+      `/api/iam/users${params.toString() ? `?${params}` : ""}`,
+    )
+    return response.items ?? response.data ?? []
+  } catch (error) {
+    console.warn("[ui] Failed to search users via gateway, using mock users:", error)
+    return mockUsers.filter((user) => {
+      if (!normalized) return true
+      const haystack = `${user.displayName} ${user.email}`.toLowerCase()
+      return haystack.includes(normalized.toLowerCase())
+    })
   }
 }
 

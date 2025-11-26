@@ -17,6 +17,7 @@ export type FileItem = {
   id: string
   name: string
   type: "design" | "document" | "image" | "video" | "code"
+  docType?: string
   size: string
   modified: string
   createdAtUtc?: string
@@ -241,4 +242,36 @@ export type ShareInterstitial = {
   canDownload: boolean
   file: ShareFileDescriptor
   quota: ShareQuota
+}
+
+export type WorkflowDefinition = {
+  id: string
+  name: string
+  spec?: string
+  isActive?: boolean
+  createdAtUtc?: string
+  updatedAtUtc?: string
+}
+
+export type WorkflowInstanceStep = {
+  id: string
+  name: string
+  assignee?: string | null
+  status?: "pending" | "in-progress" | "completed" | "cancelled"
+  createdAtUtc?: string
+  updatedAtUtc?: string
+  completedAtUtc?: string
+  notes?: string | null
+}
+
+export type WorkflowInstance = {
+  id: string
+  definitionId: string
+  definitionName?: string
+  documentId: string
+  state: string
+  startedAtUtc?: string
+  updatedAtUtc?: string
+  variables?: Record<string, unknown>
+  steps?: WorkflowInstanceStep[]
 }

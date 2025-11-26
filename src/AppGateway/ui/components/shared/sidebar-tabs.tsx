@@ -1,6 +1,4 @@
 "use client"
-
-import { useMemo } from "react"
 import {
   Avatar,
   AvatarFallback,
@@ -9,6 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,22 +18,9 @@ import type {
   FileDetail,
   FileVersion,
   Flow,
+  SystemTag,
 } from "@/lib/types"
-import {
-  Calendar,
-  Clock3,
-  FileText,
-  Folder,
-  GitBranch,
-  HardDrive,
-  Info,
-  ListChecks,
-  MessageSquare,
-  NotebookPen,
-  ShieldCheck,
-  Tag,
-  UserRound,
-} from "lucide-react"
+import { Clock3, FileText, Folder, GitBranch, HardDrive, Info, ListChecks, MessageSquare, NotebookPen, Tag, UserRound } from "lucide-react"
 
 export type SidebarFileLike = Pick<
   FileDetail,
@@ -56,6 +42,7 @@ export type SidebarFileLike = Pick<
   | "status"
   | "type"
   | "id"
+  | "docType"
 >
 
 export type SidebarComment = FileComment & { attachments?: string[] }
@@ -64,6 +51,8 @@ export type SidebarFormValues = {
   name: string
   owner?: string
   description?: string | null
+  docType?: string
+  tags?: string
   latestVersionLabel?: string
   folder?: string
   fileId?: string
@@ -89,6 +78,7 @@ type BaseSidebarProps = {
 type InfoTabProps = {
   file: SidebarFileLike
   extraSections?: React.ReactNode
+  systemTags?: SystemTag[]
 }
 
 type FlowTabProps = { flows: Flow[]; loading: boolean }
@@ -227,114 +217,67 @@ export function SidebarShell({
   )
 }
 
-export function SidebarInfoTab({ file, extraSections }: InfoTabProps) {
-  const extension = useMemo(() => getExtension(file.name), [file.name])
-  const versions: FileVersion[] = file.versions ?? []
-  const activity: FileActivity[] = file.activity ?? []
+export function SidebarInfoTab({ file, extraSections, systemTags }: InfoTabProps) {
   const tags: DocumentTag[] = file.tags ?? []
 
   const statusLabel: Record<NonNullable<FileDetail["status"]>, string> = {
-    draft: "Bản nháp",
-    "in-progress": "Đang xử lý",
-    completed: "Hoàn tất",
+    draft: "Draft",
+    "in-progress": "In Progress",
+    completed: "Completed",
   }
 
-  const statusTone: Record<NonNullable<FileDetail["status"]>, string> = {
-    // Tailwind text classes are applied directly on the badge
-    draft: "bg-slate-100 text-slate-700",
-    "in-progress": "bg-amber-100 text-amber-700",
-    completed: "bg-emerald-100 text-emerald-700",
-  }
-
-  const metaCards = [
+  const infoItems = [
     {
-      label: "Chủ sở hữu",
-      value: file.owner || "Không rõ",
-      icon: UserRound,
-    },
-    {
-      label: "Thư mục",
-      value: file.folder || "Chưa có",
-      icon: Folder,
-    },
-    {
-      label: "Loại tệp",
-      value: file.type,
+      label: "Type",
+      value: file.type ? file.type.charAt(0).toUpperCase() + file.type.slice(1) : "Unknown",
       icon: FileText,
     },
     {
-      label: "Trạng thái",
-      value: file.status ? statusLabel[file.status] : "Chưa cập nhật",
-      icon: ShieldCheck,
-      badgeClass: file.status ? statusTone[file.status] : "bg-muted text-muted-foreground",
+      label: "Document Type",
+      value: file.docType ?? "Document",
+      icon: NotebookPen,
     },
-  ]
-
-  const detailCards = [
     {
-      label: "Kích thước",
+      label: "Size",
       value: formatBytes(file.sizeBytes, file.size),
       icon: HardDrive,
     },
     {
-      label: "Định dạng",
-      value: extension ? `.${extension}` : "Chưa xác định",
-      icon: FileText,
-    },
-    {
-      label: "Ngày tạo",
-      value: formatDate(file.createdAtUtc),
-      icon: Calendar,
-    },
-    {
-      label: "Cập nhật gần nhất",
+      label: "Modified",
       value: formatDate(file.modifiedAtUtc ?? file.modified),
       icon: Clock3,
     },
+    {
+      label: "Owner",
+      value: file.owner || "Unknown",
+      icon: UserRound,
+    },
+    {
+      label: "Folder",
+      value: file.folder || "All Files",
+      icon: Folder,
+    },
   ]
-
-  const recentVersions = versions.slice(0, 3)
-  const recentActivity = activity.slice(0, 4)
 
   return (
     <div className="space-y-6">
       <section className="space-y-3">
-        <div className="text-xs font-semibold text-muted-foreground">Tổng quan nhanh</div>
-        <div className="grid grid-cols-2 gap-3">
-          {metaCards.map(({ label, value, icon: Icon, badgeClass }) => (
-            <div
-              key={label}
-              className="space-y-2 rounded-lg border border-border/60 bg-background/60 p-3 shadow-sm"
-            >
-              <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </span>
-                {label === "Trạng thái" && value ? (
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${badgeClass ?? ""}`}>
-                    {value}
-                  </span>
-                ) : null}
-              </div>
-              {label !== "Trạng thái" ? (
-                <p className="text-sm font-semibold text-foreground">{value}</p>
-              ) : null}
-            </div>
-          ))}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Information</span>
+          {file.status ? (
+            <Badge variant="outline" className="text-[11px]">
+              {statusLabel[file.status] ?? file.status}
+            </Badge>
+          ) : null}
         </div>
-      </section>
-
-      <section className="space-y-3">
-        <div className="text-xs font-semibold text-muted-foreground">Thông tin chi tiết</div>
         <div className="grid grid-cols-2 gap-3">
-          {detailCards.map(({ label, value, icon: Icon }) => (
-            <div key={label} className="rounded-lg border border-border/60 bg-muted/30 p-3">
+          {infoItems.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="space-y-2 rounded-lg border border-border/60 bg-background/60 p-3 shadow-sm">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Icon className="h-3.5 w-3.5" />
                 <span>{label}</span>
               </div>
-              <div className="mt-2 text-sm font-semibold text-foreground">{value}</div>
+              <p className="text-sm font-semibold text-foreground">{value}</p>
             </div>
           ))}
         </div>
@@ -353,58 +296,32 @@ export function SidebarInfoTab({ file, extraSections }: InfoTabProps) {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Chưa có tag nào</p>
+          <p className="text-xs text-muted-foreground">No tags added</p>
         )}
       </section>
 
+      {systemTags?.length ? (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>SYSTEM</span>
+          </div>
+          <div className="grid gap-2">
+            {systemTags.map((tag) => (
+              <div key={tag.name} className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">{tag.name}</span>
+                  <Badge variant="outline" className="text-[10px]">
+                    {tag.editable ? "Editable" : "Read only"}
+                  </Badge>
+                </div>
+                <div className="mt-1 text-sm font-semibold text-foreground">{tag.value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {extraSections}
-
-      <Separator />
-
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-muted-foreground">Phiên bản</div>
-          {recentVersions.map((version) => (
-            <div key={version.id} className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs text-muted-foreground">
-              <div className="flex items-center justify-between text-sm text-foreground">
-                <span>{version.label}</span>
-                <span className="text-[11px] text-muted-foreground">{version.size}</span>
-              </div>
-              <div className="mt-1 flex items-center justify-between">
-                <span>{version.author}</span>
-                <span>{version.createdAt}</span>
-              </div>
-              {version.notes ? <p className="mt-1 text-[11px] italic">{version.notes}</p> : null}
-            </div>
-          ))}
-          {versions.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Chưa có phiên bản nào.</p>
-          ) : null}
-          {versions.length > recentVersions.length ? (
-            <p className="text-[11px] text-muted-foreground">Hiển thị {recentVersions.length}/{versions.length} phiên bản.</p>
-          ) : null}
-        </div>
-
-        <div className="space-y-2">
-          <div className="text-xs font-semibold text-muted-foreground">Hoạt động</div>
-          {recentActivity.map((item) => (
-            <div key={item.id} className="rounded-lg border border-border/70 bg-muted/30 p-3 text-xs">
-              <div className="flex items-center justify-between text-sm font-semibold text-foreground">
-                <span className="truncate">{item.action}</span>
-                <span className="text-[11px] text-muted-foreground">{item.timestamp}</span>
-              </div>
-              <p className="text-muted-foreground">{item.actor}</p>
-              {item.description ? <p className="mt-1 text-[11px] text-muted-foreground">{item.description}</p> : null}
-            </div>
-          ))}
-          {activity.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Chưa có hoạt động nào.</p>
-          ) : null}
-          {activity.length > recentActivity.length ? (
-            <p className="text-[11px] text-muted-foreground">Hiển thị {recentActivity.length}/{activity.length} hoạt động.</p>
-          ) : null}
-        </div>
-      </section>
     </div>
   )
 }
@@ -477,7 +394,9 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
   const mergedValues: SidebarFormValues = {
     name: values?.name ?? file.name,
     owner: values?.owner ?? file.owner,
-    description: values?.description ?? file.description ?? "Chưa có mô tả",
+    description: values?.description ?? file.description ?? "",
+    docType: values?.docType ?? file.docType ?? "Document",
+    tags: values?.tags ?? file.tags?.map((tag) => tag.name).join(", ") ?? "",
     latestVersionLabel: values?.latestVersionLabel ?? file.latestVersionNumber ?? file.latestVersionId ?? "N/A",
     folder: values?.folder ?? file.folder,
     fileId: values?.fileId ?? file.id,
@@ -491,12 +410,12 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
   return (
     <div className="space-y-4">
       <div className="space-y-1 text-xs text-muted-foreground">
-        <p>Điều chỉnh nhanh thông tin tài liệu. Thay đổi sẽ được đồng bộ trong phiên hiện tại.</p>
+        <p>Adjust document metadata. Changes are saved for the current session.</p>
       </div>
       <div className="space-y-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground" htmlFor="file-name">
-            Tên tài liệu
+            File Name
           </label>
           <Input
             id="file-name"
@@ -508,21 +427,8 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor="file-owner">
-            Chủ sở hữu
-          </label>
-          <Input
-            id="file-owner"
-            value={mergedValues.owner ?? ""}
-            readOnly={!editable}
-            className="bg-muted/40"
-            onChange={(event) => onChange?.("owner", event.target.value)}
-            onBlur={(event) => onBlur?.("owner", event.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground" htmlFor="file-description">
-            Mô tả
+            Description
           </label>
           <Textarea
             id="file-description"
@@ -535,49 +441,21 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-type">
-              Loại tài liệu
-            </label>
-            <Input id="file-type" value={mergedValues.type ?? ""} readOnly className="bg-muted/40" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-size">
-              Kích thước
-            </label>
-            <Input id="file-size" value={mergedValues.sizeLabel ?? ""} readOnly className="bg-muted/40" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-created">
-              Ngày tạo
-            </label>
-            <Input id="file-created" value={mergedValues.createdAt ?? ""} readOnly className="bg-muted/40" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-modified">
-              Cập nhật gần nhất
-            </label>
-            <Input id="file-modified" value={mergedValues.modifiedAt ?? ""} readOnly className="bg-muted/40" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-version">
-              Phiên bản mới nhất
+            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-owner">
+              Owner
             </label>
             <Input
-              id="file-version"
-              value={mergedValues.latestVersionLabel ?? "N/A"}
-              readOnly
+              id="file-owner"
+              value={mergedValues.owner ?? ""}
+              readOnly={!editable}
               className="bg-muted/40"
+              onChange={(event) => onChange?.("owner", event.target.value)}
+              onBlur={(event) => onBlur?.("owner", event.target.value)}
             />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground" htmlFor="file-folder">
-              Thư mục
+              Folder
             </label>
             <Input
               id="file-folder"
@@ -588,17 +466,47 @@ export function SidebarFormTab({ file, values, editable = false, onChange, onBlu
               onBlur={(event) => onBlur?.("folder", event.target.value)}
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground" htmlFor="file-id">
-              Mã tài liệu
-            </label>
-            <Input id="file-id" value={mergedValues.fileId ?? ""} readOnly className="bg-muted/40 font-mono" />
-          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="file-doc-type">
+            Document Type
+          </label>
+          <Input id="file-doc-type" value={mergedValues.docType ?? "Document"} readOnly className="bg-muted/40" />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="file-tags" className="text-xs text-muted-foreground">
+            Tags
+          </Label>
+          <Input
+            id="file-tags"
+            value={mergedValues.tags ?? ""}
+            readOnly={!editable}
+            placeholder="Separate tags with commas"
+            className="bg-muted/40"
+            onChange={(event) => onChange?.("tags", event.target.value)}
+            onBlur={(event) => onBlur?.("tags", event.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground" htmlFor="file-status">
+            Status
+          </label>
+          <select
+            id="file-status"
+            value={mergedValues.status}
+            onChange={(event) => onChange?.("status", event.target.value)}
+            onBlur={(event) => onBlur?.("status", event.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+          >
+            <option value="draft">Draft</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
         </div>
       </div>
       {actionsSlot ?? (
         <Button variant="secondary" type="button" className="w-full" disabled>
-          Lưu thay đổi (demo)
+          Save changes (demo)
         </Button>
       )}
     </div>
