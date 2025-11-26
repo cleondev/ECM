@@ -115,8 +115,8 @@ public sealed class EcmOnBehalfAuthenticator
             {
                 Content = JsonContent.Create(new
                 {
-                    options.OnBehalfUserEmail,
-                    options.OnBehalfUserId,
+                    UserEmail = options.OnBehalfUserEmail,
+                    UserId = options.OnBehalfUserId,
                 }),
             };
 
