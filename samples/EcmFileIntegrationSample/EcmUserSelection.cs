@@ -7,7 +7,7 @@ namespace samples.EcmFileIntegrationSample;
 
 public sealed class EcmUserSelection
 {
-    private const string CookieName = "ecm-user";
+    private const string ContextItemKey = "ecm-user-selected";
 
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly EcmUserStore _store;
@@ -22,15 +22,13 @@ public sealed class EcmUserSelection
 
     public EcmUserConfiguration GetCurrentUser()
     {
-        var key = _httpContextAccessor.HttpContext?.Request.Cookies[CookieName];
-        var user = _store.GetUserOrDefault(key);
-
-        if (string.IsNullOrWhiteSpace(key) && _httpContextAccessor.HttpContext is { } context)
+        var context = _httpContextAccessor.HttpContext;
+        if (context?.Items[ContextItemKey] is EcmUserConfiguration requestedUser)
         {
-            WriteSelectionCookie(context, user.Key);
+            return requestedUser;
         }
 
-        return user;
+        return _store.DefaultUser;
     }
 
     public EcmIntegrationOptions GetCurrentOptions()
@@ -39,32 +37,38 @@ public sealed class EcmUserSelection
         return _store.BuildOptions(user);
     }
 
-    public void SelectUser(string? key)
+    public EcmUserConfiguration ApplySelection(EcmIntegrationOptions options, string? userKey, string? userEmail)
+    {
+        var selected = SelectUser(userKey, userEmail);
+        var configured = _store.BuildOptions(selected);
+        EcmUserOptionsConfigurator.Copy(configured, options);
+        return selected;
+    }
+
+    public EcmUserConfiguration SelectUser(string? key, string? email = null)
     {
         if (_httpContextAccessor.HttpContext is not { } context)
         {
-            return;
+            return ResolveUser(key, email);
         }
 
-        var selected = _store.GetUserOrDefault(key);
-        WriteSelectionCookie(context, selected.Key);
+        var selected = ResolveUser(key, email);
+        context.Items[ContextItemKey] = selected;
+        return selected;
     }
 
-    private static void WriteSelectionCookie(HttpContext context, string key)
+    private EcmUserConfiguration ResolveUser(string? key, string? email)
     {
-        context.Response.Cookies.Append(
-            CookieName,
-            key,
-            new CookieOptions
-            {
-                IsEssential = true,
-                HttpOnly = false,
-                Expires = DateTimeOffset.UtcNow.AddDays(30),
-            });
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            return _store.GetUserByEmailOrDefault(email);
+        }
+
+        return _store.GetUserOrDefault(key);
     }
 }
 
-public sealed class EcmUserOptionsConfigurator : IConfigureOptions<EcmIntegrationOptions>
+public sealed class EcmUserOptionsConfigurator : IPostConfigureOptions<EcmIntegrationOptions>
 {
     private readonly EcmUserSelection _selection;
 
@@ -73,7 +77,7 @@ public sealed class EcmUserOptionsConfigurator : IConfigureOptions<EcmIntegratio
         _selection = selection;
     }
 
-    public void Configure(EcmIntegrationOptions options)
+    public void PostConfigure(string? name, EcmIntegrationOptions options)
     {
         var current = _selection.GetCurrentOptions();
         Copy(current, options);
