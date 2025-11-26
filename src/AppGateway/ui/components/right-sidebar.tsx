@@ -11,6 +11,7 @@ import {
   Clock,
   FileText,
   FolderOpen,
+  Info,
   GitBranch,
   HardDrive,
   NotebookPen,
@@ -604,10 +605,40 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                 <Separator className="my-2" />
 
                 <section className="space-y-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Information</span>
+                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <NotebookPen className="h-3.5 w-3.5" />
+                      <span>System</span>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  {systemTags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {systemTags.map((tag) => (
+                        <Badge
+                          key={tag.name}
+                          variant="outline"
+                          className="gap-2 rounded-full border-border/70 bg-muted/50 text-[11px] font-semibold"
+                        >
+                          <Tag className="h-3 w-3" />
+                          <span>{tag.name}</span>
+                          <Separator orientation="vertical" className="h-4" />
+                          <span className="text-muted-foreground">{tag.value}</span>
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No system tags available</p>
+                  )}
+                </section>
+
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-3.5 w-3.5" />
+                      <span>Information</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
                     {[
                       {
                         label: "Type",
@@ -642,39 +673,89 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                         icon: FolderOpen,
                       },
                     ].map(({ label, value, icon: Icon }) => (
-                      <div key={label} className="space-y-2 rounded-lg border border-border/60 bg-background/60 p-3 shadow-sm">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Icon className="h-3.5 w-3.5" />
-                          <span>{label}</span>
+                      <div
+                        key={label}
+                        className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 shadow-sm"
+                      >
+                        <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-muted/80 text-muted-foreground">
+                          <Icon className="h-4 w-4" />
                         </div>
-                        <p className="text-sm font-semibold text-foreground">{value}</p>
+                        <div className="space-y-0.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">{label}</p>
+                          <p className="text-sm font-semibold text-foreground">{value}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </section>
 
                 <section className="space-y-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <h4 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
-                      <Tag className="h-3 w-3" /> Tags
-                    </h4>
+                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="h-3.5 w-3.5" />
+                      <span>Folders & Tags</span>
+                    </div>
                   </div>
-                  {systemTags.length > 0 ? (
-                    <div className="grid gap-2">
-                      {systemTags.map((tag) => (
-                        <div key={tag.name} className="rounded-lg border border-border/70 bg-muted/30 p-3">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span className="font-semibold text-foreground">{tag.name}</span>
-                            <Badge variant="outline" className="text-[10px]">
-                              {tag.editable ? "Editable" : "Read only"}
-                            </Badge>
+
+                  <div className="space-y-2">
+                    {[
+                      {
+                        label: "Doc Type",
+                        value: selectedFile.docType ?? "Document",
+                        icon: NotebookPen,
+                        tone: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200",
+                      },
+                      {
+                        label: "Owner",
+                        value: ownerDisplayName,
+                        icon: UserIcon,
+                        tone: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
+                      },
+                      {
+                        label: "Type",
+                        value: selectedFile.type
+                          ? `${selectedFile.type.charAt(0).toUpperCase()}${selectedFile.type.slice(1)}`
+                          : "Unknown",
+                        icon: GitBranch,
+                        tone: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-200",
+                      },
+                      {
+                        label: "Folder",
+                        value: selectedFile.folder,
+                        icon: FolderOpen,
+                        tone: "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
+                      },
+                    ]
+                      .filter((item) => Boolean(item.value))
+                      .map(({ label, value, icon: Icon, tone }) => (
+                        <div
+                          key={`${label}-${value}`}
+                          className="flex items-center justify-between rounded-lg border border-border/70 bg-background/50 px-3 py-2"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", tone)}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                                {label}
+                              </span>
+                              <span className="text-sm font-semibold text-foreground">{value}</span>
+                            </div>
                           </div>
-                          <div className="mt-1 text-sm font-semibold text-foreground">{tag.value}</div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                       ))}
-                    </div>
-                  ) : null}
+                  </div>
+                </section>
 
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Smile className="h-3.5 w-3.5" />
+                      <span>User Defined</span>
+                    </div>
+                  </div>
                   {selectedFile.tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {selectedFile.tags.map((tag) => {
@@ -699,7 +780,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">No tags added</p>
+                    <p className="text-xs text-muted-foreground">No user-defined tags</p>
                   )}
                 </section>
               </>
