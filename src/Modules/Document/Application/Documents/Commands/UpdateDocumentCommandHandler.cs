@@ -115,6 +115,16 @@ public sealed class UpdateDocumentCommandHandler(
             }
         }
 
+        if (command.HasDocumentTypeId)
+        {
+            var normalizedTypeId = NormalizeDocumentTypeId(command.DocumentTypeId);
+            if (normalizedTypeId != document.TypeId)
+            {
+                document.UpdateDocumentType(command.DocumentTypeId, now);
+                hasChanges = true;
+            }
+        }
+
         if (hasChanges)
         {
             document.MarkUpdated(command.UpdatedBy, now);
@@ -137,6 +147,11 @@ public sealed class UpdateDocumentCommandHandler(
     private static Guid? NormalizeGroupId(Guid? groupId)
     {
         return groupId is null || groupId == Guid.Empty ? null : groupId;
+    }
+
+    private static Guid? NormalizeDocumentTypeId(Guid? documentTypeId)
+    {
+        return documentTypeId is null || documentTypeId == Guid.Empty ? null : documentTypeId;
     }
 
     private static string NormalizeTitle(string? title)

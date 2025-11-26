@@ -13,6 +13,14 @@ export type DocumentTag = {
   isSystem?: boolean
 }
 
+export type DocumentType = {
+  id: string
+  typeKey: string
+  typeName: string
+  isActive: boolean
+  createdAtUtc: string
+}
+
 export type FileItem = {
   id: string
   name: string
@@ -27,7 +35,11 @@ export type FileItem = {
   thumbnail?: string
   status?: "in-progress" | "completed" | "draft"
   owner: string
+  ownerId?: string
+  ownerName?: string
+  ownerEmail?: string
   description?: string
+  documentTypeId?: string | null
   latestVersionId?: string
   latestVersionNumber?: number
   latestVersionStorageKey?: string

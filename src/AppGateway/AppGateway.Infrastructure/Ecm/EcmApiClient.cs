@@ -383,6 +383,14 @@ internal sealed class EcmApiClient(
         }
     }
 
+    public async Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Get, "api/ecm/document-types", cancellationToken);
+        var response = await SendAsync<IReadOnlyCollection<DocumentTypeDto>>(request, cancellationToken);
+        return response ?? [];
+    }
+
     public async Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/files/preview/{versionId}", cancellationToken);

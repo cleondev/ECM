@@ -2,28 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Download, FileText, FileWarning, Share2, Tag } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Download, FileText, FileWarning, PanelRight, Share2 } from "lucide-react"
 
 import { buildDocumentDownloadUrl, fetchFileDetails, fetchFlows } from "@/lib/api"
 import type { FileDetail, Flow } from "@/lib/types"
 import { resolveViewerConfig, type ViewerCategory } from "@/lib/viewer-utils"
+import { RightSidebar } from "@/components/right-sidebar"
+import { ResizableHandle } from "@/components/resizable-handle"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { TabsContent } from "@/components/ui/tabs"
-import {
-  SidebarChatTab,
-  SidebarFlowTab,
-  SidebarFormTab,
-  SidebarInfoTab,
-  SidebarShell,
-  formatBytes,
-  formatDate,
-  getExtension,
-} from "@/components/shared/sidebar-tabs"
+import { formatBytes, formatDate, getExtension } from "@/components/shared/sidebar-tabs"
 
 import { PdfViewer } from "./pdf-viewer"
-import { Separator } from '@/components/ui/separator';
+import { Separator } from "@/components/ui/separator"
 
 const MAIN_APP_ROUTE = "/app/"
 
@@ -141,7 +133,9 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   const [flowsLoading, setFlowsLoading] = useState(false)
   const [comments, setComments] = useState<FileDetail["comments"]>([])
   const [draftMessage, setDraftMessage] = useState("")
-  const [activeTab, setActiveTab] = useState("info")
+  const [activeTab, setActiveTab] = useState<"info" | "flow" | "form" | "chat">("info")
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const viewerUrl = useMemo(
     () => (file?.latestVersionId ? buildDocumentDownloadUrl(file.latestVersionId) : undefined),
     [file?.latestVersionId],
@@ -237,8 +231,8 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
 
   if (isChecking || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-950">
-        <div className="rounded-xl border border-border bg-background/90 px-6 py-10 text-center shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="rounded-xl border border-border bg-background px-6 py-10 text-center shadow-sm">
           <p className="text-base text-muted-foreground">Đang tải trình xem tệp…</p>
         </div>
       </div>
@@ -251,8 +245,8 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
 
   if (error || !file || !viewerConfig) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-950">
-        <div className="max-w-md space-y-4 rounded-2xl border border-border bg-background/95 p-6 text-center shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="max-w-md space-y-4 rounded-2xl border border-border bg-background p-6 text-center shadow-sm">
           <p className="text-lg font-semibold text-foreground">Không thể mở tệp</p>
           <p className="text-sm text-muted-foreground">{error ?? "Tệp đã bị xóa hoặc bạn không có quyền truy cập."}</p>
           <Button onClick={() => router.push(MAIN_APP_ROUTE)}>Quay lại thư viện</Button>
@@ -265,8 +259,8 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   const viewerLabel = viewerConfig.officeKind ? `Office - ${viewerConfig.officeKind}` : viewerConfig.category
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-slate-50">
-      <header className="flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="flex h-14 items-center gap-3 border-b border-border bg-background px-4">
         <Button variant="ghost" size="icon" onClick={() => router.push(MAIN_APP_ROUTE)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -301,13 +295,21 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
           <Button variant="ghost" size="icon">
             <Share2 className="h-4 w-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsRightSidebarOpen((previous) => !previous)}
+            aria-label={isRightSidebarOpen ? "Ẩn thanh thông tin" : "Hiển thị thanh thông tin"}
+          >
+            <PanelRight className="h-4 w-4" />
+          </Button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <main className="flex-1 overflow-auto bg-gradient-to-b from-neutral-900 via-neutral-950 to-black p-6">
+      <div className="flex flex-1 overflow-hidden bg-muted/40">
+        <main className="flex-1 overflow-auto p-6">
           <div className="mx-auto max-w-6xl space-y-4">
-            <div className="rounded-2xl border border-border/60 bg-background/80 shadow-lg shadow-black/30">
+            <div className="rounded-2xl border border-border bg-background shadow-sm">
               <div className="flex items-center justify-between border-b border-border/70 px-5 py-3 text-xs text-muted-foreground">
                 <div className="flex flex-wrap items-center gap-2">
                   <BadgeCheck className="h-4 w-4 text-emerald-500" />
@@ -327,32 +329,28 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
           </div>
         </main>
 
-        <aside className="hidden w-full max-w-xs shrink-0 border-l border-border/70 bg-background/95 text-foreground lg:block">
-          <SidebarShell
-            tabs={{ info: true, flow: true, form: true, chat: true }}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            headerBadge={`Phiên bản ${file.latestVersionNumber ?? file.latestVersionId ?? "N/A"}`}
+        {isRightSidebarOpen && (
+          <ResizableHandle
+            onResize={(delta) =>
+              setRightSidebarWidth((previous) => Math.max(300, Math.min(560, previous + delta)))
+            }
+          />
+        )}
+
+        {isRightSidebarOpen ? (
+          <aside
+            className="hidden h-full shrink-0 border-l border-border bg-background text-foreground lg:block"
+            style={{ width: rightSidebarWidth }}
           >
-            <TabsContent value="info" className="mt-0 h-full">
-              <SidebarInfoTab file={file} />
-            </TabsContent>
-            <TabsContent value="flow" className="mt-0 h-full">
-              <SidebarFlowTab flows={flows} loading={flowsLoading} />
-            </TabsContent>
-            <TabsContent value="form" className="mt-0 h-full">
-              <SidebarFormTab file={file} />
-            </TabsContent>
-            <TabsContent value="chat" className="mt-0 h-full">
-              <SidebarChatTab
-                comments={comments}
-                draftMessage={draftMessage}
-                onDraftChange={setDraftMessage}
-                onSubmit={handleAddComment}
-              />
-            </TabsContent>
-          </SidebarShell>
-        </aside>
+            <RightSidebar
+              selectedFile={file}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              onClose={() => setIsRightSidebarOpen(false)}
+              onFileUpdate={(updatedFile) => setFile(updatedFile)}
+            />
+          </aside>
+        ) : null}
       </div>
     </div>
   )
