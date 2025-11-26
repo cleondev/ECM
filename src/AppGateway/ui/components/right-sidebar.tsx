@@ -14,7 +14,6 @@ import {
   Info,
   GitBranch,
   HardDrive,
-  NotebookPen,
   Paperclip,
   Smile,
   Tag,
@@ -99,6 +98,13 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [systemTags, setSystemTags] = useState<SystemTag[]>([])
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("collapsedSections")
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    }
+    return new Set()
+  })
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [chatAttachments, setChatAttachments] = useState<File[]>([])
@@ -310,6 +316,19 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       } else {
         next.add(flowId)
       }
+      return next
+    })
+  }
+
+  const toggleSection = (sectionId: string) => {
+    setCollapsedSections((previous) => {
+      const next = new Set(previous)
+      if (next.has(sectionId)) {
+        next.delete(sectionId)
+      } else {
+        next.add(sectionId)
+      }
+      localStorage.setItem("collapsedSections", JSON.stringify(Array.from(next)))
       return next
     })
   }
@@ -587,202 +606,154 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       >
         <TabsContent value="info" className="mt-0 h-full">
           <div className="space-y-4">
-            <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center">
-              <FileTypeIcon file={selectedFile ?? undefined} size="lg" />
-            </div>
-
             {selectedFile ? (
               <>
-                <h3 className="font-semibold text-lg text-sidebar-foreground text-pretty">{selectedFile.name}</h3>
+                <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center">
+                  <FileTypeIcon file={selectedFile} size="lg" />
+                </div>
+
+                <h3 className="font-semibold text-lg mb-1 text-sidebar-foreground text-pretty">{selectedFile.name}</h3>
                 {selectedFile.description ? (
-                  <p className="text-sm text-muted-foreground text-pretty">{selectedFile.description}</p>
+                  <p className="text-sm text-muted-foreground mb-4 text-pretty">{selectedFile.description}</p>
                 ) : null}
 
                 {selectedFile.status ? (
-                  <Badge className={cn("mb-2", statusColors[selectedFile.status])}>{selectedFile.status}</Badge>
+                  <Badge className={cn("mb-4", statusColors[selectedFile.status])}>{selectedFile.status}</Badge>
                 ) : null}
 
-                <Separator className="my-2" />
+                <Separator className="my-4" />
 
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <NotebookPen className="h-3.5 w-3.5" />
-                      <span>System</span>
-                    </div>
-                  </div>
-                  {systemTags.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {systemTags.map((tag) => (
-                        <Badge
-                          key={tag.name}
-                          variant="outline"
-                          className="gap-2 rounded-full border-border/70 bg-muted/50 text-[11px] font-semibold"
-                        >
-                          <Tag className="h-3 w-3" />
-                          <span>{tag.name}</span>
-                          <Separator orientation="vertical" className="h-4" />
-                          <span className="text-muted-foreground">{tag.value}</span>
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No system tags available</p>
-                  )}
-                </section>
-
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Info className="h-3.5 w-3.5" />
-                      <span>Information</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      {
-                        label: "Type",
-                        value: selectedFile.type
-                          ? `${selectedFile.type.charAt(0).toUpperCase()}${selectedFile.type.slice(1)}`
-                          : "Unknown",
-                        icon: FileText,
-                      },
-                      {
-                        label: "Document Type",
-                        value: selectedFile.docType ?? "Document",
-                        icon: NotebookPen,
-                      },
-                      {
-                        label: "Size",
-                        value: selectedFile.size,
-                        icon: HardDrive,
-                      },
-                      {
-                        label: "Modified",
-                        value: selectedFile.modified,
-                        icon: Clock,
-                      },
-                      {
-                        label: "Owner",
-                        value: ownerEmail || ownerDisplayName,
-                        icon: UserIcon,
-                      },
-                      {
-                        label: "Folder",
-                        value: selectedFile.folder,
-                        icon: FolderOpen,
-                      },
-                    ].map(({ label, value, icon: Icon }) => (
-                      <div
-                        key={label}
-                        className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 shadow-sm"
-                      >
-                        <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-muted/80 text-muted-foreground">
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">{label}</p>
-                          <p className="text-sm font-semibold text-foreground">{value}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <FolderOpen className="h-3.5 w-3.5" />
-                      <span>Folders & Tags</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {[
-                      {
-                        label: "Doc Type",
-                        value: selectedFile.docType ?? "Document",
-                        icon: NotebookPen,
-                        tone: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200",
-                      },
-                      {
-                        label: "Owner",
-                        value: ownerDisplayName,
-                        icon: UserIcon,
-                        tone: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
-                      },
-                      {
-                        label: "Type",
-                        value: selectedFile.type
-                          ? `${selectedFile.type.charAt(0).toUpperCase()}${selectedFile.type.slice(1)}`
-                          : "Unknown",
-                        icon: GitBranch,
-                        tone: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-200",
-                      },
-                      {
-                        label: "Folder",
-                        value: selectedFile.folder,
-                        icon: FolderOpen,
-                        tone: "bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-200",
-                      },
-                    ]
-                      .filter((item) => Boolean(item.value))
-                      .map(({ label, value, icon: Icon, tone }) => (
-                        <div
-                          key={`${label}-${value}`}
-                          className="flex items-center justify-between rounded-lg border border-border/70 bg-background/50 px-3 py-2"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", tone)}>
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-                                {label}
-                              </span>
-                              <span className="text-sm font-semibold text-foreground">{value}</span>
+                <div className="space-y-4">
+                  <div>
+                    <button
+                      onClick={() => toggleSection("information")}
+                      className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
+                    >
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Information</h4>
+                      {collapsedSections.has("information") ? (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {!collapsedSections.has("information") && (
+                      <div className="space-y-3">
+                        {[
+                          {
+                            label: "Type",
+                            value: selectedFile.type,
+                            icon: FileText,
+                          },
+                          {
+                            label: "Size",
+                            value: selectedFile.size,
+                            icon: HardDrive,
+                          },
+                          {
+                            label: "Modified",
+                            value: selectedFile.modified,
+                            icon: Clock,
+                          },
+                          {
+                            label: "Owner",
+                            value: ownerEmail || ownerDisplayName,
+                            icon: UserIcon,
+                          },
+                          {
+                            label: "Folder",
+                            value: selectedFile.folder,
+                            icon: FolderOpen,
+                          },
+                        ].map(({ label, value, icon: Icon }) => (
+                          <div key={label} className="flex items-start gap-3">
+                            <Icon className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-muted-foreground">{label}</p>
+                              <p className="text-sm font-medium text-sidebar-foreground/90 capitalize">{value}</p>
                             </div>
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <button
+                      onClick={() => toggleSection("tags")}
+                      className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
+                    >
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <Tag className="h-3 w-3" />
+                        Tags
+                      </h4>
+                      {collapsedSections.has("tags") ? (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {!collapsedSections.has("tags") && (
+                      <div className="space-y-3">
+                        {systemTags.length > 0 ? (
+                          <>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
+                                System
+                              </p>
+                              <div className="flex flex-wrap gap-1.5 px-1">
+                                {systemTags.map((tag) => (
+                                  <Badge key={tag.name} variant="outline" className="text-xs">
+                                    {tag.name}: {tag.value}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="relative py-2">
+                              <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-dashed border-border" />
+                              </div>
+                            </div>
+                          </>
+                        ) : null}
+
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
+                            User Defined
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 px-1">
+                            {selectedFile.tags.length ? (
+                              selectedFile.tags.map((tag) => {
+                                const color = tag.color ?? getTagColor(tag.name)
+                                const style = color
+                                  ? {
+                                      backgroundColor: color,
+                                      borderColor: color,
+                                    }
+                                  : undefined
+
+                                return (
+                                  <Badge
+                                    key={tag.id}
+                                    className="text-xs"
+                                    style={style}
+                                    variant={color ? "secondary" : "outline"}
+                                  >
+                                    {tag.name}
+                                  </Badge>
+                                )
+                              })
+                            ) : (
+                              <p className="text-xs text-muted-foreground">No user-defined tags</p>
+                            )}
+                          </div>
                         </div>
-                      ))}
+                      </div>
+                    )}
                   </div>
-                </section>
-
-                <section className="space-y-3">
-                  <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Smile className="h-3.5 w-3.5" />
-                      <span>User Defined</span>
-                    </div>
-                  </div>
-                  {selectedFile.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedFile.tags.map((tag) => {
-                        const color = tag.color ?? getTagColor(tag.name)
-                        const style = color
-                          ? {
-                              backgroundColor: color,
-                              borderColor: color,
-                            }
-                          : undefined
-
-                        return (
-                          <Badge
-                            key={tag.name}
-                            variant="outline"
-                            className={cn("text-xs", color ? "text-white" : "")}
-                            style={style}
-                          >
-                            {tag.name}
-                          </Badge>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No user-defined tags</p>
-                  )}
-                </section>
+                </div>
               </>
             ) : (
               <div className="text-center text-muted-foreground">No file selected</div>
