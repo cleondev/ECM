@@ -1,0 +1,1134 @@
+--------------------
+FILE: /App.tsx
+--------------------
+
+import { useState } from 'react';
+import { Toolbar } from './components/Toolbar';
+import { FileViewer } from './components/FileViewer';
+import { SidebarPanel } from './components/SidebarPanel';
+
+// Mock file data
+const mockFile = {
+  id: '1',
+  name: 'project-proposal-2024.pdf',
+  type: 'application/pdf',
+  size: 4857600, // 4.8 MB
+  url: 'https://arxiv.org/pdf/2301.07041.pdf',
+  owner: 'Nguyen Van A',
+  createdAt: '2024-11-20T10:30:00Z',
+  modifiedAt: '2024-11-22T14:15:00Z',
+  tags: [
+    { name: 'Documents', color: 'blue' },
+    { name: 'Work', color: 'green' },
+    { name: 'Important', color: 'red' }
+  ],
+  sharedWith: [
+    { name: 'Tran Thi B', email: 'tranthib@example.com' },
+    { name: 'Le Van C', email: 'levanc@example.com' }
+  ],
+  activeViewers: [
+    { name: 'Bạn', email: 'you@example.com', status: 'active', color: 'blue' },
+    { name: 'Tran Thi B', email: 'tranthib@example.com', status: 'active', color: 'green' },
+    { name: 'Le Van C', email: 'levanc@example.com', status: 'viewing', color: 'purple' }
+  ]
+};
+
+export default function App() {
+  const [currentFile, setCurrentFile] = useState(mockFile);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  return (
+    <div className="h-screen w-full flex flex-col bg-neutral-900">
+      {/* Toolbar */}
+      <Toolbar 
+        file={currentFile}
+        onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        isSidebarOpen={isSidebarOpen}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* File Viewer - Center (Main Focus) */}
+        <div className="flex-1 overflow-auto bg-neutral-900">
+          <FileViewer file={currentFile} />
+        </div>
+
+        {/* Sidebar Panel - Right */}
+        {isSidebarOpen && (
+          <SidebarPanel file={currentFile} onClose={() => setIsSidebarOpen(false)} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+--------------------
+FILE: /components/Toolbar.tsx
+--------------------
+
+import { 
+  Download, 
+  Share2, 
+  MoreVertical, 
+  ZoomIn, 
+  ZoomOut, 
+  PanelRightClose,
+  PanelRightOpen,
+  Maximize,
+  Star,
+  Trash2,
+  Users
+} from 'lucide-react';
+import { Button } from './ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from './ui/popover';
+import { Separator } from './ui/separator';
+import { Avatar, AvatarFallback } from './ui/avatar';
+import { Badge } from './ui/badge';
+
+interface ToolbarProps {
+  file: {
+    name: string;
+    type: string;
+    activeViewers?: Array<{
+      name: string;
+      email: string;
+      status: string;
+      color: string;
+    }>;
+  };
+  onSidebarToggle: () => void;
+  isSidebarOpen: boolean;
+}
+
+export function Toolbar({ 
+  file, 
+  onSidebarToggle,
+  isSidebarOpen 
+}: ToolbarProps) {
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getAvatarColor = (color: string) => {
+    const colorMap: Record<string, string> = {
+      blue: 'bg-blue-500',
+      green: 'bg-green-500',
+      purple: 'bg-purple-500',
+      orange: 'bg-orange-500',
+      pink: 'bg-pink-500',
+      red: 'bg-red-500',
+    };
+    return colorMap[color] || 'bg-neutral-500';
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      active: 'Đang chỉnh sửa',
+      viewing: 'Đang xem',
+      idle: 'Không hoạt động',
+    };
+    return statusMap[status] || 'Đang xem';
+  };
+
+  const activeViewers = file.activeViewers || [];
+
+  return (
+    <div className="h-14 bg-white border-b border-neutral-200 flex items-center justify-between px-4 gap-4">
+      {/* Left: File Name & Tags */}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="min-w-0 flex items-center gap-2">
+          <h1 className="truncate text-sm">{file.name}</h1>
+        </div>
+      </div>
+
+      {/* Center: View Controls */}
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <span className="text-sm text-neutral-600 min-w-[50px] text-center">100%</span>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Separator orientation="vertical" className="h-6 mx-2" />
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Maximize className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex items-center gap-1">
+        {/* Active Viewers */}
+        {activeViewers.length > 0 && (
+          <>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="h-8 px-2 gap-1">
+                  <div className="flex -space-x-2">
+                    {activeViewers.slice(0, 3).map((viewer, index) => (
+                      <Avatar 
+                        key={index} 
+                        className={`h-6 w-6 border-2 border-white ${getAvatarColor(viewer.color)}`}
+                      >
+                        <AvatarFallback className="text-xs text-white">
+                          {getInitials(viewer.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                  {activeViewers.length > 3 && (
+                    <span className="text-xs text-neutral-600">+{activeViewers.length - 3}</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-3" align="end">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm">Đang xem ({activeViewers.length})</h4>
+                    <Users className="h-4 w-4 text-neutral-500" />
+                  </div>
+                  <Separator />
+                  <div className="space-y-2">
+                    {activeViewers.map((viewer, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Avatar className={`h-7 w-7 ${getAvatarColor(viewer.color)}`}>
+                          <AvatarFallback className="text-xs text-white">
+                            {getInitials(viewer.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate">{viewer.name}</div>
+                          <div className="text-xs text-neutral-500">{getStatusText(viewer.status)}</div>
+                        </div>
+                        <div className={`h-2 w-2 rounded-full ${viewer.status === 'active' ? 'bg-green-500' : 'bg-neutral-300'}`} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Separator orientation="vertical" className="h-6 mx-1" />
+          </>
+        )}
+
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Star className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Download className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Share2 className="h-4 w-4" />
+        </Button>
+        
+        <Separator orientation="vertical" className="h-6 mx-2" />
+        
+        <Button 
+          variant={isSidebarOpen ? "secondary" : "ghost"} 
+          size="icon"
+          className="h-8 w-8"
+          onClick={onSidebarToggle}
+        >
+          {isSidebarOpen ? (
+            <PanelRightClose className="h-4 w-4" />
+          ) : (
+            <PanelRightOpen className="h-4 w-4" />
+          )}
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              <Download className="h-4 w-4 mr-2" />
+              Tải xuống
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Share2 className="h-4 w-4 mr-2" />
+              Chia sẻ
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              Đổi tên
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              Di chuyển
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              Tạo bản sao
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-red-600">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Xóa
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+--------------------
+FILE: /components/FileViewer.tsx
+--------------------
+
+import { FileText, Film, FileCode } from 'lucide-react';
+import { ImageWithFallback } from './figma/ImageWithFallback';
+
+interface FileViewerProps {
+  file: {
+    name: string;
+    type: string;
+    url: string;
+  };
+}
+
+export function FileViewer({ file }: FileViewerProps) {
+  const renderContent = () => {
+    // Image files
+    if (file.type.startsWith('image/')) {
+      return (
+        <div className="flex items-center justify-center h-full p-12">
+          <ImageWithFallback
+            src={file.url}
+            alt={file.name}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          />
+        </div>
+      );
+    }
+
+    // Video files
+    if (file.type.startsWith('video/')) {
+      return (
+        <div className="flex items-center justify-center h-full p-12">
+          <video
+            controls
+            className="max-w-full max-h-full rounded-lg shadow-2xl"
+            src={file.url}
+          >
+            Trình duyệt của bạn không hỗ trợ video.
+          </video>
+        </div>
+      );
+    }
+
+    // PDF files
+    if (file.type === 'application/pdf') {
+      return (
+        <div className="h-full w-full p-8">
+          <div className="h-full bg-white rounded-lg shadow-2xl overflow-hidden">
+            <iframe
+              src={file.url}
+              className="w-full h-full border-0"
+              title={file.name}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // Text files
+    if (file.type.startsWith('text/')) {
+      return (
+        <div className="h-full p-12">
+          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-2xl p-8 h-full overflow-auto">
+            <pre className="whitespace-pre-wrap break-words text-sm">
+              {`// Sample content for ${file.name}
+              
+This is a preview of your text file. 
+In a real implementation, the actual file content would be loaded here.
+
+Example code:
+function hello() {
+  console.log("Hello World!");
+}`}
+            </pre>
+          </div>
+        </div>
+      );
+    }
+
+    // Unsupported file type
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-400">
+        <FileText className="h-16 w-16" />
+        <p className="text-sm">Không thể xem trước loại file này</p>
+        <p className="text-xs text-neutral-500">{file.type}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="h-full w-full bg-neutral-900">
+      {renderContent()}
+    </div>
+  );
+}
+
+--------------------
+FILE: /components/SidebarPanel.tsx
+--------------------
+
+import { useState } from 'react';
+import { Info, GitBranch, FileText, MessageSquare } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { InfoTab } from './tabs/InfoTab';
+import { FlowTab } from './tabs/FlowTab';
+import { FormTab } from './tabs/FormTab';
+import { ChatTab } from './tabs/ChatTab';
+
+interface SidebarPanelProps {
+  file: {
+    name: string;
+    type: string;
+    size: number;
+    owner: string;
+    createdAt: string;
+    modifiedAt: string;
+    tags?: Array<{
+      name: string;
+      color: string;
+    }>;
+    sharedWith: Array<{
+      name: string;
+      email: string;
+    }>;
+    activeViewers?: Array<{
+      name: string;
+      email: string;
+      status: string;
+      color: string;
+    }>;
+  };
+  onClose: () => void;
+}
+
+export function SidebarPanel({ file, onClose }: SidebarPanelProps) {
+  const [activeTab, setActiveTab] = useState('info');
+
+  return (
+    <div className="w-80 bg-white border-l border-neutral-200 flex flex-col">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <TabsList className="w-full grid grid-cols-4 rounded-none border-b border-neutral-200 bg-white h-12">
+          <TabsTrigger value="info" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-neutral-100">
+            <Info className="h-4 w-4" />
+            <span className="text-xs">Info</span>
+          </TabsTrigger>
+          <TabsTrigger value="flow" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-neutral-100">
+            <GitBranch className="h-4 w-4" />
+            <span className="text-xs">Flow</span>
+          </TabsTrigger>
+          <TabsTrigger value="form" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-neutral-100">
+            <FileText className="h-4 w-4" />
+            <span className="text-xs">Form</span>
+          </TabsTrigger>
+          <TabsTrigger value="chat" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-neutral-100">
+            <MessageSquare className="h-4 w-4" />
+            <span className="text-xs">Chat</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="flex-1 overflow-hidden">
+          <TabsContent value="info" className="h-full m-0 overflow-y-auto">
+            <InfoTab file={file} />
+          </TabsContent>
+          
+          <TabsContent value="flow" className="h-full m-0 overflow-y-auto">
+            <FlowTab />
+          </TabsContent>
+          
+          <TabsContent value="form" className="h-full m-0 overflow-y-auto">
+            <FormTab />
+          </TabsContent>
+          
+          <TabsContent value="chat" className="h-full m-0">
+            <ChatTab file={file} />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  );
+}
+
+--------------------
+FILE: /components/tabs/InfoTab.tsx
+--------------------
+
+import { Calendar, User, HardDrive, Clock, Users, Lock, File, Tag, Plus, X } from 'lucide-react';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Separator } from '../ui/separator';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { useState } from 'react';
+
+interface InfoTabProps {
+  file: {
+    name: string;
+    type: string;
+    size: number;
+    owner: string;
+    createdAt: string;
+    modifiedAt: string;
+    tags?: Array<{
+      name: string;
+      color: string;
+    }>;
+    sharedWith: Array<{
+      name: string;
+      email: string;
+    }>;
+  };
+}
+
+export function InfoTab({ file }: InfoTabProps) {
+  const [tags, setTags] = useState(file.tags || []);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+  };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getTagColorClass = (color: string) => {
+    const colorMap: Record<string, string> = {
+      blue: 'bg-blue-500 hover:bg-blue-600 text-white',
+      cyan: 'bg-cyan-500 hover:bg-cyan-600 text-white',
+      green: 'bg-green-500 hover:bg-green-600 text-white',
+      yellow: 'bg-yellow-500 hover:bg-yellow-600 text-white',
+      purple: 'bg-purple-500 hover:bg-purple-600 text-white',
+      pink: 'bg-pink-500 hover:bg-pink-600 text-white',
+      red: 'bg-red-500 hover:bg-red-600 text-white',
+      orange: 'bg-orange-500 hover:bg-orange-600 text-white',
+    };
+    return colorMap[color] || 'bg-neutral-500 hover:bg-neutral-600 text-white';
+  };
+
+  const removeTag = (index: number) => {
+    setTags(tags.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Tags Section - Prominent */}
+      <div className="space-y-3 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Tag className="h-4 w-4 text-blue-600" />
+            <h3 className="text-sm">Tags</h3>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 px-2 text-xs"
+            onClick={() => setIsAddingTag(!isAddingTag)}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+
+        {tags.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag, index) => (
+              <Badge
+                key={index}
+                className={`${getTagColorClass(tag.color)} group cursor-pointer transition-all text-xs px-2 py-1`}
+              >
+                {tag.name}
+                <button
+                  onClick={() => removeTag(index)}
+                  className="ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-500 italic">Chưa có tag nào</p>
+        )}
+
+        {isAddingTag && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-200 dark:border-blue-800">
+            {['blue', 'cyan', 'green', 'yellow', 'purple', 'pink'].map((color) => (
+              <Button
+                key={color}
+                size="sm"
+                className={`h-6 text-xs ${getTagColorClass(color)}`}
+                onClick={() => {
+                  setTags([...tags, { name: `Tag ${tags.length + 1}`, color }]);
+                  setIsAddingTag(false);
+                }}
+              >
+                + {color}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Separator />
+
+      {/* File Details */}
+      <div className="space-y-3">
+        <h3 className="text-sm">Chi tiết file</h3>
+
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <File className="h-4 w-4 mt-0.5 text-neutral-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-neutral-500">Tên file</div>
+              <div className="text-sm break-words">{file.name}</div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <HardDrive className="h-4 w-4 mt-0.5 text-neutral-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-neutral-500">Kích thước</div>
+              <div className="text-sm">{formatFileSize(file.size)}</div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <File className="h-4 w-4 mt-0.5 text-neutral-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-neutral-500">Loại file</div>
+              <div className="text-sm">{file.type}</div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <User className="h-4 w-4 mt-0.5 text-neutral-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-neutral-500">Chủ sở hữu</div>
+              <div className="text-sm">{file.owner}</div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Calendar className="h-4 w-4 mt-0.5 text-neutral-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-neutral-500">Tạo lúc</div>
+              <div className="text-sm">{formatDate(file.createdAt)}</div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Clock className="h-4 w-4 mt-0.5 text-neutral-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-neutral-500">Chỉnh sửa lần cuối</div>
+              <div className="text-sm">{formatDate(file.modifiedAt)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Shared With */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm">Chia sẻ với</h3>
+          <Badge variant="secondary" className="text-xs">
+            <Users className="h-3 w-3 mr-1" />
+            {file.sharedWith.length}
+          </Badge>
+        </div>
+
+        <div className="space-y-3">
+          {file.sharedWith.map((user, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="text-xs">
+                  {getInitials(user.name)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm truncate">{user.name}</div>
+                <div className="text-xs text-neutral-500 truncate">{user.email}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Permissions */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4 text-neutral-500" />
+          <h3 className="text-sm">Quyền truy cập</h3>
+        </div>
+        <div className="text-xs text-neutral-600">
+          Chỉ những người được chia sẻ mới có thể xem file này
+        </div>
+      </div>
+    </div>
+  );
+}
+
+--------------------
+FILE: /components/tabs/FlowTab.tsx
+--------------------
+
+import { Plus, Play, Settings } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+
+interface FlowStep {
+  id: string;
+  name: string;
+  status: 'pending' | 'active' | 'completed';
+  assignee?: string;
+}
+
+const mockFlowSteps: FlowStep[] = [
+  { id: '1', name: 'Design Review', status: 'completed', assignee: 'Nguyen Van A' },
+  { id: '2', name: 'Development', status: 'active', assignee: 'Tran Thi B' },
+  { id: '3', name: 'QA Testing', status: 'pending', assignee: 'Le Van C' },
+  { id: '4', name: 'Deployment', status: 'pending' }
+];
+
+export function FlowTab() {
+  const getStatusColor = (status: FlowStep['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-500';
+      case 'active':
+        return 'bg-blue-500';
+      default:
+        return 'bg-neutral-300';
+    }
+  };
+
+  const getStatusText = (status: FlowStep['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'Hoàn thành';
+      case 'active':
+        return 'Đang thực hiện';
+      default:
+        return 'Chờ xử lý';
+    }
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm">Quy trình làm việc</h3>
+        <Button variant="ghost" size="sm" className="h-7 text-xs">
+          <Settings className="h-3 w-3 mr-1" />
+          Cấu hình
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {mockFlowSteps.map((step, index) => (
+          <div key={step.id}>
+            <div className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs ${getStatusColor(step.status)}`}>
+                  {step.status === 'completed' ? '✓' : index + 1}
+                </div>
+                {index < mockFlowSteps.length - 1 && (
+                  <div className="w-0.5 h-8 bg-neutral-200 my-1" />
+                )}
+              </div>
+              <div className="flex-1 pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="text-sm">{step.name}</div>
+                    {step.assignee && (
+                      <div className="text-xs text-neutral-500 mt-0.5">
+                        {step.assignee}
+                      </div>
+                    )}
+                  </div>
+                  <Badge 
+                    variant={step.status === 'active' ? 'default' : 'secondary'}
+                    className="text-xs shrink-0"
+                  >
+                    {getStatusText(step.status)}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Separator />
+
+      <div className="space-y-2">
+        <Button variant="outline" size="sm" className="w-full text-xs">
+          <Plus className="h-3 w-3 mr-1" />
+          Thêm bước mới
+        </Button>
+        <Button size="sm" className="w-full text-xs">
+          <Play className="h-3 w-3 mr-1" />
+          Bắt đầu quy trình
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+--------------------
+FILE: /components/tabs/FormTab.tsx
+--------------------
+
+import { useState } from 'react';
+import { Send, FileText } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Separator } from '../ui/separator';
+
+export function FormTab() {
+  const [formData, setFormData] = useState({
+    title: '',
+    category: '',
+    priority: '',
+    description: ''
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Form submitted:', formData);
+  };
+
+  return (
+    <div className="p-4">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-neutral-500" />
+          <h3 className="text-sm">Thông tin bổ sung</h3>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-xs">Tiêu đề</Label>
+            <Input
+              id="title"
+              placeholder="Nhập tiêu đề..."
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="h-8 text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category" className="text-xs">Danh mục</Label>
+            <Select 
+              value={formData.category}
+              onValueChange={(value) => setFormData({ ...formData, category: value })}
+            >
+              <SelectTrigger id="category" className="h-8 text-sm">
+                <SelectValue placeholder="Chọn danh mục" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="design">Thiết kế</SelectItem>
+                <SelectItem value="development">Phát triển</SelectItem>
+                <SelectItem value="marketing">Marketing</SelectItem>
+                <SelectItem value="other">Khác</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="priority" className="text-xs">Độ ưu tiên</Label>
+            <Select
+              value={formData.priority}
+              onValueChange={(value) => setFormData({ ...formData, priority: value })}
+            >
+              <SelectTrigger id="priority" className="h-8 text-sm">
+                <SelectValue placeholder="Chọn độ ưu tiên" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">Cao</SelectItem>
+                <SelectItem value="medium">Trung bình</SelectItem>
+                <SelectItem value="low">Thấp</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-xs">Mô tả</Label>
+            <Textarea
+              id="description"
+              placeholder="Nhập mô tả chi tiết..."
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="min-h-[100px] text-sm resize-none"
+            />
+          </div>
+
+          <Separator />
+
+          <Button type="submit" size="sm" className="w-full text-xs">
+            <Send className="h-3 w-3 mr-1" />
+            Gửi thông tin
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+--------------------
+FILE: /components/tabs/ChatTab.tsx
+--------------------
+
+import { useState } from 'react';
+import { Send, Smile, Paperclip, AtSign } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { ScrollArea } from '../ui/scroll-area';
+import { Badge } from '../ui/badge';
+
+interface ChatTabProps {
+  file: {
+    name: string;
+  };
+}
+
+interface Message {
+  id: string;
+  sender: string;
+  content: string;
+  timestamp: string;
+  isCurrentUser: boolean;
+  type?: 'message' | 'system';
+}
+
+const mockMessages: Message[] = [
+  {
+    id: '0',
+    sender: 'System',
+    content: 'Tran Thi B đã tham gia xem tài liệu',
+    timestamp: '10:25',
+    isCurrentUser: false,
+    type: 'system'
+  },
+  {
+    id: '1',
+    sender: 'Tran Thi B',
+    content: 'Chào mọi người! Mình vừa mở file này.',
+    timestamp: '10:30',
+    isCurrentUser: false
+  },
+  {
+    id: '2',
+    sender: 'Bạn',
+    content: 'Chào B! Mình đang xem phần proposal ở trang 3.',
+    timestamp: '10:32',
+    isCurrentUser: true
+  },
+  {
+    id: '3',
+    sender: 'Le Van C',
+    content: 'Mọi người có thể xem qua phần budget không? Mình thấy có vấn đề.',
+    timestamp: '10:35',
+    isCurrentUser: false
+  },
+  {
+    id: '4',
+    sender: 'Bạn',
+    content: 'Ok, để mình check lại phần đó.',
+    timestamp: '10:36',
+    isCurrentUser: true
+  },
+  {
+    id: '5',
+    sender: 'System',
+    content: 'Le Van C đang gõ...',
+    timestamp: '10:37',
+    isCurrentUser: false,
+    type: 'system'
+  }
+];
+
+export function ChatTab({ file }: ChatTabProps) {
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [newMessage, setNewMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  const handleSendMessage = () => {
+    if (newMessage.trim()) {
+      const message: Message = {
+        id: Date.now().toString(),
+        sender: 'Bạn',
+        content: newMessage,
+        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        isCurrentUser: true,
+        type: 'message'
+      };
+      setMessages([...messages.filter(m => m.type !== 'system' || !m.content.includes('đang gõ')), message]);
+      setNewMessage('');
+      setIsTyping(false);
+    }
+  };
+
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+    if (value.length > 0 && !isTyping) {
+      setIsTyping(true);
+    } else if (value.length === 0 && isTyping) {
+      setIsTyping(false);
+    }
+  };
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Chat Header */}
+      <div className="p-3 border-b border-neutral-200 bg-blue-50">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+          <p className="text-xs">
+            <span className="font-medium">3 người</span> đang xem tài liệu
+          </p>
+        </div>
+      </div>
+
+      {/* Messages Area */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((message) => {
+            if (message.type === 'system') {
+              return (
+                <div key={message.id} className="flex justify-center">
+                  <Badge variant="secondary" className="text-xs">
+                    {message.content}
+                  </Badge>
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={message.id}
+                className={`flex gap-2 ${message.isCurrentUser ? 'flex-row-reverse' : ''}`}
+              >
+                <Avatar className="h-7 w-7 flex-shrink-0">
+                  <AvatarFallback className="text-xs">
+                    {getInitials(message.sender)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className={`flex-1 ${message.isCurrentUser ? 'items-end' : 'items-start'} flex flex-col`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs">{message.sender}</span>
+                    <span className="text-xs text-neutral-500">{message.timestamp}</span>
+                  </div>
+                  <div
+                    className={`px-3 py-1.5 rounded-lg max-w-[85%] ${
+                      message.isCurrentUser
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-neutral-100 text-neutral-900'
+                    }`}
+                  >
+                    <p className="text-xs break-words">{message.content}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea>
+
+      {/* Message Input */}
+      <div className="p-3 border-t border-neutral-200">
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Paperclip className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7">
+            <AtSign className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Smile className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Nhập tin nhắn về tài liệu..."
+            value={newMessage}
+            onChange={(e) => handleTyping(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            className="h-8 text-sm"
+          />
+          <Button 
+            size="icon"
+            onClick={handleSendMessage}
+            disabled={!newMessage.trim()}
+            className="h-8 w-8"
+          >
+            <Send className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
