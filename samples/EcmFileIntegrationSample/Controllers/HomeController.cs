@@ -39,10 +39,15 @@ public class HomeController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult SwitchUser(string userKey)
+    public async Task<IActionResult> SwitchUser(string userKey, CancellationToken cancellationToken)
     {
         _userSelection.SelectUser(userKey);
-        return RedirectToAction(nameof(Index));
+
+        return View(
+            "Index",
+            await BuildPageViewModelAsync(
+                BuildDefaultUploadForm(),
+                cancellationToken: cancellationToken));
     }
 
     // ----------------------------------------------------
