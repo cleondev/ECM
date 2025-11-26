@@ -183,10 +183,17 @@ public class HomeController(
     // Tags
     // ----------------------------------------------------
     [HttpGet]
-    public async Task<IActionResult> Tags(CancellationToken cancellationToken)
+    public async Task<IActionResult> Tags(Guid? editTagId, string? openForm, string? userEmail, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
-        return View(await BuildTagPageViewModelAsync(null, null, null, TempData["TagMessage"] as string, cancellationToken));
+        ApplyUserSelection(userEmail, Options.OnBehalfUserEmail);
+        return View(await BuildTagPageViewModelAsync(
+            null,
+            null,
+            null,
+            TempData["TagMessage"] as string,
+            editTagId,
+            openForm,
+            cancellationToken));
     }
 
     [HttpPost]
@@ -199,7 +206,7 @@ public class HomeController(
 
         if (!ModelState.IsValid)
         {
-            return View("Tags", await BuildTagPageViewModelAsync(form, null, null, null, cancellationToken));
+            return View("Tags", await BuildTagPageViewModelAsync(form, null, null, null, null, "create", cancellationToken));
         }
 
         var request = new TagCreateRequest(namespaceId, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, null);
@@ -220,7 +227,7 @@ public class HomeController(
 
         if (!ModelState.IsValid || tagId is null || namespaceId is null)
         {
-            return View("Tags", await BuildTagPageViewModelAsync(null, form, null, null, cancellationToken));
+            return View("Tags", await BuildTagPageViewModelAsync(null, form, null, null, null, "update", cancellationToken));
         }
 
         var request = new TagUpdateRequest(namespaceId.Value, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, form.IsActive, null);
@@ -239,7 +246,7 @@ public class HomeController(
 
         if (!ModelState.IsValid || tagId is null)
         {
-            return View("Tags", await BuildTagPageViewModelAsync(null, null, form, null, cancellationToken));
+            return View("Tags", await BuildTagPageViewModelAsync(null, null, form, null, tagId, "delete", cancellationToken));
         }
 
         var deleted = await _ecmService.DeleteTagAsync(tagId.Value, cancellationToken);
@@ -260,8 +267,9 @@ public class HomeController(
     }
 
     [HttpPost]
+    [ActionName("Documents")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Documents(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
+    public async Task<IActionResult> DocumentsPost(DocumentQueryForm documentQuery, CancellationToken cancellationToken)
     {
         ApplyUserSelection(documentQuery.UserEmail, documentQuery.UserEmail);
         if (!ModelState.IsValid)
@@ -364,6 +372,52 @@ public class HomeController(
         return RedirectToAction(nameof(Documents));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteDocument(DocumentDeleteForm form, CancellationToken cancellationToken)
+    {
+        ApplyUserSelection(form.UserEmail, null);
+        var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
+
+        if (!ModelState.IsValid || documentId is null)
+        {
+            return View("Documents", await BuildDocumentListViewModelAsync(
+                new DocumentQueryForm { UserEmail = form.UserEmail },
+                "Không thể xoá document do thông tin không hợp lệ.",
+                cancellationToken));
+        }
+
+        var deleted = await _ecmService.DeleteDocumentAsync(documentId.Value, cancellationToken);
+        TempData["DocumentMessage"] = deleted
+            ? "Đã xoá document."
+            : "Không tìm thấy hoặc không xoá được document.";
+
+        return RedirectToAction(nameof(Documents), new { form.UserEmail });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteDocumentVersion(DocumentVersionDeleteForm form, CancellationToken cancellationToken)
+    {
+        ApplyUserSelection(form.UserEmail, null);
+        var versionId = ParseRequiredGuid(form.VersionId, nameof(form.VersionId));
+
+        if (!ModelState.IsValid || versionId is null)
+        {
+            return View("Documents", await BuildDocumentListViewModelAsync(
+                new DocumentQueryForm { UserEmail = form.UserEmail },
+                "Không thể xoá phiên bản do thông tin không hợp lệ.",
+                cancellationToken));
+        }
+
+        var deleted = await _ecmService.DeleteDocumentByVersionAsync(versionId.Value, cancellationToken);
+        TempData["DocumentMessage"] = deleted
+            ? "Đã xoá phiên bản tài liệu."
+            : "Không tìm thấy hoặc không xoá được phiên bản.";
+
+        return RedirectToAction(nameof(Documents), new { form.UserEmail });
+    }
+
     // ----------------------------------------------------
     // Helpers
     // ----------------------------------------------------
@@ -438,6 +492,8 @@ public class HomeController(
         TagUpdateForm? tagUpdate,
         TagDeleteForm? tagDelete,
         string? message,
+        Guid? editTagId,
+        string? focusForm,
         CancellationToken cancellationToken)
     {
         var tags = await LoadTagsAsync(cancellationToken);
@@ -450,8 +506,28 @@ public class HomeController(
         tagUpdate ??= new TagUpdateForm();
         tagUpdate.UserEmail ??= connection.SelectedUserEmail;
 
+        if (editTagId is not null)
+        {
+            var selected = tags.FirstOrDefault(tag => tag.Id == editTagId);
+            if (selected is not null)
+            {
+                tagUpdate.TagId = selected.Id.ToString();
+                tagUpdate.NamespaceId = selected.NamespaceId.ToString();
+                tagUpdate.ParentId = selected.ParentId?.ToString();
+                tagUpdate.Name = selected.Name;
+                tagUpdate.SortOrder = selected.SortOrder;
+                tagUpdate.Color = selected.Color;
+                tagUpdate.IconKey = selected.IconKey;
+                tagUpdate.IsActive = selected.IsActive;
+            }
+        }
+
         tagDelete ??= new TagDeleteForm();
         tagDelete.UserEmail ??= connection.SelectedUserEmail;
+        if (editTagId is not null)
+        {
+            tagDelete.TagId = editTagId.ToString();
+        }
 
         return new TagPageViewModel
         {
@@ -461,6 +537,7 @@ public class HomeController(
             TagCreate = tagCreate,
             TagUpdate = tagUpdate,
             TagDelete = tagDelete,
+            FocusForm = focusForm,
         };
     }
 
@@ -481,6 +558,8 @@ public class HomeController(
             DocumentQuery = documentQuery,
             DocumentList = documents,
             DocumentMessage = message ?? TempData["DocumentMessage"] as string,
+            DeleteDocument = new DocumentDeleteForm { UserEmail = documentQuery.UserEmail },
+            DeleteVersion = new DocumentVersionDeleteForm { UserEmail = documentQuery.UserEmail },
         };
     }
 
