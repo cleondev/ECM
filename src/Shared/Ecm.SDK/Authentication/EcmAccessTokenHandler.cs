@@ -3,17 +3,31 @@ using Microsoft.Extensions.Logging;
 
 namespace Ecm.Sdk;
 
+/// <summary>
+/// HTTP message handler that attaches ECM access tokens and logs transient errors.
+/// </summary>
 public sealed class EcmAccessTokenHandler : DelegatingHandler
 {
     private readonly EcmAccessTokenProvider _provider;
     private readonly ILogger<EcmAccessTokenHandler> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EcmAccessTokenHandler"/> class.
+    /// </summary>
+    /// <param name="provider">Provider used to resolve access tokens.</param>
+    /// <param name="logger">Logger used for request diagnostics.</param>
     public EcmAccessTokenHandler(EcmAccessTokenProvider provider, ILogger<EcmAccessTokenHandler> logger)
     {
         _provider = provider;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Adds the bearer token to outgoing requests and delegates execution to the next handler.
+    /// </summary>
+    /// <param name="request">The HTTP request to send.</param>
+    /// <param name="cancellationToken">Cancellation token used to abort the request.</param>
+    /// <returns>The HTTP response returned by the pipeline.</returns>
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)

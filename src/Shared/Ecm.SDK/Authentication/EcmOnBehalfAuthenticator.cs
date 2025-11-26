@@ -4,6 +4,9 @@ using Microsoft.Extensions.Options;
 
 namespace Ecm.Sdk;
 
+/// <summary>
+/// Handles signing in to ECM using on-behalf authentication flows.
+/// </summary>
 public sealed class EcmOnBehalfAuthenticator
 {
     private readonly IOptions<EcmIntegrationOptions> _options;
@@ -12,6 +15,11 @@ public sealed class EcmOnBehalfAuthenticator
 
     private bool _hasSignedIn;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EcmOnBehalfAuthenticator"/> class.
+    /// </summary>
+    /// <param name="options">Integration options that describe on-behalf behavior.</param>
+    /// <param name="logger">Logger used to emit diagnostic messages.</param>
     public EcmOnBehalfAuthenticator(
         IOptions<EcmIntegrationOptions> options,
         ILogger<EcmOnBehalfAuthenticator> logger)
@@ -20,8 +28,17 @@ public sealed class EcmOnBehalfAuthenticator
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets a value indicating whether on-behalf authentication is enabled.
+    /// </summary>
     public bool IsEnabled => _options.Value.OnBehalf.Enabled;
 
+    /// <summary>
+    /// Ensures the SDK is signed in when using on-behalf authentication.
+    /// </summary>
+    /// <param name="httpClient">HTTP client used to issue the sign-in request.</param>
+    /// <param name="cancellationToken">Cancellation token used to abort the operation.</param>
+    /// <returns>A task that completes when the sign-in flow has been executed.</returns>
     public async Task EnsureSignedInAsync(HttpClient httpClient, CancellationToken cancellationToken)
     {
         if (!IsEnabled)
