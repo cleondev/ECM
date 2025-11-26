@@ -1,28 +1,38 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import type { FileItem, User } from "@/lib/types"
-import { AtSign, Paperclip, Smile, X } from "lucide-react"
+import type { FileItem, TagNode, User } from "@/lib/types"
+import {
+  AtSign,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  FileText,
+  FolderOpen,
+  GitBranch,
+  Paperclip,
+  Smile,
+  Tag,
+  User,
+  X,
+} from "lucide-react"
 import type React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TabsContent } from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
-import { fetchFlows, fetchSystemTags, searchUsers, updateFile, type UpdateFileRequest } from "@/lib/api"
+import { fetchFlows, fetchSystemTags, fetchTags, searchUsers, updateFile, type UpdateFileRequest } from "@/lib/api"
 import type { Flow, SystemTag } from "@/lib/types"
 import { FileTypeIcon } from "./file-type-icon"
 import {
   SidebarChatTab,
-  SidebarFlowTab,
-  SidebarFormTab,
-  SidebarInfoTab,
   SidebarShell,
-  formatBytes,
-  formatDate,
   type SidebarComment,
-  type SidebarFormValues,
 } from "./shared/sidebar-tabs"
 
 type ActiveTab = "info" | "flow" | "form" | "chat"
@@ -58,10 +68,15 @@ type EditableFileState = {
   folder: string
   tags: string
   status: NonNullable<FileItem['status']>
-  docType: string
 }
 
 const DEFAULT_FILE_STATUS: NonNullable<FileItem['status']> = "draft"
+
+const statusColors: Record<NonNullable<FileItem['status']>, string> = {
+  "in-progress": "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  completed: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+  draft: "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20",
+}
 
 function createEditableState(file: FileItem | null): EditableFileState {
   return {
@@ -71,7 +86,6 @@ function createEditableState(file: FileItem | null): EditableFileState {
     folder: file?.folder ?? "",
     tags: file ? file.tags.map((tag) => tag.name).join(", ") : "",
     status: file?.status ?? DEFAULT_FILE_STATUS,
-    docType: file?.docType ?? "Document",
   }
 }
 
@@ -81,6 +95,15 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [flows, setFlows] = useState<Flow[]>([])
   const [flowsLoading, setFlowsLoading] = useState(false)
   const [systemTags, setSystemTags] = useState<SystemTag[]>([])
+  const [tagTree, setTagTree] = useState<TagNode[]>([])
+  const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("collapsedSections")
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    }
+    return new Set()
+  })
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [chatAttachments, setChatAttachments] = useState<File[]>([])
@@ -95,6 +118,10 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   useEffect(() => {
     setEditValues(createEditableState(selectedFile))
   }, [selectedFile])
+
+  useEffect(() => {
+    fetchTags().then(setTagTree)
+  }, [])
 
   useEffect(() => {
     const ownerHandle = selectedFile?.owner ? `@${selectedFile.owner}` : "@owner"
@@ -145,6 +172,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
           return timeA - timeB
         })
         setFlows(sortedFlows)
+        setCollapsedFlows(new Set(sortedFlows.map((flow) => flow.id)))
       })
       .finally(() => setFlowsLoading(false))
     fetchSystemTags(selectedFile.id).then(setSystemTags)
@@ -232,16 +260,69 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     }
   }
 
-  if (!selectedFile) {
-    return (
-      <div className="w-full h-full border-l border-sidebar-border bg-sidebar text-sidebar-foreground flex items-center justify-center p-6">
-        <div className="text-center">
-          <FileTypeIcon size="lg" className="block mx-auto mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">No file selected</p>
-          <p className="text-xs text-muted-foreground mt-1">Select a file to view details</p>
-        </div>
-      </div>
-    )
+  const toggleFlowCollapse = (flowId: string) => {
+    setCollapsedFlows((previous) => {
+      const next = new Set(previous)
+      if (next.has(flowId)) {
+        next.delete(flowId)
+      } else {
+        next.add(flowId)
+      }
+      return next
+    })
+  }
+
+  const toggleSection = (sectionId: string) => {
+    setCollapsedSections((previous) => {
+      const next = new Set(previous)
+      if (next.has(sectionId)) {
+        next.delete(sectionId)
+      } else {
+        next.add(sectionId)
+      }
+      localStorage.setItem("collapsedSections", JSON.stringify(Array.from(next)))
+      return next
+    })
+  }
+
+  const getIconComponent = (iconName: string) => {
+    const icons: Record<string, any> = {
+      Clock: Clock,
+      User,
+      FileText,
+      GitBranch,
+      FolderOpen,
+    }
+
+    return icons[iconName] || FileText
+  }
+
+  const getStatusBadge = (status: Flow["status"]) => {
+    switch (status) {
+      case "active":
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
+      case "pending":
+        return "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20"
+      case "completed":
+        return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
+    }
+  }
+
+  const getTagColor = (tagName: string): string | null => {
+    const findTag = (tags: TagNode[]): string | null => {
+      for (const tag of tags) {
+        if ((!tag.kind || tag.kind === "label") && tag.name === tagName && tag.color) {
+          return tag.color
+        }
+        if (tag.children) {
+          const found = findTag(tag.children)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    return findTag(tagTree)
   }
 
   const handleBlur = useCallback(
@@ -340,17 +421,6 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     chat: "Chat",
   }
 
-  const sidebarFile = useMemo(() => {
-    if (!selectedFile) return null
-
-    return {
-      ...selectedFile,
-      docType: selectedFile.docType ?? "Document",
-      versions: [],
-      activity: [],
-    }
-  }, [selectedFile])
-
   const sidebarComments: SidebarComment[] = useMemo(
     () =>
       chatMessages.map((message) => ({
@@ -362,26 +432,6 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       })),
     [chatMessages],
   )
-
-  const formValues: SidebarFormValues | undefined = sidebarFile
-    ? {
-        name: editValues.name,
-        owner: editValues.owner,
-        description: editValues.description,
-        docType: sidebarFile.docType ?? editValues.docType,
-        tags: editValues.tags,
-        folder: editValues.folder,
-        latestVersionLabel: sidebarFile.latestVersionNumber ?? sidebarFile.latestVersionId ?? "N/A",
-        fileId: sidebarFile.id,
-        type: sidebarFile.type,
-        createdAt: formatDate(sidebarFile.createdAtUtc),
-        modifiedAt: formatDate(sidebarFile.modifiedAtUtc ?? sidebarFile.modified),
-        status: sidebarFile.status ?? DEFAULT_FILE_STATUS,
-        sizeLabel: formatBytes(sidebarFile.sizeBytes, sidebarFile.size),
-      }
-    : undefined
-
-  const infoExtraSections = null
 
   const composerExtras = (
     <div className="space-y-2 text-xs text-muted-foreground">
@@ -496,55 +546,357 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
         tabs={{ info: true, flow: true, form: true, chat: true }}
         activeTab={activeTab}
         onTabChange={(value) => onTabChange((value as ActiveTab) || "info")}
-        headerBadge={`Version ${selectedFile.latestVersionNumber ?? selectedFile.latestVersionId ?? "N/A"}`}
+        headerBadge={`Version ${selectedFile?.latestVersionNumber ?? selectedFile?.latestVersionId ?? "N/A"}`}
       >
         <TabsContent value="info" className="mt-0 h-full">
-          <div className="p-4 space-y-4">
+          <div className="space-y-4">
             <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center">
-              <FileTypeIcon file={selectedFile} size="lg" />
+              <FileTypeIcon file={selectedFile ?? undefined} size="lg" />
             </div>
-            <div>
-              <h3 className="font-semibold text-lg text-sidebar-foreground text-pretty">{selectedFile.name}</h3>
-              {selectedFile.description ? (
-                <p className="text-sm text-muted-foreground text-pretty">{selectedFile.description}</p>
-              ) : null}
-            </div>
-            {sidebarFile ? (
-              <SidebarInfoTab file={sidebarFile} systemTags={systemTags} extraSections={infoExtraSections} />
-            ) : null}
+
+            {selectedFile ? (
+              <>
+                <h3 className="font-semibold text-lg text-sidebar-foreground text-pretty">{selectedFile.name}</h3>
+                {selectedFile.description ? (
+                  <p className="text-sm text-muted-foreground text-pretty">{selectedFile.description}</p>
+                ) : null}
+
+                {selectedFile.status ? (
+                  <Badge className={cn("mb-2", statusColors[selectedFile.status])}>{selectedFile.status}</Badge>
+                ) : null}
+
+                <Separator className="my-2" />
+
+                <div className="space-y-4">
+                  <div>
+                    <button
+                      onClick={() => toggleSection("information")}
+                      className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
+                    >
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Information</h4>
+                      {collapsedSections.has("information") ? (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {!collapsedSections.has("information") && (
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <FileTypeIcon file={selectedFile} size="sm" className="mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Type</p>
+                            <p className="text-sm font-medium text-sidebar-foreground/90 capitalize">{selectedFile.type}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Size</p>
+                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.size}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Modified</p>
+                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.modified}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Owner</p>
+                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.owner}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <FolderOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">Folder</p>
+                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.folder}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <button
+                      onClick={() => toggleSection("tags")}
+                      className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
+                    >
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <Tag className="h-3 w-3" />
+                        Tags
+                      </h4>
+                      {collapsedSections.has("tags") ? (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                    {!collapsedSections.has("tags") && (
+                      <div className="space-y-3">
+                        {systemTags.length > 0 && (
+                          <>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
+                                System
+                              </p>
+                              <div className="flex flex-wrap gap-1.5 px-1">
+                                {systemTags.map((tag) => (
+                                  <Badge key={tag.name} variant="outline" className="text-xs">
+                                    {tag.name}: {tag.value}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="relative py-2">
+                              <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-dashed border-border" />
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
+                            User Defined
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 px-1">
+                            {selectedFile.tags.map((tag) => {
+                              const color = tag.color ?? getTagColor(tag.name)
+                              const style = color
+                                ? {
+                                    backgroundColor: color,
+                                    borderColor: color,
+                                  }
+                                : undefined
+                              return (
+                                <Badge
+                                  key={tag.id}
+                                  className="text-xs"
+                                  style={style}
+                                  variant={color ? "secondary" : "outline"}
+                                >
+                                  {tag.name}
+                                </Badge>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground">No file selected</div>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="flow" className="mt-0 h-full">
-          <div className="p-4">
-            <SidebarFlowTab flows={flows} loading={flowsLoading} />
+          <div className="space-y-3">
+            {flowsLoading ? (
+              <p className="text-sm text-muted-foreground">Loading flows…</p>
+            ) : !selectedFile ? (
+              <p className="text-sm text-muted-foreground">Select a file to view flows.</p>
+            ) : (
+              flows.map((flow) => {
+                const isCollapsed = collapsedFlows.has(flow.id)
+
+                return (
+                  <div key={flow.id} className="border border-border rounded-lg overflow-hidden">
+                    <div className="grid grid-cols-[auto_1fr] gap-3 items-start p-3 hover:bg-muted/50 transition-colors">
+                      <button
+                        onClick={() => toggleFlowCollapse(flow.id)}
+                        className="flex-shrink-0 hover:bg-muted rounded p-1 transition-colors mt-0.5"
+                      >
+                        {isCollapsed ? (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h5 className="text-sm font-semibold text-sidebar-foreground">{flow.name}</h5>
+                          <Badge className={cn("text-xs", getStatusBadge(flow.status))}>{flow.status}</Badge>
+                        </div>
+                        {isCollapsed && (
+                          <div className="text-xs text-muted-foreground">
+                            <p className="truncate">{flow.lastStep}</p>
+                            <p className="text-[10px] mt-0.5">{flow.lastUpdated}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {!isCollapsed && (
+                      <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
+                        {flow.steps.map((step, index) => {
+                          const StepIcon = getIconComponent(step.icon)
+                          const isLast = index === flow.steps.length - 1
+
+                          return (
+                            <div key={step.id} className="flex gap-3">
+                              <div className="flex flex-col items-center">
+                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                  <StepIcon className={cn("h-4 w-4", step.iconColor)} />
+                                </div>
+                                {!isLast && <div className="w-px h-full bg-border mt-2" />}
+                              </div>
+                              <div className={cn("flex-1", !isLast && "pb-3")}>
+                                <p className="text-sm font-medium text-sidebar-foreground/90">{step.title}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{step.timestamp}</p>
+                                <p className="text-xs text-muted-foreground">by {step.user}</p>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="form" className="mt-0 h-full">
-          <div className="p-4 space-y-4">
-            {sidebarFile ? (
-              <SidebarFormTab
-                file={sidebarFile}
-                values={formValues}
-                editable
-                onChange={(field, value) =>
-                  setEditValues((previous) => ({ ...previous, [field]: value ?? "" } as EditableFileState))
-                }
-                onBlur={(field, value) => handleBlur(field as keyof EditableFileState, value)}
-                actionsSlot={
-                  <div className="space-y-2 rounded-md border border-dashed border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
-                    <p>Changes are auto-saved when you leave a field.</p>
-                    <p>Use the fields above to update tags or status.</p>
-                  </div>
-                }
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="file-name" className="text-xs text-muted-foreground">
+                File Name
+              </Label>
+              <input
+                id="file-name"
+                value={editValues.name}
+                onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
+                onBlur={(e) => handleBlur("name", e.target.value)}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                placeholder="Enter file name..."
+                disabled={!selectedFile}
               />
-            ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-xs text-muted-foreground">
+                Description
+              </Label>
+              <textarea
+                id="description"
+                value={editValues.description}
+                onChange={(e) => setEditValues({ ...editValues, description: e.target.value })}
+                onBlur={(e) => handleBlur("description", e.target.value)}
+                className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none transition-all"
+                placeholder="Add description..."
+                disabled={!selectedFile}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="owner" className="text-xs text-muted-foreground">
+                  Owner
+                </Label>
+                <input
+                  id="owner"
+                  value={editValues.owner}
+                  onChange={(e) => setEditValues({ ...editValues, owner: e.target.value })}
+                  onBlur={(e) => handleBlur("owner", e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                  placeholder="Enter owner name..."
+                  disabled={!selectedFile}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="folder" className="text-xs text-muted-foreground">
+                  Folder
+                </Label>
+                <input
+                  id="folder"
+                  value={editValues.folder}
+                  onChange={(e) => setEditValues({ ...editValues, folder: e.target.value })}
+                  onBlur={(e) => handleBlur("folder", e.target.value)}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                  placeholder="Enter folder name..."
+                  disabled={!selectedFile}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tags" className="text-xs text-muted-foreground">
+                Tags
+              </Label>
+              <input
+                id="tags"
+                value={editValues.tags}
+                onChange={(e) => setEditValues({ ...editValues, tags: e.target.value })}
+                onBlur={(e) => handleBlur("tags", e.target.value)}
+                placeholder="Separate tags with commas"
+                className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                disabled={!selectedFile}
+              />
+              <div className="flex flex-wrap gap-1 mt-2">
+                {editValues.tags
+                  .split(",")
+                  .filter((t) => t.trim())
+                  .map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {tag.trim()}
+                    </Badge>
+                  ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status" className="text-xs text-muted-foreground">
+                Status
+              </Label>
+              <select
+                id="status"
+                value={editValues.status}
+                onChange={(e) => {
+                  const nextStatus = e.target.value as NonNullable<FileItem['status']>
+                  setEditValues({ ...editValues, status: nextStatus })
+                  handleBlur("status", nextStatus)
+                }}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                disabled={!selectedFile}
+              >
+                <option value="draft">Draft</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            {!selectedFile ? (
+              <div className="rounded-md border border-dashed border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+                Select a file to edit its metadata.
+              </div>
+            ) : (
+              <div className="rounded-md border border-dashed border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+                Changes are auto-saved when you leave a field.
+              </div>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="chat" className="mt-0 h-full">
-          <div className="p-4">
+          <div className="space-y-4">
             <SidebarChatTab
               comments={sidebarComments}
               draftMessage={chatInput}
