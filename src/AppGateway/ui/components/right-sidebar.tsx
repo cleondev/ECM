@@ -6,13 +6,14 @@ import { cn } from "@/lib/utils"
 import type { FileItem, TagNode, User } from "@/lib/types"
 import {
   AtSign,
-  Calendar,
   ChevronDown,
   ChevronRight,
   Clock,
   FileText,
   FolderOpen,
   GitBranch,
+  HardDrive,
+  NotebookPen,
   Paperclip,
   Smile,
   Tag,
@@ -97,13 +98,6 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [systemTags, setSystemTags] = useState<SystemTag[]>([])
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("collapsedSections")
-      return saved ? new Set(JSON.parse(saved)) : new Set()
-    }
-    return new Set()
-  })
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [chatAttachments, setChatAttachments] = useState<File[]>([])
@@ -112,6 +106,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [mentionOpen, setMentionOpen] = useState(false)
   const [mentionLoading, setMentionLoading] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const [ownerProfile, setOwnerProfile] = useState<User | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const emojiOptions = ["😀", "😁", "😍", "😎", "🤔", "🙏", "🚀", "👍", "🎉", "🔥", "📄", "✅"]
 
@@ -120,11 +115,40 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   }, [selectedFile])
 
   useEffect(() => {
+    setOwnerProfile(null)
+
+    if (!selectedFile?.owner) {
+      return
+    }
+
+    searchUsers(selectedFile.owner)
+      .then((users) => {
+        const matched = users.find((user) => user.id === selectedFile.owner || user.email === selectedFile.owner)
+        setOwnerProfile(matched ?? users[0] ?? null)
+      })
+      .catch((error) => console.warn("[ui] Failed to resolve owner profile:", error))
+  }, [selectedFile?.owner])
+
+  useEffect(() => {
+    if (!ownerProfile?.email || !selectedFile) {
+      return
+    }
+
+    setEditValues((previous) => {
+      if (previous.owner === selectedFile.owner) {
+        return { ...previous, owner: ownerProfile.email }
+      }
+      return previous
+    })
+  }, [ownerProfile?.email, selectedFile])
+
+  useEffect(() => {
     fetchTags().then(setTagTree)
   }, [])
 
   useEffect(() => {
-    const ownerHandle = selectedFile?.owner ? `@${selectedFile.owner}` : "@owner"
+    const ownerName = ownerProfile?.displayName ?? selectedFile?.owner ?? "Owner"
+    const ownerHandle = `@${(ownerProfile?.displayName ?? selectedFile?.owner ?? "owner").replace(/\s+/g, "")}`
     const starterMessages: ChatMessage[] = [
       {
         id: "intro",
@@ -134,7 +158,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       },
       {
         id: "owner",
-        author: selectedFile?.owner ?? "Owner",
+        author: ownerName,
         content: `Let's keep ${ownerHandle} in the loop as we make changes.`,
         timestamp: "3h ago",
         mentions: [ownerHandle],
@@ -154,7 +178,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
-  }, [selectedFile])
+  }, [selectedFile, ownerProfile])
 
   useEffect(() => {
     if (!selectedFile?.id) {
@@ -206,16 +230,20 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     return value * (multipliers[unit] || 1)
   }
 
+  const ownerDisplayName = ownerProfile?.displayName ?? selectedFile?.owner ?? "Owner"
+  const ownerEmail = ownerProfile?.email ?? selectedFile?.owner ?? ""
+
   const appendToken = (token: string) => {
     setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}${token} `)
   }
 
+  const formatMentionHandle = (user?: Pick<User, "displayName" | "email"> | null) => {
+    const base = user?.displayName || user?.email || ownerDisplayName
+    return `@${base.replace(/\s+/g, "")}`
+  }
+
   const handleInsertMention = (user?: User) => {
-    const mentionHandle = user
-      ? `@${user.displayName.replace(/\s+/g, "")}`
-      : selectedFile?.owner
-        ? `@${selectedFile.owner}`
-        : "@mention"
+    const mentionHandle = formatMentionHandle(user ?? ownerProfile)
     appendToken(mentionHandle)
     setMentionOpen(false)
   }
@@ -252,11 +280,24 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       attachments: chatAttachments.length ? chatAttachments.map((file) => file.name) : undefined,
     }
 
-    setChatMessages((previous) => [newMessage, ...previous])
+    setChatMessages((previous) => [...previous, newMessage])
     setChatInput("")
     setChatAttachments([])
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
+    }
+  }
+
+  const handleChatInputChange = (value: string) => {
+    setChatInput(value)
+
+    const mentionMatch = value.match(/@([\w.-]*)$/)
+    if (mentionMatch) {
+      setMentionOpen(true)
+      setMentionQuery(mentionMatch[1])
+    } else if (mentionOpen) {
+      setMentionOpen(false)
+      setMentionQuery("")
     }
   }
 
@@ -268,19 +309,6 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
       } else {
         next.add(flowId)
       }
-      return next
-    })
-  }
-
-  const toggleSection = (sectionId: string) => {
-    setCollapsedSections((previous) => {
-      const next = new Set(previous)
-      if (next.has(sectionId)) {
-        next.delete(sectionId)
-      } else {
-        next.add(sectionId)
-      }
-      localStorage.setItem("collapsedSections", JSON.stringify(Array.from(next)))
       return next
     })
   }
@@ -567,136 +595,105 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
 
                 <Separator className="my-2" />
 
-                <div className="space-y-4">
-                  <div>
-                    <button
-                      onClick={() => toggleSection("information")}
-                      className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
-                    >
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Information</h4>
-                      {collapsedSections.has("information") ? (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-                    {!collapsedSections.has("information") && (
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <FileTypeIcon file={selectedFile} size="sm" className="mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground">Type</p>
-                            <p className="text-sm font-medium text-sidebar-foreground/90 capitalize">{selectedFile.type}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground">Size</p>
-                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.size}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground">Modified</p>
-                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.modified}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <User className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground">Owner</p>
-                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.owner}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <FolderOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted-foreground">Folder</p>
-                            <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.folder}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Information</span>
                   </div>
-
-                  <Separator />
-
-                  <div>
-                    <button
-                      onClick={() => toggleSection("tags")}
-                      className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
-                    >
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <Tag className="h-3 w-3" />
-                        Tags
-                      </h4>
-                      {collapsedSections.has("tags") ? (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-                    {!collapsedSections.has("tags") && (
-                      <div className="space-y-3">
-                        {systemTags.length > 0 && (
-                          <>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
-                                System
-                              </p>
-                              <div className="flex flex-wrap gap-1.5 px-1">
-                                {systemTags.map((tag) => (
-                                  <Badge key={tag.name} variant="outline" className="text-xs">
-                                    {tag.name}: {tag.value}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="relative py-2">
-                              <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-dashed border-border" />
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
-                            User Defined
-                          </p>
-                          <div className="flex flex-wrap gap-1.5 px-1">
-                            {selectedFile.tags.map((tag) => {
-                              const color = tag.color ?? getTagColor(tag.name)
-                              const style = color
-                                ? {
-                                    backgroundColor: color,
-                                    borderColor: color,
-                                  }
-                                : undefined
-                              return (
-                                <Badge
-                                  key={tag.id}
-                                  className="text-xs"
-                                  style={style}
-                                  variant={color ? "secondary" : "outline"}
-                                >
-                                  {tag.name}
-                                </Badge>
-                              )
-                            })}
-                          </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[\
+                      {
+                        label: "Type",
+                        value: selectedFile.type
+                          ? `${selectedFile.type.charAt(0).toUpperCase()}${selectedFile.type.slice(1)}`
+                          : "Unknown",
+                        icon: FileText,
+                      },
+                      {
+                        label: "Document Type",
+                        value: selectedFile.docType ?? "Document",
+                        icon: NotebookPen,
+                      },
+                      {
+                        label: "Size",
+                        value: selectedFile.size,
+                        icon: HardDrive,
+                      },
+                      {
+                        label: "Modified",
+                        value: selectedFile.modified,
+                        icon: Clock,
+                      },
+                      {
+                        label: "Owner",
+                        value: ownerEmail || ownerDisplayName,
+                        icon: User,
+                      },
+                      {
+                        label: "Folder",
+                        value: selectedFile.folder,
+                        icon: FolderOpen,
+                      },
+                    ].map(({ label, value, icon: Icon }) => (
+                      <div key={label} className="space-y-2 rounded-lg border border-border/60 bg-background/60 p-3 shadow-sm">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Icon className="h-3.5 w-3.5" />
+                          <span>{label}</span>
                         </div>
+                        <p className="text-sm font-semibold text-foreground">{value}</p>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
+                </section>
+
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <h4 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+                      <Tag className="h-3 w-3" /> Tags
+                    </h4>
+                  </div>
+                  {systemTags.length > 0 ? (
+                    <div className="grid gap-2">
+                      {systemTags.map((tag) => (
+                        <div key={tag.name} className="rounded-lg border border-border/70 bg-muted/30 p-3">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="font-semibold text-foreground">{tag.name}</span>
+                            <Badge variant="outline" className="text-[10px]">
+                              {tag.editable ? "Editable" : "Read only"}
+                            </Badge>
+                          </div>
+                          <div className="mt-1 text-sm font-semibold text-foreground">{tag.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {selectedFile.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedFile.tags.map((tag) => {
+                        const color = tag.color ?? getTagColor(tag.name)
+                        const style = color
+                          ? {
+                              backgroundColor: color,
+                              borderColor: color,
+                            }
+                          : undefined
+
+                        return (
+                          <Badge
+                            key={tag.name}
+                            variant="outline"
+                            className={cn("text-xs", color ? "text-white" : "")}
+                            style={style}
+                          >
+                            {tag.name}
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No tags added</p>
+                  )}
+                </section>
               </>
             ) : (
               <div className="text-center text-muted-foreground">No file selected</div>
@@ -808,7 +805,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="owner" className="text-xs text-muted-foreground">
-                  Owner
+                  Owner (Email)
                 </Label>
                 <input
                   id="owner"
@@ -816,7 +813,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                   onChange={(e) => setEditValues({ ...editValues, owner: e.target.value })}
                   onBlur={(e) => handleBlur("owner", e.target.value)}
                   className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                  placeholder="Enter owner name..."
+                  placeholder="Enter owner email..."
                   disabled={!selectedFile}
                 />
               </div>
@@ -835,6 +832,18 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                   disabled={!selectedFile}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="docType" className="text-xs text-muted-foreground">
+                Document Type
+              </Label>
+              <input
+                id="docType"
+                value={selectedFile?.docType ?? "Document"}
+                readOnly
+                className="w-full h-9 rounded-md border border-input bg-muted px-3 py-1 text-sm text-muted-foreground"
+              />
             </div>
 
             <div className="space-y-2">
@@ -897,13 +906,13 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
 
         <TabsContent value="chat" className="mt-0 h-full">
           <div className="space-y-4">
-            <SidebarChatTab
-              comments={sidebarComments}
-              draftMessage={chatInput}
-              onDraftChange={setChatInput}
-              onSubmit={handleSendMessage}
-              composerExtras={composerExtras}
-              canSubmit={chatInput.trim().length > 0 || chatAttachments.length > 0}
+              <SidebarChatTab
+                comments={sidebarComments}
+                draftMessage={chatInput}
+                onDraftChange={handleChatInputChange}
+                onSubmit={handleSendMessage}
+                composerExtras={composerExtras}
+                canSubmit={chatInput.trim().length > 0 || chatAttachments.length > 0}
             />
           </div>
         </TabsContent>
