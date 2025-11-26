@@ -2,6 +2,7 @@ using System;
 using ECM.Abstractions;
 using ECM.Document.Api.Documents;
 using ECM.Document.Api.Documents.Options;
+using ECM.Document.Api.DocumentTypes;
 using ECM.Document.Api.Tags;
 using ECM.Document.Application;
 using ECM.Document.Infrastructure;
@@ -61,6 +62,7 @@ public sealed class DocumentModule : IModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapDocumentEndpoints();
+        endpoints.MapDocumentTypeEndpoints();
         endpoints.MapTagEndpoints();
     }
 }

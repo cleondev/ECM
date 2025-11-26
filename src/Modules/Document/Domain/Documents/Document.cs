@@ -122,7 +122,7 @@ public sealed class Document : IHasDomainEvents
             now,
             now,
             NormalizeGroupId(groupId),
-            typeId);
+            NormalizeTypeId(typeId));
 
         document.Raise(new DocumentCreatedDomainEvent(
             document.Id,
@@ -194,6 +194,13 @@ public sealed class Document : IHasDomainEvents
     public void UpdateGroupId(Guid? groupId, DateTimeOffset updatedAtUtc)
     {
         GroupId = NormalizeGroupId(groupId);
+        UpdatedAtUtc = updatedAtUtc;
+    }
+
+    public void UpdateDocumentType(Guid? documentTypeId, DateTimeOffset updatedAtUtc)
+    {
+        TypeId = NormalizeTypeId(documentTypeId);
+        Type = null;
         UpdatedAtUtc = updatedAtUtc;
     }
 
@@ -313,6 +320,11 @@ public sealed class Document : IHasDomainEvents
     private static Guid? NormalizeGroupId(Guid? groupId)
     {
         return groupId is null || groupId == Guid.Empty ? null : groupId;
+    }
+
+    private static Guid? NormalizeTypeId(Guid? typeId)
+    {
+        return typeId is null || typeId == Guid.Empty ? null : typeId;
     }
 
     private static string NormalizeTitle(string? title)

@@ -2,8 +2,9 @@
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { FileItem, TagNode, User } from "@/lib/types"
+import type { DocumentType, FileItem, TagNode, User } from "@/lib/types"
 import {
   AtSign,
   ChevronDown,
@@ -27,7 +28,16 @@ import { TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
-import { fetchFlows, fetchSystemTags, fetchTags, searchUsers, updateFile, type UpdateFileRequest } from "@/lib/api"
+import {
+  fetchDocumentTypes,
+  fetchFlows,
+  fetchSystemTags,
+  fetchTags,
+  fetchUserById,
+  searchUsers,
+  updateFile,
+  type UpdateFileRequest,
+} from "@/lib/api"
 import type { Flow, SystemTag } from "@/lib/types"
 import { FileTypeIcon } from "./file-type-icon"
 import {
@@ -69,6 +79,7 @@ type EditableFileState = {
   folder: string
   tags: string
   status: NonNullable<FileItem['status']>
+  documentTypeId: string | null
 }
 
 const DEFAULT_FILE_STATUS: NonNullable<FileItem['status']> = "draft"
@@ -83,10 +94,11 @@ function createEditableState(file: FileItem | null): EditableFileState {
   return {
     name: file?.name ?? "",
     description: file?.description ?? "",
-    owner: file?.owner ?? "",
+    owner: file?.ownerName ?? file?.owner ?? "",
     folder: file?.folder ?? "",
     tags: file ? file.tags.map((tag) => tag.name).join(", ") : "",
     status: file?.status ?? DEFAULT_FILE_STATUS,
+    documentTypeId: file?.documentTypeId ?? null,
   }
 }
 
@@ -98,6 +110,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [systemTags, setSystemTags] = useState<SystemTag[]>([])
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("collapsedSections")
@@ -114,6 +127,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [mentionLoading, setMentionLoading] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [ownerProfile, setOwnerProfile] = useState<User | null>(null)
+  const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const emojiOptions = ["😀", "😁", "😍", "😎", "🤔", "🙏", "🚀", "👍", "🎉", "🔥", "📄", "✅"]
 
@@ -124,33 +138,63 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   useEffect(() => {
     setOwnerProfile(null)
 
-    if (!selectedFile?.owner) {
+    const ownerLookup = selectedFile?.ownerId ?? selectedFile?.owner
+    if (!ownerLookup) {
       return
     }
 
-    searchUsers(selectedFile.owner)
-      .then((users) => {
-        const matched = users.find((user) => user.id === selectedFile.owner || user.email === selectedFile.owner)
-        setOwnerProfile(matched ?? users[0] ?? null)
+    let cancelled = false
+
+    fetchUserById(ownerLookup)
+      .then((user) => {
+        if (cancelled) return
+
+        if (user) {
+          setOwnerProfile(user)
+          return
+        }
+
+        return searchUsers(ownerLookup)
+          .then((users) => {
+            if (cancelled) return
+            const matched = users.find((candidate) =>
+              candidate.id === ownerLookup || candidate.email === ownerLookup,
+            )
+            setOwnerProfile(matched ?? users[0] ?? null)
+          })
+          .catch((error) => console.warn("[ui] Failed to resolve owner profile:", error))
       })
       .catch((error) => console.warn("[ui] Failed to resolve owner profile:", error))
-  }, [selectedFile?.owner])
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedFile?.owner, selectedFile?.ownerId])
 
   useEffect(() => {
-    if (!ownerProfile?.email || !selectedFile) {
+    if (!ownerDisplayValue || !selectedFile) {
       return
     }
 
     setEditValues((previous) => {
-      if (previous.owner === selectedFile.owner) {
-        return { ...previous, owner: ownerProfile.email }
+      if (previous.owner === selectedFile.owner || !previous.owner) {
+        return { ...previous, owner: ownerDisplayValue }
       }
       return previous
     })
-  }, [ownerProfile?.email, selectedFile])
+  }, [ownerDisplayValue, selectedFile])
 
   useEffect(() => {
     fetchTags().then(setTagTree)
+  }, [])
+
+  useEffect(() => {
+    fetchDocumentTypes()
+      .then(setDocumentTypes)
+      .catch((error) => {
+        console.warn("[ui] Failed to load document types:", error)
+        setDocumentTypes([])
+      })
   }, [])
 
   useEffect(() => {
@@ -237,8 +281,13 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     return value * (multipliers[unit] || 1)
   }
 
-  const ownerDisplayName = ownerProfile?.displayName ?? selectedFile?.owner ?? "Owner"
-  const ownerEmail = ownerProfile?.email ?? selectedFile?.owner ?? ""
+  const ownerDisplayName = ownerProfile?.displayName ?? selectedFile?.ownerName ?? selectedFile?.owner ?? "Owner"
+  const ownerEmail = ownerProfile?.email ?? selectedFile?.ownerEmail ?? selectedFile?.owner ?? ""
+  const ownerDisplayValue = ownerProfile?.displayName ?? ownerEmail ?? selectedFile?.owner ?? ""
+  const selectedDocumentType = useMemo(() => {
+    const currentId = editValues.documentTypeId ?? selectedFile?.documentTypeId ?? null
+    return currentId ? documentTypes.find((type) => type.id === currentId) : undefined
+  }, [documentTypes, editValues.documentTypeId, selectedFile?.documentTypeId])
 
   const appendToken = (token: string) => {
     setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}${token} `)
@@ -399,7 +448,8 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
           break
         }
         case "owner": {
-          if (trimmedValue === selectedFile.owner) {
+          const currentOwner = selectedFile.ownerName ?? selectedFile.owner
+          if (trimmedValue === currentOwner) {
             return
           }
           updateData.owner = trimmedValue
@@ -462,6 +512,34 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     [selectedFile, onFileUpdate],
   )
 
+  const handleDocumentTypeChange = useCallback(
+    async (nextTypeId: string | null) => {
+      if (!selectedFile) {
+        return
+      }
+
+      const normalized = nextTypeId && nextTypeId.trim() ? nextTypeId : null
+      if ((selectedFile.documentTypeId ?? null) === normalized) {
+        setEditValues((previous) => ({ ...previous, documentTypeId: normalized }))
+        return
+      }
+
+      setEditValues((previous) => ({ ...previous, documentTypeId: normalized }))
+      setIsUpdatingDocumentType(true)
+      try {
+        const updatedFile = await updateFile(selectedFile.id, { documentTypeId: normalized })
+        setEditValues(createEditableState(updatedFile))
+        onFileUpdate?.(updatedFile)
+      } catch (error) {
+        console.error("[ui] Failed to update document type:", error)
+        setEditValues((previous) => ({ ...previous, documentTypeId: selectedFile.documentTypeId ?? null }))
+      } finally {
+        setIsUpdatingDocumentType(false)
+      }
+    },
+    [onFileUpdate, selectedFile],
+  )
+
   const tabLabels: Record<ActiveTab, string> = {
     info: "Info",
     flow: "Flow",
@@ -520,7 +598,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
               )}
             </div>
             <Button variant="outline" size="sm" className="w-full" onClick={() => handleInsertMention()}>
-              Mention owner {selectedFile?.owner ? `(@${selectedFile.owner})` : ""}
+              Mention owner {ownerDisplayName ? `(@${formatMentionHandle(ownerProfile)})` : ""}
             </Button>
           </PopoverContent>
         </Popover>
@@ -638,10 +716,10 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                     </button>
                     {!collapsedSections.has("information") && (
                       <div className="space-y-3">
-                        {[
+                        {[ 
                           {
-                            label: "Type",
-                            value: selectedFile.type,
+                            label: "Document Type",
+                            value: selectedDocumentType?.typeName ?? selectedFile.docType ?? "Document",
                             icon: FileText,
                           },
                           {
@@ -865,7 +943,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="owner" className="text-xs text-muted-foreground">
-                  Owner (Email)
+                  Owner (Username)
                 </Label>
                 <input
                   id="owner"
@@ -898,12 +976,25 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
               <Label htmlFor="docType" className="text-xs text-muted-foreground">
                 Document Type
               </Label>
-              <input
-                id="docType"
-                value={selectedFile?.docType ?? "Document"}
-                readOnly
-                className="w-full h-9 rounded-md border border-input bg-muted px-3 py-1 text-sm text-muted-foreground"
-              />
+              <Select
+                value={editValues.documentTypeId ?? ""}
+                onValueChange={(value) => handleDocumentTypeChange(value || null)}
+                disabled={!selectedFile || isUpdatingDocumentType}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue
+                    placeholder={selectedDocumentType?.typeName ?? selectedFile?.docType ?? "Select a document type"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No document type</SelectItem>
+                  {documentTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.typeName} <span className="text-xs text-muted-foreground">({type.typeKey})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

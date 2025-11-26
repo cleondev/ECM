@@ -221,6 +221,29 @@ public static class DocumentEndpoints
 
         request ??= new UpdateDocumentRequest();
 
+        if (request.HasDocumentTypeId && request.DocumentTypeId == Guid.Empty)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                [nameof(request.DocumentTypeId)] = ["Document type must be a valid GUID when provided."],
+            });
+        }
+
+        if (request.HasDocumentTypeId && request.DocumentTypeId.HasValue)
+        {
+            var typeExists = await context.DocumentTypes
+                .AsNoTracking()
+                .AnyAsync(type => type.Id == request.DocumentTypeId.Value && type.IsActive, cancellationToken);
+
+            if (!typeExists)
+            {
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    [nameof(request.DocumentTypeId)] = ["Specified document type was not found or is inactive."],
+                });
+            }
+        }
+
         var command = new UpdateDocumentCommand(
             documentId,
             userId.Value,
@@ -228,7 +251,9 @@ public static class DocumentEndpoints
             request.Status,
             request.Sensitivity,
             request.HasGroupId,
-            NormalizeGuid(request.GroupId));
+            NormalizeGuid(request.GroupId),
+            request.HasDocumentTypeId,
+            NormalizeGuid(request.DocumentTypeId));
 
         var result = await handler.HandleAsync(command, cancellationToken);
 

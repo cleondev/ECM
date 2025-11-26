@@ -145,6 +145,11 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             ModelState.AddModelError(nameof(request.GroupId), "Group identifier must be a valid GUID when provided.");
         }
 
+        if (request.HasDocumentTypeId && request.DocumentTypeId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(request.DocumentTypeId), "Document type must be a valid GUID when provided.");
+        }
+
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);

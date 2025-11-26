@@ -1,5 +1,6 @@
 import type {
   DocumentTag,
+  DocumentType,
   FileItem,
   FileDetail,
   TagNode,
@@ -594,6 +595,7 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     })) ?? []
   const updatedAtUtc = document.updatedAtUtc ?? document.createdAtUtc
   const displayModified = document.updatedAtFormatted || formatDocumentTimestamp(updatedAtUtc)
+  const ownerId = document.ownerId
   return {
     id: document.id,
     name: document.title || "Untitled document",
@@ -604,7 +606,8 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     modifiedAtUtc: updatedAtUtc,
     tags,
     folder: "All Files",
-    owner: document.ownerId,
+    owner: ownerId,
+    ownerId,
     description: "",
     status: document.status?.toLowerCase() === "draft" ? "draft" : "in-progress",
     latestVersionId: latestVersion?.id,
@@ -612,6 +615,7 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
     latestVersionStorageKey: latestVersion?.storageKey,
     latestVersionMimeType: latestVersion?.mimeType,
     latestVersionCreatedAtUtc: latestVersion?.createdAtUtc,
+    documentTypeId: document.documentTypeId ?? null,
     sizeBytes: latestVersion?.bytes,
   }
 }
@@ -1382,6 +1386,37 @@ export async function fetchTags(): Promise<TagNode[]> {
   }
 }
 
+type DocumentTypeResponseDto = {
+  id: string
+  typeKey: string
+  typeName: string
+  isActive: boolean
+  createdAtUtc: string
+}
+
+export async function fetchDocumentTypes(): Promise<DocumentType[]> {
+  try {
+    const response = await gatewayRequest<DocumentTypeResponseDto[]>("/api/document-types")
+    if (!response?.length) {
+      return []
+    }
+
+    return response
+      .filter((type) => type.isActive)
+      .map((type) => ({
+        id: type.id,
+        typeKey: type.typeKey,
+        typeName: type.typeName,
+        isActive: type.isActive,
+        createdAtUtc: type.createdAtUtc,
+      }))
+      .sort((a, b) => a.typeName.localeCompare(b.typeName, undefined, { sensitivity: "base" }))
+  } catch (error) {
+    console.warn("[ui] Failed to fetch document types via gateway, returning empty list:", error)
+    return []
+  }
+}
+
 export async function fetchGroups(): Promise<Group[]> {
   try {
     const response = await gatewayRequest<GroupSummaryResponse[]>("/api/iam/groups")
@@ -1411,6 +1446,21 @@ export async function fetchUsers(): Promise<User[]> {
     console.warn("[ui] Failed to fetch users from gateway, using mock data:", error)
     await delay(120)
     return mockUsers
+  }
+}
+
+export async function fetchUserById(userId: string): Promise<User | null> {
+  const trimmed = userId.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  try {
+    const response = await gatewayRequest<UserSummaryResponse>(`/api/iam/users/${trimmed}`)
+    return response ? mapUserSummaryToUser(response) : null
+  } catch (error) {
+    console.warn("[ui] Failed to fetch user profile via gateway, checking mock data:", error)
+    return mockUsers.find((user) => user.id === trimmed) ?? null
   }
 }
 
@@ -1548,6 +1598,7 @@ export type UpdateFileRequest = {
   status?: NonNullable<FileItem["status"]>
   tags?: DocumentTag[]
   tagNames?: string[]
+  documentTypeId?: string | null
 }
 
 const statusToApiStatus: Record<NonNullable<FileItem["status"]>, string> = {
@@ -1577,6 +1628,10 @@ export async function updateFile(fileId: string, data: UpdateFileRequest): Promi
 
   if (data.status !== undefined) {
     payloadEntries.push(["status", statusToApiStatus[data.status]])
+  }
+
+  if (data.documentTypeId !== undefined) {
+    payloadEntries.push(["documentTypeId", data.documentTypeId])
   }
 
   if (data.tags !== undefined) {
