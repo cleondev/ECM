@@ -17,7 +17,7 @@ import {
   Paperclip,
   Smile,
   Tag,
-  User,
+  User as UserIcon,
   X,
 } from "lucide-react"
 import type React from "react"
@@ -316,7 +316,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const getIconComponent = (iconName: string) => {
     const icons: Record<string, any> = {
       Clock: Clock,
-      User,
+      UserIcon,
       FileText,
       GitBranch,
       FolderOpen,
@@ -600,7 +600,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                     <span>Information</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {[\
+                    {[
                       {
                         label: "Type",
                         value: selectedFile.type
@@ -626,7 +626,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
                       {
                         label: "Owner",
                         value: ownerEmail || ownerDisplayName,
-                        icon: User,
+                        icon: UserIcon,
                       },
                       {
                         label: "Folder",
