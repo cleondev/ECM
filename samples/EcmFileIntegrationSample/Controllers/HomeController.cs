@@ -355,7 +355,6 @@ public class HomeController(
 
         return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
     }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditDocument(DocumentUpdateForm form, CancellationToken cancellationToken)
@@ -363,7 +362,9 @@ public class HomeController(
         ApplyUserSelection(form.UserEmail, null);
         var selectedTagIds = ParseGuidList(form.SelectedTagIds, nameof(form.SelectedTagIds));
         var documentId = ParseRequiredGuid(form.DocumentId, nameof(form.DocumentId));
-        var detail = documentId is not null ? await LoadDocumentDetailAsync(documentId.Value, cancellationToken) : null;
+        var detail = documentId is not null
+            ? await LoadDocumentDetailAsync(documentId.Value, cancellationToken)
+            : null;
 
         if (!ModelState.IsValid || documentId is null)
         {
@@ -373,7 +374,7 @@ public class HomeController(
         var groupId = form.UpdateGroup ? ParseGuidOrNull(form.GroupId, nameof(form.GroupId)) : null;
         if (!ModelState.IsValid)
         {
-            var detail = await LoadDocumentDetailAsync(documentId.Value, cancellationToken);
+            // KHÔNG khai báo lại biến detail nữa
             return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
         }
 
@@ -389,7 +390,11 @@ public class HomeController(
         var updated = await _ecmService.UpdateDocumentAsync(documentId.Value, request, cancellationToken);
         if (updated is null)
         {
-            return View(await BuildDocumentEditViewModelAsync(form, detail, "Không thể cập nhật document (không tồn tại hoặc không đủ quyền).", cancellationToken));
+            return View(await BuildDocumentEditViewModelAsync(
+                form,
+                detail,
+                "Không thể cập nhật document (không tồn tại hoặc không đủ quyền).",
+                cancellationToken));
         }
 
         await UpdateDocumentTagsAsync(documentId.Value, detail?.Document.Tags, selectedTagIds, cancellationToken);
@@ -397,6 +402,7 @@ public class HomeController(
         TempData["DocumentMessage"] = "Đã cập nhật document.";
         return RedirectToAction(nameof(Documents));
     }
+
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -704,7 +710,7 @@ public class HomeController(
 
     private async Task UpdateDocumentTagsAsync(
         Guid documentId,
-        IEnumerable<DocumentTagDetailDto>? existingTags,
+        IEnumerable<DocumentTagDto>? existingTags,
         IEnumerable<Guid> selectedTagIds,
         CancellationToken cancellationToken)
     {
