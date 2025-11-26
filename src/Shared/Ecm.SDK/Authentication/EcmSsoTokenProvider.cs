@@ -9,7 +9,7 @@ namespace Ecm.Sdk;
 /// </summary>
 public sealed class EcmSsoTokenProvider
 {
-    private readonly IOptions<EcmIntegrationOptions> _options;
+    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options;
     private readonly ILogger<EcmSsoTokenProvider> _logger;
     private readonly SemaphoreSlim _mutex = new(1, 1);
 
@@ -20,7 +20,9 @@ public sealed class EcmSsoTokenProvider
     /// </summary>
     /// <param name="options">Integration options including SSO configuration.</param>
     /// <param name="logger">Logger used to emit diagnostics during token acquisition.</param>
-    public EcmSsoTokenProvider(IOptions<EcmIntegrationOptions> options, ILogger<EcmSsoTokenProvider> logger)
+    public EcmSsoTokenProvider(
+        IOptionsSnapshot<EcmIntegrationOptions> options,
+        ILogger<EcmSsoTokenProvider> logger)
     {
         _options = options;
         _logger = logger;
