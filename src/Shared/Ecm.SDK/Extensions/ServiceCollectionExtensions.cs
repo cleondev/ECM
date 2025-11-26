@@ -77,14 +77,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EcmOnBehalfAuthenticator>();
         services.AddTransient<EcmAccessTokenHandler>();
 
-        services.AddHttpClient<EcmFileClient>((serviceProvider, client) =>
-            {
-                var options = serviceProvider.GetRequiredService<IOptionsSnapshot<EcmIntegrationOptions>>().Value;
-
-                client.BaseAddress = new Uri(options.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(100);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("ecm-sdk/1.0");
-            })
+        services.AddHttpClient<EcmFileClient>()
             .AddHttpMessageHandler<EcmAccessTokenHandler>()
             .ConfigurePrimaryHttpMessageHandler(serviceProvider => new HttpClientHandler
             {

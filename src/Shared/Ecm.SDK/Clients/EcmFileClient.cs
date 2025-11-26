@@ -37,6 +37,10 @@ public sealed class EcmFileClient
         _logger = logger;
         _options = options.Value;
         _onBehalfAuthenticator = onBehalfAuthenticator;
+
+        _httpClient.BaseAddress ??= new Uri(_options.BaseUrl);
+        _httpClient.Timeout = TimeSpan.FromSeconds(100);
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("ecm-sdk/1.0");
     }
 
     /// <summary>
