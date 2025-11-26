@@ -10,7 +10,7 @@
    - **Bearer token tĩnh**: điền `AccessToken` với token hợp lệ của người dùng.
    - **auth/on-behalf qua API key**: dùng API key (`X-Api-Key`) của AppGateway để đăng nhập nền cho một tài khoản cụ thể. Bật `OnBehalf:Enabled` và cung cấp `UserEmail` hoặc `UserId`.
    - **OBO qua SSO**: bật `OnBehalf:Sso:Enabled=true` để thư viện tự thực hiện MSAL `AcquireTokenOnBehalfOf` với application (client) của Sample. Bạn cần truyền token người dùng nhận được từ đăng nhập SSO (`UserAccessToken`) và thông tin ứng dụng/authority để đổi thành token cho AppGateway (scope `api://<appgateway-client-id>/.default`). Khi SSO bật, thư viện dùng bearer token và bỏ qua bước đăng nhập on-behalf bằng API key.
-4. Tạo (hoặc cập nhật) `samples/EcmFileIntegrationSample/appsettings.json` với thông tin kết nối và metadata mặc định. Khi dùng auth/on-behalf hãy đặt `BaseUrl` trỏ tới AppGateway (ví dụ `https://localhost:5443/`):
+4. Tạo (hoặc cập nhật) `samples/EcmFileIntegrationSample/appsettings.json` với thông tin kết nối và metadata mặc định. Khi dùng auth/on-behalf hãy đặt `BaseUrl` trỏ tới AppGateway (ví dụ `https://localhost:5443/`). Có thể cấu hình nhiều user trong `EcmUsers` để chuyển nhanh ngay trên giao diện (ứng dụng luôn chọn user đầu tiên khi mở trang):
 
 ```json
 {
@@ -38,7 +38,29 @@
     "DocType": "General",
     "Status": "Draft",
     "Sensitivity": "Internal"
- }
+ },
+  "EcmUsers": [
+    {
+      "Key": "user1",
+      "DisplayName": "User on-behalf nền",
+      "Settings": {
+        "BaseUrl": "http://localhost:5090",
+        "OnBehalf": {
+          "Enabled": true,
+          "ApiKey": "admin123",
+          "UserEmail": "user1@example.com"
+        }
+      }
+    },
+    {
+      "Key": "user2",
+      "DisplayName": "User bearer token",
+      "Settings": {
+        "BaseUrl": "http://localhost:5090",
+        "AccessToken": "<access token>"
+      }
+    }
+  ]
 }
 ```
 
@@ -73,7 +95,8 @@ Trên giao diện, bạn có thể:
 
 1. Quan sát base URL, trạng thái access token (đã cấu hình/chưa cấu hình).
 2. Nhập metadata (doc type, status, sensitivity, document type ID, owner ID, created by, tiêu đề).
-3. Chọn file bất kỳ (PDF, hình ảnh, văn bản, …) và nhấn **Upload**.
+3. Chọn tag đa chọn (nếu muốn gán ngay khi upload).
+4. Chọn file bất kỳ (PDF, hình ảnh, văn bản, …) và nhấn **Upload**.
 
 Ứng dụng sẽ:
 

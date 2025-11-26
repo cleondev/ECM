@@ -30,7 +30,7 @@ public sealed class EcmFileClient
     public EcmFileClient(
         HttpClient httpClient,
         ILogger<EcmFileClient> logger,
-        IOptions<EcmIntegrationOptions> options,
+        IOptionsSnapshot<EcmIntegrationOptions> options,
         EcmOnBehalfAuthenticator onBehalfAuthenticator)
     {
         _httpClient = httpClient;
@@ -231,6 +231,68 @@ public sealed class EcmFileClient
     }
 
     /// <summary>
+    /// Assigns an existing tag to a document.
+    /// </summary>
+    /// <param name="documentId">Identifier of the document receiving the tag.</param>
+    /// <param name="tagId">Identifier of the tag to assign.</param>
+    /// <param name="appliedBy">User applying the tag.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when the assignment succeeds; otherwise, <c>false</c>.</returns>
+    public async Task<bool> AssignTagToDocumentAsync(
+        Guid documentId,
+        Guid tagId,
+        Guid? appliedBy,
+        CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.PostAsJsonAsync(
+            GetDocumentTagsEndpoint(documentId),
+            new AssignTagRequest(tagId, appliedBy),
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        _logger.LogWarning(
+            "Không thể gán tag {TagId} cho document {DocumentId}. Status: {Status}",
+            tagId,
+            documentId,
+            response.StatusCode);
+        return false;
+    }
+
+    /// <summary>
+    /// Removes an assigned tag from a document.
+    /// </summary>
+    /// <param name="documentId">Identifier of the document.</param>
+    /// <param name="tagId">Identifier of the tag assignment to remove.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when the tag was removed; otherwise, <c>false</c>.</returns>
+    public async Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.DeleteAsync(
+            $"{GetDocumentTagsEndpoint(documentId)}/{tagId}",
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return true;
+        }
+
+        _logger.LogWarning(
+            "Không thể xoá tag {TagId} khỏi document {DocumentId}. Status: {Status}",
+            tagId,
+            documentId,
+            response.StatusCode);
+        return false;
+    }
+
+    /// <summary>
     /// Retrieves a paged list of documents using the supplied filters.
     /// </summary>
     /// <param name="query">Query filters for the search.</param>
@@ -315,6 +377,10 @@ public sealed class EcmFileClient
     private string GetTagsEndpoint() => _options.OnBehalf.Enabled
         ? "/api/tags"
         : "/api/ecm/tags";
+
+    private string GetDocumentTagsEndpoint(Guid documentId) => _options.OnBehalf.Enabled
+        ? $"/api/documents/{documentId}/tags"
+        : $"/api/ecm/documents/{documentId}/tags";
 
     private static Dictionary<string, string?> BuildDocumentQueryParameters(DocumentListQuery query)
     {

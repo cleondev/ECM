@@ -8,7 +8,7 @@ namespace Ecm.Sdk;
 /// </summary>
 public sealed class EcmAccessTokenProvider
 {
-    private readonly IOptions<EcmIntegrationOptions> _options;
+    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options;
     private readonly ILogger<EcmAccessTokenProvider> _logger;
     private readonly EcmSsoTokenProvider _ssoTokenProvider;
 
@@ -19,7 +19,7 @@ public sealed class EcmAccessTokenProvider
     /// <param name="logger">Logger used to emit diagnostic messages.</param>
     /// <param name="ssoTokenProvider">Provider used to retrieve delegated SSO tokens.</param>
     public EcmAccessTokenProvider(
-        IOptions<EcmIntegrationOptions> options,
+        IOptionsSnapshot<EcmIntegrationOptions> options,
         ILogger<EcmAccessTokenProvider> logger,
         EcmSsoTokenProvider ssoTokenProvider)
     {
