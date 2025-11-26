@@ -2,16 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Download, FileText, FileWarning } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Download, FileText, FileWarning, Share2, Tag } from "lucide-react"
 
-import { buildDocumentDownloadUrl, fetchFileDetails } from "@/lib/api"
-import type { FileDetail } from "@/lib/types"
+import { buildDocumentDownloadUrl, fetchFileDetails, fetchFlows } from "@/lib/api"
+import type { FileDetail, Flow } from "@/lib/types"
 import { resolveViewerConfig, type ViewerCategory } from "@/lib/viewer-utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { Separator, TabsContent } from "@/components/ui/tabs"
+import {
+  SidebarChatTab,
+  SidebarFlowTab,
+  SidebarFormTab,
+  SidebarInfoTab,
+  SidebarShell,
+  formatBytes,
+  formatDate,
+  getExtension,
+} from "@/components/shared/sidebar-tabs"
 
 import { PdfViewer } from "./pdf-viewer"
 
@@ -28,19 +37,6 @@ type ViewerPanelProps = {
   file: FileDetail
   viewerCategory: ViewerCategory
   viewerUrl?: string
-}
-
-function getExtension(name?: string) {
-  if (!name) {
-    return undefined
-  }
-
-  const lastDot = name.lastIndexOf(".")
-  if (lastDot <= 0 || lastDot === name.length - 1) {
-    return undefined
-  }
-
-  return name.slice(lastDot + 1).toLowerCase()
 }
 
 function PdfViewerPanel({ viewerUrl, file }: { viewerUrl?: string; file: FileDetail }) {
@@ -140,6 +136,11 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   const [file, setFile] = useState<FileDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [flows, setFlows] = useState<Flow[]>([])
+  const [flowsLoading, setFlowsLoading] = useState(false)
+  const [comments, setComments] = useState<FileDetail["comments"]>([])
+  const [draftMessage, setDraftMessage] = useState("")
+  const [activeTab, setActiveTab] = useState("info")
   const viewerUrl = useMemo(
     () => (file?.latestVersionId ? buildDocumentDownloadUrl(file.latestVersionId) : undefined),
     [file?.latestVersionId],
@@ -191,6 +192,22 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
     }
   }, [isAuthenticated, fileId, targetPath])
 
+  useEffect(() => {
+    if (!file?.id) return
+
+    setFlowsLoading(true)
+    fetchFlows(file.id)
+      .then((items) => setFlows(items))
+      .catch((err) => console.warn("[viewer] Failed to fetch flows", err))
+      .finally(() => setFlowsLoading(false))
+  }, [file?.id])
+
+  useEffect(() => {
+    if (!file) return
+
+    setComments(file.comments)
+  }, [file])
+
   const viewerConfig = useMemo(() => (file ? resolveViewerConfig(file) : undefined), [file])
 
   const handleDownload = () => {
@@ -201,9 +218,25 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
     window.open(viewerUrl, "_blank", "noopener,noreferrer")
   }
 
+  const handleAddComment = () => {
+    if (!draftMessage.trim() || !file) return
+
+    const newComment = {
+      id: `local-${Date.now()}`,
+      author: file.owner,
+      avatar: file.ownerAvatar,
+      message: draftMessage.trim(),
+      createdAt: new Date().toLocaleString("vi-VN"),
+      role: "Ghi chú",
+    }
+
+    setComments((prev) => [...prev, newComment])
+    setDraftMessage("")
+  }
+
   if (isChecking || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-neutral-950">
         <div className="rounded-xl border border-border bg-background/90 px-6 py-10 text-center shadow-sm">
           <p className="text-base text-muted-foreground">Đang tải trình xem tệp…</p>
         </div>
@@ -217,7 +250,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
 
   if (error || !file || !viewerConfig) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-neutral-950">
         <div className="max-w-md space-y-4 rounded-2xl border border-border bg-background/95 p-6 text-center shadow-sm">
           <p className="text-lg font-semibold text-foreground">Không thể mở tệp</p>
           <p className="text-sm text-muted-foreground">{error ?? "Tệp đã bị xóa hoặc bạn không có quyền truy cập."}</p>
@@ -231,56 +264,94 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   const viewerLabel = viewerConfig.officeKind ? `Office - ${viewerConfig.officeKind}` : viewerConfig.category
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="mx-auto max-w-6xl space-y-5 px-4 py-6">
-        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-background/95 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3 sm:items-center">
-            <Button variant="outline" size="sm" onClick={() => router.push(MAIN_APP_ROUTE)} className="hidden sm:inline-flex">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Thoát
-            </Button>
-            <div>
-              <div className="text-base font-semibold text-foreground">{file.name}</div>
-              <div className="text-sm text-muted-foreground">
-                {extension ? `.${extension}` : "Định dạng chưa xác định"} • {file.owner}
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={file.ownerAvatar} alt={file.owner} />
-                  <AvatarFallback>{file.owner.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <span>Phiên bản mới nhất: {file.latestVersionId ?? "N/A"}</span>
-              </div>
-            </div>
-          </div>
+    <div className="flex min-h-screen flex-col bg-neutral-950 text-slate-50">
+      <header className="flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4">
+        <Button variant="ghost" size="icon" onClick={() => router.push(MAIN_APP_ROUTE)}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="capitalize">
               {viewerLabel}
             </Badge>
-            <Button onClick={handleDownload} disabled={!viewerUrl} variant="default" size="sm">
-              <Download className="mr-2 h-4 w-4" />
-              Tải xuống
-            </Button>
+            <span className="truncate text-sm font-semibold text-foreground">{file.name}</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <FileText className="h-3.5 w-3.5" />
+              <span>{extension ? `.${extension}` : "Định dạng chưa xác định"}</span>
+            </div>
+            <Separator orientation="vertical" className="h-4" />
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={file.ownerAvatar} alt={file.owner} />
+                <AvatarFallback>{file.owner.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span>{file.owner}</span>
+            </div>
+            <Separator orientation="vertical" className="h-4" />
+            <span>Cập nhật: {formatDate(file.modifiedAtUtc ?? file.modified)}</span>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" disabled={!viewerUrl} onClick={handleDownload}>
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </header>
 
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle>Trình xem tệp</CardTitle>
-              <p className="text-sm text-muted-foreground">Trình xem được chọn tự động dựa trên định dạng của tệp.</p>
+      <div className="flex flex-1 overflow-hidden">
+        <main className="flex-1 overflow-auto bg-gradient-to-b from-neutral-900 via-neutral-950 to-black p-6">
+          <div className="mx-auto max-w-6xl space-y-4">
+            <div className="rounded-2xl border border-border/60 bg-background/80 shadow-lg shadow-black/30">
+              <div className="flex items-center justify-between border-b border-border/70 px-5 py-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2">
+                  <BadgeCheck className="h-4 w-4 text-emerald-500" />
+                  <span>Trình xem được chọn tự động dựa trên định dạng tệp.</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                    <FileText className="h-3 w-3" />
+                    {extension ? `.${extension}` : "Không rõ"}
+                  </Badge>
+                </div>
+              </div>
+              <div className="p-5">
+                <ViewerPanel file={file} viewerCategory={viewerConfig.category} viewerUrl={viewerUrl} />
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" className="flex items-center gap-1">
-                <FileText className="h-3.5 w-3.5" />
-                {extension ? `.${extension}` : "Không rõ"}
-              </Badge>
-            </div>
-          </CardHeader>
-          <Separator />
-          <CardContent className="pt-6">
-            <ViewerPanel file={file} viewerCategory={viewerConfig.category} viewerUrl={viewerUrl} />
-          </CardContent>
-        </Card>
+          </div>
+        </main>
+
+        <aside className="hidden w-full max-w-xs shrink-0 border-l border-border/70 bg-background/95 text-foreground lg:block">
+          <SidebarShell
+            tabs={{ info: true, flow: true, form: true, chat: true }}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            headerBadge={`Phiên bản ${file.latestVersionNumber ?? file.latestVersionId ?? "N/A"}`}
+          >
+            <TabsContent value="info" className="mt-0 h-full">
+              <SidebarInfoTab file={file} />
+            </TabsContent>
+            <TabsContent value="flow" className="mt-0 h-full">
+              <SidebarFlowTab flows={flows} loading={flowsLoading} />
+            </TabsContent>
+            <TabsContent value="form" className="mt-0 h-full">
+              <SidebarFormTab file={file} />
+            </TabsContent>
+            <TabsContent value="chat" className="mt-0 h-full">
+              <SidebarChatTab
+                comments={comments}
+                draftMessage={draftMessage}
+                onDraftChange={setDraftMessage}
+                onSubmit={handleAddComment}
+              />
+            </TabsContent>
+          </SidebarShell>
+        </aside>
       </div>
     </div>
   )
