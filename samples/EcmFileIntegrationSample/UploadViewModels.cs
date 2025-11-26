@@ -54,7 +54,9 @@ public sealed class UploadPageViewModel
 
     public string SelectedUserKey { get; init; } = string.Empty;
 
-    public bool HasAccessToken { get; init; }
+    public bool UsingApiKeyAuthentication { get; init; }
+
+    public bool UsingSsoAuthentication { get; init; }
 
     public bool UsingOnBehalfAuthentication { get; init; }
 

@@ -35,7 +35,7 @@ public sealed class EcmSsoTokenProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var ssoOptions = _options.Value.OnBehalf.Sso;
+        var ssoOptions = _options.Value.Sso;
         if (!ssoOptions.Enabled)
         {
             return null;

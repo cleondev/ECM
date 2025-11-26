@@ -31,7 +31,7 @@ public sealed class EcmOnBehalfAuthenticator
     /// <summary>
     /// Gets a value indicating whether on-behalf authentication is enabled.
     /// </summary>
-    public bool IsEnabled => _options.Value.OnBehalf.Enabled;
+    public bool IsEnabled => _options.Value.ApiKey.Enabled;
 
     /// <summary>
     /// Ensures the SDK is signed in when using on-behalf authentication.
@@ -46,7 +46,7 @@ public sealed class EcmOnBehalfAuthenticator
             return;
         }
 
-        if (_options.Value.OnBehalf.Sso.Enabled)
+        if (_options.Value.Sso.Enabled)
         {
             return;
         }
@@ -64,29 +64,29 @@ public sealed class EcmOnBehalfAuthenticator
                 return;
             }
 
-            var onBehalfOptions = _options.Value.OnBehalf;
+            var options = _options.Value;
 
-            if (string.IsNullOrWhiteSpace(onBehalfOptions.ApiKey))
+            if (string.IsNullOrWhiteSpace(options.ApiKey.ApiKey))
             {
-                throw new InvalidOperationException("Ecm:OnBehalf:ApiKey must be configured when OnBehalf.Enabled=true.");
+                throw new InvalidOperationException("Ecm:ApiKey:ApiKey must be configured when ApiKey.Enabled=true.");
             }
 
-            if (string.IsNullOrWhiteSpace(onBehalfOptions.UserEmail) && onBehalfOptions.UserId is null)
+            if (string.IsNullOrWhiteSpace(options.OnBehalfUserEmail) && options.OnBehalfUserId is null)
             {
                 throw new InvalidOperationException(
-                    "Either Ecm:OnBehalf:UserEmail or Ecm:OnBehalf:UserId must be provided when OnBehalf.Enabled=true.");
+                    "Either Ecm:OnBehalfUserEmail or Ecm:OnBehalfUserId must be provided when ApiKey.Enabled=true.");
             }
 
             using var request = new HttpRequestMessage(HttpMethod.Post, "/api/iam/auth/on-behalf")
             {
                 Content = JsonContent.Create(new
                 {
-                    onBehalfOptions.UserEmail,
-                    onBehalfOptions.UserId,
+                    options.OnBehalfUserEmail,
+                    options.OnBehalfUserId,
                 }),
             };
 
-            request.Headers.Add("X-Api-Key", onBehalfOptions.ApiKey);
+            request.Headers.Add("X-Api-Key", options.ApiKey.ApiKey);
 
             using var response = await httpClient.SendAsync(request, cancellationToken);
 
@@ -95,7 +95,7 @@ public sealed class EcmOnBehalfAuthenticator
                 _hasSignedIn = true;
                 _logger.LogInformation(
                     "Signed in via auth/on-behalf for {User}.",
-                    onBehalfOptions.UserEmail ?? onBehalfOptions.UserId?.ToString());
+                    options.OnBehalfUserEmail ?? options.OnBehalfUserId?.ToString());
                 return;
             }
 

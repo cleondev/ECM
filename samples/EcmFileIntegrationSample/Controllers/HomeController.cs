@@ -11,7 +11,6 @@ public class HomeController : Controller
     private readonly EcmFileClient _client;
     private readonly IOptionsSnapshot<EcmIntegrationOptions> _optionsSnapshot;
     private readonly ILogger<HomeController> _logger;
-    private readonly EcmAccessTokenProvider _accessTokenProvider;
     private readonly EcmUserSelection _userSelection;
 
     private EcmIntegrationOptions Options => _optionsSnapshot.Value;
@@ -20,13 +19,11 @@ public class HomeController : Controller
         EcmFileClient client,
         IOptionsSnapshot<EcmIntegrationOptions> options,
         ILogger<HomeController> logger,
-        EcmAccessTokenProvider accessTokenProvider,
         EcmUserSelection userSelection)
     {
         _client = client;
         _optionsSnapshot = options;
         _logger = logger;
-        _accessTokenProvider = accessTokenProvider;
         _userSelection = userSelection;
     }
 
@@ -73,12 +70,12 @@ public class HomeController : Controller
         var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
         if (profile is null)
         {
-            return View("Index", await BuildPageViewModelAsync(
-                form,
-                cancellationToken: cancellationToken,
-                error: "Không lấy được thông tin người dùng từ ECM. Kiểm tra AccessToken trong cấu hình."
-            ));
-        }
+                return View("Index", await BuildPageViewModelAsync(
+                    form,
+                    cancellationToken: cancellationToken,
+                    error: "Không lấy được thông tin người dùng từ ECM. Kiểm tra cấu hình ApiKey/SSO."
+                ));
+            }
 
         ownerId ??= profile.Id;
         createdBy ??= profile.Id;
@@ -413,10 +410,11 @@ public class HomeController : Controller
                 .Select(user => new EcmUserViewModel(user.Key, user.DisplayName, user.Key == currentUser.Key))
                 .ToArray(),
             SelectedUserKey = currentUser.Key,
-            HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
-            UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
-            OnBehalfUserEmail = Options.OnBehalf.UserEmail,
-            OnBehalfUserId = Options.OnBehalf.UserId,
+            UsingApiKeyAuthentication = Options.ApiKey.Enabled,
+            UsingSsoAuthentication = Options.Sso.Enabled,
+            UsingOnBehalfAuthentication = Options.IsOnBehalfEnabled,
+            OnBehalfUserEmail = Options.OnBehalfUserEmail,
+            OnBehalfUserId = Options.OnBehalfUserId,
             Form = form,
             Result = result,
             Error = error,
