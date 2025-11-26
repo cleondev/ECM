@@ -3,6 +3,8 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 
 import { ThemeScript } from "@/components/theme-script"
+import { SyncfusionLicenseLoader } from "@/components/syncfusion-license-loader.tsx"
+
 
 import "file-icon-vectors/dist/file-icon-vectors.css"
 import "file-icon-vectors/dist/file-icon-square-o.min.css"
@@ -36,6 +38,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <ThemeScript />
+        <SyncfusionLicenseLoader />
         {children}
       </body>
     </html>
