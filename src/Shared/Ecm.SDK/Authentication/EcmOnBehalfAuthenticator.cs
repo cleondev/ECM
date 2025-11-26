@@ -9,7 +9,7 @@ namespace Ecm.Sdk;
 /// </summary>
 public sealed class EcmOnBehalfAuthenticator
 {
-    private readonly IOptions<EcmIntegrationOptions> _options;
+    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options;
     private readonly ILogger<EcmOnBehalfAuthenticator> _logger;
     private readonly SemaphoreSlim _signInMutex = new(1, 1);
 
@@ -21,7 +21,7 @@ public sealed class EcmOnBehalfAuthenticator
     /// <param name="options">Integration options that describe on-behalf behavior.</param>
     /// <param name="logger">Logger used to emit diagnostic messages.</param>
     public EcmOnBehalfAuthenticator(
-        IOptions<EcmIntegrationOptions> options,
+        IOptionsSnapshot<EcmIntegrationOptions> options,
         ILogger<EcmOnBehalfAuthenticator> logger)
     {
         _options = options;

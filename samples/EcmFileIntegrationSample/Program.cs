@@ -1,12 +1,21 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 using Ecm.Sdk;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEcmSdk(builder.Configuration);
+var userStore = EcmUserStore.FromConfiguration(builder.Configuration);
+
+builder.Services.AddSingleton(userStore);
+builder.Services.AddScoped<EcmUserSelection>();
+
+builder.Services.AddScoped<IConfigureOptions<EcmIntegrationOptions>>(serviceProvider =>
+    new EcmUserOptionsConfigurator(serviceProvider.GetRequiredService<EcmUserSelection>()));
+
+builder.Services.AddEcmSdk(options => EcmUserOptionsConfigurator.Copy(userStore.DefaultOptions, options));
 
 builder.Services.AddHttpContextAccessor();
 

@@ -9,20 +9,25 @@ namespace samples.EcmFileIntegrationSample.Controllers;
 public class HomeController : Controller
 {
     private readonly EcmFileClient _client;
-    private readonly EcmIntegrationOptions _options;
+    private readonly IOptionsSnapshot<EcmIntegrationOptions> _optionsSnapshot;
     private readonly ILogger<HomeController> _logger;
     private readonly EcmAccessTokenProvider _accessTokenProvider;
+    private readonly EcmUserSelection _userSelection;
+
+    private EcmIntegrationOptions Options => _optionsSnapshot.Value;
 
     public HomeController(
         EcmFileClient client,
-        IOptions<EcmIntegrationOptions> options,
+        IOptionsSnapshot<EcmIntegrationOptions> options,
         ILogger<HomeController> logger,
-        EcmAccessTokenProvider accessTokenProvider)
+        EcmAccessTokenProvider accessTokenProvider,
+        EcmUserSelection userSelection)
     {
         _client = client;
-        _options = options.Value;
+        _optionsSnapshot = options;
         _logger = logger;
         _accessTokenProvider = accessTokenProvider;
+        _userSelection = userSelection;
     }
 
     // ----------------------------------------------------
@@ -35,6 +40,14 @@ public class HomeController : Controller
         return View(await BuildPageViewModelAsync(form, cancellationToken: cancellationToken));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult SwitchUser(string userKey)
+    {
+        _userSelection.SelectUser(userKey);
+        return RedirectToAction(nameof(Index));
+    }
+
     // ----------------------------------------------------
     // Upload
     // ----------------------------------------------------
@@ -45,6 +58,7 @@ public class HomeController : Controller
         var documentTypeId = ParseGuidOrNull(form.DocumentTypeId, nameof(form.DocumentTypeId));
         var ownerId = ParseGuidOrNull(form.OwnerId, nameof(form.OwnerId));
         var createdBy = ParseGuidOrNull(form.CreatedBy, nameof(form.CreatedBy));
+        var selectedTagIds = ParseGuidList(form.SelectedTagIds, nameof(form.SelectedTagIds));
 
         if (form.File is null || form.File.Length == 0)
         {
@@ -81,9 +95,9 @@ public class HomeController : Controller
             var uploadRequest = new DocumentUploadRequest(
                 ownerId.Value,
                 createdBy.Value,
-                string.IsNullOrWhiteSpace(form.DocType) ? _options.DocType : form.DocType,
-                string.IsNullOrWhiteSpace(form.Status) ? _options.Status : form.Status,
-                string.IsNullOrWhiteSpace(form.Sensitivity) ? _options.Sensitivity : form.Sensitivity,
+                string.IsNullOrWhiteSpace(form.DocType) ? Options.DocType : form.DocType,
+                string.IsNullOrWhiteSpace(form.Status) ? Options.Status : form.Status,
+                string.IsNullOrWhiteSpace(form.Sensitivity) ? Options.Sensitivity : form.Sensitivity,
                 tempFilePath)
             {
                 DocumentTypeId = documentTypeId,
@@ -105,6 +119,19 @@ public class HomeController : Controller
                 ? await _client.GetDownloadUriAsync(version.Id, cancellationToken)
                 : null;
 
+            IReadOnlyCollection<TagLabelDto> appliedTags = Array.Empty<TagLabelDto>();
+            IReadOnlyCollection<TagLabelDto> tags = Array.Empty<TagLabelDto>();
+
+            try
+            {
+                tags = await _client.ListTagsAsync(cancellationToken);
+                appliedTags = await ApplyTagsAsync(document.Id, selectedTagIds, profile.Id, tags, cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Không thể gán tag cho document sau khi upload.");
+            }
+
             return View("Index", await BuildPageViewModelAsync(
                 new UploadFormModel
                 {
@@ -112,13 +139,16 @@ public class HomeController : Controller
                     Status = form.Status,
                     Sensitivity = form.Sensitivity,
                     Title = form.Title,
+                    SelectedTagIds = form.SelectedTagIds,
                 },
                 result: new UploadResultModel
                 {
                     Document = document,
                     DownloadUri = downloadUri,
                     Profile = profile,
+                    AppliedTags = appliedTags,
                 },
+                tags: tags,
                 cancellationToken: cancellationToken
             ));
         }
@@ -339,10 +369,11 @@ public class HomeController : Controller
     // ----------------------------------------------------
     private UploadFormModel BuildDefaultUploadForm() => new()
     {
-        DocType = _options.DocType,
-        Status = _options.Status,
-        Sensitivity = _options.Sensitivity,
-        Title = _options.Title,
+        DocType = Options.DocType,
+        Status = Options.Status,
+        Sensitivity = Options.Sensitivity,
+        Title = Options.Title,
+        DocumentTypeId = Options.DocumentTypeId?.ToString(),
     };
 
     private async Task<UploadPageViewModel> BuildPageViewModelAsync(
@@ -359,24 +390,33 @@ public class HomeController : Controller
         UploadResultModel? result = null,
         IReadOnlyCollection<TagLabelDto>? tags = null,
         DocumentListResult? documentList = null,
+        UserProfile? profile = null,
         CancellationToken cancellationToken = default)
     {
         documentQuery ??= new DocumentQueryForm();
 
-        if (tags is null || documentList is null)
+        if (tags is null || documentList is null || profile is null)
         {
             var reference = await LoadReferenceDataAsync(documentQuery, cancellationToken);
             tags ??= reference.Tags;
             documentList ??= reference.Documents;
+            profile ??= reference.Profile;
         }
+
+        var currentUser = _userSelection.GetCurrentUser();
 
         return new UploadPageViewModel
         {
-            BaseUrl = _options.BaseUrl,
+            BaseUrl = Options.BaseUrl,
+            Users = _userSelection
+                .GetUsers()
+                .Select(user => new EcmUserViewModel(user.Key, user.DisplayName, user.Key == currentUser.Key))
+                .ToArray(),
+            SelectedUserKey = currentUser.Key,
             HasAccessToken = _accessTokenProvider.HasConfiguredAccess,
             UsingOnBehalfAuthentication = _accessTokenProvider.UsingOnBehalfAuthentication,
-            OnBehalfUserEmail = _options.OnBehalf.UserEmail,
-            OnBehalfUserId = _options.OnBehalf.UserId,
+            OnBehalfUserEmail = Options.OnBehalf.UserEmail,
+            OnBehalfUserId = Options.OnBehalf.UserId,
             Form = form,
             Result = result,
             Error = error,
@@ -390,15 +430,26 @@ public class HomeController : Controller
             DocumentMessage = documentMessage,
             DocumentUpdate = documentUpdate ?? new DocumentUpdateForm(),
             DocumentDelete = documentDelete ?? new DocumentDeleteForm(),
+            CurrentProfile = profile ?? result?.Profile,
         };
     }
 
-    private async Task<(IReadOnlyCollection<TagLabelDto> Tags, DocumentListResult? Documents)> LoadReferenceDataAsync(
+    private async Task<ReferenceData> LoadReferenceDataAsync(
         DocumentQueryForm documentQuery,
         CancellationToken cancellationToken)
     {
         IReadOnlyCollection<TagLabelDto> tags = Array.Empty<TagLabelDto>();
         DocumentListResult? documents = null;
+        UserProfile? profile = null;
+
+        try
+        {
+            profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Không thể tải profile người dùng.");
+        }
 
         try
         {
@@ -419,7 +470,7 @@ public class HomeController : Controller
             _logger.LogError(exception, "Không thể tải danh sách document.");
         }
 
-        return (tags, documents);
+        return new ReferenceData(tags, documents, profile);
     }
 
     private static DocumentListQuery BuildDocumentListQuery(DocumentQueryForm documentQuery) => new(
@@ -431,6 +482,64 @@ public class HomeController : Controller
         null,
         documentQuery.Page,
         documentQuery.PageSize);
+
+    private async Task<IReadOnlyCollection<TagLabelDto>> ApplyTagsAsync(
+        Guid documentId,
+        IReadOnlyCollection<Guid> tagIds,
+        Guid appliedBy,
+        IReadOnlyCollection<TagLabelDto> availableTags,
+        CancellationToken cancellationToken)
+    {
+        if (tagIds.Count == 0)
+        {
+            return Array.Empty<TagLabelDto>();
+        }
+
+        var applied = new List<TagLabelDto>();
+
+        foreach (var tagId in tagIds)
+        {
+            var assigned = await _client.AssignTagToDocumentAsync(documentId, tagId, appliedBy, cancellationToken);
+            if (assigned)
+            {
+                var tag = availableTags.FirstOrDefault(item => item.Id == tagId);
+                if (tag is not null)
+                {
+                    applied.Add(tag);
+                }
+            }
+        }
+
+        return applied;
+    }
+
+    private IReadOnlyCollection<Guid> ParseGuidList(IEnumerable<string> values, string fieldName)
+    {
+        var results = new List<Guid>();
+
+        foreach (var value in values)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (Guid.TryParse(value, out var parsed))
+            {
+                results.Add(parsed);
+                continue;
+            }
+
+            ModelState.AddModelError(fieldName, "Giá trị tag không hợp lệ (yêu cầu GUID).");
+        }
+
+        return results;
+    }
+
+    private sealed record ReferenceData(
+        IReadOnlyCollection<TagLabelDto> Tags,
+        DocumentListResult? Documents,
+        UserProfile? Profile);
 
     private Guid? ParseGuidOrNull(string? value, string fieldName)
     {

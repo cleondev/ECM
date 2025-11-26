@@ -8,7 +8,22 @@
         <div class="card mb-3 shadow-sm">
             <div class="card-header">Thông tin kết nối</div>
             <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <form asp-action="SwitchUser" method="post" class="row g-2 align-items-end" asp-antiforgery="true">
+                    <div class="col-md-6 col-lg-4">
+                        <label class="form-label">User cấu hình</label>
+                        <select name="userKey" class="form-select">
+                            @foreach (var user in Model.Users)
+                            {
+                                <option value="@user.Key" selected="@(user.IsSelected ? "selected" : null)">@user.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-outline-primary">Chuyển</button>
+                    </div>
+                </form>
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3">
                     <div>
                         <div class="text-uppercase text-muted small fw-semibold">Base URL</div>
                         <div class="fs-5 fw-bold">@Model.BaseUrl</div>
@@ -35,7 +50,7 @@
                         }
                     </div>
                 </div>
-                <p class="text-muted mb-0 mt-2">Ứng dụng hỗ trợ bearer token tĩnh trong <code>appsettings.json</code> hoặc đăng nhập nền qua endpoint <code>api/iam/auth/on-behalf</code> (API key của AppGateway).</p>
+                <p class="text-muted mb-0 mt-2">Ứng dụng hỗ trợ bearer token tĩnh trong <code>appsettings.json</code> hoặc đăng nhập nền qua endpoint <code>api/iam/auth/on-behalf</code> (API key của AppGateway). Dữ liệu tài khoản, tag và tài liệu sẽ được tải ngay khi mở trang dựa trên user đang chọn.</p>
             </div>
         </div>
 
@@ -86,6 +101,24 @@
                             <label asp-for="Form.CreatedBy" class="form-label"></label>
                             <input asp-for="Form.CreatedBy" class="form-control" placeholder="Để trống để lấy từ token" />
                             <span asp-validation-for="Form.CreatedBy" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Form.SelectedTagIds" class="form-label fw-semibold"></label>
+                            @if (Model.Tags is { Count: > 0 })
+                            {
+                                <select asp-for="Form.SelectedTagIds" class="form-select" multiple size="6">
+                                    @foreach (var tag in Model.Tags)
+                                    {
+                                        <option value="@tag.Id">@tag.Name (@tag.NamespaceDisplayName ?? tag.NamespaceScope)</option>
+                                    }
+                                </select>
+                                <div class="form-text">Chọn nhiều tag để gán ngay sau khi upload (tuỳ chọn).</div>
+                            }
+                            else
+                            {
+                                <input class="form-control" value="Chưa có tag nào" disabled />
+                                <div class="form-text">Tạo tag trước ở phần "Quản lý tag" để gắn vào tài liệu.</div>
+                            }
                         </div>
                         <div class="col-12">
                             <label asp-for="Form.File" class="form-label fw-semibold"></label>
@@ -402,6 +435,10 @@
                         {
                             <p class="mb-1"><strong>Phiên bản mới nhất:</strong> v@Model.Result.Document.LatestVersion.VersionNo ( @Model.Result.Document.LatestVersion.Bytes bytes)</p>
                         }
+                        @if (Model.Result.AppliedTags is { Count: > 0 })
+                        {
+                            <p class="mb-1"><strong>Tag đã gán:</strong> @string.Join(", ", Model.Result.AppliedTags.Select(tag => tag.Name))</p>
+                        }
                         @if (Model.Result.DownloadUri is not null)
                         {
                             <a class="btn btn-success mt-2" href="@Model.Result.DownloadUri" target="_blank" rel="noreferrer">Tải file</a>
@@ -423,14 +460,14 @@
                 </div>
             }
 
-            @if (Model.Result?.Profile is not null)
+            @if (Model.CurrentProfile is not null)
             {
                 <div class="card mt-3 shadow-sm">
                     <div class="card-header">Thông tin người dùng từ token</div>
                     <div class="card-body">
-                        <p class="mb-1 fw-semibold">@Model.Result.Profile.DisplayName</p>
-                        <p class="mb-1">Email: @Model.Result.Profile.Email</p>
-                        <p class="mb-0">User ID: @Model.Result.Profile.Id</p>
+                        <p class="mb-1 fw-semibold">@Model.CurrentProfile.DisplayName</p>
+                        <p class="mb-1">Email: @Model.CurrentProfile.Email</p>
+                        <p class="mb-0">User ID: @Model.CurrentProfile.Id</p>
                     </div>
                 </div>
             }

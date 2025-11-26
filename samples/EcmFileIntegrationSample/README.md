@@ -8,43 +8,57 @@
 2. Đảm bảo một instance ECM đang chạy và có thể truy cập qua HTTP (ví dụ `http://localhost:8080/`).
 3. Chọn phương thức xác thực:
    - **Bearer token tĩnh**: điền `AccessToken` với token hợp lệ của người dùng.
-   - **auth/on-behalf qua API key**: dùng API key (`X-Api-Key`) của AppGateway để đăng nhập nền cho một tài khoản cụ thể. Bật `OnBehalf:Enabled` và cung cấp `UserEmail` hoặc `UserId`.
-   - **OBO qua SSO**: bật `OnBehalf:Sso:Enabled=true` để thư viện tự thực hiện MSAL `AcquireTokenOnBehalfOf` với application (client) của Sample. Bạn cần truyền token người dùng nhận được từ đăng nhập SSO (`UserAccessToken`) và thông tin ứng dụng/authority để đổi thành token cho AppGateway (scope `api://<appgateway-client-id>/.default`). Khi SSO bật, thư viện dùng bearer token và bỏ qua bước đăng nhập on-behalf bằng API key.
-4. Tạo (hoặc cập nhật) `samples/EcmFileIntegrationSample/appsettings.json` với thông tin kết nối và metadata mặc định. Khi dùng auth/on-behalf hãy đặt `BaseUrl` trỏ tới AppGateway (ví dụ `https://localhost:5443/`):
+   - **auth/on-behalf qua API key**: dùng API key (`X-Api-Key`) **duy nhất cho ứng dụng** (khai báo tại `Ecm:OnBehalf:ApiKey`) để đăng nhập nền. Email của người dùng cần đăng nhập được lấy từ dropdown `EcmUsers`.
+   - **OBO qua SSO**: cấu hình một lần ở `Ecm:OnBehalf:Sso` (authority, client, client secret, scope). Khi bật `OnBehalf:Sso:Enabled=true`, thư viện sẽ dùng token người dùng (nhận từ đăng nhập SSO và truyền vào `OnBehalf:Sso:UserAccessToken`) để thực hiện MSAL `AcquireTokenOnBehalfOf` lấy bearer token AppGateway (scope `api://<appgateway-client-id>/.default`).
+4. Tạo (hoặc cập nhật) `samples/EcmFileIntegrationSample/appsettings.json` với thông tin kết nối và metadata mặc định. Phần `Ecm` là cấu hình chung (base URL, bearer token tĩnh, on-behalf/SSO/OBO). `EcmUsers` chỉ còn danh sách người dùng (email) để chọn nhanh trên giao diện; API key và cấu hình SSO không lặp lại tại đây. Khi dùng auth/on-behalf hãy đặt `BaseUrl` trỏ tới AppGateway (ví dụ `https://localhost:5443/`). Ứng dụng luôn chọn user đầu tiên khi mở trang và bạn có thể chuyển user nhanh qua dropdown:
 
-```json
-{
-  "Ecm": {
-    "BaseUrl": "http://localhost:8080/",
-    "AccessToken": "<bearer token>",
-    "OnBehalf": {
-      "Enabled": true,
-      "ApiKey": "<app gateway API key>",
-      "UserEmail": "user@domain.com",
-      "UserId": "<optional user GUID>",
-      "Sso": {
+  ```json
+  {
+    "Ecm": {
+      "BaseUrl": "http://localhost:5090",
+      "AccessToken": "<bearer token tĩnh nếu không dùng on-behalf>",
+      "OnBehalf": {
         "Enabled": false,
-        "Authority": "https://login.microsoftonline.com/<tenant-id>",
-        "ClientId": "<application-client-id>",
-        "ClientSecret": "<application-client-secret>",
-        "Scopes": [
-          "api://<appgateway-client-id>/.default"
-        ],
-        "UserAccessToken": "<access token người dùng sau khi đăng nhập SSO>"
-      }
+        "ApiKey": "<app gateway API key>",
+        "Sso": {
+          "Enabled": false,
+          "Authority": "https://login.microsoftonline.com/<tenant-id>",
+          "ClientId": "<application-client-id>",
+          "ClientSecret": "<application-client-secret>",
+          "Scopes": [
+            "api://<appgateway-client-id>/.default"
+          ]
+        }
+      },
+      "OwnerId": "",
+      "CreatedBy": "",
+      "DocType": "General",
+      "Status": "Draft",
+      "Sensitivity": "Internal"
     },
-    "OwnerId": "<optional user GUID to set owner>",
-    "CreatedBy": "<optional user GUID to set creator>",
-    "DocType": "General",
-    "Status": "Draft",
-    "Sensitivity": "Internal"
- }
-}
-```
+    "EcmUsers": [
+      {
+        "Key": "user1",
+        "DisplayName": "User A",
+        "Email": "user1@example.com"
+      },
+      {
+        "Key": "user2",
+        "DisplayName": "User B",
+        "Email": "user2@example.com"
+      },
+      {
+        "Key": "user3",
+        "DisplayName": "User C",
+        "Email": "user3@example.com"
+      }
+    ]
+  }
+  ```
 
 > Nếu không chỉ định `OwnerId`/`CreatedBy`, ứng dụng sẽ dùng thông tin người dùng trong token (`/api/iam/profile`).
->
-> Với `OnBehalf.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key`) để đăng nhập nền cho `UserEmail`/`UserId`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `OnBehalf:Sso:Enabled=true`, thư viện bỏ qua bước này và lấy bearer token AppGateway bằng MSAL OBO.
+
+> Với `OnBehalf.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key` trong cấu hình chung) để đăng nhập nền cho email đang chọn trong dropdown `EcmUsers`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `OnBehalf:Sso:Enabled=true`, thư viện bỏ qua bước này và lấy bearer token AppGateway bằng MSAL OBO dựa trên `OnBehalf:Sso:UserAccessToken`.
 
 ## Dùng lại SDK `Ecm.SDK`
 
@@ -73,7 +87,8 @@ Trên giao diện, bạn có thể:
 
 1. Quan sát base URL, trạng thái access token (đã cấu hình/chưa cấu hình).
 2. Nhập metadata (doc type, status, sensitivity, document type ID, owner ID, created by, tiêu đề).
-3. Chọn file bất kỳ (PDF, hình ảnh, văn bản, …) và nhấn **Upload**.
+3. Chọn tag đa chọn (nếu muốn gán ngay khi upload).
+4. Chọn file bất kỳ (PDF, hình ảnh, văn bản, …) và nhấn **Upload**.
 
 Ứng dụng sẽ:
 
