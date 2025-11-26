@@ -3,17 +3,38 @@
     ViewData["Title"] = "Danh sách tài liệu";
 }
 
+@{
+    var selectedUser = Model.DocumentQuery.UserEmail ?? Model.Connection.SelectedUserEmail;
+}
+
 @if (!string.IsNullOrWhiteSpace(Model.DocumentMessage))
 {
     <div class="alert alert-info" role="alert">@Model.DocumentMessage</div>
 }
 
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+    <div>
+        <h5 class="mb-1">Danh sách tài liệu</h5>
+        <div class="text-muted">Các nút "Add new"/"Edit" chỉ mở giao diện; thao tác xoá sẽ gọi API ECM.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-secondary" asp-action="Documents">
+            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+            Reload list
+        </a>
+        <a class="btn btn-primary" asp-action="Upload" target="_blank" rel="noreferrer">
+            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+            Add new
+        </a>
+    </div>
+</div>
+
 <div class="card shadow-sm mb-4">
-    <div class="card-header">Tìm kiếm tài liệu</div>
+    <div class="card-header">Bộ lọc giao diện</div>
     <div class="card-body">
         <form asp-action="Documents" method="post" class="row g-3 align-items-end">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="DocumentQuery.UserEmail" />
+            <input type="hidden" asp-for="DocumentQuery.UserEmail" value="@selectedUser" />
             <div class="col-md-3">
                 <label asp-for="DocumentQuery.Query" class="form-label"></label>
                 <input asp-for="DocumentQuery.Query" class="form-control" />
@@ -46,7 +67,10 @@
 </div>
 
 <div class="card shadow-sm">
-    <div class="card-header">Kết quả</div>
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span>Kết quả (API lấy danh sách)</span>
+        <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
+    </div>
     <div class="card-body">
         @if (Model.DocumentList is { Items: { Count: > 0 } items })
         {
@@ -65,6 +89,7 @@
                     <tbody>
                         @foreach (var doc in items)
                         {
+                            var latestVersion = doc.LatestVersion;
                             <tr>
                                 <td>
                                     <div class="fw-semibold">@doc.Title</div>
@@ -76,9 +101,29 @@
                                 <td>@(doc.UpdatedAtFormatted ?? doc.UpdatedAtUtc.ToLocalTime().ToString("g"))</td>
                                 <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end flex-wrap">
-                                        <a class="btn btn-sm btn-outline-primary" asp-action="DocumentDetail" asp-route-id="@doc.Id">Chi tiết</a>
-                                        <a class="btn btn-sm btn-outline-success" asp-action="DownloadDocument" asp-route-id="@doc.Id">Tải</a>
-                                        <a class="btn btn-sm btn-warning text-white" asp-action="EditDocument" asp-route-id="@doc.Id">Cập nhật</a>
+                                        <a class="btn btn-sm btn-outline-primary" asp-action="DocumentDetail" asp-route-id="@doc.Id">
+                                            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+                                            View
+                                        </a>
+                                        <a class="btn btn-sm btn-outline-success" asp-action="DownloadDocument" asp-route-id="@doc.Id">
+                                            <span class="badge bg-danger-subtle text-danger border border-danger me-1">API</span>
+                                            Tải
+                                        </a>
+                                        <a class="btn btn-sm btn-warning text-white" asp-action="EditDocument" asp-route-id="@doc.Id" target="_blank" rel="noreferrer">
+                                            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+                                            Edit
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDocumentModal" data-document-id="@doc.Id" data-document-title="@doc.Title">
+                                            <span class="badge bg-danger-subtle text-danger border border-danger me-1">API</span>
+                                            Delete doc
+                                        </button>
+                                        @if (latestVersion is not null)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteVersionModal" data-version-id="@latestVersion.Id" data-version-label="v@latestVersion.VersionNo">
+                                                <span class="badge bg-danger-subtle text-danger border border-danger me-1">API</span>
+                                                Delete version
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -93,3 +138,76 @@
         }
     </div>
 </div>
+
+<div class="modal fade" id="deleteDocumentModal" tabindex="-1" aria-labelledby="deleteDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteDocumentModalLabel">Xoá document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Xác nhận xoá document <span class="fw-semibold" id="deleteDocumentTitle"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                <form asp-action="DeleteDocument" method="post" class="d-inline" asp-antiforgery="true">
+                    <input type="hidden" name="UserEmail" value="@selectedUser" />
+                    <input type="hidden" name="DocumentId" id="deleteDocumentId" />
+                    <button type="submit" class="btn btn-danger">Xoá</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteVersionModal" tabindex="-1" aria-labelledby="deleteVersionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteVersionModalLabel">Xoá phiên bản</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Xác nhận xoá <span class="fw-semibold" id="deleteVersionLabel"></span> của document đã chọn?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                <form asp-action="DeleteDocumentVersion" method="post" class="d-inline" asp-antiforgery="true">
+                    <input type="hidden" name="UserEmail" value="@selectedUser" />
+                    <input type="hidden" name="VersionId" id="deleteVersionId" />
+                    <button type="submit" class="btn btn-danger">Xoá version</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        const deleteDocumentModal = document.getElementById('deleteDocumentModal');
+        if (deleteDocumentModal) {
+            deleteDocumentModal.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                const documentId = button?.getAttribute('data-document-id');
+                const title = button?.getAttribute('data-document-title');
+
+                document.getElementById('deleteDocumentId').value = documentId ?? '';
+                document.getElementById('deleteDocumentTitle').textContent = title ?? '';
+            });
+        }
+
+        const deleteVersionModal = document.getElementById('deleteVersionModal');
+        if (deleteVersionModal) {
+            deleteVersionModal.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                const versionId = button?.getAttribute('data-version-id');
+                const label = button?.getAttribute('data-version-label');
+
+                document.getElementById('deleteVersionId').value = versionId ?? '';
+                document.getElementById('deleteVersionLabel').textContent = label ?? '';
+            });
+        }
+    </script>
+}

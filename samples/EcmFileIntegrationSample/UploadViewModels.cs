@@ -106,6 +106,8 @@ public sealed class TagPageViewModel
     public TagUpdateForm TagUpdate { get; init; } = new();
 
     public TagDeleteForm TagDelete { get; init; } = new();
+
+    public string? FocusForm { get; init; }
 }
 
 public sealed class DocumentListPageViewModel
@@ -117,6 +119,10 @@ public sealed class DocumentListPageViewModel
     public DocumentListResult? DocumentList { get; init; }
 
     public string? DocumentMessage { get; init; }
+
+    public DocumentDeleteForm DeleteDocument { get; init; } = new();
+
+    public DocumentVersionDeleteForm DeleteVersion { get; init; } = new();
 }
 
 public sealed class DocumentDetailPageViewModel
@@ -260,6 +266,15 @@ public sealed class DocumentDeleteForm
     [Required(ErrorMessage = "Vui lòng nhập Document ID cần xoá.")]
     [Display(Name = "Document ID")]
     public string DocumentId { get; set; } = string.Empty;
+}
+
+public sealed class DocumentVersionDeleteForm
+{
+    public string? UserEmail { get; set; }
+
+    [Required(ErrorMessage = "Vui lòng nhập Version ID cần xoá.")]
+    [Display(Name = "Version ID")]
+    public string VersionId { get; set; } = string.Empty;
 }
 
 public sealed class DocumentDetailForm
