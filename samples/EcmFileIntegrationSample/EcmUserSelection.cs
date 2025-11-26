@@ -33,6 +33,12 @@ public sealed class EcmUserSelection
         return user;
     }
 
+    public EcmIntegrationOptions GetCurrentOptions()
+    {
+        var user = GetCurrentUser();
+        return _store.BuildOptions(user);
+    }
+
     public void SelectUser(string? key)
     {
         if (_httpContextAccessor.HttpContext is not { } context)
@@ -69,7 +75,7 @@ public sealed class EcmUserOptionsConfigurator : IConfigureOptions<EcmIntegratio
 
     public void Configure(EcmIntegrationOptions options)
     {
-        var current = _selection.GetCurrentUser().Settings;
+        var current = _selection.GetCurrentOptions();
         Copy(current, options);
     }
 

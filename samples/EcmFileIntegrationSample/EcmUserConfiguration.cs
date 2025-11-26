@@ -10,43 +10,61 @@ public sealed class EcmUserConfiguration
 
     public string DisplayName { get; set; } = string.Empty;
 
-    public EcmIntegrationOptions Settings { get; set; } = new();
+    public string? Email { get; set; }
+
+    public EcmIntegrationOptions BuildOptions(EcmIntegrationOptions defaults)
+    {
+        var merged = new EcmIntegrationOptions();
+        EcmUserOptionsConfigurator.Copy(defaults, merged);
+
+        if (!string.IsNullOrWhiteSpace(Email))
+        {
+            merged.OnBehalf.UserEmail = Email;
+        }
+
+        return merged;
+    }
 }
 
 public sealed class EcmUserStore
 {
+    private readonly EcmIntegrationOptions _defaults;
     private readonly IReadOnlyList<EcmUserConfiguration> _users;
     private readonly EcmUserConfiguration _defaultUser;
 
-    private EcmUserStore(IReadOnlyList<EcmUserConfiguration> users, EcmUserConfiguration defaultUser)
+    private EcmUserStore(EcmIntegrationOptions defaults, IReadOnlyList<EcmUserConfiguration> users)
     {
+        _defaults = defaults;
         _users = users;
-        _defaultUser = defaultUser;
+        _defaultUser = new EcmUserConfiguration
+        {
+            Key = "default",
+            DisplayName = "Cấu hình mặc định",
+        };
     }
 
     public static EcmUserStore FromConfiguration(IConfiguration configuration)
     {
+        var defaults = configuration.GetSection("Ecm").Get<EcmIntegrationOptions>() ?? new EcmIntegrationOptions();
         var configuredUsers = configuration.GetSection("EcmUsers").Get<EcmUserConfiguration[]>() ?? [];
-
-        var defaultSettings = configuration.GetSection("Ecm").Get<EcmIntegrationOptions>() ?? new EcmIntegrationOptions();
-
-        var defaultUser = new EcmUserConfiguration
-        {
-            Key = "default",
-            DisplayName = "Cấu hình mặc định",
-            Settings = defaultSettings,
-        };
 
         var normalizedUsers = configuredUsers
             .Where(user => !string.IsNullOrWhiteSpace(user.Key))
+            .Select(user =>
+            {
+                user.DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Key : user.DisplayName;
+                return user;
+            })
             .ToArray();
 
-        return new EcmUserStore(normalizedUsers, defaultUser);
+        return new EcmUserStore(defaults, normalizedUsers);
     }
 
     public EcmUserConfiguration DefaultUser => _users.Count > 0 ? _users[0] : _defaultUser;
 
     public IReadOnlyCollection<EcmUserConfiguration> Users => _users.Count > 0 ? _users : new[] { DefaultUser };
+
+    public EcmIntegrationOptions DefaultOptions => BuildOptions(DefaultUser);
 
     public EcmUserConfiguration GetUserOrDefault(string? key)
     {
@@ -60,5 +78,10 @@ public sealed class EcmUserStore
         }
 
         return DefaultUser;
+    }
+
+    public EcmIntegrationOptions BuildOptions(EcmUserConfiguration user)
+    {
+        return user.BuildOptions(_defaults);
     }
 }

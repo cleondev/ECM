@@ -15,7 +15,7 @@ builder.Services.AddScoped<EcmUserSelection>();
 builder.Services.AddScoped<IConfigureOptions<EcmIntegrationOptions>>(serviceProvider =>
     new EcmUserOptionsConfigurator(serviceProvider.GetRequiredService<EcmUserSelection>()));
 
-builder.Services.AddEcmSdk(options => EcmUserOptionsConfigurator.Copy(userStore.DefaultUser.Settings, options));
+builder.Services.AddEcmSdk(options => EcmUserOptionsConfigurator.Copy(userStore.DefaultOptions, options));
 
 builder.Services.AddHttpContextAccessor();
 
