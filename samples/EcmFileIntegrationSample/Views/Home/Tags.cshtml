@@ -3,15 +3,42 @@
     ViewData["Title"] = "Quản lý tag";
 }
 
+@{
+    var focusCreate = string.Equals(Model.FocusForm, "create", StringComparison.OrdinalIgnoreCase);
+    var focusUpdate = string.Equals(Model.FocusForm, "update", StringComparison.OrdinalIgnoreCase);
+    var focusDelete = string.Equals(Model.FocusForm, "delete", StringComparison.OrdinalIgnoreCase);
+    var selectedUser = Model.Connection.SelectedUserEmail;
+}
+
 @if (!string.IsNullOrWhiteSpace(Model.Message))
 {
     <div class="alert alert-info" role="alert">@Model.Message</div>
 }
 
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
+    <div>
+        <h5 class="mb-1">Danh sách tag</h5>
+        <div class="text-muted">Các hành động sửa/thêm mở tab giao diện, xoá sẽ gọi API ECM.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-secondary" asp-action="Tags">
+            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+            Reload list
+        </a>
+        <a class="btn btn-primary" asp-action="Tags" asp-route-openForm="create" asp-fragment="create-tag" target="_blank" rel="noreferrer">
+            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+            Add new tag
+        </a>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-lg-7">
         <div class="card shadow-sm">
-            <div class="card-header">Danh sách tag</div>
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Danh sách tag</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
+            </div>
             <div class="card-body">
                 @if (Model.Tags is { Count: > 0 })
                 {
@@ -24,6 +51,7 @@
                                     <th>Parent</th>
                                     <th>Sort</th>
                                     <th>Kích hoạt</th>
+                                    <th class="text-end">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -47,6 +75,18 @@
                                                 <span class="badge bg-secondary">Off</span>
                                             }
                                         </td>
+                                        <td class="text-end">
+                                            <div class="d-flex gap-2 justify-content-end flex-wrap">
+                                                <a class="btn btn-sm btn-outline-primary" asp-action="Tags" asp-route-editTagId="@tag.Id" asp-route-openForm="update" asp-fragment="update-tag" target="_blank" rel="noreferrer">
+                                                    <span class="badge bg-light text-dark border me-1">Load giao diện</span>
+                                                    Edit
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteTagModal" data-tag-id="@tag.Id" data-tag-name="@tag.Name">
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger me-1">API</span>
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -61,12 +101,15 @@
         </div>
     </div>
     <div class="col-lg-5">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">Tạo tag</div>
+        <div id="create-tag" class="card shadow-sm mb-3 @(focusCreate ? "border-primary" : string.Empty)">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Tạo tag</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
+            </div>
             <div class="card-body">
                 <form asp-action="CreateTag" method="post" class="needs-validation" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <input type="hidden" asp-for="TagCreate.UserEmail" />
+                    <input type="hidden" asp-for="TagCreate.UserEmail" value="@selectedUser" />
                     <div class="mb-2">
                         <label asp-for="TagCreate.NamespaceId" class="form-label"></label>
                         <input asp-for="TagCreate.NamespaceId" class="form-control" />
@@ -97,12 +140,15 @@
             </div>
         </div>
 
-        <div class="card shadow-sm mb-3">
-            <div class="card-header">Cập nhật tag</div>
+        <div id="update-tag" class="card shadow-sm mb-3 @(focusUpdate ? "border-primary" : string.Empty)">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Cập nhật tag</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
+            </div>
             <div class="card-body">
                 <form asp-action="UpdateTag" method="post" class="needs-validation" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <input type="hidden" asp-for="TagUpdate.UserEmail" />
+                    <input type="hidden" asp-for="TagUpdate.UserEmail" value="@selectedUser" />
                     <div class="mb-2">
                         <label asp-for="TagUpdate.TagId" class="form-label"></label>
                         <input asp-for="TagUpdate.TagId" class="form-control" />
@@ -143,12 +189,15 @@
             </div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header">Xoá tag</div>
+        <div class="card shadow-sm @(focusDelete ? "border-primary" : string.Empty)">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span>Xoá tag</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
+            </div>
             <div class="card-body">
                 <form asp-action="DeleteTag" method="post" class="needs-validation" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <input type="hidden" asp-for="TagDelete.UserEmail" />
+                    <input type="hidden" asp-for="TagDelete.UserEmail" value="@selectedUser" />
                     <div class="mb-2">
                         <label asp-for="TagDelete.TagId" class="form-label"></label>
                         <input asp-for="TagDelete.TagId" class="form-control" />
@@ -160,3 +209,42 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="deleteTagModal" tabindex="-1" aria-labelledby="deleteTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteTagModalLabel">Xoá tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Bạn có chắc muốn xoá tag <span class="fw-semibold" id="deleteTagName"></span>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ</button>
+                <form asp-action="DeleteTag" method="post" class="d-inline" asp-antiforgery="true">
+                    <input type="hidden" name="UserEmail" value="@selectedUser" />
+                    <input type="hidden" name="TagId" id="deleteTagId" />
+                    <button type="submit" class="btn btn-danger">Xoá</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script>
+        const deleteTagModal = document.getElementById('deleteTagModal');
+        if (deleteTagModal) {
+            deleteTagModal.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                const tagId = button?.getAttribute('data-tag-id');
+                const tagName = button?.getAttribute('data-tag-name');
+
+                document.getElementById('deleteTagId').value = tagId ?? '';
+                document.getElementById('deleteTagName').textContent = tagName ?? '';
+            });
+        }
+    </script>
+}

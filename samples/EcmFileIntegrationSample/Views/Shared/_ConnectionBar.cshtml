@@ -5,10 +5,6 @@
     return;
 }
 
-@{
-    var returnUrl = Context.Request.Path + Context.Request.QueryString;
-}
-
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -34,21 +30,13 @@
                     <div class="text-muted small mt-1">On-behalf: @(Model.OnBehalfUserEmail ?? Model.OnBehalfUserId?.ToString())</div>
                 }
             </div>
-            <form asp-action="SwitchUser" method="post" class="row g-2 align-items-end" asp-antiforgery="true">
-                <input type="hidden" name="returnUrl" value="@returnUrl" />
-                <div class="col-auto">
-                    <label class="form-label fw-semibold mb-1">User cấu hình</label>
-                    <select name="userEmail" class="form-select">
-                        @foreach (var user in Model.Users)
-                        {
-                            <option value="@user.Email" selected="@(user.IsSelected ? "selected" : null)">@user.DisplayName</option>
-                        }
-                    </select>
+            <div class="text-end">
+                <div class="small text-muted mb-1">Legend</div>
+                <div class="d-flex flex-wrap gap-2 justify-content-end">
+                    <span class="badge bg-light text-dark border">Load giao diện</span>
+                    <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
                 </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-outline-primary mt-3">Chuyển</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
