@@ -14,6 +14,7 @@ import {
   ThumbnailView,
   Toolbar,
 } from "@syncfusion/ej2-react-pdfviewer"
+import { registerLicense } from "@syncfusion/ej2-base"
 import "@syncfusion/ej2-base/styles/material.css"
 import "@syncfusion/ej2-buttons/styles/material.css"
 import "@syncfusion/ej2-dropdowns/styles/material.css"
@@ -23,6 +24,12 @@ import "@syncfusion/ej2-popups/styles/material.css"
 import "@syncfusion/ej2-splitbuttons/styles/material.css"
 import "@syncfusion/ej2-notifications/styles/material.css"
 import "@syncfusion/ej2-react-pdfviewer/styles/material.css"
+
+const syncfusionLicenseKey = process.env.NEXT_PUBLIC_SYNCFUSION_LICENSE_KEY
+
+if (syncfusionLicenseKey) {
+  registerLicense(syncfusionLicenseKey)
+}
 
 type PdfViewerProps = {
   documentUrl: string
