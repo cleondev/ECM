@@ -58,7 +58,6 @@ public class IamUserProfileControllerTests
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         var returnedProfile = okResult.Value.Should().BeOfType<UserSummaryDto>().Subject;
         returnedProfile.Should().BeEquivalentTo(profile);
-        client.GetCurrentUserProfileCalls.Should().Be(1);
     }
 
     private static ClaimsPrincipal CreatePasswordLoginPrincipal(UserSummaryDto profile)
@@ -76,138 +75,196 @@ public class IamUserProfileControllerTests
 
     private sealed class TrackingEcmApiClient : IEcmApiClient
     {
-        private readonly UserSummaryDto? _profile;
+        private UserSummaryDto profile;
 
-        public TrackingEcmApiClient(UserSummaryDto? profile)
+        public TrackingEcmApiClient(UserSummaryDto profile)
         {
-            _profile = profile;
+            this.profile = profile;
         }
 
-        public int GetCurrentUserProfileCalls { get; private set; }
-
-        public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
+        Task<IReadOnlyCollection<UserSummaryDto>> IEcmApiClient.GetUsersAsync(CancellationToken cancellationToken)
         {
-            GetCurrentUserProfileCalls++;
-            return Task.FromResult(_profile);
+            throw new NotImplementedException();
         }
 
-        public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.GetUserAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.GetUserByEmailAsync(string email, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.GetCurrentUserProfileAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> AuthenticateUserAsync(
-            AuthenticateUserRequestDto request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.AuthenticateUserAsync(AuthenticateUserRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.UpdateUserAsync(Guid userId, UpdateUserRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(
-            UpdateUserPasswordRequestDto request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<PasswordUpdateResult> IEcmApiClient.UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<UserSummaryDto?> RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<UserSummaryDto?> IEcmApiClient.RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<IReadOnlyCollection<RoleSummaryDto>> GetRolesAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<IReadOnlyCollection<RoleSummaryDto>> IEcmApiClient.GetRolesAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<RoleSummaryDto?> CreateRoleAsync(CreateRoleRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<RoleSummaryDto?> IEcmApiClient.CreateRoleAsync(CreateRoleRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<RoleSummaryDto?> RenameRoleAsync(Guid roleId, RenameRoleRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<RoleSummaryDto?> IEcmApiClient.RenameRoleAsync(Guid roleId, RenameRoleRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<bool> DeleteRoleAsync(Guid roleId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<bool> IEcmApiClient.DeleteRoleAsync(Guid roleId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsBySubjectAsync(string subjectType, Guid subjectId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<IReadOnlyCollection<AccessRelationDto>> IEcmApiClient.GetRelationsBySubjectAsync(string subjectType, Guid subjectId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<IReadOnlyCollection<AccessRelationDto>> GetRelationsByObjectAsync(string objectType, Guid objectId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<IReadOnlyCollection<AccessRelationDto>> IEcmApiClient.GetRelationsByObjectAsync(string objectType, Guid objectId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<AccessRelationDto?> CreateRelationAsync(CreateAccessRelationRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<AccessRelationDto?> IEcmApiClient.CreateRelationAsync(CreateAccessRelationRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<bool> DeleteRelationAsync(string subjectType, Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<bool> IEcmApiClient.DeleteRelationAsync(string subjectType, Guid subjectId, string objectType, Guid objectId, string relation, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<DocumentListDto> GetDocumentsAsync(ListDocumentsRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<DocumentListDto> IEcmApiClient.GetDocumentsAsync(ListDocumentsRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<DocumentDto?> GetDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<DocumentDto?> IEcmApiClient.GetDocumentAsync(Guid documentId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<DocumentDto?> CreateDocumentAsync(CreateDocumentUpload request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<DocumentDto?> IEcmApiClient.CreateDocumentAsync(CreateDocumentUpload requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<DocumentDto?> UpdateDocumentAsync(
-            Guid documentId,
-            UpdateDocumentRequestDto request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<DocumentDto?> IEcmApiClient.UpdateDocumentAsync(Guid documentId, UpdateDocumentRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<bool> IEcmApiClient.DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<bool> IEcmApiClient.DeleteDocumentByVersionAsync(Guid versionId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<Uri?> IEcmApiClient.GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(
-            Guid versionId,
-            int width,
-            int height,
-            string? fit,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<DocumentFileContent?> IEcmApiClient.GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
-            CreateShareLinkRequestDto request,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<DocumentFileContent?> IEcmApiClient.GetDocumentVersionThumbnailAsync(Guid versionId, int width, int height, string? fit, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<DocumentShareLinkDto?> IEcmApiClient.CreateDocumentShareLinkAsync(CreateShareLinkRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<IReadOnlyCollection<TagLabelDto>> IEcmApiClient.GetTagsAsync(CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<TagLabelDto?> UpdateTagAsync(Guid tagId, UpdateTagRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<TagLabelDto?> IEcmApiClient.CreateTagAsync(CreateTagRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<TagLabelDto?> IEcmApiClient.UpdateTagAsync(Guid tagId, UpdateTagRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<bool> IEcmApiClient.DeleteTagAsync(Guid tagId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<bool> IEcmApiClient.AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<WorkflowInstanceDto?> StartWorkflowAsync(StartWorkflowRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<bool> IEcmApiClient.RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
 
-        public Task<SignatureReceiptDto?> CreateSignatureRequestAsync(SignatureRequestDto request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
+        Task<WorkflowInstanceDto?> IEcmApiClient.StartWorkflowAsync(StartWorkflowRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<SignatureReceiptDto?> IEcmApiClient.CreateSignatureRequestAsync(SignatureRequestDto requestDto, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
