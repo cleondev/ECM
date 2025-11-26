@@ -3,32 +3,24 @@
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import type { FileItem } from "@/lib/types"
-import {
-  AtSign,
-  Calendar,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  FileText,
-  FolderOpen,
-  GitBranch,
-  MessageCircle,
-  Paperclip,
-  Send,
-  Smile,
-  Tag,
-  User,
-  X,
-} from "lucide-react"
+import { AtSign, Paperclip, Smile, X } from "lucide-react"
 import type React from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { useState, useEffect, useCallback, useRef } from "react"
-import { fetchFlows, fetchSystemTags, fetchTags, updateFile, type UpdateFileRequest } from "@/lib/api"
-import type { Flow, SystemTag, TagNode } from "@/lib/types"
+import { TabsContent } from "@/components/ui/tabs"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { fetchFlows, fetchSystemTags, updateFile, type UpdateFileRequest } from "@/lib/api"
+import type { Flow, SystemTag } from "@/lib/types"
 import { FileTypeIcon } from "./file-type-icon"
+import {
+  SidebarChatTab,
+  SidebarFlowTab,
+  SidebarFormTab,
+  SidebarInfoTab,
+  SidebarShell,
+  type SidebarComment,
+  type SidebarFormValues,
+} from "./shared/sidebar-tabs"
 
 type ActiveTab = "info" | "flow" | "form" | "chat"
 
@@ -81,21 +73,12 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   const [editValues, setEditValues] = useState<EditableFileState>(() => createEditableState(selectedFile))
 
   const [flows, setFlows] = useState<Flow[]>([])
-  const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
+  const [flowsLoading, setFlowsLoading] = useState(false)
   const [systemTags, setSystemTags] = useState<SystemTag[]>([])
-  const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState("")
   const [chatAttachments, setChatAttachments] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("collapsedSections")
-      return saved ? new Set(JSON.parse(saved)) : new Set()
-    }
-    return new Set()
-  })
 
   useEffect(() => {
     setEditValues(createEditableState(selectedFile))
@@ -135,26 +118,23 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   }, [selectedFile])
 
   useEffect(() => {
-    fetchTags().then(setTagTree)
-  }, [])
-
-  useEffect(() => {
     if (!selectedFile?.id) {
       setFlows([])
       setSystemTags([])
-      setCollapsedFlows(new Set())
       return
     }
 
-    fetchFlows(selectedFile.id).then((data) => {
-      const sortedFlows = data.sort((a, b) => {
-        const timeA = parseTimeAgo(a.lastUpdated)
-        const timeB = parseTimeAgo(b.lastUpdated)
-        return timeA - timeB
+    setFlowsLoading(true)
+    fetchFlows(selectedFile.id)
+      .then((data) => {
+        const sortedFlows = data.sort((a, b) => {
+          const timeA = parseTimeAgo(a.lastUpdated)
+          const timeB = parseTimeAgo(b.lastUpdated)
+          return timeA - timeB
+        })
+        setFlows(sortedFlows)
       })
-      setFlows(sortedFlows)
-      setCollapsedFlows(new Set(sortedFlows.map((f) => f.id)))
-    })
+      .finally(() => setFlowsLoading(false))
     fetchSystemTags(selectedFile.id).then(setSystemTags)
   }, [selectedFile?.id])
 
@@ -165,89 +145,6 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     const unit = match[2]
     const multipliers: Record<string, number> = { hour: 1, day: 24, week: 168, month: 720 }
     return value * (multipliers[unit] || 1)
-  }
-
-  const toggleFlowCollapse = (flowId: string) => {
-    setCollapsedFlows((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(flowId)) {
-        newSet.delete(flowId)
-      } else {
-        newSet.add(flowId)
-      }
-      return newSet
-    })
-  }
-
-  const toggleSection = (sectionId: string) => {
-    setCollapsedSections((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(sectionId)) {
-        newSet.delete(sectionId)
-      } else {
-        newSet.add(sectionId)
-      }
-      localStorage.setItem("collapsedSections", JSON.stringify(Array.from(newSet)))
-      return newSet
-    })
-  }
-
-  const getIconComponent = (iconName: string) => {
-    const icons: Record<string, any> = {
-      Clock,
-      User,
-      FileText,
-      GitBranch,
-      FolderOpen,
-    }
-    return icons[iconName] || FileText
-  }
-
-  const getStatusBadge = (status: Flow["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
-      case "pending":
-        return "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20"
-      case "completed":
-        return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20"
-    }
-  }
-
-  const getTagColor = (tagName: string): string | null => {
-    const findTag = (tags: TagNode[]): string | null => {
-      for (const tag of tags) {
-        if ((!tag.kind || tag.kind === "label") && tag.name === tagName && tag.color) {
-          return tag.color
-        }
-        if (tag.children) {
-          const found = findTag(tag.children)
-          if (found) return found
-        }
-      }
-      return null
-    }
-    return findTag(tagTree)
-  }
-
-  const renderMessageContent = (message: ChatMessage) => {
-    const parts = message.content.split(/(@[\w.-]+)/g)
-
-    return (
-      <p className="text-sm text-sidebar-foreground/90 leading-relaxed">
-        {parts.map((part, index) => {
-          if (part.startsWith("@")) {
-            return (
-              <span key={`${message.id}-mention-${index}`} className="font-semibold text-primary">
-                {part}
-              </span>
-            )
-          }
-
-          return <span key={`${message.id}-text-${index}`}>{part}</span>
-        })}
-      </p>
-    )
   }
 
   const handleInsertMention = () => {
@@ -403,12 +300,111 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     chat: "Chat",
   }
 
-  const tabBadgeStyles: Record<ActiveTab, string> = {
+  const currentTabClass: Record<ActiveTab, string> = {
     info: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20",
     flow: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
     form: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
     chat: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
   }
+
+  const sidebarFile = useMemo(() => {
+    if (!selectedFile) return null
+
+    return {
+      ...selectedFile,
+      versions: [],
+      activity: [],
+    }
+  }, [selectedFile])
+
+  const sidebarComments: SidebarComment[] = useMemo(
+    () =>
+      chatMessages.map((message) => ({
+        id: message.id,
+        author: message.author,
+        message: message.content,
+        createdAt: message.timestamp,
+        attachments: message.attachments,
+      })),
+    [chatMessages],
+  )
+
+  const formValues: SidebarFormValues | undefined = sidebarFile
+    ? {
+        name: editValues.name,
+        owner: editValues.owner,
+        description: editValues.description,
+        folder: editValues.folder,
+        latestVersionLabel: sidebarFile.latestVersionNumber ?? sidebarFile.latestVersionId ?? "N/A",
+      }
+    : undefined
+
+  const infoExtraSections = sidebarFile ? (
+    <>
+      {sidebarFile.status ? (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Trạng thái</span>
+          </div>
+          <Badge className={cn("text-xs", statusColors[sidebarFile.status])}>{sidebarFile.status}</Badge>
+        </section>
+      ) : null}
+
+      {systemTags.length ? (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>System tags</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {systemTags.map((tag) => (
+              <Badge key={tag.name} variant="outline" className="text-[11px]">
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </>
+  ) : null
+
+  const composerExtras = (
+    <div className="space-y-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleInsertMention}>
+          <AtSign className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleAddEmoji}>
+          <Smile className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleAttachmentClick}>
+          <Paperclip className="h-4 w-4" />
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleAttachmentChange}
+          aria-label="Attach files"
+        />
+      </div>
+      {chatAttachments.length ? (
+        <div className="space-y-1">
+          {chatAttachments.map((file) => (
+            <div
+              key={file.name}
+              className="flex items-center justify-between rounded border border-border/60 bg-background/70 px-2 py-1"
+            >
+              <span className="truncate text-xs">{file.name}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveAttachment(file.name)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
 
   return (
     <div className="w-full h-full border-l border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col relative z-20">
@@ -424,468 +420,110 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
         </Button>
       </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => {
-          if (!value) return
-          onTabChange((value as ActiveTab) || "info")
-        }}
-        className="flex-1 flex flex-col min-h-0"
+      <SidebarShell
+        tabs={{ info: true, flow: true, form: true, chat: true }}
+        activeTab={activeTab}
+        onTabChange={(value) => onTabChange((value as ActiveTab) || "info")}
+        headerBadge={`Version ${selectedFile.latestVersionNumber ?? selectedFile.latestVersionId ?? "N/A"}`}
       >
-        <TabsContent value="info" className="flex-1 overflow-y-auto mt-0">
-          <div className="p-4">
-            <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center mb-4">
+        <TabsContent value="info" className="mt-0 h-full">
+          <div className="p-4 space-y-4">
+            <div className="aspect-video w-full rounded-lg bg-muted flex items-center justify-center">
               <FileTypeIcon file={selectedFile} size="lg" />
             </div>
+            <div>
+              <h3 className="font-semibold text-lg text-sidebar-foreground text-pretty">{selectedFile.name}</h3>
+              {selectedFile.description ? (
+                <p className="text-sm text-muted-foreground text-pretty">{selectedFile.description}</p>
+              ) : null}
+            </div>
+            {sidebarFile ? <SidebarInfoTab file={sidebarFile} extraSections={infoExtraSections} /> : null}
+          </div>
+        </TabsContent>
 
-            <h3 className="font-semibold text-lg mb-1 text-sidebar-foreground text-pretty">{selectedFile.name}</h3>
-            {selectedFile.description && (
-              <p className="text-sm text-muted-foreground mb-4 text-pretty">{selectedFile.description}</p>
-            )}
+        <TabsContent value="flow" className="mt-0 h-full">
+          <div className="p-4">
+            <SidebarFlowTab flows={flows} loading={flowsLoading} />
+          </div>
+        </TabsContent>
 
-            {selectedFile.status && (
-              <Badge className={cn("mb-4", statusColors[selectedFile.status])}>{selectedFile.status}</Badge>
-            )}
-
-            <Separator className="my-4" />
-
-            <div className="space-y-4">
-              <div>
-                <button
-                  onClick={() => toggleSection("information")}
-                  className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
-                >
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Information</h4>
-                  {collapsedSections.has("information") ? (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-                {!collapsedSections.has("information") && (
+        <TabsContent value="form" className="mt-0 h-full">
+          <div className="p-4 space-y-4">
+            {sidebarFile ? (
+              <SidebarFormTab
+                file={sidebarFile}
+                values={formValues}
+                editable
+                onChange={(field, value) =>
+                  setEditValues((previous) => ({ ...previous, [field]: value ?? "" } as EditableFileState))
+                }
+                onBlur={(field, value) => handleBlur(field as keyof EditableFileState, value)}
+                actionsSlot={
                   <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <FileTypeIcon file={selectedFile} size="sm" className="mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Type</p>
-                        <p className="text-sm font-medium text-sidebar-foreground/90 capitalize">{selectedFile.type}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Size</p>
-                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.size}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Modified</p>
-                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.modified}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <User className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Owner</p>
-                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.owner}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <FolderOpen className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-muted-foreground">Folder</p>
-                        <p className="text-sm font-medium text-sidebar-foreground/90">{selectedFile.folder}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Separator />
-
-              <div>
-                <button
-                  onClick={() => toggleSection("tags")}
-                  className="w-full flex items-center justify-between mb-2 hover:bg-muted/50 rounded p-1 transition-colors"
-                >
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Tag className="h-3 w-3" />
-                    Tags
-                  </h4>
-                  {collapsedSections.has("tags") ? (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-                {!collapsedSections.has("tags") && (
-                  <div className="space-y-3">
-                    {/* System Tags - displayed as regular tags */}
-                    {systemTags.length > 0 && (
-                      <>
-                        <div className="space-y-2">
-                          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
-                            System
-                          </p>
-                          <div className="flex flex-wrap gap-1.5 px-1">
-                            {systemTags.map((tag) => (
-                              <Badge key={tag.name} variant="outline" className="text-xs">
-                                {tag.name}: {tag.value}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="relative py-2">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-dashed border-border" />
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* User Tags - with colors from tag tree */}
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
-                        User Defined
-                      </p>
-                      <div className="flex flex-wrap gap-1.5 px-1">
-                        {selectedFile.tags.map((tag) => {
-                          const color = tag.color ?? getTagColor(tag.name)
-                          const style = color
-                            ? {
-                                backgroundColor: color,
-                                borderColor: color,
-                              }
-                            : undefined
-                          return (
-                            <Badge
-                              key={tag.id}
-                              className="text-xs"
-                              style={style}
-                              variant={color ? "secondary" : "outline"}
-                            >
-                              {tag.name}
+                    <div className="space-y-1">
+                      <Label htmlFor="tags" className="text-xs text-muted-foreground">
+                        Tags
+                      </Label>
+                      <input
+                        id="tags"
+                        value={editValues.tags}
+                        onChange={(e) => setEditValues({ ...editValues, tags: e.target.value })}
+                        onBlur={(e) => handleBlur("tags", e.target.value)}
+                        placeholder="Separate tags with commas"
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        {editValues.tags
+                          .split(',')
+                          .filter((t) => t.trim())
+                          .map((tag, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {tag.trim()}
                             </Badge>
-                          )
-                        })}
+                          ))}
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="flow" className="flex-1 overflow-y-auto mt-0">
-          <div className="p-4">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-              Activity Flows
-            </h4>
-
-            <div className="space-y-3">
-              {flows.map((flow) => {
-                const isCollapsed = collapsedFlows.has(flow.id)
-
-                return (
-                  <div key={flow.id} className="border border-border rounded-lg overflow-hidden">
-                    <div className="grid grid-cols-[auto_1fr] gap-3 items-start p-3 hover:bg-muted/50 transition-colors">
-                      <button
-                        onClick={() => toggleFlowCollapse(flow.id)}
-                        className="flex-shrink-0 hover:bg-muted rounded p-1 transition-colors mt-0.5"
+                    <div className="space-y-1">
+                      <Label htmlFor="status" className="text-xs text-muted-foreground">
+                        Status
+                      </Label>
+                      <select
+                        id="status"
+                        value={editValues.status}
+                        onChange={(e) => {
+                          const nextStatus = e.target.value as NonNullable<FileItem['status']>
+                          setEditValues({ ...editValues, status: nextStatus })
+                          handleBlur('status', nextStatus)
+                        }}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
                       >
-                        {isCollapsed ? (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </button>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h5 className="text-sm font-semibold text-sidebar-foreground">{flow.name}</h5>
-                          <Badge className={cn("text-xs", getStatusBadge(flow.status))}>{flow.status}</Badge>
-                        </div>
-                        {isCollapsed && (
-                          <div className="text-xs text-muted-foreground">
-                            <p className="truncate">{flow.lastStep}</p>
-                            <p className="text-[10px] mt-0.5">{flow.lastUpdated}</p>
-                          </div>
-                        )}
-                      </div>
+                        <option value="draft">Draft</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
                     </div>
-
-                    {!isCollapsed && (
-                      <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
-                        {flow.steps.map((step, index) => {
-                          const StepIcon = getIconComponent(step.icon)
-                          const isLast = index === flow.steps.length - 1
-
-                          return (
-                            <div key={step.id} className="flex gap-3">
-                              <div className="flex flex-col items-center">
-                                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                  <StepIcon className={cn("h-4 w-4", step.iconColor)} />
-                                </div>
-                                {!isLast && <div className="w-px h-full bg-border mt-2" />}
-                              </div>
-                              <div className={cn("flex-1", !isLast && "pb-3")}>
-                                <p className="text-sm font-medium text-sidebar-foreground/90">{step.title}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{step.timestamp}</p>
-                                <p className="text-xs text-muted-foreground">by {step.user}</p>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                    <Button className="w-full" variant="secondary" onClick={() => undefined}>
+                      Lưu thay đổi (auto-save khi rời ô)
+                    </Button>
                   </div>
-                )
-              })}
-            </div>
+                }
+              />
+            ) : null}
           </div>
         </TabsContent>
 
-        <TabsContent value="form" className="flex-1 overflow-y-auto mt-0">
+        <TabsContent value="chat" className="mt-0 h-full">
           <div className="p-4">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Edit Metadata</h4>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="file-name" className="text-xs text-muted-foreground">
-                  File Name
-                </Label>
-                <input
-                  id="file-name"
-                  value={editValues.name}
-                  onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                  onBlur={(e) => handleBlur("name", e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                  placeholder="Enter file name..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description" className="text-xs text-muted-foreground">
-                  Description
-                </Label>
-                <textarea
-                  id="description"
-                  value={editValues.description}
-                  onChange={(e) => setEditValues({ ...editValues, description: e.target.value })}
-                  onBlur={(e) => handleBlur("description", e.target.value)}
-                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none transition-all"
-                  placeholder="Add description..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="owner" className="text-xs text-muted-foreground">
-                  Owner
-                </Label>
-                <input
-                  id="owner"
-                  value={editValues.owner}
-                  onChange={(e) => setEditValues({ ...editValues, owner: e.target.value })}
-                  onBlur={(e) => handleBlur("owner", e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                  placeholder="Enter owner name..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="folder" className="text-xs text-muted-foreground">
-                  Folder
-                </Label>
-                <input
-                  id="folder"
-                  value={editValues.folder}
-                  onChange={(e) => setEditValues({ ...editValues, folder: e.target.value })}
-                  onBlur={(e) => handleBlur("folder", e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                  placeholder="Enter folder name..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tags" className="text-xs text-muted-foreground">
-                  Tags
-                </Label>
-                <input
-                  id="tags"
-                  value={editValues.tags}
-                  onChange={(e) => setEditValues({ ...editValues, tags: e.target.value })}
-                  onBlur={(e) => handleBlur("tags", e.target.value)}
-                  placeholder="Separate tags with commas"
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                />
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {editValues.tags
-                    .split(",")
-                    .filter((t) => t.trim())
-                    .map((tag, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {tag.trim()}
-                      </Badge>
-                    ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status" className="text-xs text-muted-foreground">
-                  Status
-                </Label>
-                <select
-                  id="status"
-                  value={editValues.status}
-                  onChange={(e) => {
-                    const nextStatus = e.target.value as NonNullable<FileItem['status']>
-                    setEditValues({ ...editValues, status: nextStatus })
-                    handleBlur("status", nextStatus)
-                  }}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
+            <SidebarChatTab
+              comments={sidebarComments}
+              draftMessage={chatInput}
+              onDraftChange={setChatInput}
+              onSubmit={handleSendMessage}
+              composerExtras={composerExtras}
+            />
           </div>
         </TabsContent>
-
-        <TabsContent value="chat" className="flex-1 overflow-y-auto mt-0">
-          <div className="p-4 flex flex-col gap-4 h-full">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Team chat</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Mention teammates, react with emoji, or drop files for a quick review.
-                </p>
-              </div>
-              <Badge variant="outline" className="text-[10px]">Live</Badge>
-            </div>
-
-            <div className="space-y-3">
-              {chatMessages.map((message) => (
-                <div key={message.id} className="rounded-lg border border-border bg-background/40 p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                        <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-sidebar-foreground truncate">{message.author}</p>
-                        <p className="text-xs text-muted-foreground">{message.timestamp}</p>
-                      </div>
-                    </div>
-
-                    {message.mentions?.length ? (
-                      <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                        {message.mentions.length} mention{message.mentions.length > 1 ? "s" : ""}
-                      </Badge>
-                    ) : null}
-                  </div>
-
-                  {renderMessageContent(message)}
-
-                  {message.attachments?.length ? (
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      {message.attachments.map((file) => (
-                        <div
-                          key={`${message.id}-${file}`}
-                          className="flex items-center gap-2 rounded-md border border-border px-2 py-1 bg-muted/50"
-                        >
-                          <Paperclip className="h-3.5 w-3.5" />
-                          <span className="truncate max-w-[200px]" title={file}>
-                            {file}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-auto space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="gap-2" onClick={handleInsertMention}>
-                  <AtSign className="h-4 w-4" />
-                  Mention
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2" onClick={handleAddEmoji}>
-                  <Smile className="h-4 w-4" />
-                  Emoji
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2" onClick={handleAttachmentClick}>
-                  <Paperclip className="h-4 w-4" />
-                  File
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={handleAttachmentChange}
-                />
-              </div>
-
-              {chatAttachments.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {chatAttachments.map((file) => (
-                    <div
-                      key={`${file.name}-${file.lastModified}`}
-                      className="flex items-center gap-2 rounded-md border border-border px-2 py-1 bg-muted/60"
-                    >
-                      <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-xs truncate max-w-[160px]" title={file.name}>
-                        {file.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(file.name)}
-                        className="text-muted-foreground hover:text-foreground"
-                        aria-label={`Remove ${file.name}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <textarea
-                  value={chatInput}
-                  onChange={(event) => setChatInput(event.target.value)}
-                  placeholder="Write a message with mentions, emoji, or file notes..."
-                  className="w-full min-h-[90px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none transition-all"
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    Tip: use @mentions, emoji, or attach files for richer context.
-                  </p>
-                  <Button
-                    className="gap-2"
-                    onClick={handleSendMessage}
-                    disabled={!chatInput.trim() && chatAttachments.length === 0}
-                  >
-                    <Send className="h-4 w-4" />
-                    <span>Send</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+      </SidebarShell>
 
     </div>
   )
