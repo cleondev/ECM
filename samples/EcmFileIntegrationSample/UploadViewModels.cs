@@ -142,6 +142,8 @@ public sealed class DocumentEditPageViewModel
 
     public DocumentDetailResult? Detail { get; init; }
 
+    public IReadOnlyCollection<TagLabelDto> Tags { get; init; } = Array.Empty<TagLabelDto>();
+
     public string? Message { get; init; }
 }
 
@@ -257,6 +259,9 @@ public sealed class DocumentUpdateForm
 
     [Display(Name = "Cập nhật Group ID")]
     public bool UpdateGroup { get; set; }
+
+    [Display(Name = "Tags")]
+    public List<string> SelectedTagIds { get; set; } = new();
 }
 
 public sealed class DocumentDeleteForm

@@ -22,11 +22,9 @@
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <a class="btn btn-outline-secondary" asp-action="Tags">
-            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
             Reload list
         </a>
         <a class="btn btn-primary" asp-action="Tags" asp-route-openForm="create" asp-fragment="create-tag" target="_blank" rel="noreferrer">
-            <span class="badge bg-light text-dark border me-1">Load giao diện</span>
             Add new tag
         </a>
     </div>
@@ -35,10 +33,7 @@
 <div class="row g-4">
     <div class="col-lg-7">
         <div class="card shadow-sm">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <span>Danh sách tag</span>
-                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
-            </div>
+            <div class="card-header">Danh sách tag</div>
             <div class="card-body">
                 @if (Model.Tags is { Count: > 0 })
                 {
@@ -78,7 +73,6 @@
                                         <td class="text-end">
                                             <div class="d-flex gap-2 justify-content-end flex-wrap">
                                                 <a class="btn btn-sm btn-outline-primary" asp-action="Tags" asp-route-editTagId="@tag.Id" asp-route-openForm="update" asp-fragment="update-tag" target="_blank" rel="noreferrer">
-                                                    <span class="badge bg-light text-dark border me-1">Load giao diện</span>
                                                     Edit
                                                 </a>
                                                 <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteTagModal" data-tag-id="@tag.Id" data-tag-name="@tag.Name">
@@ -102,10 +96,7 @@
     </div>
     <div class="col-lg-5">
         <div id="create-tag" class="card shadow-sm mb-3 @(focusCreate ? "border-primary" : string.Empty)">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <span>Tạo tag</span>
-                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
-            </div>
+            <div class="card-header">Tạo tag</div>
             <div class="card-body">
                 <form asp-action="CreateTag" method="post" class="needs-validation" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -141,10 +132,7 @@
         </div>
 
         <div id="update-tag" class="card shadow-sm mb-3 @(focusUpdate ? "border-primary" : string.Empty)">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <span>Cập nhật tag</span>
-                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
-            </div>
+            <div class="card-header">Cập nhật tag</div>
             <div class="card-body">
                 <form asp-action="UpdateTag" method="post" class="needs-validation" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
@@ -190,10 +178,7 @@
         </div>
 
         <div class="card shadow-sm @(focusDelete ? "border-primary" : string.Empty)">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <span>Xoá tag</span>
-                <span class="badge bg-danger-subtle text-danger border border-danger">Gọi API ECM</span>
-            </div>
+            <div class="card-header">Xoá tag</div>
             <div class="card-body">
                 <form asp-action="DeleteTag" method="post" class="needs-validation" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>

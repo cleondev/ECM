@@ -27,6 +27,8 @@ public interface IEcmIntegrationService
         IReadOnlyCollection<TagLabelDto>? knownTags,
         CancellationToken cancellationToken);
 
+    Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken);
+
     Task<DocumentListResult?> ListDocumentsAsync(DocumentListQuery query, CancellationToken cancellationToken);
 
     Task<DocumentListItem?> UpdateDocumentAsync(Guid documentId, DocumentUpdateRequest request, CancellationToken cancellationToken);
@@ -77,6 +79,11 @@ public sealed class EcmIntegrationService(EcmFileClient client) : IEcmIntegratio
     public Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken)
     {
         return _client.DeleteTagAsync(tagId, cancellationToken);
+    }
+
+    public Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken)
+    {
+        return _client.RemoveTagFromDocumentAsync(documentId, tagId, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<TagLabelDto>> AssignTagsAsync(

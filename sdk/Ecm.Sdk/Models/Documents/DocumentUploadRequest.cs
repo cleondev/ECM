@@ -65,6 +65,11 @@ public sealed record DocumentUploadRequest
     public string? Title { get; init; }
 
     /// <summary>
+    /// Optional original file name preserved for downstream consumers.
+    /// </summary>
+    public string? FileName { get; init; }
+
+    /// <summary>
     /// Optional MIME type sent to ECM when it cannot be inferred from the file.
     /// </summary>
     public string? ContentType { get; init; }
