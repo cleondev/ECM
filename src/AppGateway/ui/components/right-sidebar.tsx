@@ -559,11 +559,18 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
   return (
     <div className="w-full h-full border-l border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col relative z-20">
       <div className="p-4 border-b border-sidebar-border/80 flex items-center justify-between flex-shrink-0">
-        <div>
+        <div className="space-y-1">
           <h2 className="font-semibold text-sidebar-foreground">File Details</h2>
-          <Badge variant="outline" className={cn("text-[10px] mt-2", tabBadgeStyles[activeTab])}>
-            {tabLabels[activeTab]}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className={cn("text-[10px]", tabBadgeStyles[activeTab])}>
+              {tabLabels[activeTab]}
+            </Badge>
+            {selectedFile?.latestVersionNumber || selectedFile?.latestVersionId ? (
+              <span className="text-[11px] text-muted-foreground">
+                Version {selectedFile.latestVersionNumber ?? selectedFile.latestVersionId}
+              </span>
+            ) : null}
+          </div>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -575,6 +582,7 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
         activeTab={activeTab}
         onTabChange={(value) => onTabChange((value as ActiveTab) || "info")}
         headerBadge={`Version ${selectedFile?.latestVersionNumber ?? selectedFile?.latestVersionId ?? "N/A"}`}
+        showTabsList={false}
       >
         <TabsContent value="info" className="mt-0 h-full">
           <div className="space-y-4">
