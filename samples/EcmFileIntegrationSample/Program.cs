@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using samples.EcmFileIntegrationSample;
 using Ecm.Sdk.Extensions;
 using Ecm.Sdk.Configuration;
+using EcmFileIntegrationSample.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,7 @@ builder.Services.AddSingleton<IPostConfigureOptions<EcmIntegrationOptions>>(serv
     new EcmUserOptionsConfigurator(serviceProvider.GetRequiredService<EcmUserSelection>()));
 
 builder.Services.AddEcmSdk(options => EcmUserOptionsConfigurator.Copy(userStore.DefaultOptions, options));
+builder.Services.AddScoped<IEcmIntegrationService, EcmIntegrationService>();
 
 builder.Services.AddHttpContextAccessor();
 

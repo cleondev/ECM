@@ -15,6 +15,12 @@ internal static class ClaimsPrincipalExtensions
         ClaimTypes.Email
     ];
 
+    private static readonly string[] CandidateObjectIdClaimTypes =
+    [
+        "oid",
+        ClaimTypes.NameIdentifier
+    ];
+
     public static async Task<Guid?> GetUserObjectIdAsync(
         this ClaimsPrincipal? principal,
         IUserLookupService userLookupService,
@@ -26,6 +32,15 @@ internal static class ClaimsPrincipalExtensions
         }
 
         ArgumentNullException.ThrowIfNull(userLookupService);
+
+        foreach (var claimType in CandidateObjectIdClaimTypes)
+        {
+            var claimValue = principal.FindFirstValue(claimType);
+            if (Guid.TryParse(claimValue, out var parsed) && parsed != Guid.Empty)
+            {
+                return parsed;
+            }
+        }
 
         foreach (var claimType in CandidateUpnClaimTypes)
         {

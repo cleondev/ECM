@@ -437,6 +437,34 @@ public sealed class EcmFileClient
         return true;
     }
 
+    /// <summary>
+    /// Deletes a document by specifying one of its version identifiers.
+    /// </summary>
+    /// <param name="versionId">Identifier of the version belonging to the document.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when the document was deleted; otherwise, <c>false</c> when missing or forbidden.</returns>
+    public async Task<bool> DeleteDocumentByVersionAsync(Guid versionId, CancellationToken cancellationToken)
+    {
+        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+        using var response = await _httpClient.DeleteAsync($"{GetFileManagementEndpoint()}/{versionId}", cancellationToken);
+
+        if (response.StatusCode is HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Document version {VersionId} không tồn tại khi xoá.", versionId);
+            return false;
+        }
+
+        if (response.StatusCode is HttpStatusCode.Forbidden)
+        {
+            _logger.LogWarning("Không đủ quyền xoá tài liệu chứa version {VersionId}.", versionId);
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
     private string GetDocumentsEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/documents"
         : "/api/ecm/documents";
@@ -448,6 +476,10 @@ public sealed class EcmFileClient
     private string GetPreviewEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/documents/files/preview"
         : "/api/ecm/files/preview";
+
+    private string GetFileManagementEndpoint() => _options.IsOnBehalfEnabled
+        ? "/api/documents/files"
+        : "/api/ecm/files";
 
     private string GetTagsEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/tags"

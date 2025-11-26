@@ -68,6 +68,8 @@ public interface IEcmApiClient
 
     Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default);
 
+    Task<bool> DeleteDocumentByVersionAsync(Guid versionId, CancellationToken cancellationToken = default);
+
     Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default);
 
     Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default);
