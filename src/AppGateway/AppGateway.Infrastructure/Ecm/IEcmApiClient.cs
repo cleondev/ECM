@@ -72,6 +72,10 @@ public interface IEcmApiClient
 
     Task<Uri?> GetDocumentVersionDownloadUriAsync(Guid versionId, CancellationToken cancellationToken = default);
 
+    Task<DocumentFileContent?> DownloadDocumentVersionAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default);
 
     Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default);

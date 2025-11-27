@@ -329,17 +329,17 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     }
 
     [HttpGet("files/download/{versionId:guid}")]
-    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DownloadVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        var downloadUri = await _client.GetDocumentVersionDownloadUriAsync(versionId, cancellationToken);
-        if (downloadUri is null)
+        var file = await _client.DownloadDocumentVersionAsync(versionId, cancellationToken);
+        if (file is null)
         {
             return NotFound();
         }
 
-        return Redirect(downloadUri.ToString());
+        return DocumentFileResultFactory.Create(file);
     }
 
     [HttpGet("files/preview/{versionId:guid}")]
