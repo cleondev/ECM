@@ -185,6 +185,135 @@ public class HomeController(
         }
     }
 
+    [HttpGet]
+    public async Task<IActionResult> BulkUpload(CancellationToken cancellationToken)
+    {
+        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
+        return View(await BuildBulkUploadViewModelAsync(BuildDefaultBulkUploadForm(), cancellationToken: cancellationToken));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BulkUpload([Bind(Prefix = "Form")] BulkUploadFormModel form, CancellationToken cancellationToken)
+    {
+        var selectedUser = ApplyUserSelection(form.UserEmail, null);
+        var documentTypeId = ParseGuidOrNull(form.DocumentTypeId, nameof(form.DocumentTypeId));
+        var ownerId = ParseGuidOrNull(form.OwnerId, nameof(form.OwnerId));
+        var createdBy = ParseGuidOrNull(form.CreatedBy, nameof(form.CreatedBy));
+        var selectedTagIds = ParseGuidList(form.SelectedTagIds, nameof(form.SelectedTagIds));
+
+        if (form.Files is null || form.Files.Count == 0)
+        {
+            ModelState.AddModelError(nameof(form.Files), "Cần ít nhất một file để upload.");
+        }
+
+        if (form.Files is not null)
+        {
+            for (var index = 0; index < form.Files.Count; index++)
+            {
+                var file = form.Files[index];
+                if (file is null || file.Length == 0)
+                {
+                    ModelState.AddModelError(nameof(form.Files), $"File thứ {index + 1} trống hoặc không hợp lệ.");
+                }
+            }
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(await BuildBulkUploadViewModelAsync(form, cancellationToken: cancellationToken));
+        }
+
+        var profile = await _ecmService.GetProfileAsync(cancellationToken);
+        if (profile is null)
+        {
+            return View(await BuildBulkUploadViewModelAsync(
+                form,
+                cancellationToken: cancellationToken,
+                error: "Không lấy được thông tin người dùng từ ECM. Kiểm tra cấu hình ApiKey/SSO."));
+        }
+
+        ownerId ??= profile.Id;
+        createdBy ??= profile.Id;
+
+        var tempFiles = new List<string>();
+        var uploadFiles = new List<DocumentUploadFile>();
+
+        try
+        {
+            foreach (var file in form.Files)
+            {
+                var originalFileName = Path.GetFileName(file.FileName ?? string.Empty);
+                var tempFilePath = Path.Combine(
+                    Path.GetTempPath(),
+                    $"{Path.GetFileNameWithoutExtension(originalFileName)}-{Guid.NewGuid():N}{Path.GetExtension(originalFileName)}");
+
+                await using (var stream = System.IO.File.Create(tempFilePath))
+                {
+                    await file.CopyToAsync(stream, cancellationToken);
+                }
+
+                tempFiles.Add(tempFilePath);
+                uploadFiles.Add(new DocumentUploadFile(
+                    tempFilePath,
+                    string.IsNullOrWhiteSpace(file.FileName) ? null : file.FileName,
+                    string.IsNullOrWhiteSpace(file.ContentType) ? null : file.ContentType));
+            }
+
+            var batchRequest = new DocumentBatchUploadRequest(
+                ownerId.Value,
+                createdBy.Value,
+                string.IsNullOrWhiteSpace(form.DocType) ? Options.DocType : form.DocType,
+                string.IsNullOrWhiteSpace(form.Status) ? Options.Status : form.Status,
+                string.IsNullOrWhiteSpace(form.Sensitivity) ? Options.Sensitivity : form.Sensitivity,
+                uploadFiles)
+            {
+                DocumentTypeId = documentTypeId,
+                Title = string.IsNullOrWhiteSpace(form.Title) ? null : form.Title,
+                FlowDefinition = string.IsNullOrWhiteSpace(form.FlowDefinition) ? null : form.FlowDefinition,
+                TagIds = selectedTagIds,
+            };
+
+            var batchResult = await _ecmService.UploadDocumentsBatchAsync(batchRequest, cancellationToken);
+            var tags = await _ecmService.ListTagsAsync(cancellationToken);
+
+            return View(await BuildBulkUploadViewModelAsync(
+                new BulkUploadFormModel
+                {
+                    DocType = form.DocType,
+                    Status = form.Status,
+                    Sensitivity = form.Sensitivity,
+                    Title = form.Title,
+                    FlowDefinition = form.FlowDefinition,
+                    UserEmail = form.UserEmail ?? selectedUser.Email,
+                    SelectedTagIds = form.SelectedTagIds,
+                },
+                result: new BulkUploadResultModel
+                {
+                    Documents = batchResult.Documents,
+                    Failures = batchResult.Failures,
+                    Profile = profile,
+                },
+                tags: tags,
+                cancellationToken: cancellationToken));
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Upload hàng loạt thất bại.");
+            return View(await BuildBulkUploadViewModelAsync(
+                form,
+                cancellationToken: cancellationToken,
+                error: "Upload thất bại. Kiểm tra log để biết thêm chi tiết."));
+        }
+        finally
+        {
+            foreach (var file in tempFiles)
+            {
+                TryDeleteFile(file);
+            }
+        }
+    }
+
     // ----------------------------------------------------
     // Tags
     // ----------------------------------------------------
@@ -463,6 +592,16 @@ public class HomeController(
         UserEmail = Options.OnBehalfUserEmail,
     };
 
+    private BulkUploadFormModel BuildDefaultBulkUploadForm() => new()
+    {
+        DocType = Options.DocType,
+        Status = Options.Status,
+        Sensitivity = Options.Sensitivity,
+        Title = Options.Title,
+        DocumentTypeId = Options.DocumentTypeId?.ToString(),
+        UserEmail = Options.OnBehalfUserEmail,
+    };
+
     private EcmUserConfiguration ApplyUserSelection(string? userEmail, string? fallbackEmail)
     {
         var resolvedEmail = userEmail ?? fallbackEmail ?? Options.OnBehalfUserEmail;
@@ -509,6 +648,32 @@ public class HomeController(
         SetConnection(connection);
 
         return new UploadPageViewModel
+        {
+            Connection = connection,
+            Form = form,
+            Result = result,
+            Error = error,
+            Tags = tags,
+            CurrentProfile = profile ?? result?.Profile,
+        };
+    }
+
+    private async Task<BulkUploadPageViewModel> BuildBulkUploadViewModelAsync(
+        BulkUploadFormModel form,
+        BulkUploadResultModel? result = null,
+        IReadOnlyCollection<TagLabelDto>? tags = null,
+        string? error = null,
+        CancellationToken cancellationToken = default)
+    {
+        form.UserEmail ??= Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email;
+
+        tags ??= await LoadTagsAsync(cancellationToken);
+        var profile = await LoadProfileAsync(cancellationToken);
+
+        var connection = BuildConnectionInfo();
+        SetConnection(connection);
+
+        return new BulkUploadPageViewModel
         {
             Connection = connection,
             Form = form,

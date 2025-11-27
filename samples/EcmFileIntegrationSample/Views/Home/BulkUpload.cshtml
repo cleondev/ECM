@@ -1,0 +1,172 @@
+@model BulkUploadPageViewModel
+@{
+    ViewData["Title"] = "Upload hàng loạt";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.Error
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header">Upload nhiều tài liệu lên ECM</div>
+            <div class="card-body">
+                <form asp-action="BulkUpload" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Form.UserEmail" class="form-label"></label>
+                            <input asp-for="Form.UserEmail" class="form-control" placeholder="Email on-behalf" />
+                            <span asp-validation-for="Form.UserEmail" class="text-danger"></span>
+                            <div class="form-text">Email user gửi lên ECM khi upload (on-behalf).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.Title" class="form-label"></label>
+                            <input asp-for="Form.Title" class="form-control" placeholder="Tiêu đề chung (tự đánh số khi có nhiều file)" />
+                            <span asp-validation-for="Form.Title" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.DocumentTypeId" class="form-label"></label>
+                            <input asp-for="Form.DocumentTypeId" class="form-control" placeholder="Tuỳ chọn" />
+                            <span asp-validation-for="Form.DocumentTypeId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.FlowDefinition" class="form-label"></label>
+                            <input asp-for="Form.FlowDefinition" class="form-control" placeholder="Key workflow (tuỳ chọn)" />
+                            <span asp-validation-for="Form.FlowDefinition" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Form.DocType" class="form-label"></label>
+                            <input asp-for="Form.DocType" class="form-control" />
+                            <span asp-validation-for="Form.DocType" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Form.Status" class="form-label"></label>
+                            <input asp-for="Form.Status" class="form-control" />
+                            <span asp-validation-for="Form.Status" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Form.Sensitivity" class="form-label"></label>
+                            <input asp-for="Form.Sensitivity" class="form-control" />
+                            <span asp-validation-for="Form.Sensitivity" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.OwnerId" class="form-label"></label>
+                            <input asp-for="Form.OwnerId" class="form-control" placeholder="Để trống để lấy từ token" />
+                            <span asp-validation-for="Form.OwnerId" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Form.CreatedBy" class="form-label"></label>
+                            <input asp-for="Form.CreatedBy" class="form-control" placeholder="Để trống để lấy từ token" />
+                            <span asp-validation-for="Form.CreatedBy" class="text-danger"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Form.SelectedTagIds" class="form-label fw-semibold"></label>
+                            @if (Model.Tags is { Count: > 0 })
+                            {
+                                <select asp-for="Form.SelectedTagIds" class="form-select" multiple size="6">
+                                    @foreach (var tag in Model.Tags)
+                                    {
+                                        <option value="@tag.Id">@tag.Name (@(tag.NamespaceDisplayName ?? tag.NamespaceScope ?? "Không rõ namespace"))</option>
+                                    }
+                                </select>
+                                <div class="form-text">Chọn nhiều tag để gán ngay sau khi upload (tuỳ chọn).</div>
+                            }
+                            else
+                            {
+                                <input class="form-control" value="Chưa có tag nào" disabled />
+                                <div class="form-text">Tạo tag ở trang Tag để gắn vào tài liệu.</div>
+                            }
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Form.Files" class="form-label fw-semibold"></label>
+                            <input asp-for="Form.Files" class="form-control" multiple />
+                            <span asp-validation-for="Form.Files" class="text-danger"></span>
+                            <div class="form-text">Chọn nhiều file để gửi lên trong một request duy nhất.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4">
+                        <button type="submit" class="btn btn-primary">Upload hàng loạt</button>
+                        <button type="reset" class="btn btn-outline-secondary">Làm mới</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="position-sticky" style="top: 1rem;">
+            @if (Model.Result is not null)
+            {
+                <div class="card border-success shadow-sm mb-3">
+                    <div class="card-header bg-success text-white">Kết quả upload</div>
+                    <div class="card-body">
+                        <p class="mb-2">Thành công: <strong>@Model.Result.Documents.Count</strong></p>
+                        <p class="mb-3">Thất bại: <strong>@Model.Result.Failures.Count</strong></p>
+                        @if (Model.Result.Documents.Count > 0)
+                        {
+                            <div class="mb-3">
+                                <div class="fw-semibold mb-2">Tài liệu đã tạo</div>
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var document in Model.Result.Documents)
+                                    {
+                                        <li class="list-group-item px-0">
+                                            <div class="fw-semibold">@document.Title</div>
+                                            <div class="small text-muted">ID: @document.Id</div>
+                                            <div class="small">Doc type: @document.DocType | Status: @document.Status</div>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        @if (Model.Result.Failures.Count > 0)
+                        {
+                            <div class="mb-0">
+                                <div class="fw-semibold mb-2 text-danger">File lỗi</div>
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var failure in Model.Result.Failures)
+                                    {
+                                        <li class="list-group-item px-0 text-danger">
+                                            <div class="fw-semibold">@failure.FileName</div>
+                                            <div class="small">@failure.Message</div>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header">Hướng dẫn nhanh</div>
+                    <div class="card-body">
+                        <ol class="mb-0 ps-3">
+                            <li class="mb-2">Điền metadata (doc type, status, sensitivity) nếu muốn.</li>
+                            <li class="mb-2">Chọn nhiều file cần upload.</li>
+                            <li class="mb-0">Nhấn <strong>Upload hàng loạt</strong> để gửi tất cả file trong một request.</li>
+                        </ol>
+                    </div>
+                </div>
+            }
+
+            @if (Model.CurrentProfile is not null)
+            {
+                <div class="card mt-3 shadow-sm">
+                    <div class="card-header">Thông tin người dùng từ token</div>
+                    <div class="card-body">
+                        <p class="mb-1 fw-semibold">@Model.CurrentProfile.DisplayName</p>
+                        <p class="mb-1">Email: @Model.CurrentProfile.Email</p>
+                        <p class="mb-0">User ID: @Model.CurrentProfile.Id</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
