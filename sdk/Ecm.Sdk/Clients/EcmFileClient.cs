@@ -129,6 +129,100 @@ public sealed class EcmFileClient
     }
 
     /// <summary>
+    /// Uploads multiple documents and metadata to ECM in a single request.
+    /// </summary>
+    /// <param name="uploadRequest">Metadata describing the documents being uploaded.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The combined batch upload result.</returns>
+    public async Task<DocumentBatchResult> UploadDocumentsBatchAsync(
+        DocumentBatchUploadRequest uploadRequest,
+        CancellationToken cancellationToken)
+    {
+        var fileStreams = new List<Stream>();
+
+        try
+        {
+            using var content = new MultipartFormDataContent
+            {
+                { new StringContent(uploadRequest.OwnerId.ToString()), "ownerId" },
+                { new StringContent(uploadRequest.CreatedBy.ToString()), "createdBy" },
+                { new StringContent(uploadRequest.DocType), "docType" },
+                { new StringContent(uploadRequest.Status), "status" },
+                { new StringContent(uploadRequest.Sensitivity), "sensitivity" },
+            };
+
+            if (uploadRequest.DocumentTypeId is { } docTypeId)
+            {
+                content.Add(new StringContent(docTypeId.ToString()), "documentTypeId");
+            }
+
+            if (!string.IsNullOrWhiteSpace(uploadRequest.Title))
+            {
+                content.Add(new StringContent(uploadRequest.Title), "title");
+            }
+
+            if (!string.IsNullOrWhiteSpace(uploadRequest.FlowDefinition))
+            {
+                content.Add(new StringContent(uploadRequest.FlowDefinition), "flowDefinition");
+            }
+
+            foreach (var tagId in uploadRequest.TagIds)
+            {
+                if (tagId == Guid.Empty)
+                {
+                    continue;
+                }
+
+                content.Add(new StringContent(tagId.ToString()), "Tags");
+            }
+
+            foreach (var file in uploadRequest.Files)
+            {
+                var stream = File.OpenRead(file.FilePath);
+                fileStreams.Add(stream);
+
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "application/octet-stream");
+
+                var fileName = string.IsNullOrWhiteSpace(file.FileName)
+                    ? Path.GetFileName(file.FilePath)
+                    : file.FileName;
+
+                content.Add(fileContent, "Files", fileName);
+            }
+
+            await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
+
+            using var response = await _httpClient.PostAsync(GetDocumentsBatchEndpoint(), content, cancellationToken);
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError(
+                    "Failed to upload document batch. Status: {StatusCode}. Body: {Body}",
+                    response.StatusCode,
+                    body);
+                throw new HttpRequestException($"Batch upload failed with status {(int)response.StatusCode}: {body}");
+            }
+
+            var result = JsonSerializer.Deserialize<DocumentBatchResult>(body, _jsonOptions);
+            if (result is null)
+            {
+                throw new HttpRequestException("Batch upload succeeded but response body was empty.");
+            }
+
+            return result;
+        }
+        finally
+        {
+            foreach (var stream in fileStreams)
+            {
+                await stream.DisposeAsync();
+            }
+        }
+    }
+
+    /// <summary>
     /// Retrieves detailed information for a specific document.
     /// </summary>
     /// <param name="documentId">Identifier of the document to retrieve.</param>
@@ -473,6 +567,10 @@ public sealed class EcmFileClient
     private string GetDocumentsEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/documents"
         : "/api/ecm/documents";
+
+    private string GetDocumentsBatchEndpoint() => _options.IsOnBehalfEnabled
+        ? "/api/documents/batch"
+        : "/api/ecm/documents/batch";
 
     private string GetDownloadEndpoint() => _options.IsOnBehalfEnabled
         ? "/api/documents/files/download"

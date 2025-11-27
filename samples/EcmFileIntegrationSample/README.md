@@ -85,6 +85,8 @@ Trên giao diện, bạn có thể:
 3. Chọn tag đa chọn (nếu muốn gán ngay khi upload).
 4. Chọn file bất kỳ (PDF, hình ảnh, văn bản, …) và nhấn **Upload**.
 
+Trang **Upload hàng loạt** minh hoạ API `POST /api/ecm/documents/batch` (hoặc `/api/documents/batch` khi đi qua AppGateway + on-behalf). Bạn có thể chọn nhiều file trong một request duy nhất, SDK sẽ đóng gói metadata (doc type, status, sensitivity, tag, flow definition) và hiển thị danh sách tài liệu đã tạo kèm các file lỗi (nếu có).
+
 Ứng dụng sẽ:
 
 1. Gọi `GET /api/iam/profile` để xác định người dùng (để dùng làm owner/creator nếu để trống).

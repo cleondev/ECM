@@ -10,6 +10,10 @@ public interface IEcmIntegrationService
 
     Task<DocumentDto?> UploadDocumentAsync(DocumentUploadRequest uploadRequest, CancellationToken cancellationToken);
 
+    Task<DocumentBatchResult> UploadDocumentsBatchAsync(
+        DocumentBatchUploadRequest uploadRequest,
+        CancellationToken cancellationToken);
+
     Task<Uri?> GetDownloadUriAsync(Guid versionId, CancellationToken cancellationToken);
 
     Task<IReadOnlyCollection<TagLabelDto>> ListTagsAsync(CancellationToken cancellationToken);
@@ -54,6 +58,13 @@ public sealed class EcmIntegrationService(EcmFileClient client) : IEcmIntegratio
     public Task<DocumentDto?> UploadDocumentAsync(DocumentUploadRequest uploadRequest, CancellationToken cancellationToken)
     {
         return _client.UploadDocumentAsync(uploadRequest, cancellationToken);
+    }
+
+    public Task<DocumentBatchResult> UploadDocumentsBatchAsync(
+        DocumentBatchUploadRequest uploadRequest,
+        CancellationToken cancellationToken)
+    {
+        return _client.UploadDocumentsBatchAsync(uploadRequest, cancellationToken);
     }
 
     public Task<Uri?> GetDownloadUriAsync(Guid versionId, CancellationToken cancellationToken)

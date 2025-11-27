@@ -9,9 +9,10 @@
 <body class="bg-light">
     <header class="border-bottom bg-white mb-3 shadow-sm">
         <div class="container py-3">
-            @{
+            @{ 
                 var action = ViewContext.RouteData.Values["action"]?.ToString();
                 var documentActive = action is "Documents" or "EditDocument" or "DocumentDetail";
+                var bulkUploadActive = action is "BulkUpload";
                 var connection = ViewBag.Connection as ConnectionInfoViewModel;
                 var returnUrl = Context.Request.Path + Context.Request.QueryString;
             }
@@ -34,6 +35,7 @@
                     <a class="nav-link @(action == "Index" ? "active" : string.Empty)" asp-controller="Home" asp-action="Index">Tổng quan</a>
                     <a class="nav-link @(documentActive ? "active" : string.Empty)" asp-controller="Home" asp-action="Documents">Documents</a>
                     <a class="nav-link @(action == "Upload" ? "active" : string.Empty)" asp-controller="Home" asp-action="Upload">Upload</a>
+                    <a class="nav-link @(bulkUploadActive ? "active" : string.Empty)" asp-controller="Home" asp-action="BulkUpload">Upload hàng loạt</a>
                     <a class="nav-link @(action == "Tags" ? "active" : string.Empty)" asp-controller="Home" asp-action="Tags">Tags</a>
                 </nav>
                 @if (connection is not null)

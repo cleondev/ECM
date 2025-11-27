@@ -39,6 +39,43 @@ public sealed class UploadFormModel
     public IFormFile? File { get; set; }
 }
 
+public sealed class BulkUploadFormModel
+{
+    [Display(Name = "Doc type")]
+    public string DocType { get; set; } = "General";
+
+    [Display(Name = "Status")]
+    public string Status { get; set; } = "Draft";
+
+    [Display(Name = "Sensitivity")]
+    public string Sensitivity { get; set; } = "Internal";
+
+    [Display(Name = "User email")]
+    public string? UserEmail { get; set; }
+
+    [Display(Name = "Owner ID")]
+    public string? OwnerId { get; set; }
+
+    [Display(Name = "Created by")]
+    public string? CreatedBy { get; set; }
+
+    [Display(Name = "Document type ID")]
+    public string? DocumentTypeId { get; set; }
+
+    [Display(Name = "Tiêu đề")]
+    public string? Title { get; set; }
+
+    [Display(Name = "Tags")]
+    public List<string> SelectedTagIds { get; set; } = new();
+
+    [Display(Name = "Flow definition")]
+    public string? FlowDefinition { get; set; }
+
+    [Required(ErrorMessage = "Vui lòng chọn ít nhất một file để upload.")]
+    [Display(Name = "Files")]
+    public List<IFormFile> Files { get; set; } = new();
+}
+
 public sealed class UploadResultModel
 {
     public required DocumentDto Document { get; init; }
@@ -48,6 +85,15 @@ public sealed class UploadResultModel
     public UserProfile? Profile { get; init; }
 
     public IReadOnlyCollection<TagLabelDto> AppliedTags { get; init; } = [];
+}
+
+public sealed class BulkUploadResultModel
+{
+    public IReadOnlyCollection<DocumentDto> Documents { get; init; } = Array.Empty<DocumentDto>();
+
+    public IReadOnlyCollection<DocumentUploadFailure> Failures { get; init; } = Array.Empty<DocumentUploadFailure>();
+
+    public UserProfile? Profile { get; init; }
 }
 
 public sealed record EcmUserViewModel(string Email, string DisplayName, bool IsSelected);
@@ -85,6 +131,21 @@ public sealed class UploadPageViewModel
     public UploadFormModel Form { get; init; } = new();
 
     public UploadResultModel? Result { get; init; }
+
+    public string? Error { get; init; }
+
+    public IReadOnlyCollection<TagLabelDto>? Tags { get; init; }
+
+    public UserProfile? CurrentProfile { get; init; }
+}
+
+public sealed class BulkUploadPageViewModel
+{
+    public ConnectionInfoViewModel Connection { get; init; } = new();
+
+    public BulkUploadFormModel Form { get; init; } = new();
+
+    public BulkUploadResultModel? Result { get; init; }
 
     public string? Error { get; init; }
 
