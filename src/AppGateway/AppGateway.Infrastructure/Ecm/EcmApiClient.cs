@@ -383,6 +383,26 @@ internal sealed class EcmApiClient(
         }
     }
 
+    public async Task<DocumentFileContent?> DownloadDocumentVersionAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/files/download/{versionId}", cancellationToken);
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await CreateDocumentFileContentAsync(response, enableRangeProcessing: true, cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(
         CancellationToken cancellationToken = default)
     {

@@ -635,17 +635,20 @@ public static class DocumentEndpoints
             return TypedResults.NotFound();
         }
 
-        var linkResult = await fileAccess.GetDownloadLinkAsync(
-            version.StorageKey,
-            DownloadLinkLifetime,
-            cancellationToken
-        );
-        if (linkResult.IsFailure || linkResult.Value is null)
+        var contentResult = await fileAccess.GetContentAsync(version.StorageKey, cancellationToken);
+        if (contentResult.IsFailure || contentResult.Value is null)
         {
-            return MapFileErrors(linkResult.Errors);
+            return MapFileErrors(contentResult.Errors);
         }
 
-        return TypedResults.Redirect(linkResult.Value.Uri.ToString(), permanent: false);
+        var file = contentResult.Value;
+        return TypedResults.File(
+            fileContents: file.Content,
+            contentType: file.ContentType,
+            fileDownloadName: file.FileName,
+            enableRangeProcessing: true,
+            lastModified: file.LastModifiedUtc
+        );
     }
 
     private static async Task<IResult> PreviewFileAsync(
