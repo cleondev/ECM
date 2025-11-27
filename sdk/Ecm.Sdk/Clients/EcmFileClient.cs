@@ -206,12 +206,7 @@ public sealed class EcmFileClient
             }
 
             var result = JsonSerializer.Deserialize<DocumentBatchResult>(body, _jsonOptions);
-            if (result is null)
-            {
-                throw new HttpRequestException("Batch upload succeeded but response body was empty.");
-            }
-
-            return result;
+            return result is null ? throw new HttpRequestException("Batch upload succeeded but response body was empty.") : result;
         }
         finally
         {

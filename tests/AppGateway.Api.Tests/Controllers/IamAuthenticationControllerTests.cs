@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+
 using AppGateway.Api.Auth;
 using AppGateway.Api.Controllers.IAM;
 using AppGateway.Contracts.Documents;
-using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -16,7 +12,9 @@ using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
@@ -24,6 +22,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+
 using Xunit;
 
 namespace AppGateway.Api.Tests.Controllers;
@@ -405,15 +404,20 @@ public class IamAuthenticationControllerTests
         {
             throw new NotImplementedException();
         }
+
+        public Task<DocumentFileContent?> DownloadDocumentVersionAsync(Guid versionId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class RecordingAuthenticationService : IAuthenticationService
     {
         public ClaimsPrincipal? LastSignInPrincipal { get; private set; }
 
-        public List<string> SignInSchemes { get; } = new();
+        public List<string> SignInSchemes { get; } = [];
 
-        public List<string> SignOutSchemes { get; } = new();
+        public List<string> SignOutSchemes { get; } = [];
 
         public Task<AuthenticateResult> AuthenticateAsync(HttpContext context, string? scheme)
             => Task.FromResult(AuthenticateResult.NoResult());

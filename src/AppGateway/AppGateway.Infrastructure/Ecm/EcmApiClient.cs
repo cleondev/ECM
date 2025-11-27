@@ -1,24 +1,19 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+
+using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
-using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Signatures;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Auth;
+
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
@@ -27,6 +22,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
+
 using Shared.Extensions.Http;
 
 namespace AppGateway.Infrastructure.Ecm;
@@ -40,7 +36,7 @@ internal sealed class EcmApiClient(
 {
     private const string HomeAccountIdClaimType = "homeAccountId";
     private const string ApiKeyHeaderName = "X-Api-Key";
-
+    private const string subjectTypePublic = "public";
     private readonly HttpClient _httpClient = httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly ITokenAcquisition _tokenAcquisition = tokenAcquisition;
@@ -533,7 +529,7 @@ internal sealed class EcmApiClient(
         var shortUrl = CreateUri(shareResponse.ShortUrl);
         var expiresAt = shareResponse.ValidTo ?? shareResponse.ValidFrom.AddMinutes(effectiveMinutes);
         var responseSubjectType = NormalizeShareSubjectType(shareResponse.SubjectType);
-        var isPublic = responseSubjectType == "public";
+        var isPublic = responseSubjectType == subjectTypePublic;
         var responseSubjectId = shareResponse.SubjectId;
         if (isPublic)
         {

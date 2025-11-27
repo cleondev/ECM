@@ -1,6 +1,9 @@
 using AppGateway.Api.Auth;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Http;
+
 using Xunit;
 
 namespace AppGateway.Api.Tests.Auth;

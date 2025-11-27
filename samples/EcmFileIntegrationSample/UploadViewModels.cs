@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using Ecm.Sdk.Models.Documents;
 using Ecm.Sdk.Models.Tags;
 
-namespace samples.EcmFileIntegrationSample;
+namespace EcmFileIntegrationSample;
 
 public sealed class UploadFormModel
 {
@@ -32,7 +32,7 @@ public sealed class UploadFormModel
     public string? Title { get; set; }
 
     [Display(Name = "Tags")]
-    public List<string> SelectedTagIds { get; set; } = new();
+    public List<string> SelectedTagIds { get; set; } = [];
 
     [Required(ErrorMessage = "Vui lòng chọn file để upload.")]
     [Display(Name = "File")]
@@ -66,14 +66,14 @@ public sealed class BulkUploadFormModel
     public string? Title { get; set; }
 
     [Display(Name = "Tags")]
-    public List<string> SelectedTagIds { get; set; } = new();
+    public List<string> SelectedTagIds { get; set; } = [];
 
     [Display(Name = "Flow definition")]
     public string? FlowDefinition { get; set; }
 
     [Required(ErrorMessage = "Vui lòng chọn ít nhất một file để upload.")]
     [Display(Name = "Files")]
-    public List<IFormFile> Files { get; set; } = new();
+    public List<IFormFile> Files { get; set; } = [];
 }
 
 public sealed class UploadResultModel
@@ -89,9 +89,9 @@ public sealed class UploadResultModel
 
 public sealed class BulkUploadResultModel
 {
-    public IReadOnlyCollection<DocumentDto> Documents { get; init; } = Array.Empty<DocumentDto>();
+    public IReadOnlyCollection<DocumentDto> Documents { get; init; } = [];
 
-    public IReadOnlyCollection<DocumentUploadFailure> Failures { get; init; } = Array.Empty<DocumentUploadFailure>();
+    public IReadOnlyCollection<DocumentUploadFailure> Failures { get; init; } = [];
 
     public UserProfile? Profile { get; init; }
 }
@@ -203,7 +203,7 @@ public sealed class DocumentEditPageViewModel
 
     public DocumentDetailResult? Detail { get; init; }
 
-    public IReadOnlyCollection<TagLabelDto> Tags { get; init; } = Array.Empty<TagLabelDto>();
+    public IReadOnlyCollection<TagLabelDto> Tags { get; init; } = [];
 
     public string? Message { get; init; }
 }
@@ -322,7 +322,7 @@ public sealed class DocumentUpdateForm
     public bool UpdateGroup { get; set; }
 
     [Display(Name = "Tags")]
-    public List<string> SelectedTagIds { get; set; } = new();
+    public List<string> SelectedTagIds { get; set; } = [];
 }
 
 public sealed class DocumentDeleteForm

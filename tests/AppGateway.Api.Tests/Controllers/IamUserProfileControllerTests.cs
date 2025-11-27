@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+
 using AppGateway.Api.Controllers.IAM;
 using AppGateway.Contracts.Documents;
-using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -15,10 +11,13 @@ using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+
 using Xunit;
 
 namespace AppGateway.Api.Tests.Controllers;
@@ -73,14 +72,9 @@ public class IamUserProfileControllerTests
         return new ClaimsPrincipal(identity);
     }
 
-    private sealed class TrackingEcmApiClient : IEcmApiClient
+    private sealed class TrackingEcmApiClient(UserSummaryDto profile) : IEcmApiClient
     {
-        private UserSummaryDto profile;
-
-        public TrackingEcmApiClient(UserSummaryDto profile)
-        {
-            this.profile = profile;
-        }
+        private readonly UserSummaryDto profile = profile;
 
         Task<IReadOnlyCollection<UserSummaryDto>> IEcmApiClient.GetUsersAsync(CancellationToken cancellationToken)
         {
@@ -268,6 +262,11 @@ public class IamUserProfileControllerTests
         }
 
         public Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<DocumentFileContent?> DownloadDocumentVersionAsync(Guid versionId, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

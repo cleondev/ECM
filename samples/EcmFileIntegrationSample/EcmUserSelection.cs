@@ -2,20 +2,14 @@ using Ecm.Sdk.Configuration;
 
 using Microsoft.Extensions.Options;
 
-namespace samples.EcmFileIntegrationSample;
+namespace EcmFileIntegrationSample;
 
-public sealed class EcmUserSelection
+public sealed class EcmUserSelection(IHttpContextAccessor httpContextAccessor, EcmUserStore store)
 {
     private const string ContextItemKey = "ecm-user-selected";
 
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly EcmUserStore _store;
-
-    public EcmUserSelection(IHttpContextAccessor httpContextAccessor, EcmUserStore store)
-    {
-        _httpContextAccessor = httpContextAccessor;
-        _store = store;
-    }
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+    private readonly EcmUserStore _store = store;
 
     public IReadOnlyCollection<EcmUserConfiguration> GetUsers() => _store.Users;
 
@@ -62,14 +56,9 @@ public sealed class EcmUserSelection
     }
 }
 
-public sealed class EcmUserOptionsConfigurator : IPostConfigureOptions<EcmIntegrationOptions>
+public sealed class EcmUserOptionsConfigurator(EcmUserSelection selection) : IPostConfigureOptions<EcmIntegrationOptions>
 {
-    private readonly EcmUserSelection _selection;
-
-    public EcmUserOptionsConfigurator(EcmUserSelection selection)
-    {
-        _selection = selection;
-    }
+    private readonly EcmUserSelection _selection = selection;
 
     public void PostConfigure(string? name, EcmIntegrationOptions options)
     {

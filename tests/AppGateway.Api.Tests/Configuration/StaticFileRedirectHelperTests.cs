@@ -1,9 +1,10 @@
-using System;
-using System.IO;
 using AppGateway.Api.Configuration;
+
 using FluentAssertions;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
+
 using Xunit;
 
 namespace AppGateway.Api.Tests.Configuration;

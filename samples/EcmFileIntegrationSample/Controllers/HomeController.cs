@@ -7,8 +7,6 @@ using EcmFileIntegrationSample.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-using samples.EcmFileIntegrationSample;
-
 namespace EcmFileIntegrationSample.Controllers;
 
 public class HomeController(
@@ -17,6 +15,8 @@ public class HomeController(
     ILogger<HomeController> logger,
     EcmUserSelection userSelection) : Controller
 {
+    private const string TagMessageKey = "TagMessage";
+    private const string DocumentMessageKey = "DocumentMessage";
     private readonly IEcmIntegrationService _ecmService = ecmService;
     private readonly IOptionsSnapshot<EcmIntegrationOptions> _optionsSnapshot = options;
     private readonly ILogger<HomeController> _logger = logger;
@@ -325,7 +325,7 @@ public class HomeController(
             null,
             null,
             null,
-            TempData["TagMessage"] as string,
+            TempData[TagMessageKey] as string,
             editTagId,
             openForm,
             cancellationToken));
@@ -347,7 +347,7 @@ public class HomeController(
         var request = new TagCreateRequest(namespaceId, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, null);
         await _ecmService.CreateTagAsync(request, cancellationToken);
 
-        TempData["TagMessage"] = "Đã tạo tag mới.";
+        TempData[TagMessageKey] = "Đã tạo tag mới.";
         return RedirectToAction(nameof(Tags));
     }
 
@@ -368,7 +368,7 @@ public class HomeController(
         var request = new TagUpdateRequest(namespaceId.Value, parentId, form.Name, form.SortOrder, form.Color, form.IconKey, form.IsActive, null);
         var updated = await _ecmService.UpdateTagAsync(tagId.Value, request, cancellationToken);
 
-        TempData["TagMessage"] = updated is null ? "Không tìm thấy tag cần cập nhật." : "Đã cập nhật tag.";
+        TempData[TagMessageKey] = updated is null ? "Không tìm thấy tag cần cập nhật." : "Đã cập nhật tag.";
         return RedirectToAction(nameof(Tags));
     }
 
@@ -385,7 +385,7 @@ public class HomeController(
         }
 
         var deleted = await _ecmService.DeleteTagAsync(tagId.Value, cancellationToken);
-        TempData["TagMessage"] = deleted ? "Đã xoá tag." : "Không tìm thấy hoặc không xoá được tag.";
+        TempData[TagMessageKey] = deleted ? "Đã xoá tag." : "Không tìm thấy hoặc không xoá được tag.";
         return RedirectToAction(nameof(Tags));
     }
 
@@ -397,7 +397,7 @@ public class HomeController(
     {
         documentQuery ??= new DocumentQueryForm();
         ApplyUserSelection(documentQuery.UserEmail, documentQuery.UserEmail);
-        var message = TempData["DocumentMessage"] as string;
+        var message = TempData[DocumentMessageKey] as string;
         return View(await BuildDocumentListViewModelAsync(documentQuery, message, cancellationToken));
     }
 
@@ -420,7 +420,7 @@ public class HomeController(
     {
         var detail = await LoadDocumentDetailAsync(id, cancellationToken);
         var message = detail is null ? "Không tìm thấy tài liệu." : null;
-        return View(await BuildDocumentDetailViewModelAsync(detail, message, cancellationToken));
+        return View(await BuildDocumentDetailViewModelAsync(detail, message));
     }
 
     [HttpGet]
@@ -429,14 +429,14 @@ public class HomeController(
         var detail = await LoadDocumentDetailAsync(id, cancellationToken);
         if (detail?.Document.LatestVersion is not { } version)
         {
-            TempData["DocumentMessage"] = "Không tìm thấy phiên bản mới nhất để tải.";
+            TempData[DocumentMessageKey] = "Không tìm thấy phiên bản mới nhất để tải.";
             return RedirectToAction(nameof(Documents));
         }
 
         var download = await _ecmService.DownloadVersionAsync(version.Id, cancellationToken);
         if (download is null)
         {
-            TempData["DocumentMessage"] = "Không thể tải file.";
+            TempData[DocumentMessageKey] = "Không thể tải file.";
             return RedirectToAction(nameof(Documents));
         }
 
@@ -466,7 +466,7 @@ public class HomeController(
         var detail = await LoadDocumentDetailAsync(id, cancellationToken);
         if (detail is null)
         {
-            TempData["DocumentMessage"] = "Không tìm thấy tài liệu cần cập nhật.";
+            TempData[DocumentMessageKey] = "Không tìm thấy tài liệu cần cập nhật.";
             return RedirectToAction(nameof(Documents));
         }
 
@@ -479,7 +479,7 @@ public class HomeController(
             GroupId = detail.Document.GroupId?.ToString(),
             UpdateGroup = detail.Document.GroupId is not null,
             UserEmail = Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email,
-            SelectedTagIds = detail.Document.Tags?.Select(tag => tag.Id.ToString()).ToList() ?? new List<string>(),
+            SelectedTagIds = detail.Document.Tags?.Select(tag => tag.Id.ToString()).ToList() ?? [],
         };
 
         return View(await BuildDocumentEditViewModelAsync(form, detail, null, cancellationToken));
@@ -528,7 +528,7 @@ public class HomeController(
 
         await UpdateDocumentTagsAsync(documentId.Value, detail?.Document.Tags, selectedTagIds, cancellationToken);
 
-        TempData["DocumentMessage"] = "Đã cập nhật document.";
+        TempData[DocumentMessageKey] = "Đã cập nhật document.";
         return RedirectToAction(nameof(Documents));
     }
 
@@ -549,7 +549,7 @@ public class HomeController(
         }
 
         var deleted = await _ecmService.DeleteDocumentAsync(documentId.Value, cancellationToken);
-        TempData["DocumentMessage"] = deleted
+        TempData[DocumentMessageKey] = deleted
             ? "Đã xoá document."
             : "Không tìm thấy hoặc không xoá được document.";
 
@@ -572,7 +572,7 @@ public class HomeController(
         }
 
         var deleted = await _ecmService.DeleteDocumentByVersionAsync(versionId.Value, cancellationToken);
-        TempData["DocumentMessage"] = deleted
+        TempData[DocumentMessageKey] = deleted
             ? "Đã xoá phiên bản tài liệu."
             : "Không tìm thấy hoặc không xoá được phiên bản.";
 
@@ -754,26 +754,26 @@ public class HomeController(
             Connection = connection,
             DocumentQuery = documentQuery,
             DocumentList = documents,
-            DocumentMessage = message ?? TempData["DocumentMessage"] as string,
+            DocumentMessage = message ?? TempData[DocumentMessageKey] as string,
             DeleteDocument = new DocumentDeleteForm { UserEmail = documentQuery.UserEmail },
             DeleteVersion = new DocumentVersionDeleteForm { UserEmail = documentQuery.UserEmail },
         };
     }
 
-    private async Task<DocumentDetailPageViewModel> BuildDocumentDetailViewModelAsync(
+    private Task<DocumentDetailPageViewModel> BuildDocumentDetailViewModelAsync(
         DocumentDetailResult? detail,
-        string? message,
-        CancellationToken cancellationToken)
+        string? message
+        )
     {
         var connection = BuildConnectionInfo();
         SetConnection(connection);
 
-        return new DocumentDetailPageViewModel
+        return Task.FromResult(new DocumentDetailPageViewModel
         {
             Connection = connection,
             Detail = detail,
             Message = message,
-        };
+        });
     }
 
     private async Task<DocumentEditPageViewModel> BuildDocumentEditViewModelAsync(
@@ -795,7 +795,7 @@ public class HomeController(
 
         if (detail?.Document.Tags is { Count: > 0 } && form.SelectedTagIds.Count == 0)
         {
-            form.SelectedTagIds = detail.Document.Tags.Select(tag => tag.Id.ToString()).ToList();
+            form.SelectedTagIds = [.. detail.Document.Tags.Select(tag => tag.Id.ToString())];
         }
 
         return new DocumentEditPageViewModel
@@ -830,7 +830,7 @@ public class HomeController(
         catch (Exception exception)
         {
             _logger.LogError(exception, "Không thể tải danh sách tag.");
-            return Array.Empty<TagLabelDto>();
+            return [];
         }
     }
 
@@ -880,7 +880,7 @@ public class HomeController(
         CancellationToken cancellationToken)
     {
         var desiredTags = selectedTagIds.Distinct().ToHashSet();
-        var currentTags = existingTags?.Select(tag => tag.Id).ToHashSet() ?? new HashSet<Guid>();
+        var currentTags = existingTags?.Select(tag => tag.Id).ToHashSet() ?? [];
 
         var tagsToRemove = currentTags.Except(desiredTags).ToList();
         var tagsToAdd = desiredTags.Except(currentTags).ToList();

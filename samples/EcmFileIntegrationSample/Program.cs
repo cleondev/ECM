@@ -1,11 +1,10 @@
 using Ecm.Sdk.Configuration;
 using Ecm.Sdk.Extensions;
 
+using EcmFileIntegrationSample;
 using EcmFileIntegrationSample.Services;
 
 using Microsoft.Extensions.Options;
-
-using samples.EcmFileIntegrationSample;
 
 var builder = WebApplication.CreateBuilder(args);
 

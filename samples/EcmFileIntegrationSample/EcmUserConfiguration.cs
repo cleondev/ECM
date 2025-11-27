@@ -1,6 +1,6 @@
 using Ecm.Sdk.Configuration;
 
-namespace samples.EcmFileIntegrationSample;
+namespace EcmFileIntegrationSample;
 
 public sealed class EcmUserConfiguration
 {
@@ -58,7 +58,7 @@ public sealed class EcmUserStore
 
     public EcmUserConfiguration DefaultUser => _users.Count > 0 ? _users[0] : _defaultUser;
 
-    public IReadOnlyCollection<EcmUserConfiguration> Users => _users.Count > 0 ? _users : new[] { DefaultUser };
+    public IReadOnlyCollection<EcmUserConfiguration> Users => _users.Count > 0 ? _users : [DefaultUser];
 
     public EcmIntegrationOptions DefaultOptions => BuildOptions(DefaultUser);
 

@@ -1,5 +1,5 @@
-using System;
 using System.Security.Claims;
+
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.IAM.Groups;
@@ -7,13 +7,16 @@ using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Contracts.Signatures;
-using AppGateway.Contracts.Workflows;
 using AppGateway.Contracts.Tags;
+using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
 using AppGateway.Infrastructure.IAM;
+
 using FluentAssertions;
+
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+
 using Xunit;
 
 namespace AppGateway.Api.Tests.Auth;
@@ -367,6 +370,11 @@ public class AzureAdUserProvisioningServiceTests
         }
 
         public Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<DocumentFileContent?> DownloadDocumentVersionAsync(Guid versionId, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
