@@ -14,9 +14,9 @@ public sealed class CreateDocumentUpload
 
     public string Status { get; init; } = string.Empty;
 
-    public Guid OwnerId { get; init; }
+    public Guid? OwnerId { get; init; }
 
-    public Guid CreatedBy { get; init; }
+    public Guid? CreatedBy { get; init; }
 
     public Guid? GroupId { get; init; }
 

@@ -7,6 +7,7 @@ using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
+using ECM.Document.Application.UserContext;
 using ECM.Document.Domain.Documents;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 using TestFixtures;
@@ -25,7 +26,11 @@ public class CreateDocumentCommandHandlerTests
         var repository = new FakeDocumentRepository();
         var clock = new FixedClock(now);
         var aclWriter = new FakeEffectiveAclFlatWriter();
-        var handler = new CreateDocumentCommandHandler(repository, clock, aclWriter);
+        var handler = new CreateDocumentCommandHandler(
+            repository,
+            clock,
+            aclWriter,
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         var ownerId = _groups.GuestGroupId;
         var createdBy = _groups.SystemGroupId;
@@ -72,7 +77,11 @@ public class CreateDocumentCommandHandlerTests
     {
         var repository = new FakeDocumentRepository();
         var clock = new FixedClock(DateTimeOffset.UtcNow);
-        var handler = new CreateDocumentCommandHandler(repository, clock, new FakeEffectiveAclFlatWriter());
+        var handler = new CreateDocumentCommandHandler(
+            repository,
+            clock,
+            new FakeEffectiveAclFlatWriter(),
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         var command = new CreateDocumentCommand(
             "   ",
@@ -97,7 +106,11 @@ public class CreateDocumentCommandHandlerTests
     {
         var repository = new FakeDocumentRepository();
         var clock = new FixedClock(DateTimeOffset.UtcNow);
-        var handler = new CreateDocumentCommandHandler(repository, clock, new FakeEffectiveAclFlatWriter());
+        var handler = new CreateDocumentCommandHandler(
+            repository,
+            clock,
+            new FakeEffectiveAclFlatWriter(),
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         var command = new CreateDocumentCommand(
             "Project Plan",
@@ -159,6 +172,17 @@ public class CreateDocumentCommandHandlerTests
         {
             Entries.AddRange(entries);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class PassThroughDocumentUserContextResolver(Guid fallbackUserId)
+        : IDocumentUserContextResolver
+    {
+        public DocumentUserContext Resolve(DocumentCommandContext commandContext)
+        {
+            var ownerId = commandContext.OwnerId ?? fallbackUserId;
+            var createdBy = commandContext.CreatedBy ?? fallbackUserId;
+            return new DocumentUserContext(ownerId, createdBy, null);
         }
     }
 }
