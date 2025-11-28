@@ -55,6 +55,8 @@
 
 > Với `ApiKey.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key` trong cấu hình chung) để đăng nhập nền cho email đang chọn trong dropdown `EcmUsers`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `Sso.Enabled=true`, thư viện ưu tiên bearer token AppGateway qua MSAL OBO dựa trên `Sso:UserAccessToken`; nếu không lấy được token, SDK sẽ fallback đăng nhập bằng API key (nếu bật).
 
+> SDK tự động nhận diện phản hồi của endpoint `api/iam/auth/on-behalf` từ **AppGateway** (Set-Cookie + `expiresOn`) hoặc từ **ECM Host** (JSON `token`/`accessToken` + `expiresInMinutes`) và gắn cookie/Bearer token tương ứng cho các request tiếp theo. Bạn không cần tự điều chỉnh khi chuyển base URL giữa AppGateway và ECM Host.
+
 ## Dùng lại SDK `Ecm.Sdk`
 
 1. Thêm reference tới dự án (hoặc gói NuGet sau khi publish) `Ecm.Sdk`.
