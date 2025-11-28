@@ -1,5 +1,3 @@
-using System.Net;
-
 using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Clients;
 using Ecm.Sdk.Configuration;
@@ -59,37 +57,22 @@ public static class ServiceCollectionExtensions
             .Configure(configureOptions)
             .Validate(options => !string.IsNullOrWhiteSpace(options.BaseUrl), "Ecm:BaseUrl must be configured.")
             .Validate(
-                options => !options.ApiKey.Enabled || !string.IsNullOrWhiteSpace(options.ApiKey.ApiKey),
-                "Ecm:ApiKey:ApiKey must be configured when ApiKey.Enabled=true.")
-            .Validate(
-                options => !options.ApiKey.Enabled || !string.IsNullOrWhiteSpace(options.OnBehalfUserEmail) || options.OnBehalfUserId is not null,
-                "Ecm:OnBehalfUserEmail or OnBehalfUserId must be configured when ApiKey.Enabled=true.")
-            .Validate(
-                options => !options.Sso.Enabled
-                    || !string.IsNullOrWhiteSpace(options.Sso.Authority)
-                        && !string.IsNullOrWhiteSpace(options.Sso.ClientId)
-                        && !string.IsNullOrWhiteSpace(options.Sso.ClientSecret)
-                        && options.Sso.Scopes.Length > 0,
-                "Ecm:Sso settings are incomplete when Sso:Enabled=true.")
+                options => !string.IsNullOrWhiteSpace(options.ApiKey.ApiKey),
+                "Ecm:ApiKey:ApiKey must be configured.")
             .ValidateOnStart();
     }
 
     private static IServiceCollection RegisterEcmIntegration(this IServiceCollection services)
     {
-        services.AddSingleton(new CookieContainer());
-        services.AddScoped<EcmAccessTokenProvider>();
-        services.AddScoped<EcmSsoTokenProvider>();
-        services.AddScoped<EcmOnBehalfAuthenticator>();
+        services.AddMemoryCache();
+        services.AddHttpContextAccessor();
+        services.AddScoped<EcmAuthenticator>();
         services.AddTransient<EcmAccessTokenHandler>();
 
+        services.AddHttpClient<EcmAuthenticator>();
+
         services.AddHttpClient<EcmFileClient>()
-            .AddHttpMessageHandler<EcmAccessTokenHandler>()
-            .ConfigurePrimaryHttpMessageHandler(serviceProvider => new HttpClientHandler
-            {
-                CookieContainer = serviceProvider.GetRequiredService<CookieContainer>(),
-                UseCookies = true,
-                AutomaticDecompression = DecompressionMethods.All,
-            });
+            .AddHttpMessageHandler<EcmAccessTokenHandler>();
 
         return services;
     }

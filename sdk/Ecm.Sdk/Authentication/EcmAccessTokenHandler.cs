@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Ecm.Sdk.Authentication;
@@ -10,11 +11,16 @@ namespace Ecm.Sdk.Authentication;
 /// <remarks>
 /// Initializes a new instance of the <see cref="EcmAccessTokenHandler"/> class.
 /// </remarks>
-/// <param name="provider">Provider used to resolve access tokens.</param>
+/// <param name="authenticator">Authenticator responsible for retrieving user tokens.</param>
+/// <param name="httpContextAccessor">Accessor used to resolve the current HTTP context.</param>
 /// <param name="logger">Logger used for request diagnostics.</param>
-public sealed class EcmAccessTokenHandler(EcmAccessTokenProvider provider, ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
+public sealed class EcmAccessTokenHandler(
+    EcmAuthenticator authenticator,
+    IHttpContextAccessor httpContextAccessor,
+    ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
 {
-    private readonly EcmAccessTokenProvider _provider = provider;
+    private readonly EcmAuthenticator _authenticator = authenticator;
+    private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly ILogger<EcmAccessTokenHandler> _logger = logger;
 
     /// <summary>
@@ -27,7 +33,14 @@ public sealed class EcmAccessTokenHandler(EcmAccessTokenProvider provider, ILogg
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var token = await _provider.GetAccessTokenAsync(cancellationToken);
+        var httpContext = _httpContextAccessor.HttpContext
+            ?? throw new Exception("Missing user identity");
+
+        var email = httpContext.User.FindFirst("email")?.Value
+            ?? httpContext.User.Identity?.Name
+            ?? throw new Exception("Missing user identity");
+
+        var token = await _authenticator.GetTokenForUserAsync(email, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(token))
         {
