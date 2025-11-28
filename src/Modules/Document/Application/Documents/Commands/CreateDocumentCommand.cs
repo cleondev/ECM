@@ -6,8 +6,8 @@ public sealed record CreateDocumentCommand(
     string Title,
     string DocType,
     string Status,
-    Guid OwnerId,
-    Guid CreatedBy,
+    Guid? OwnerId,
+    Guid? CreatedBy,
     Guid? GroupId,
     string? Sensitivity,
     Guid? DocumentTypeId);

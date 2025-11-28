@@ -1,10 +1,12 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using ECM.Abstractions.Files;
 using ECM.BuildingBlocks.Application;
 using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Application.Documents.Summaries;
+using ECM.Document.Application.UserContext;
 using ECM.Document.Domain.Versions;
 using DocumentEntity = ECM.Document.Domain.Documents.Document;
 
@@ -14,12 +16,14 @@ public sealed class UploadDocumentCommandHandler(
     IDocumentRepository repository,
     IFileStorageGateway fileStorage,
     ISystemClock clock,
-    IEffectiveAclFlatWriter aclWriter)
+    IEffectiveAclFlatWriter aclWriter,
+    IDocumentUserContextResolver userContextResolver)
 {
     private readonly IDocumentRepository _repository = repository;
     private readonly IFileStorageGateway _fileStorage = fileStorage;
     private readonly ISystemClock _clock = clock;
     private readonly IEffectiveAclFlatWriter _aclWriter = aclWriter;
+    private readonly IDocumentUserContextResolver _userContextResolver = userContextResolver;
 
     public async Task<OperationResult<DocumentWithVersionResult>> HandleAsync(UploadDocumentCommand command, CancellationToken cancellationToken = default)
     {
@@ -31,6 +35,16 @@ public sealed class UploadDocumentCommandHandler(
         }
 
         var now = _clock.UtcNow;
+        DocumentUserContext userContext;
+
+        try
+        {
+            userContext = _userContextResolver.Resolve(new DocumentCommandContext(command.OwnerId, command.CreatedBy));
+        }
+        catch (ValidationException exception)
+        {
+            return OperationResult<DocumentWithVersionResult>.Failure(exception.Message);
+        }
 
         DocumentEntity document;
         try
@@ -39,8 +53,8 @@ public sealed class UploadDocumentCommandHandler(
                 command.Title,
                 command.DocType,
                 command.Status,
-                command.OwnerId,
-                command.CreatedBy,
+                userContext.OwnerId,
+                userContext.CreatedBy,
                 now,
                 command.GroupId,
                 command.Sensitivity,
@@ -71,7 +85,7 @@ public sealed class UploadDocumentCommandHandler(
                 uploadResult.Value.Length,
                 uploadResult.Value.ContentType,
                 command.Sha256,
-                command.CreatedBy,
+                userContext.CreatedBy,
                 now);
         }
         catch (Exception exception) when (exception is ArgumentException or ArgumentOutOfRangeException)

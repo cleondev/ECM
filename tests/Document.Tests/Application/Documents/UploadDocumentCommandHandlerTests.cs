@@ -9,6 +9,7 @@ using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.UserContext;
 using ECM.Document.Domain.Documents;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 using TestFixtures;
@@ -31,7 +32,12 @@ public class UploadDocumentCommandHandlerTests
         };
         var clock = new FixedClock(now);
         var aclWriter = new FakeEffectiveAclFlatWriter();
-        var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock, aclWriter);
+        var handler = new UploadDocumentCommandHandler(
+            repository,
+            fileStorageGateway,
+            clock,
+            aclWriter,
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
@@ -79,7 +85,12 @@ public class UploadDocumentCommandHandlerTests
             Result = OperationResult<FileUploadResult>.Failure("upload failed")
         };
         var clock = new FixedClock(now);
-        var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock, new FakeEffectiveAclFlatWriter());
+        var handler = new UploadDocumentCommandHandler(
+            repository,
+            fileStorageGateway,
+            clock,
+            new FakeEffectiveAclFlatWriter(),
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
@@ -112,7 +123,12 @@ public class UploadDocumentCommandHandlerTests
         var repository = new FakeDocumentRepository();
         var fileStorageGateway = new FakeFileStorageGateway();
         var clock = new FixedClock(now);
-        var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock, new FakeEffectiveAclFlatWriter());
+        var handler = new UploadDocumentCommandHandler(
+            repository,
+            fileStorageGateway,
+            clock,
+            new FakeEffectiveAclFlatWriter(),
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
@@ -144,7 +160,12 @@ public class UploadDocumentCommandHandlerTests
         var repository = new FakeDocumentRepository();
         var fileStorageGateway = new FakeFileStorageGateway();
         var clock = new FixedClock(now);
-        var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock, new FakeEffectiveAclFlatWriter());
+        var handler = new UploadDocumentCommandHandler(
+            repository,
+            fileStorageGateway,
+            clock,
+            new FakeEffectiveAclFlatWriter(),
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
@@ -179,7 +200,12 @@ public class UploadDocumentCommandHandlerTests
             Result = OperationResult<FileUploadResult>.Success(new FileUploadResult("storage-key", "file.pdf", "application/pdf", 0, now))
         };
         var clock = new FixedClock(now);
-        var handler = new UploadDocumentCommandHandler(repository, fileStorageGateway, clock, new FakeEffectiveAclFlatWriter());
+        var handler = new UploadDocumentCommandHandler(
+            repository,
+            fileStorageGateway,
+            clock,
+            new FakeEffectiveAclFlatWriter(),
+            new PassThroughDocumentUserContextResolver(_groups.SystemGroupId));
 
         await using var content = new MemoryStream([1, 2, 3]);
         var command = new UploadDocumentCommand(
@@ -259,6 +285,17 @@ public class UploadDocumentCommandHandlerTests
         {
             Entries.AddRange(entries);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class PassThroughDocumentUserContextResolver(Guid fallbackUserId)
+        : IDocumentUserContextResolver
+    {
+        public DocumentUserContext Resolve(DocumentCommandContext commandContext)
+        {
+            var ownerId = commandContext.OwnerId ?? fallbackUserId;
+            var createdBy = commandContext.CreatedBy ?? fallbackUserId;
+            return new DocumentUserContext(ownerId, createdBy, null);
         }
     }
 }

@@ -265,10 +265,18 @@ internal sealed class EcmApiClient(
         {
             { new StringContent(requestDto.Title), nameof(requestDto.Title) },
             { new StringContent(requestDto.DocType), nameof(requestDto.DocType) },
-            { new StringContent(requestDto.Status), nameof(requestDto.Status) },
-            { new StringContent(requestDto.OwnerId.ToString()), nameof(requestDto.OwnerId) },
-            { new StringContent(requestDto.CreatedBy.ToString()), nameof(requestDto.CreatedBy) }
+            { new StringContent(requestDto.Status), nameof(requestDto.Status) }
         };
+
+        if (requestDto.OwnerId.HasValue)
+        {
+            form.Add(new StringContent(requestDto.OwnerId.Value.ToString()), nameof(requestDto.OwnerId));
+        }
+
+        if (requestDto.CreatedBy.HasValue)
+        {
+            form.Add(new StringContent(requestDto.CreatedBy.Value.ToString()), nameof(requestDto.CreatedBy));
+        }
 
         if (requestDto.GroupId.HasValue)
         {

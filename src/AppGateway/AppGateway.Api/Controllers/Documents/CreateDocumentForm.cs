@@ -20,10 +20,8 @@ public sealed class CreateDocumentForm
     [StringLength(64)]
     public string Status { get; init; } = string.Empty;
 
-    [Required]
     public Guid? OwnerId { get; init; }
 
-    [Required]
     public Guid? CreatedBy { get; init; }
 
     [StringLength(64)]

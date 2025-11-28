@@ -1,4 +1,5 @@
 using ECM.Abstractions;
+using ECM.Abstractions.Security;
 using ECM.Document.Api;
 using ECM.File.Api;
 using ECM.Host.Swagger;
@@ -10,6 +11,7 @@ using ECM.Workflow.Api;
 using ECM.Ocr.Api;
 using ECM.IAM.Api.Auth;
 using ECM.Host.Auth;
+using ECM.Host.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,6 +54,8 @@ public static class Program
         builder.Services.AddSearchIndexerInfrastructure();
         builder.Services.AddHostAuthentication(builder.Configuration);
         builder.Services.AddAuthorization();
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentUserProvider, HttpContextCurrentUserProvider>();
 
         builder.Services.AddAntiforgery(options =>
         {
