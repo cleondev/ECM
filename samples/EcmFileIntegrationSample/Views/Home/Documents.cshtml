@@ -31,7 +31,7 @@
 <div class="card shadow-sm mb-4">
     <div class="card-header">Bộ lọc giao diện</div>
     <div class="card-body">
-        <form asp-action="Documents" method="post" class="row g-3 align-items-end">
+        <form asp-action="Documents" method="post" class="row g-3 align-items-end" asp-antiforgery="true">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="DocumentQuery.UserEmail" value="@selectedUser" />
             <div class="col-md-3">

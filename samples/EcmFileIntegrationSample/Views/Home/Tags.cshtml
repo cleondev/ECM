@@ -99,7 +99,7 @@
         <div id="create-tag" class="card shadow-sm mb-3 @(focusCreate ? "border-primary" : string.Empty)">
             <div class="card-header">Tạo tag</div>
             <div class="card-body">
-                <form asp-action="CreateTag" method="post" class="needs-validation" novalidate>
+                <form asp-action="CreateTag" method="post" class="needs-validation" novalidate asp-antiforgery="true">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                     <input type="hidden" asp-for="TagCreate.UserEmail" value="@selectedUser" />
                     <div class="mb-2">
@@ -135,7 +135,7 @@
         <div id="update-tag" class="card shadow-sm mb-3 @(focusUpdate ? "border-primary" : string.Empty)">
             <div class="card-header">Cập nhật tag</div>
             <div class="card-body">
-                <form asp-action="UpdateTag" method="post" class="needs-validation" novalidate>
+                <form asp-action="UpdateTag" method="post" class="needs-validation" novalidate asp-antiforgery="true">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                     <input type="hidden" asp-for="TagUpdate.UserEmail" value="@selectedUser" />
                     <div class="mb-2">
@@ -181,7 +181,7 @@
         <div class="card shadow-sm @(focusDelete ? "border-primary" : string.Empty)">
             <div class="card-header">Xoá tag</div>
             <div class="card-body">
-                <form asp-action="DeleteTag" method="post" class="needs-validation" novalidate>
+                <form asp-action="DeleteTag" method="post" class="needs-validation" novalidate asp-antiforgery="true">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                     <input type="hidden" asp-for="TagDelete.UserEmail" value="@selectedUser" />
                     <div class="mb-2">

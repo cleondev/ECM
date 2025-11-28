@@ -18,7 +18,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm">
             <div class="card-body">
-                <form asp-action="EditDocument" method="post" class="needs-validation" novalidate>
+                <form asp-action="EditDocument" method="post" class="needs-validation" novalidate asp-antiforgery="true">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                     <input type="hidden" asp-for="Form.UserEmail" />
                     <div class="mb-2">
