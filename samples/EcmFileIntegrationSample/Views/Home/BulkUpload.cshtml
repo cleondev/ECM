@@ -16,7 +16,7 @@
         <div class="card shadow-sm">
             <div class="card-header">Upload nhiều tài liệu lên ECM</div>
             <div class="card-body">
-                <form asp-action="BulkUpload" method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                <form asp-action="BulkUpload" method="post" enctype="multipart/form-data" class="needs-validation" novalidate asp-antiforgery="true">
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                     <div class="row g-3">
                         <div class="col-md-6">
