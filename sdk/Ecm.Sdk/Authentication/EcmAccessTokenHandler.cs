@@ -17,6 +17,7 @@ namespace Ecm.Sdk.Authentication;
 /// </remarks>
 /// <param name="authenticator">Authenticator responsible for retrieving user tokens.</param>
 /// <param name="httpContextAccessor">Accessor used to resolve the current HTTP context.</param>
+/// <param name="userContext">Get current user</param>
 /// <param name="options">Integration options controlling SSO and API key behavior.</param>
 /// <param name="logger">Logger used for request diagnostics.</param>
 public sealed class EcmAccessTokenHandler(

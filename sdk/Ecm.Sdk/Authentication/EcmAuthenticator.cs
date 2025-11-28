@@ -65,14 +65,12 @@ public sealed class EcmAuthenticator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var options = _options.Value;
-
-        if (string.IsNullOrWhiteSpace(options.ApiKey.ApiKey))
+        if (string.IsNullOrWhiteSpace(_options.Value.ApiKey.ApiKey))
         {
             throw new InvalidOperationException("Ecm:ApiKey:ApiKey must be configured.");
         }
 
-        var baseUri = new Uri(options.BaseUrl, UriKind.Absolute);
+        var baseUri = new Uri(_options.Value.BaseUrl, UriKind.Absolute);
 
         if (_httpClient.BaseAddress != baseUri)
         {
@@ -88,7 +86,7 @@ public sealed class EcmAuthenticator(
             }),
         };
 
-        request.Headers.Add("X-Api-Key", options.ApiKey.ApiKey);
+        request.Headers.Add("X-Api-Key", _options.Value.ApiKey.ApiKey);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -187,7 +185,7 @@ public sealed class EcmAuthenticator(
         if (TryGetPropertyIgnoreCase(element, propertyName, out var property))
         {
             if (property.ValueKind == JsonValueKind.String
-                && DateTimeOffset.TryParse(property.GetString(), out var parsed))
+                && DateTimeOffset.TryParse(property.GetString(), out DateTimeOffset parsed))
             {
                 return parsed;
             }
@@ -221,6 +219,13 @@ public sealed class EcmAuthenticator(
     }
 }
 
+/// <summary>
+/// EcmAuthenticationSession
+/// </summary>
+/// <param name="AccessToken"></param>
+/// <param name="CookieHeader"></param>
+/// <param name="ExpiresOn"></param>
+/// <param name="ExpiresInMinutes"></param>
 public sealed record EcmAuthenticationSession(
     string? AccessToken,
     string? CookieHeader,

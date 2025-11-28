@@ -25,14 +25,13 @@ internal sealed class ApiKeyAuthenticationHandler(
             return Task.FromResult(AuthenticateResult.Fail("Missing API key."));
         }
 
-        var options = _apiKeyOptions.CurrentValue;
-        if (options.Keys.Count == 0)
+        if (_apiKeyOptions.CurrentValue.Keys.Count == 0)
         {
             return Task.FromResult(AuthenticateResult.Fail("API key validation is not configured."));
         }
 
         var providedKey = value.ToString();
-        var matchedKey = options.Keys.FirstOrDefault(
+        var matchedKey = _apiKeyOptions.CurrentValue.Keys.FirstOrDefault(
             key => string.Equals(key.Key?.Trim(), providedKey, StringComparison.Ordinal));
 
         if (matchedKey is null)

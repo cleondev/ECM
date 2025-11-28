@@ -528,8 +528,6 @@ public sealed class EcmFileClient
 
     private string GetDownloadEndpoint() => "api/documents/files/download";
 
-    private string GetPreviewEndpoint() => "api/documents/files/preview";
-
     private string GetFileManagementEndpoint() => "api/documents/files";
 
     private string GetTagsEndpoint() => "api/tags";
