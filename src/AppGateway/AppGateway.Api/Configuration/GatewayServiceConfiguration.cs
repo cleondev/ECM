@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using ServiceDefaults.Authentication;
@@ -166,9 +167,33 @@ public static class GatewayServiceConfiguration
 
         var authenticationBuilder = builder.Services.AddAuthentication(options =>
         {
-            options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            options.DefaultScheme = GatewayAuthenticationSchemes.Default;
+            options.DefaultAuthenticateScheme = GatewayAuthenticationSchemes.Default;
             options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
         });
+
+        authenticationBuilder.AddPolicyScheme(
+            GatewayAuthenticationSchemes.Default,
+            "Gateway authentication",
+            options => options.ForwardDefaultSelector = context =>
+            {
+                var authorizationHeader = context.Request.Headers.Authorization;
+
+                if (!StringValues.IsNullOrEmpty(authorizationHeader)
+                    && authorizationHeader.ToString().StartsWith(
+                        "Bearer ",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return JwtBearerDefaults.AuthenticationScheme;
+                }
+
+                if (context.Request.Headers.ContainsKey("X-Api-Key"))
+                {
+                    return ApiKeyAuthenticationHandler.AuthenticationScheme;
+                }
+
+                return CookieAuthenticationDefaults.AuthenticationScheme;
+            });
 
         authenticationBuilder.AddMicrosoftIdentityWebApp(
                 builder.Configuration.GetSection("AzureAd"),
@@ -213,9 +238,8 @@ public static class GatewayServiceConfiguration
         builder.Services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(
-                    JwtBearerDefaults.AuthenticationScheme,
-                    ApiKeyAuthenticationHandler.AuthenticationScheme,
-                    CookieAuthenticationDefaults.AuthenticationScheme)
+                    GatewayAuthenticationSchemes.Default,
+                    ApiKeyAuthenticationHandler.AuthenticationScheme)
                 .RequireAuthenticatedUser()
                 .Build());
     }
