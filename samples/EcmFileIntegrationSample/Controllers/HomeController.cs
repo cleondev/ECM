@@ -30,7 +30,7 @@ public class HomeController(
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
+        ApplyUserSelection(null, null);
         var connection = BuildConnectionInfo();
         SetConnection(connection);
 
@@ -63,7 +63,7 @@ public class HomeController(
     [HttpGet]
     public async Task<IActionResult> Upload(CancellationToken cancellationToken)
     {
-        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
+        ApplyUserSelection(null, null);
         return View(await BuildUploadViewModelAsync(BuildDefaultUploadForm(), cancellationToken: cancellationToken));
     }
 
@@ -188,7 +188,7 @@ public class HomeController(
     [HttpGet]
     public async Task<IActionResult> BulkUpload(CancellationToken cancellationToken)
     {
-        ApplyUserSelection(Options.OnBehalfUserEmail, Options.OnBehalfUserEmail);
+        ApplyUserSelection(null, null);
         return View(await BuildBulkUploadViewModelAsync(BuildDefaultBulkUploadForm(), cancellationToken: cancellationToken));
     }
 
@@ -320,7 +320,7 @@ public class HomeController(
     [HttpGet]
     public async Task<IActionResult> Tags(Guid? editTagId, string? openForm, string? userEmail, CancellationToken cancellationToken)
     {
-        ApplyUserSelection(userEmail, Options.OnBehalfUserEmail);
+        ApplyUserSelection(userEmail, null);
         return View(await BuildTagPageViewModelAsync(
             null,
             null,
@@ -478,7 +478,7 @@ public class HomeController(
             Sensitivity = detail.Document.Sensitivity,
             GroupId = detail.Document.GroupId?.ToString(),
             UpdateGroup = detail.Document.GroupId is not null,
-            UserEmail = Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email,
+            UserEmail = _userSelection.GetCurrentUser().Email,
             SelectedTagIds = detail.Document.Tags?.Select(tag => tag.Id.ToString()).ToList() ?? [],
         };
 
@@ -589,7 +589,7 @@ public class HomeController(
         Sensitivity = Options.Sensitivity,
         Title = Options.Title,
         DocumentTypeId = Options.DocumentTypeId?.ToString(),
-        UserEmail = Options.OnBehalfUserEmail,
+        UserEmail = _userSelection.GetCurrentUser().Email,
     };
 
     private BulkUploadFormModel BuildDefaultBulkUploadForm() => new()
@@ -599,12 +599,12 @@ public class HomeController(
         Sensitivity = Options.Sensitivity,
         Title = Options.Title,
         DocumentTypeId = Options.DocumentTypeId?.ToString(),
-        UserEmail = Options.OnBehalfUserEmail,
+        UserEmail = _userSelection.GetCurrentUser().Email,
     };
 
     private EcmUserConfiguration ApplyUserSelection(string? userEmail, string? fallbackEmail)
     {
-        var resolvedEmail = userEmail ?? fallbackEmail ?? Options.OnBehalfUserEmail;
+        var resolvedEmail = userEmail ?? fallbackEmail;
         return _userSelection.ApplySelection(Options, resolvedEmail);
     }
 
@@ -619,11 +619,9 @@ public class HomeController(
                 .GetUsers()
                 .Select(user => new EcmUserViewModel(user.Email ?? string.Empty, user.DisplayName, user.Email == currentUser.Email))],
             SelectedUserEmail = currentUser.Email ?? string.Empty,
+            SelectedUserDisplayName = currentUser.DisplayName,
             UsingApiKeyAuthentication = Options.ApiKey.Enabled,
             UsingSsoAuthentication = Options.Sso.Enabled,
-            UsingOnBehalfAuthentication = Options.IsOnBehalfEnabled,
-            OnBehalfUserEmail = Options.OnBehalfUserEmail,
-            OnBehalfUserId = Options.OnBehalfUserId,
         };
     }
 
@@ -639,7 +637,7 @@ public class HomeController(
         string? error = null,
         CancellationToken cancellationToken = default)
     {
-        form.UserEmail ??= Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email;
+        form.UserEmail ??= _userSelection.GetCurrentUser().Email;
 
         tags ??= await LoadTagsAsync(cancellationToken);
         var profile = await LoadProfileAsync(cancellationToken);
@@ -665,7 +663,7 @@ public class HomeController(
         string? error = null,
         CancellationToken cancellationToken = default)
     {
-        form.UserEmail ??= Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email;
+        form.UserEmail ??= _userSelection.GetCurrentUser().Email;
 
         tags ??= await LoadTagsAsync(cancellationToken);
         var profile = await LoadProfileAsync(cancellationToken);
@@ -743,7 +741,7 @@ public class HomeController(
         string? message,
         CancellationToken cancellationToken)
     {
-        documentQuery.UserEmail ??= Options.OnBehalfUserEmail ?? _userSelection.GetCurrentUser().Email;
+        documentQuery.UserEmail ??= _userSelection.GetCurrentUser().Email;
 
         var documents = await LoadDocumentsAsync(documentQuery, cancellationToken);
         var connection = BuildConnectionInfo();

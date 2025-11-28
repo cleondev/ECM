@@ -1,14 +1,14 @@
 # ECM file integration sample
 
-Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Phần tích hợp HTTP đã được tách thành thư viện NuGet `Ecm.Sdk` (đặt tại `samples/Ecm.Sdk`) để có thể tái sử dụng cho các ứng dụng khác. Bạn có thể đăng nhập nền bằng API key qua endpoint `api/iam/auth/on-behalf` hoặc dùng luồng OBO (on-behalf-of) dựa trên SSO để đổi token của người dùng thành token ECM AppGateway.
+Ứng dụng **ASP.NET Core MVC (.NET 9)** này minh họa cách một giao diện web có thể upload file trực tiếp vào ECM qua HTTP API. Phần tích hợp HTTP đã được tách thành thư viện NuGet `Ecm.Sdk` (đặt tại `samples/Ecm.Sdk`) để có thể tái sử dụng cho các ứng dụng khác. SDK tự động ưu tiên token SSO (nếu nhận được header `Authorization: Bearer ...` và `Ecm:Sso:Enabled=true`), ngược lại sẽ dùng API key để đăng nhập on-behalf qua `api/iam/auth/on-behalf` dựa trên email người dùng đang chọn trong dropdown.
 
 ## Chuẩn bị
 
 1. Cài **.NET SDK 9**.
 2. Đảm bảo một instance ECM đang chạy và có thể truy cập qua HTTP (ví dụ `http://localhost:8080/`).
-3. Chọn phương thức xác thực on-behalf (thư viện ưu tiên SSO, nếu bật `Sso:Enabled=true` và lấy được token thì sẽ bỏ qua bước đăng nhập API key; nếu token SSO thiếu sẽ fallback sang API key nếu được cấu hình):
-   - **auth/on-behalf qua API key**: bật `Ecm:ApiKey:Enabled=true` và điền `Ecm:ApiKey:ApiKey` (API key `X-Api-Key` **duy nhất cho ứng dụng**). Email người dùng đăng nhập nền được lấy từ dropdown `EcmUsers`.
-   - **OBO qua SSO**: cấu hình một lần ở `Ecm:Sso` (authority, client, client secret, scope) và bật `Ecm:Sso:Enabled=true`. Thư viện sẽ dùng token người dùng (truyền vào `Ecm:Sso:UserAccessToken`) để thực hiện MSAL `AcquireTokenOnBehalfOf` lấy bearer token AppGateway (scope `api://<appgateway-client-id>/.default`).
+3. Chọn phương thức xác thực on-behalf (thư viện ưu tiên SSO, nếu bật `Sso:Enabled=true` và request có bearer token thì sẽ bỏ qua bước đăng nhập API key; nếu không tìm thấy bearer token sẽ fallback sang API key nếu được cấu hình):
+   - **auth/on-behalf qua API key**: bật `Ecm:ApiKey:Enabled=true` và điền `Ecm:ApiKey:ApiKey` (API key `X-Api-Key` **duy nhất cho ứng dụng**). Email người dùng đăng nhập nền được lấy từ dropdown `EcmUsers`; ứng dụng sẽ gán email này vào `HttpContext.User` để SDK gọi on-behalf đúng người.
+   - **Forward bearer qua SSO**: cấu hình một lần ở `Ecm:Sso` (authority, client, client secret, scope) và bật `Ecm:Sso:Enabled=true`. SDK sẽ forward nguyên header bearer của request tới AppGateway; nếu thiếu bearer header, SDK tự động đăng nhập on-behalf bằng API key (nếu bật).
 4. Tạo (hoặc cập nhật) `samples/EcmFileIntegrationSample/appsettings.json` với thông tin kết nối và metadata mặc định. Phần `Ecm` là cấu hình chung (base URL, API key, SSO). `EcmUsers` chỉ cần danh sách người dùng (email + tên hiển thị) để chọn nhanh trên giao diện; API key và cấu hình SSO không lặp lại tại đây. Khi dùng auth/on-behalf hãy đặt `BaseUrl` trỏ tới AppGateway (ví dụ `https://localhost:5443/`). Ứng dụng luôn chọn user đầu tiên khi mở trang và bạn có thể chuyển user nhanh qua dropdown:
 
   ```json
@@ -53,7 +53,7 @@
 
 > Nếu không chỉ định `OwnerId`/`CreatedBy`, ứng dụng sẽ dùng thông tin người dùng trong token (`/api/iam/profile`).
 
-> Với `ApiKey.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key` trong cấu hình chung) để đăng nhập nền cho email đang chọn trong dropdown `EcmUsers`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `Sso.Enabled=true`, thư viện ưu tiên bearer token AppGateway qua MSAL OBO dựa trên `Sso:UserAccessToken`; nếu không lấy được token, SDK sẽ fallback đăng nhập bằng API key (nếu bật).
+> Với `ApiKey.Enabled=true`, ứng dụng sẽ tự động gọi `POST api/iam/auth/on-behalf` (kèm `X-Api-Key` trong cấu hình chung) để đăng nhập nền cho email đang chọn trong dropdown `EcmUsers`, sau đó dùng cookie trả về cho các API (upload, lấy profile, tải file). Khi `Sso.Enabled=true`, thư viện ưu tiên forward bearer token của request tới AppGateway; nếu không có bearer header, SDK sẽ fallback đăng nhập bằng API key (nếu bật).
 
 > SDK tự động nhận diện phản hồi của endpoint `api/iam/auth/on-behalf` từ **AppGateway** (Set-Cookie + `expiresOn`) hoặc từ **ECM Host** (JSON `token`/`accessToken` + `expiresInMinutes`) và gắn cookie/Bearer token tương ứng cho các request tiếp theo. Bạn không cần tự điều chỉnh khi chuyển base URL giữa AppGateway và ECM Host.
 
@@ -69,7 +69,7 @@
    Thư viện sẽ bind cấu hình từ section `Ecm`, tạo `HttpClient` có `UserAgent` mặc định và tự xử lý cookie, bearer token, đăng nhập on-behalf hoặc đổi token SSO.
 3. Inject `EcmFileClient` ở nơi cần dùng và gọi các method như `UploadDocumentAsync`, `GetDownloadUriAsync`, `ListTagsAsync`, `ListDocumentsAsync`, v.v.
 
-`EcmIntegrationOptions` hỗ trợ đăng nhập on-behalf bằng API key (`ApiKey:*`) và đổi token SSO (`Sso:*`). Các validate cơ bản (base URL, API key, định danh người dùng, cấu hình SSO) được thực thi khi khởi động.
+`EcmIntegrationOptions` hỗ trợ đăng nhập on-behalf bằng API key (`ApiKey:*`) hoặc forward token SSO (`Sso:*`). Các validate cơ bản (base URL, API key, cấu hình SSO) được thực thi khi khởi động.
 
 ## Chạy thử
 
