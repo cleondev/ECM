@@ -70,10 +70,10 @@ stages:
         set -euo pipefail
 
         echo "= Login Harbor..."
-        echo "$HARBOR_PASS" | docker login harbor.local:8443 -u "$HARBOR_USER" --password-stdin
+        echo "$HARBOR_PASS" | docker login registry.ists.corp -u "$HARBOR_USER" --password-stdin
 
         TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
-        REGISTRY="harbor.local:8443/ecm"
+        REGISTRY="registry.ists.corp/ecm"
 
         echo "= Build AppGateway.Api + UI"
         docker build -f src/AppGateway/AppGateway.Api/Dockerfile -t "$REGISTRY/appgateway-api:$TAG" .
@@ -243,9 +243,6 @@ stages:
 
           missing=()
           optional_missing=()
-          require_env Kestrel__Endpoints__Https__Certificate__Password \
-            "Kestrel__Endpoints__Https__Certificate__Password (Kestrel HTTPS cert password)" \
-            '$(Kestrel__Endpoints__Https__Certificate__Password)'
           require_env MINIO_ENDPOINT \
             "MINIO_ENDPOINT / ECM_FileStorage__ServiceUrl" \
             '$(ECM_FileStorage__ServiceUrl)'
