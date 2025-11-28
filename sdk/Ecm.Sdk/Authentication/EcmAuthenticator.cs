@@ -124,12 +124,12 @@ public sealed class EcmAuthenticator(
         }
         catch (JsonException exception)
         {
-            _logger.LogError(exception, "Unable to parse authentication response body.");
+            _logger.LogError(exception.Message, "Unable to parse authentication response body.");
             throw new InvalidOperationException("Unable to parse authentication response.", exception);
         }
     }
 
-    private EcmAuthenticationSession? ParseAuthenticationSession(string content)
+    private static EcmAuthenticationSession? ParseAuthenticationSession(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
         {

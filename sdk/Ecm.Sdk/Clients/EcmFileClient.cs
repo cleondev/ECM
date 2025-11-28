@@ -8,6 +8,7 @@ using Ecm.Sdk.Configuration;
 using Ecm.Sdk.Models.Documents;
 using Ecm.Sdk.Models.Tags;
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -20,7 +21,6 @@ public sealed class EcmFileClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<EcmFileClient> _logger;
-    private readonly EcmIntegrationOptions _options;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -39,9 +39,7 @@ public sealed class EcmFileClient
     {
         _httpClient = httpClient;
         _logger = logger;
-        _options = options.Value;
-
-        _httpClient.BaseAddress = new Uri(_options.BaseUrl, UriKind.Absolute);
+        _httpClient.BaseAddress = new Uri(options.Value.BaseUrl, UriKind.Absolute);
         _httpClient.Timeout = TimeSpan.FromSeconds(100);
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("ecm-sdk/1.0");
     }
@@ -74,8 +72,6 @@ public sealed class EcmFileClient
     /// <returns>The created document record.</returns>
     public async Task<DocumentDto?> UploadDocumentAsync(DocumentUploadRequest uploadRequest, CancellationToken cancellationToken)
     {
-        await using var stream = File.OpenRead(uploadRequest.FilePath);
-
         using var content = new MultipartFormDataContent
         {
             { new StringContent(uploadRequest.OwnerId.ToString()), "ownerId" },
@@ -95,16 +91,13 @@ public sealed class EcmFileClient
             content.Add(new StringContent(uploadRequest.Title), "title");
         }
 
-        var fileContent = new StreamContent(stream);
+        var fileContent = new StreamContent(uploadRequest.FileContent);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue(uploadRequest.ContentType ?? "application/octet-stream");
 
-        var fileName = string.IsNullOrWhiteSpace(uploadRequest.FileName)
-            ? Path.GetFileName(uploadRequest.FilePath)
-            : uploadRequest.FileName;
-
+        var fileName = string.IsNullOrWhiteSpace(uploadRequest.FileName) ? Guid.NewGuid().ToString() : uploadRequest.FileName;
         content.Add(fileContent, "file", fileName);
 
-        using var response = await _httpClient.PostAsync(GetDocumentsEndpoint(), content, cancellationToken);
+        using var response = await _httpClient.PostAsync(GetDocumentsEndpoint, content, cancellationToken);
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -125,9 +118,7 @@ public sealed class EcmFileClient
     /// <param name="uploadRequest">Metadata describing the documents being uploaded.</param>
     /// <param name="cancellationToken">Token used to cancel the request.</param>
     /// <returns>The combined batch upload result.</returns>
-    public async Task<DocumentBatchResult> UploadDocumentsBatchAsync(
-        DocumentBatchUploadRequest uploadRequest,
-        CancellationToken cancellationToken)
+    public async Task<DocumentBatchResult> UploadDocumentsBatchAsync(DocumentBatchUploadRequest uploadRequest, CancellationToken cancellationToken)
     {
         var fileStreams = new List<Stream>();
 
@@ -182,7 +173,7 @@ public sealed class EcmFileClient
                 content.Add(fileContent, "Files", fileName);
             }
 
-            using var response = await _httpClient.PostAsync(GetDocumentsBatchEndpoint(), content, cancellationToken);
+            using var response = await _httpClient.PostAsync(GetDocumentsBatchEndpoint, content, cancellationToken);
 
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -214,7 +205,7 @@ public sealed class EcmFileClient
     /// <returns>The document details when found; otherwise, <c>null</c>.</returns>
     public async Task<DocumentDto?> GetDocumentAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync($"{GetDocumentsEndpoint()}/{documentId}", cancellationToken);
+        using var response = await _httpClient.GetAsync($"{GetDocumentsEndpoint}/{documentId}", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -234,7 +225,7 @@ public sealed class EcmFileClient
     /// <returns>An absolute or relative URI when available; otherwise, <c>null</c>.</returns>
     public async Task<Uri?> GetDownloadUriAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{GetDownloadEndpoint()}/{versionId}");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{GetDownloadEndpoint}/{versionId}");
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -275,7 +266,7 @@ public sealed class EcmFileClient
     public async Task<DocumentDownloadResult?> DownloadVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"{GetDownloadEndpoint()}/{versionId}",
+            $"{GetDownloadEndpoint}/{versionId}",
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
 
@@ -306,8 +297,8 @@ public sealed class EcmFileClient
     /// <param name="cancellationToken">Token used to cancel the request.</param>
     /// <returns>A collection of tag labels.</returns>
     public async Task<IReadOnlyCollection<TagLabelDto>> ListTagsAsync(CancellationToken cancellationToken)
-    {
-        using var response = await _httpClient.GetAsync(GetTagsEndpoint(), cancellationToken);
+    {   
+        using var response = await _httpClient.GetAsync(GetTagsEndpoint, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var tags = await response.Content.ReadFromJsonAsync<TagLabelDto[]>(cancellationToken: cancellationToken);
@@ -322,7 +313,7 @@ public sealed class EcmFileClient
     /// <returns>The created tag information.</returns>
     public async Task<TagLabelDto?> CreateTagAsync(TagCreateRequest request, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.PostAsJsonAsync(GetTagsEndpoint(), request, cancellationToken);
+        using var response = await _httpClient.PostAsJsonAsync(GetTagsEndpoint, request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
@@ -337,7 +328,7 @@ public sealed class EcmFileClient
     /// <returns>The updated tag when successful; otherwise, <c>null</c> if not found or forbidden.</returns>
     public async Task<TagLabelDto?> UpdateTagAsync(Guid tagId, TagUpdateRequest request, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.PutAsJsonAsync($"{GetTagsEndpoint()}/{tagId}", request, cancellationToken);
+        using var response = await _httpClient.PutAsJsonAsync($"{GetTagsEndpoint}/{tagId}", request, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -358,7 +349,7 @@ public sealed class EcmFileClient
     /// <returns><c>true</c> when the tag was deleted; otherwise, <c>false</c> when missing.</returns>
     public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.DeleteAsync($"{GetTagsEndpoint()}/{tagId}", cancellationToken);
+        using var response = await _httpClient.DeleteAsync($"{GetTagsEndpoint}/{tagId}", cancellationToken);
 
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
@@ -436,7 +427,7 @@ public sealed class EcmFileClient
     /// <returns>The result set of documents.</returns>
     public async Task<DocumentListResult?> ListDocumentsAsync(DocumentListQuery query, CancellationToken cancellationToken)
     {
-        var url = AppendQueryString(GetDocumentsEndpoint(), BuildDocumentQueryParameters(query));
+        var url = AppendQueryString(GetDocumentsEndpoint, BuildDocumentQueryParameters(query));
         using var response = await _httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -452,7 +443,7 @@ public sealed class EcmFileClient
     /// <returns>The updated document list item when successful; otherwise, <c>null</c>.</returns>
     public async Task<DocumentListItem?> UpdateDocumentAsync(Guid documentId, DocumentUpdateRequest request, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.PutAsJsonAsync($"{GetDocumentsEndpoint()}/{documentId}", request, cancellationToken);
+        using var response = await _httpClient.PutAsJsonAsync($"{GetDocumentsEndpoint}/{documentId}", request, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -478,7 +469,7 @@ public sealed class EcmFileClient
     /// <returns><c>true</c> when the document was deleted; otherwise, <c>false</c> when missing or forbidden.</returns>
     public async Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.DeleteAsync($"{GetDocumentsEndpoint()}/{documentId}", cancellationToken);
+        using var response = await _httpClient.DeleteAsync($"{GetDocumentsEndpoint}/{documentId}", cancellationToken);
 
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
@@ -504,7 +495,7 @@ public sealed class EcmFileClient
     /// <returns><c>true</c> when the document was deleted; otherwise, <c>false</c> when missing or forbidden.</returns>
     public async Task<bool> DeleteDocumentByVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.DeleteAsync($"{GetFileManagementEndpoint()}/{versionId}", cancellationToken);
+        using var response = await _httpClient.DeleteAsync($"{GetFileManagementEndpoint}/{versionId}", cancellationToken);
 
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
@@ -522,17 +513,17 @@ public sealed class EcmFileClient
         return true;
     }
 
-    private string GetDocumentsEndpoint() => "api/documents";
+    private const string GetDocumentsEndpoint = "api/documents";
 
-    private string GetDocumentsBatchEndpoint() => "api/documents/batch";
+    private const string GetDocumentsBatchEndpoint = "api/documents/batch";
 
-    private string GetDownloadEndpoint() => "api/documents/files/download";
+    private const string GetDownloadEndpoint = "api/documents/files/download";
 
-    private string GetFileManagementEndpoint() => "api/documents/files";
+    private const string GetFileManagementEndpoint = "api/documents/files";
 
-    private string GetTagsEndpoint() => "api/tags";
+    private const string GetTagsEndpoint = "api/tags";
 
-    private string GetDocumentTagsEndpoint(Guid documentId) => $"api/documents/{documentId}/tags";
+    private static string GetDocumentTagsEndpoint(Guid documentId) => $"api/documents/{documentId}/tags";
 
     private static Dictionary<string, string?> BuildDocumentQueryParameters(DocumentListQuery query)
     {

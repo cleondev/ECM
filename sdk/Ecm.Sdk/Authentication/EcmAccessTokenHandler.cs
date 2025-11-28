@@ -1,8 +1,9 @@
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 
 using Ecm.Sdk.Configuration;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -17,19 +18,16 @@ namespace Ecm.Sdk.Authentication;
 /// </remarks>
 /// <param name="authenticator">Authenticator responsible for retrieving user tokens.</param>
 /// <param name="httpContextAccessor">Accessor used to resolve the current HTTP context.</param>
-/// <param name="userContext">Get current user</param>
 /// <param name="options">Integration options controlling SSO and API key behavior.</param>
 /// <param name="logger">Logger used for request diagnostics.</param>
 public sealed class EcmAccessTokenHandler(
     EcmAuthenticator authenticator,
     IHttpContextAccessor httpContextAccessor,
-    IEcmUserContext userContext,
     IOptions<EcmIntegrationOptions> options,
     ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
 {
     private readonly EcmAuthenticator _authenticator = authenticator;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
-    private readonly IEcmUserContext _userContext = userContext;
     private readonly EcmIntegrationOptions _options = options.Value;
     private readonly ILogger<EcmAccessTokenHandler> _logger = logger;
 
@@ -60,7 +58,7 @@ public sealed class EcmAccessTokenHandler(
                 }
                 catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
                 {
-                    _logger.LogError(exception, "Request to {Url} failed.", request.RequestUri);
+                    _logger.LogError(exception.Message, "Request to {Url} failed.", request.RequestUri);
 
                     throw new HttpRequestException(
                         $"Request to {request.RequestUri} failed.",
@@ -69,7 +67,13 @@ public sealed class EcmAccessTokenHandler(
             }
         }
 
-        var userKey = _userContext.GetUserKey();
+        string userKey = "system@local";
+        if (httpContext != null)
+        {
+            var sp = httpContext.RequestServices;
+            var currentUserContext = sp.GetService<IEcmUserContext>();
+            userKey = currentUserContext?.GetUserKey() ?? userKey;
+        }
 
         var session = await _authenticator.GetSessionForUserAsync(userKey, cancellationToken);
 
@@ -89,7 +93,7 @@ public sealed class EcmAccessTokenHandler(
         }
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
-            _logger.LogError(exception, "Request to {Url} failed.", request.RequestUri);
+            _logger.LogError(exception.Message, "Request to {Url} failed.", request.RequestUri);
 
             throw new HttpRequestException(
                 $"Request to {request.RequestUri} failed.",

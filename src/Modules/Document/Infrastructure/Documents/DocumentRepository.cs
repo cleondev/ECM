@@ -1,11 +1,11 @@
-using System;
-using System.Linq;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Domain.Documents;
 using ECM.Document.Infrastructure.Outbox;
 using ECM.Document.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
+
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 
 namespace ECM.Document.Infrastructure.Documents;

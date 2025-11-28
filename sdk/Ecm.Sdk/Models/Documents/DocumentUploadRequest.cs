@@ -7,21 +7,22 @@ public sealed record DocumentUploadRequest
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DocumentUploadRequest"/> class.
+    /// </summary>>
+    public DocumentUploadRequest()
+    {
+    }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DocumentUploadRequest"/> class.
     /// </summary>
-    /// <param name="ownerId">Identifier of the owning user or group.</param>
-    /// <param name="createdBy">Identifier of the user creating the document.</param>
     /// <param name="docType">Document type key used by the ECM service.</param>
     /// <param name="status">Initial lifecycle status of the document.</param>
     /// <param name="sensitivity">Sensitivity level label associated with the document.</param>
     /// <param name="filePath">Absolute or relative path to the file being uploaded.</param>
-    public DocumentUploadRequest(Guid ownerId, Guid createdBy, string docType, string status, string sensitivity, string filePath)
+    public DocumentUploadRequest(string docType, string status, string sensitivity, string filePath)
     {
-        OwnerId = ownerId;
-        CreatedBy = createdBy;
         DocType = docType;
         Status = status;
         Sensitivity = sensitivity;
-        FilePath = filePath;
     }
 
     /// <summary>
@@ -37,22 +38,22 @@ public sealed record DocumentUploadRequest
     /// <summary>
     /// Document type key that determines the storage schema in ECM.
     /// </summary>
-    public string DocType { get; init; }
+    public string DocType { get; init; } = "General";
 
     /// <summary>
     /// Initial workflow status applied to the document.
     /// </summary>
-    public string Status { get; init; }
+    public string Status { get; init; } = "Draft";
 
     /// <summary>
     /// Sensitivity label used to classify the document.
     /// </summary>
-    public string Sensitivity { get; init; }
+    public string Sensitivity { get; init; } = "Internal";
 
     /// <summary>
-    /// Absolute or relative file system path to the binary payload.
+    /// File steam containing the document content to be uploaded.
     /// </summary>
-    public string FilePath { get; init; }
+    public Stream FileContent { get; set; } = Stream.Null;
 
     /// <summary>
     /// Optional identifier of the document type when the type key is insufficient.

@@ -60,7 +60,6 @@ public static class ServiceCollectionExtensions
             .Validate(options => !string.IsNullOrWhiteSpace(options.BaseUrl), "Ecm:BaseUrl must be configured.")
             .Validate(
                 options =>
-                    // Cho phép không cấu hình ApiKey nếu SSO được bật.
                     options.Sso.Enabled || !string.IsNullOrWhiteSpace(options.ApiKey.ApiKey),
                 "Ecm:ApiKey:ApiKey must be configured when SSO is disabled.")
             .ValidateOnStart();

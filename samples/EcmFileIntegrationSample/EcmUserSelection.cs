@@ -89,13 +89,6 @@ public sealed class EcmUserOptionsConfigurator(EcmUserSelection selection) : IPo
     public static void Copy(EcmIntegrationOptions source, EcmIntegrationOptions destination)
     {
         destination.BaseUrl = source.BaseUrl;
-        destination.DocType = source.DocType;
-        destination.Status = source.Status;
-        destination.Sensitivity = source.Sensitivity;
-        destination.OwnerId = source.OwnerId;
-        destination.CreatedBy = source.CreatedBy;
-        destination.DocumentTypeId = source.DocumentTypeId;
-        destination.Title = source.Title;
 
         destination.ApiKey.Enabled = source.ApiKey.Enabled;
         destination.ApiKey.ApiKey = source.ApiKey.ApiKey;

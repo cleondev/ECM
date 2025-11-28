@@ -111,14 +111,13 @@ public class HomeController(
                 await form.File!.CopyToAsync(stream, cancellationToken);
             }
 
-            var uploadRequest = new DocumentUploadRequest(
-                ownerId.Value,
-                createdBy.Value,
-                string.IsNullOrWhiteSpace(form.DocType) ? Options.DocType : form.DocType,
-                string.IsNullOrWhiteSpace(form.Status) ? Options.Status : form.Status,
-                string.IsNullOrWhiteSpace(form.Sensitivity) ? Options.Sensitivity : form.Sensitivity,
-                tempFilePath)
+            var uploadRequest = new DocumentUploadRequest()
             {
+                 OwnerId = ownerId.Value,
+                 CreatedBy = createdBy.Value,
+                 DocType = form.DocType,
+                 Status = form.Status,
+                 Sensitivity = form.Sensitivity,
                 DocumentTypeId = documentTypeId,
                 Title = string.IsNullOrWhiteSpace(form.Title) ? form.File!.FileName : form.Title,
                 FileName = originalFileName,
@@ -263,9 +262,9 @@ public class HomeController(
             var batchRequest = new DocumentBatchUploadRequest(
                 ownerId.Value,
                 createdBy.Value,
-                string.IsNullOrWhiteSpace(form.DocType) ? Options.DocType : form.DocType,
-                string.IsNullOrWhiteSpace(form.Status) ? Options.Status : form.Status,
-                string.IsNullOrWhiteSpace(form.Sensitivity) ? Options.Sensitivity : form.Sensitivity,
+                form.DocType,
+                form.Status,
+                form.Sensitivity,
                 uploadFiles)
             {
                 DocumentTypeId = documentTypeId,
@@ -584,21 +583,11 @@ public class HomeController(
     // ----------------------------------------------------
     private UploadFormModel BuildDefaultUploadForm() => new()
     {
-        DocType = Options.DocType,
-        Status = Options.Status,
-        Sensitivity = Options.Sensitivity,
-        Title = Options.Title,
-        DocumentTypeId = Options.DocumentTypeId?.ToString(),
         UserEmail = _userSelection.GetCurrentUser().Email,
     };
 
     private BulkUploadFormModel BuildDefaultBulkUploadForm() => new()
     {
-        DocType = Options.DocType,
-        Status = Options.Status,
-        Sensitivity = Options.Sensitivity,
-        Title = Options.Title,
-        DocumentTypeId = Options.DocumentTypeId?.ToString(),
         UserEmail = _userSelection.GetCurrentUser().Email,
     };
 

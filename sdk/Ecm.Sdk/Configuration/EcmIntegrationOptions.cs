@@ -1,5 +1,3 @@
-using System;
-
 namespace Ecm.Sdk.Configuration;
 
 /// <summary>
@@ -24,43 +22,6 @@ public sealed class EcmIntegrationOptions
     /// the SDK will forward that token as-is instead of using the API key flow.
     /// </summary>
     public SsoOptions Sso { get; set; } = new();
-
-    /// <summary>
-    /// Identifier of the document owner when uploading new content
-    /// if the caller does not explicitly provide one.
-    /// </summary>
-    public Guid? OwnerId { get; set; }
-
-    /// <summary>
-    /// Identifier of the user creating the document when uploading
-    /// if the caller does not explicitly provide one.
-    /// </summary>
-    public Guid? CreatedBy { get; set; }
-
-    /// <summary>
-    /// Default document type used during uploads when not specified.
-    /// </summary>
-    public string DocType { get; set; } = "General";
-
-    /// <summary>
-    /// Default status applied to uploaded documents when not specified.
-    /// </summary>
-    public string Status { get; set; } = "Draft";
-
-    /// <summary>
-    /// Default sensitivity label applied to uploads when not specified.
-    /// </summary>
-    public string Sensitivity { get; set; } = "Internal";
-
-    /// <summary>
-    /// Optional identifier for the document type schema when configured.
-    /// </summary>
-    public Guid? DocumentTypeId { get; set; }
-
-    /// <summary>
-    /// Optional title applied to uploads when provided.
-    /// </summary>
-    public string? Title { get; set; }
 }
 
 /// <summary>
