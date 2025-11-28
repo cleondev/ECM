@@ -4,7 +4,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Configuration;
 using Ecm.Sdk.Models.Documents;
 using Ecm.Sdk.Models.Tags;
@@ -22,7 +21,6 @@ public sealed class EcmFileClient
     private readonly HttpClient _httpClient;
     private readonly ILogger<EcmFileClient> _logger;
     private readonly EcmIntegrationOptions _options;
-    private readonly EcmOnBehalfAuthenticator _onBehalfAuthenticator;
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -34,17 +32,14 @@ public sealed class EcmFileClient
     /// <param name="httpClient">HTTP client configured for ECM communication.</param>
     /// <param name="logger">Logger used for diagnostics.</param>
     /// <param name="options">Integration options injected via configuration.</param>
-    /// <param name="onBehalfAuthenticator">Authenticator used to ensure on-behalf sessions are established.</param>
     public EcmFileClient(
         HttpClient httpClient,
         ILogger<EcmFileClient> logger,
-        IOptionsSnapshot<EcmIntegrationOptions> options,
-        EcmOnBehalfAuthenticator onBehalfAuthenticator)
+        IOptionsSnapshot<EcmIntegrationOptions> options)
     {
         _httpClient = httpClient;
         _logger = logger;
         _options = options.Value;
-        _onBehalfAuthenticator = onBehalfAuthenticator;
 
         _httpClient.BaseAddress ??= new Uri(_options.BaseUrl);
         _httpClient.Timeout = TimeSpan.FromSeconds(100);
@@ -58,13 +53,11 @@ public sealed class EcmFileClient
     /// <returns>The user profile when available; otherwise, <c>null</c> for unauthorized requests.</returns>
     public async Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.GetAsync("/api/iam/profile", cancellationToken);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
             _logger.LogError(
-                "Request to {Url} was unauthorized. Ensure ApiKey/SSO on-behalf configuration is valid.",
+                "Request to {Url} was unauthorized. Ensure API key configuration is valid.",
                 response.RequestMessage?.RequestUri);
             return null;
         }
@@ -110,8 +103,6 @@ public sealed class EcmFileClient
             : uploadRequest.FileName;
 
         content.Add(fileContent, "file", fileName);
-
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
 
         using var response = await _httpClient.PostAsync(GetDocumentsEndpoint(), content, cancellationToken);
 
@@ -191,8 +182,6 @@ public sealed class EcmFileClient
                 content.Add(fileContent, "Files", fileName);
             }
 
-            await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
             using var response = await _httpClient.PostAsync(GetDocumentsBatchEndpoint(), content, cancellationToken);
 
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -225,8 +214,6 @@ public sealed class EcmFileClient
     /// <returns>The document details when found; otherwise, <c>null</c>.</returns>
     public async Task<DocumentDto?> GetDocumentAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.GetAsync($"{GetDocumentsEndpoint()}/{documentId}", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -247,8 +234,6 @@ public sealed class EcmFileClient
     /// <returns>An absolute or relative URI when available; otherwise, <c>null</c>.</returns>
     public async Task<Uri?> GetDownloadUriAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var request = new HttpRequestMessage(HttpMethod.Get, $"{GetDownloadEndpoint()}/{versionId}");
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
@@ -289,8 +274,6 @@ public sealed class EcmFileClient
     /// <returns>The download payload when successful; otherwise, <c>null</c> if missing.</returns>
     public async Task<DocumentDownloadResult?> DownloadVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.GetAsync(
             $"{GetDownloadEndpoint()}/{versionId}",
             HttpCompletionOption.ResponseHeadersRead,
@@ -324,8 +307,6 @@ public sealed class EcmFileClient
     /// <returns>A collection of tag labels.</returns>
     public async Task<IReadOnlyCollection<TagLabelDto>> ListTagsAsync(CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.GetAsync(GetTagsEndpoint(), cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -341,8 +322,6 @@ public sealed class EcmFileClient
     /// <returns>The created tag information.</returns>
     public async Task<TagLabelDto?> CreateTagAsync(TagCreateRequest request, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.PostAsJsonAsync(GetTagsEndpoint(), request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -358,8 +337,6 @@ public sealed class EcmFileClient
     /// <returns>The updated tag when successful; otherwise, <c>null</c> if not found or forbidden.</returns>
     public async Task<TagLabelDto?> UpdateTagAsync(Guid tagId, TagUpdateRequest request, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.PutAsJsonAsync($"{GetTagsEndpoint()}/{tagId}", request, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -381,8 +358,6 @@ public sealed class EcmFileClient
     /// <returns><c>true</c> when the tag was deleted; otherwise, <c>false</c> when missing.</returns>
     public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.DeleteAsync($"{GetTagsEndpoint()}/{tagId}", cancellationToken);
 
         if (response.StatusCode is HttpStatusCode.NotFound)
@@ -409,8 +384,6 @@ public sealed class EcmFileClient
         Guid? appliedBy,
         CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.PostAsJsonAsync(
             GetDocumentTagsEndpoint(documentId),
             new AssignTagRequest(tagId, appliedBy),
@@ -438,8 +411,6 @@ public sealed class EcmFileClient
     /// <returns><c>true</c> when the tag was removed; otherwise, <c>false</c>.</returns>
     public async Task<bool> RemoveTagFromDocumentAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.DeleteAsync(
             $"{GetDocumentTagsEndpoint(documentId)}/{tagId}",
             cancellationToken);
@@ -465,8 +436,6 @@ public sealed class EcmFileClient
     /// <returns>The result set of documents.</returns>
     public async Task<DocumentListResult?> ListDocumentsAsync(DocumentListQuery query, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         var url = AppendQueryString(GetDocumentsEndpoint(), BuildDocumentQueryParameters(query));
         using var response = await _httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -483,8 +452,6 @@ public sealed class EcmFileClient
     /// <returns>The updated document list item when successful; otherwise, <c>null</c>.</returns>
     public async Task<DocumentListItem?> UpdateDocumentAsync(Guid documentId, DocumentUpdateRequest request, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.PutAsJsonAsync($"{GetDocumentsEndpoint()}/{documentId}", request, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -511,8 +478,6 @@ public sealed class EcmFileClient
     /// <returns><c>true</c> when the document was deleted; otherwise, <c>false</c> when missing or forbidden.</returns>
     public async Task<bool> DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.DeleteAsync($"{GetDocumentsEndpoint()}/{documentId}", cancellationToken);
 
         if (response.StatusCode is HttpStatusCode.NotFound)
@@ -539,8 +504,6 @@ public sealed class EcmFileClient
     /// <returns><c>true</c> when the document was deleted; otherwise, <c>false</c> when missing or forbidden.</returns>
     public async Task<bool> DeleteDocumentByVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        await _onBehalfAuthenticator.EnsureSignedInAsync(_httpClient, cancellationToken);
-
         using var response = await _httpClient.DeleteAsync($"{GetFileManagementEndpoint()}/{versionId}", cancellationToken);
 
         if (response.StatusCode is HttpStatusCode.NotFound)
@@ -559,33 +522,19 @@ public sealed class EcmFileClient
         return true;
     }
 
-    private string GetDocumentsEndpoint() => _options.IsOnBehalfEnabled
-        ? "/api/documents"
-        : "/api/ecm/documents";
+    private string GetDocumentsEndpoint() => "/api/documents";
 
-    private string GetDocumentsBatchEndpoint() => _options.IsOnBehalfEnabled
-        ? "/api/documents/batch"
-        : "/api/ecm/documents/batch";
+    private string GetDocumentsBatchEndpoint() => "/api/documents/batch";
 
-    private string GetDownloadEndpoint() => _options.IsOnBehalfEnabled
-        ? "/api/documents/files/download"
-        : "/api/ecm/files/download";
+    private string GetDownloadEndpoint() => "/api/documents/files/download";
 
-    private string GetPreviewEndpoint() => _options.IsOnBehalfEnabled
-        ? "/api/documents/files/preview"
-        : "/api/ecm/files/preview";
+    private string GetPreviewEndpoint() => "/api/documents/files/preview";
 
-    private string GetFileManagementEndpoint() => _options.IsOnBehalfEnabled
-        ? "/api/documents/files"
-        : "/api/ecm/files";
+    private string GetFileManagementEndpoint() => "/api/documents/files";
 
-    private string GetTagsEndpoint() => _options.IsOnBehalfEnabled
-        ? "/api/tags"
-        : "/api/ecm/tags";
+    private string GetTagsEndpoint() => "/api/tags";
 
-    private string GetDocumentTagsEndpoint(Guid documentId) => _options.IsOnBehalfEnabled
-        ? $"/api/documents/{documentId}/tags"
-        : $"/api/ecm/documents/{documentId}/tags";
+    private string GetDocumentTagsEndpoint(Guid documentId) => $"/api/documents/{documentId}/tags";
 
     private static Dictionary<string, string?> BuildDocumentQueryParameters(DocumentListQuery query)
     {
