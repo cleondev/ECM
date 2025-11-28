@@ -79,14 +79,11 @@ public sealed class EcmUserOptionsConfigurator(EcmUserSelection selection) : IPo
 
         destination.ApiKey.Enabled = source.ApiKey.Enabled;
         destination.ApiKey.ApiKey = source.ApiKey.ApiKey;
-        destination.OnBehalfUserEmail = source.OnBehalfUserEmail;
-        destination.OnBehalfUserId = source.OnBehalfUserId;
 
         destination.Sso.Enabled = source.Sso.Enabled;
         destination.Sso.Authority = source.Sso.Authority;
         destination.Sso.ClientId = source.Sso.ClientId;
         destination.Sso.ClientSecret = source.Sso.ClientSecret;
-        destination.Sso.UserAccessToken = source.Sso.UserAccessToken;
         destination.Sso.Scopes = source.Sso.Scopes?.ToArray() ?? [];
     }
 }

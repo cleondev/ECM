@@ -1,8 +1,10 @@
-using System;
 using System.Net.Http.Headers;
+
+using Ecm.Sdk.Configuration;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
 namespace Ecm.Sdk.Authentication;
@@ -15,14 +17,17 @@ namespace Ecm.Sdk.Authentication;
 /// </remarks>
 /// <param name="authenticator">Authenticator responsible for retrieving user tokens.</param>
 /// <param name="httpContextAccessor">Accessor used to resolve the current HTTP context.</param>
+/// <param name="options">Integration options controlling SSO and API key behavior.</param>
 /// <param name="logger">Logger used for request diagnostics.</param>
 public sealed class EcmAccessTokenHandler(
     EcmAuthenticator authenticator,
     IHttpContextAccessor httpContextAccessor,
+    IOptions<EcmIntegrationOptions> options,
     ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
 {
     private readonly EcmAuthenticator _authenticator = authenticator;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+    private readonly EcmIntegrationOptions _options = options.Value;
     private readonly ILogger<EcmAccessTokenHandler> _logger = logger;
 
     /// <summary>
@@ -36,21 +41,34 @@ public sealed class EcmAccessTokenHandler(
         CancellationToken cancellationToken)
     {
         var httpContext = _httpContextAccessor.HttpContext
-            ?? throw new Exception("Missing user identity");
-
-        var incomingAuthorization = httpContext.Request.Headers.Authorization;
-
-        if (!StringValues.IsNullOrEmpty(incomingAuthorization)
-            && AuthenticationHeaderValue.TryParse(incomingAuthorization, out var parsedAuthorization)
-            && string.Equals(parsedAuthorization.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
+            ?? throw new ArgumentException("Missing user identity");
+        if (_options.Sso.Enabled)
         {
-            request.Headers.Authorization = parsedAuthorization;
-            return await base.SendAsync(request, cancellationToken);
+            var incomingAuthorization = httpContext.Request.Headers["Authorization"];
+
+            if (!StringValues.IsNullOrEmpty(incomingAuthorization)
+                && AuthenticationHeaderValue.TryParse(incomingAuthorization, out var parsedAuthorization)
+                && string.Equals(parsedAuthorization.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
+            {
+                request.Headers.Authorization = parsedAuthorization;
+                try
+                {
+                    return await base.SendAsync(request, cancellationToken);
+                }
+                catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+                {
+                    _logger.LogError(exception, "Request to {Url} failed.", request.RequestUri);
+
+                    throw new HttpRequestException(
+                        $"Request to {request.RequestUri} failed.",
+                        exception);
+                }
+            }
         }
 
         var email = httpContext.User.FindFirst("email")?.Value
             ?? httpContext.User.Identity?.Name
-            ?? throw new Exception("Missing user identity");
+            ?? throw new ArgumentException("Missing user identity");
 
         var token = await _authenticator.GetTokenForUserAsync(email, cancellationToken);
 
@@ -66,7 +84,10 @@ public sealed class EcmAccessTokenHandler(
         catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
         {
             _logger.LogError(exception, "Request to {Url} failed.", request.RequestUri);
-            throw;
+
+            throw new HttpRequestException(
+                $"Request to {request.RequestUri} failed.",
+                exception);
         }
     }
 }

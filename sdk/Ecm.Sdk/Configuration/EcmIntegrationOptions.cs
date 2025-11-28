@@ -8,61 +8,47 @@ namespace Ecm.Sdk.Configuration;
 public sealed class EcmIntegrationOptions
 {
     /// <summary>
-    /// Base address of the ECM API endpoint.
+    /// Base address of the ECM API endpoint (AppGateway).
     /// </summary>
     public string BaseUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// API key based authentication settings for ECM access.
+    /// Used when SSO is disabled or when no upstream bearer token is present.
     /// </summary>
     public ApiKeyOptions ApiKey { get; set; } = new();
 
     /// <summary>
-    /// Settings for acquiring tokens via SSO when acting on behalf of a user.
+    /// Single sign-on settings used when forwarding user tokens directly to AppGateway.
+    /// When <see cref="SsoOptions.Enabled"/> is true and a Bearer token exists on the incoming request,
+    /// the SDK will forward that token as-is instead of using the API key flow.
     /// </summary>
-    [Obsolete("SSO-based on-behalf authentication has been removed.")]
     public SsoOptions Sso { get; set; } = new();
 
     /// <summary>
-    /// Identifier of the user to impersonate when using on-behalf authentication.
-    /// </summary>
-    [Obsolete("On-behalf authentication has been removed.")]
-    public Guid? OnBehalfUserId { get; set; }
-
-    /// <summary>
-    /// Email of the user to impersonate when using on-behalf authentication.
-    /// </summary>
-    [Obsolete("On-behalf authentication has been removed.")]
-    public string? OnBehalfUserEmail { get; set; }
-
-    /// <summary>
-    /// Indicates whether the SDK should route traffic through on-behalf capable endpoints.
-    /// </summary>
-    [Obsolete("On-behalf authentication has been removed.")]
-    public bool IsOnBehalfEnabled => false;
-
-    /// <summary>
-    /// Identifier of the document owner when uploading new content.
+    /// Identifier of the document owner when uploading new content
+    /// if the caller does not explicitly provide one.
     /// </summary>
     public Guid? OwnerId { get; set; }
 
     /// <summary>
-    /// Identifier of the user creating the document when uploading.
+    /// Identifier of the user creating the document when uploading
+    /// if the caller does not explicitly provide one.
     /// </summary>
     public Guid? CreatedBy { get; set; }
 
     /// <summary>
-    /// Default document type used during uploads.
+    /// Default document type used during uploads when not specified.
     /// </summary>
     public string DocType { get; set; } = "General";
 
     /// <summary>
-    /// Default status applied to uploaded documents.
+    /// Default status applied to uploaded documents when not specified.
     /// </summary>
     public string Status { get; set; } = "Draft";
 
     /// <summary>
-    /// Default sensitivity label applied to uploads.
+    /// Default sensitivity label applied to uploads when not specified.
     /// </summary>
     public string Sensitivity { get; set; } = "Internal";
 
@@ -84,9 +70,10 @@ public sealed class ApiKeyOptions
 {
     /// <summary>
     /// Indicates whether API key authentication is enabled.
+    /// This flag is mostly informational; the SDK will fall back to API key
+    /// whenever SSO is disabled or no upstream bearer token is available.
     /// </summary>
-    [Obsolete("API key authentication is always enabled when configured.")]
-    public bool Enabled { get; set; }
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     /// API key used to authenticate requests for access tokens.
@@ -95,17 +82,21 @@ public sealed class ApiKeyOptions
 }
 
 /// <summary>
-/// Options used for single sign-on token acquisition when performing on-behalf flows.
+/// Options used for single sign-on integration.
 /// </summary>
 public sealed class SsoOptions
 {
     /// <summary>
-    /// Indicates whether SSO-based on-behalf token acquisition is enabled.
+    /// Indicates whether SSO-based token forwarding is enabled.
+    /// When enabled and the current HTTP request contains a valid Bearer token,
+    /// the SDK will forward that token directly to AppGateway.
     /// </summary>
     public bool Enabled { get; set; }
 
     /// <summary>
-    /// Authority URL of the identity provider issuing tokens.
+    /// Authority URL of the identity provider issuing tokens (e.g. Azure AD tenant URL).
+    /// This is primarily used by the hosting application to acquire tokens; the SDK itself
+    /// only forwards the incoming bearer token.
     /// </summary>
     public string? Authority { get; set; }
 
@@ -120,12 +111,7 @@ public sealed class SsoOptions
     public string? ClientSecret { get; set; }
 
     /// <summary>
-    /// API scopes requested during token acquisition.
+    /// API scopes requested during token acquisition by the hosting application.
     /// </summary>
-    public string[] Scopes { get; set; } = [];
-
-    /// <summary>
-    /// Access token received from the calling user that is exchanged for a delegated token.
-    /// </summary>
-    public string? UserAccessToken { get; set; }
+    public string[] Scopes { get; set; } = Array.Empty<string>();
 }

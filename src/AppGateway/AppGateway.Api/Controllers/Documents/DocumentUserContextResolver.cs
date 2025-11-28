@@ -26,7 +26,7 @@ internal static class DocumentUserContextResolver
             {
                 var normalized = DocumentRequestNormalization.NormalizeGroupSelection(
                     user.PrimaryGroupId,
-                    user.GroupIds ?? Array.Empty<Guid>(),
+                    user.GroupIds ?? [],
                     out var primaryGroupId);
 
                 if (normalized.Count > 0)

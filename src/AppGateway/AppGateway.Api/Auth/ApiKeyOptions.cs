@@ -1,14 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace AppGateway.Api.Auth;
 
 public sealed class ApiKeyOptions
 {
     public const string SectionName = "ApiKeys";
 
-    public IReadOnlyList<ApiKeyEntry> Keys { get; init; } = Array.Empty<ApiKeyEntry>();
+    public IReadOnlyList<ApiKeyEntry> Keys { get; init; } = [];
 
     public IReadOnlyCollection<string> AllowedKeys
     {
