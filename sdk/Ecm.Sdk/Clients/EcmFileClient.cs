@@ -41,7 +41,7 @@ public sealed class EcmFileClient
         _logger = logger;
         _options = options.Value;
 
-        _httpClient.BaseAddress ??= new Uri(_options.BaseUrl);
+        _httpClient.BaseAddress = new Uri(_options.BaseUrl, UriKind.Absolute);
         _httpClient.Timeout = TimeSpan.FromSeconds(100);
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("ecm-sdk/1.0");
     }
@@ -53,7 +53,7 @@ public sealed class EcmFileClient
     /// <returns>The user profile when available; otherwise, <c>null</c> for unauthorized requests.</returns>
     public async Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync("/api/iam/profile", cancellationToken);
+        using var response = await _httpClient.GetAsync("api/iam/profile", cancellationToken);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
             _logger.LogError(
@@ -522,19 +522,19 @@ public sealed class EcmFileClient
         return true;
     }
 
-    private string GetDocumentsEndpoint() => "/api/documents";
+    private string GetDocumentsEndpoint() => "api/documents";
 
-    private string GetDocumentsBatchEndpoint() => "/api/documents/batch";
+    private string GetDocumentsBatchEndpoint() => "api/documents/batch";
 
-    private string GetDownloadEndpoint() => "/api/documents/files/download";
+    private string GetDownloadEndpoint() => "api/documents/files/download";
 
-    private string GetPreviewEndpoint() => "/api/documents/files/preview";
+    private string GetPreviewEndpoint() => "api/documents/files/preview";
 
-    private string GetFileManagementEndpoint() => "/api/documents/files";
+    private string GetFileManagementEndpoint() => "api/documents/files";
 
-    private string GetTagsEndpoint() => "/api/tags";
+    private string GetTagsEndpoint() => "api/tags";
 
-    private string GetDocumentTagsEndpoint(Guid documentId) => $"/api/documents/{documentId}/tags";
+    private string GetDocumentTagsEndpoint(Guid documentId) => $"api/documents/{documentId}/tags";
 
     private static Dictionary<string, string?> BuildDocumentQueryParameters(DocumentListQuery query)
     {

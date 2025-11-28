@@ -65,28 +65,30 @@ public sealed class EcmAuthenticator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        var options = _options.Value;
 
-        if (string.IsNullOrWhiteSpace(_options.Value.ApiKey.ApiKey))
+        if (string.IsNullOrWhiteSpace(options.ApiKey.ApiKey))
         {
             throw new InvalidOperationException("Ecm:ApiKey:ApiKey must be configured.");
         }
 
-        var baseUri = new Uri(_options.Value.BaseUrl);
+        var baseUri = new Uri(options.BaseUrl, UriKind.Absolute);
 
         if (_httpClient.BaseAddress != baseUri)
         {
             _httpClient.BaseAddress = baseUri;
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/iam/auth/on-behalf")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "api/iam/auth/on-behalf")
         {
             Content = JsonContent.Create(new
             {
-                apiKey = _options.Value.ApiKey.ApiKey,
                 userEmail = email,
                 userId = (Guid?)null,
             }),
         };
+
+        request.Headers.Add("X-Api-Key", options.ApiKey.ApiKey);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
