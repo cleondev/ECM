@@ -65,14 +65,13 @@ public sealed class EcmAuthenticator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var options = _options.Value;
 
-        if (string.IsNullOrWhiteSpace(options.ApiKey.ApiKey))
+        if (string.IsNullOrWhiteSpace(_options.Value.ApiKey.ApiKey))
         {
             throw new InvalidOperationException("Ecm:ApiKey:ApiKey must be configured.");
         }
 
-        var baseUri = new Uri(options.BaseUrl);
+        var baseUri = new Uri(_options.Value.BaseUrl);
 
         if (_httpClient.BaseAddress != baseUri)
         {
@@ -83,7 +82,7 @@ public sealed class EcmAuthenticator(
         {
             Content = JsonContent.Create(new
             {
-                apiKey = options.ApiKey.ApiKey,
+                apiKey = _options.Value.ApiKey.ApiKey,
                 userEmail = email,
                 userId = (Guid?)null,
             }),
