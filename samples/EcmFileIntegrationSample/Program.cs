@@ -28,6 +28,17 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    var userSelection = context.RequestServices.GetRequiredService<EcmUserSelection>();
+
+    // Ensure antiforgery tokens are generated/validated against the selected (or default) user
+    // by setting the HttpContext.User at the start of every request.
+    userSelection.SelectUser();
+
+    await next();
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
