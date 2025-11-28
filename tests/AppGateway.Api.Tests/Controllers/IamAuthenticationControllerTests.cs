@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 
+using AppGateway.Api;
 using AppGateway.Api.Auth;
 using AppGateway.Api.Controllers.IAM;
 using AppGateway.Contracts.Documents;
@@ -221,6 +222,13 @@ public class IamAuthenticationControllerTests
         public CookieAuthenticationOptions Value => _options;
 
         public CookieAuthenticationOptions Get(string? name) => _options;
+    }
+
+    private sealed class TestOptionsSnapshot<T>(T options) : IOptionsSnapshot<T> where T : class, new()
+    {
+        public T Value { get; } = options;
+
+        public T Get(string? name) => Value;
     }
 
     private sealed class TrackingEcmApiClient : IEcmApiClient
@@ -452,13 +460,4 @@ public class IamAuthenticationControllerTests
         }
     }
 
-    private sealed class TestOptionsSnapshot<T>(T value) : IOptionsSnapshot<T>
-        where T : class
-    {
-        private readonly T _value = value;
-
-        public T Value => _value;
-
-        public T Get(string? name) => _value;
-    }
 }

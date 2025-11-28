@@ -1,3 +1,5 @@
+using System;
+
 namespace Ecm.Sdk.Configuration;
 
 /// <summary>
@@ -11,29 +13,33 @@ public sealed class EcmIntegrationOptions
     public string BaseUrl { get; set; } = string.Empty;
 
     /// <summary>
-    /// API key based authentication settings for on-behalf flows.
+    /// API key based authentication settings for ECM access.
     /// </summary>
     public ApiKeyOptions ApiKey { get; set; } = new();
 
     /// <summary>
     /// Settings for acquiring tokens via SSO when acting on behalf of a user.
     /// </summary>
+    [Obsolete("SSO-based on-behalf authentication has been removed.")]
     public SsoOptions Sso { get; set; } = new();
 
     /// <summary>
     /// Identifier of the user to impersonate when using on-behalf authentication.
     /// </summary>
+    [Obsolete("On-behalf authentication has been removed.")]
     public Guid? OnBehalfUserId { get; set; }
 
     /// <summary>
     /// Email of the user to impersonate when using on-behalf authentication.
     /// </summary>
+    [Obsolete("On-behalf authentication has been removed.")]
     public string? OnBehalfUserEmail { get; set; }
 
     /// <summary>
     /// Indicates whether the SDK should route traffic through on-behalf capable endpoints.
     /// </summary>
-    public bool IsOnBehalfEnabled => ApiKey.Enabled || Sso.Enabled;
+    [Obsolete("On-behalf authentication has been removed.")]
+    public bool IsOnBehalfEnabled => false;
 
     /// <summary>
     /// Identifier of the document owner when uploading new content.
@@ -72,17 +78,18 @@ public sealed class EcmIntegrationOptions
 }
 
 /// <summary>
-/// Options controlling API key based on-behalf authentication.
+/// Options controlling API key based authentication.
 /// </summary>
 public sealed class ApiKeyOptions
 {
     /// <summary>
-    /// Indicates whether on-behalf authentication via API key is enabled.
+    /// Indicates whether API key authentication is enabled.
     /// </summary>
+    [Obsolete("API key authentication is always enabled when configured.")]
     public bool Enabled { get; set; }
 
     /// <summary>
-    /// API key used to authenticate the on-behalf sign-in request.
+    /// API key used to authenticate requests for access tokens.
     /// </summary>
     public string? ApiKey { get; set; }
 }
