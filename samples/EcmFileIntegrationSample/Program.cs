@@ -1,3 +1,4 @@
+using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Configuration;
 using Ecm.Sdk.Extensions;
 
@@ -18,6 +19,8 @@ builder.Services.AddSingleton<IPostConfigureOptions<EcmIntegrationOptions>>(serv
 
 builder.Services.AddEcmSdk(options => EcmUserOptionsConfigurator.Copy(userStore.DefaultOptions, options));
 builder.Services.AddScoped<IEcmIntegrationService, EcmIntegrationService>();
+builder.Services.AddScoped<IEcmUserContext, EnvEcmUserContext>();
+
 
 builder.Services.AddHttpContextAccessor();
 

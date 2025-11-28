@@ -22,11 +22,13 @@ namespace Ecm.Sdk.Authentication;
 public sealed class EcmAccessTokenHandler(
     EcmAuthenticator authenticator,
     IHttpContextAccessor httpContextAccessor,
+    IEcmUserContext userContext,
     IOptions<EcmIntegrationOptions> options,
     ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
 {
     private readonly EcmAuthenticator _authenticator = authenticator;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
+    private readonly IEcmUserContext _userContext = userContext;
     private readonly EcmIntegrationOptions _options = options.Value;
     private readonly ILogger<EcmAccessTokenHandler> _logger = logger;
 
@@ -66,11 +68,9 @@ public sealed class EcmAccessTokenHandler(
             }
         }
 
-        var email = httpContext.User.FindFirst("email")?.Value
-            ?? httpContext.User.Identity?.Name
-            ?? throw new ArgumentException("Missing user identity");
+        var userKey = _userContext.GetUserKey();
 
-        var session = await _authenticator.GetSessionForUserAsync(email, cancellationToken);
+        var session = await _authenticator.GetSessionForUserAsync(userKey, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(session.AccessToken))
         {
