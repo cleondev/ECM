@@ -74,7 +74,7 @@ public sealed class EcmAuthenticator(
             _httpClient.BaseAddress = baseUri;
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/iam/authenticate")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/iam/on-behalf")
         {
             Content = JsonContent.Create(new
             {

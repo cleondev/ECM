@@ -2,8 +2,10 @@ using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Clients;
 using Ecm.Sdk.Configuration;
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace Ecm.Sdk.Extensions;
@@ -67,7 +69,7 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection RegisterEcmIntegration(this IServiceCollection services)
     {
         services.AddMemoryCache();
-        services.AddHttpContextAccessor();
+        services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddScoped<EcmAuthenticator>();
         services.AddTransient<EcmAccessTokenHandler>();
 
