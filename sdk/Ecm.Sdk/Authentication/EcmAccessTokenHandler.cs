@@ -1,7 +1,9 @@
+using System;
 using System.Net.Http.Headers;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
 namespace Ecm.Sdk.Authentication;
 
@@ -35,6 +37,16 @@ public sealed class EcmAccessTokenHandler(
     {
         var httpContext = _httpContextAccessor.HttpContext
             ?? throw new Exception("Missing user identity");
+
+        var incomingAuthorization = httpContext.Request.Headers.Authorization;
+
+        if (!StringValues.IsNullOrEmpty(incomingAuthorization)
+            && AuthenticationHeaderValue.TryParse(incomingAuthorization, out var parsedAuthorization)
+            && string.Equals(parsedAuthorization.Scheme, "Bearer", StringComparison.OrdinalIgnoreCase))
+        {
+            request.Headers.Authorization = parsedAuthorization;
+            return await base.SendAsync(request, cancellationToken);
+        }
 
         var email = httpContext.User.FindFirst("email")?.Value
             ?? httpContext.User.Identity?.Name
