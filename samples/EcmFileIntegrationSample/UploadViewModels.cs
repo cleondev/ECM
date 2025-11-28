@@ -106,15 +106,11 @@ public sealed class ConnectionInfoViewModel
 
     public string SelectedUserEmail { get; init; } = string.Empty;
 
+    public string SelectedUserDisplayName { get; init; } = string.Empty;
+
     public bool UsingApiKeyAuthentication { get; init; }
 
     public bool UsingSsoAuthentication { get; init; }
-
-    public bool UsingOnBehalfAuthentication { get; init; }
-
-    public Guid? OnBehalfUserId { get; init; }
-
-    public string? OnBehalfUserEmail { get; init; }
 }
 
 public sealed class HomePageViewModel

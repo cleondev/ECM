@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 using Ecm.Sdk.Configuration;
 
 using Microsoft.Extensions.Options;
@@ -47,12 +49,30 @@ public sealed class EcmUserSelection(IHttpContextAccessor httpContextAccessor, E
 
         var selected = ResolveUser(email);
         context.Items[ContextItemKey] = selected;
+
+        context.User = BuildPrincipal(selected);
+
         return selected;
     }
 
     private EcmUserConfiguration ResolveUser(string? email)
     {
         return _store.GetUserByEmailOrDefault(email);
+    }
+
+    private static ClaimsPrincipal BuildPrincipal(EcmUserConfiguration selected)
+    {
+        var claims = new List<Claim>();
+
+        if (!string.IsNullOrWhiteSpace(selected.Email))
+        {
+            claims.Add(new Claim("email", selected.Email));
+            claims.Add(new Claim(ClaimTypes.Email, selected.Email));
+            claims.Add(new Claim(ClaimTypes.Name, selected.Email));
+        }
+
+        var identity = new ClaimsIdentity(claims, authenticationType: "ecm-sample");
+        return new ClaimsPrincipal(identity);
     }
 }
 

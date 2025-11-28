@@ -13,11 +13,6 @@ public sealed class EcmUserConfiguration
         var merged = new EcmIntegrationOptions();
         EcmUserOptionsConfigurator.Copy(defaults, merged);
 
-        if (!string.IsNullOrWhiteSpace(Email))
-        {
-            merged.OnBehalfUserEmail = Email;
-        }
-
         return merged;
     }
 }
@@ -35,7 +30,7 @@ public sealed class EcmUserStore
         _defaultUser = new EcmUserConfiguration
         {
             DisplayName = "Cấu hình mặc định",
-            Email = defaults.OnBehalfUserEmail,
+            Email = string.Empty,
         };
     }
 

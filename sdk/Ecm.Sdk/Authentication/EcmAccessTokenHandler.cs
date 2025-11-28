@@ -10,7 +10,7 @@ using Microsoft.Extensions.Primitives;
 namespace Ecm.Sdk.Authentication;
 
 /// <summary>
-/// HTTP message handler that attaches ECM access tokens and logs transient errors.
+/// HTTP message handler that attaches ECM authentication credentials and logs transient errors.
 /// </summary>
 /// <remarks>
 /// Initializes a new instance of the <see cref="EcmAccessTokenHandler"/> class.
@@ -70,11 +70,16 @@ public sealed class EcmAccessTokenHandler(
             ?? httpContext.User.Identity?.Name
             ?? throw new ArgumentException("Missing user identity");
 
-        var token = await _authenticator.GetTokenForUserAsync(email, cancellationToken);
+        var session = await _authenticator.GetSessionForUserAsync(email, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(token))
+        if (!string.IsNullOrWhiteSpace(session.AccessToken))
         {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        }
+
+        if (!string.IsNullOrWhiteSpace(session.CookieHeader))
+        {
+            request.Headers.Add("Cookie", session.CookieHeader);
         }
 
         try
