@@ -458,11 +458,9 @@ public static class DocumentEndpoints
     private static async Task<
         Results<Created<DocumentResponse>, ValidationProblem>
     > CreateDocumentAsync(
-        ClaimsPrincipal principal,
         CreateDocumentRequest request,
         UploadDocumentCommandHandler handler,
         IOptions<DocumentUploadDefaultsOptions> defaultsOptions,
-        IUserLookupService userLookupService,
         CancellationToken cancellationToken
     )
     {
@@ -474,36 +472,6 @@ public static class DocumentEndpoints
         }
 
         var defaults = defaultsOptions.Value ?? new DocumentUploadDefaultsOptions();
-        var claimedUserId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
-
-        var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId ?? defaults.CreatedBy;
-        var ownerId = NormalizeGuid(request.OwnerId) ?? createdBy ?? defaults.OwnerId;
-
-        if (createdBy is null)
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]>
-                {
-                    ["createdBy"] =
-                    [
-                        "The creator could not be determined from the request or user context.",
-                    ],
-                }
-            );
-        }
-
-        if (ownerId is null)
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]>
-                {
-                    ["ownerId"] =
-                    [
-                        "The owner could not be determined from the request or user context.",
-                    ],
-                }
-            );
-        }
 
         var title = NormalizeTitle(request.Title, request.File.FileName);
         var docType = string.IsNullOrWhiteSpace(request.DocType)
@@ -534,8 +502,8 @@ public static class DocumentEndpoints
             title,
             docType,
             status,
-            ownerId.Value,
-            createdBy.Value,
+            NormalizeGuid(request.OwnerId),
+            NormalizeGuid(request.CreatedBy),
             groupId,
             sensitivity,
             documentTypeId,

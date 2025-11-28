@@ -72,16 +72,6 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> PostAsync([FromForm] CreateDocumentForm request, CancellationToken cancellationToken)
     {
-        if (request.OwnerId is null || request.OwnerId == Guid.Empty)
-        {
-            ModelState.AddModelError(nameof(request.OwnerId), "A valid owner is required.");
-        }
-
-        if (request.CreatedBy is null || request.CreatedBy == Guid.Empty)
-        {
-            ModelState.AddModelError(nameof(request.CreatedBy), "A valid creator is required.");
-        }
-
         if (request.File is null || request.File.Length <= 0)
         {
             ModelState.AddModelError("file", "A non-empty file is required.");
@@ -92,21 +82,15 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var (normalizedGroupId, normalizedGroupIds) = await DocumentUserContextResolver.ResolveGroupSelectionAsync(
-            _client,
-            _logger,
-            request.CreatedBy.Value,
-            cancellationToken);
-
         var upload = new CreateDocumentUpload
         {
             Title = request.Title,
             DocType = request.DocType,
             Status = request.Status,
-            OwnerId = request.OwnerId.Value,
-            CreatedBy = request.CreatedBy.Value,
-            GroupId = normalizedGroupId,
-            GroupIds = normalizedGroupIds,
+            OwnerId = request.OwnerId,
+            CreatedBy = request.CreatedBy,
+            GroupId = null,
+            GroupIds = Array.Empty<Guid>(),
             Sensitivity = request.Sensitivity,
             DocumentTypeId = request.DocumentTypeId,
             FileName = string.IsNullOrWhiteSpace(request.File.FileName) ? "upload.bin" : request.File.FileName,
@@ -207,39 +191,18 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var claimedUserId = await DocumentUserContextResolver.ResolveUserIdAsync(
-            _client,
-            _logger,
-            User,
-            cancellationToken);
-        var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId;
-        var ownerId = NormalizeGuid(request.OwnerId) ?? createdBy;
-
-        if (createdBy is null)
-        {
-            ModelState.AddModelError(nameof(request.CreatedBy), "The creator could not be determined from the request or user context.");
-            return ValidationProblem(ModelState);
-        }
-
-        if (ownerId is null)
-        {
-            ModelState.AddModelError(nameof(request.OwnerId), "The owner could not be determined from the request or user context.");
-            return ValidationProblem(ModelState);
-        }
+        var createdBy = NormalizeGuid(request.CreatedBy);
+        var ownerId = NormalizeGuid(request.OwnerId);
 
         var normalizedDocType = NormalizeString(request.DocType, "General");
         var normalizedStatus = NormalizeString(request.Status, "Draft");
         var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
-        var (normalizedGroupId, normalizedGroupIds) = await DocumentUserContextResolver.ResolveGroupSelectionAsync(
-            _client,
-            _logger,
-            createdBy.Value,
-            cancellationToken);
         var documentTypeId = request.DocumentTypeId;
         var flowDefinition = NormalizeOptional(request.FlowDefinition);
         var tagIds = request.TagIds.Count == 0
             ? []
             : request.TagIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+        var tagActor = createdBy ?? ownerId;
 
         var documents = new List<DocumentDto>();
         var failures = new List<DocumentUploadFailureDto>();
@@ -269,10 +232,10 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
                 Title = NormalizeTitle(requestedTitle, file.FileName),
                 DocType = normalizedDocType,
                 Status = normalizedStatus,
-                OwnerId = ownerId.Value,
-                CreatedBy = createdBy.Value,
-                GroupId = normalizedGroupId,
-                GroupIds = normalizedGroupIds,
+                OwnerId = ownerId,
+                CreatedBy = createdBy,
+                GroupId = null,
+                GroupIds = Array.Empty<Guid>(),
                 Sensitivity = normalizedSensitivity,
                 DocumentTypeId = documentTypeId,
                 FileName = string.IsNullOrWhiteSpace(file.FileName) ? "upload.bin" : file.FileName,
@@ -292,13 +255,16 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
 
                 documents.Add(document);
 
-                await DocumentPostUploadActions.AssignTagsAsync(
-                    _client,
-                    _logger,
-                    document.Id,
-                    tagIds,
-                    createdBy.Value,
-                    cancellationToken);
+                if (tagActor.HasValue)
+                {
+                    await DocumentPostUploadActions.AssignTagsAsync(
+                        _client,
+                        _logger,
+                        document.Id,
+                        tagIds,
+                        tagActor.Value,
+                        cancellationToken);
+                }
 
                 await DocumentPostUploadActions.StartWorkflowAsync(
                     _client,
