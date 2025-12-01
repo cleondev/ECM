@@ -1,14 +1,11 @@
-using System.Diagnostics.Tracing;
 using System.Text.Json;
+
 using ECM.Webhook.Application.Dispatching;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 using Shared.Contracts.Messaging;
 using Shared.Contracts.Webhooks;
+
 using Workers.Shared.Messaging;
-using Workers.Shared.Messaging.Kafka;
 
 namespace WebhookDispatcher;
 

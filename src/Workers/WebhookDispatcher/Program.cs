@@ -1,14 +1,12 @@
-using System.Collections.Generic;
-using System.Net.Http;
 using ECM.Webhook.Application;
 using ECM.Webhook.Application.Dispatching;
 using ECM.Webhook.Infrastructure;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
+
 using Serilog;
+
 using ServiceDefaults;
+
 using Workers.Shared.Messaging;
-using Workers.Shared.Messaging.Kafka;
 
 namespace WebhookDispatcher;
 

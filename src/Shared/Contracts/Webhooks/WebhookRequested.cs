@@ -2,16 +2,31 @@ namespace Shared.Contracts.Webhooks;
 
 public sealed record WebhookRequested
 {
-    // Id logic của yêu cầu webhook (dùng làm idempotency key chính)
+    /// <summary>
+    /// Logical identifier of the webhook request.
+    /// Used as the primary idempotency key.
+    /// </summary>
     public string RequestId { get; init; } = default!;
 
-    // Tên endpoint cấu hình sẵn (ví dụ: "UploadCallback_PGB")
+    /// <summary>
+    /// The predefined endpoint key (e.g., "UploadCallback_PGB").
+    /// This determines which configured webhook endpoint to invoke.
+    /// </summary>
     public string EndpointKey { get; init; } = default!;
 
-    // Payload JSON đã chuẩn hoá (string)
+    /// <summary>
+    /// Normalized JSON payload to be sent to the webhook.
+    /// </summary>
     public string PayloadJson { get; init; } = default!;
 
-    // Optional: correlation
+    /// <summary>
+    /// Optional correlation identifier used for distributed tracing
+    /// across services, logs, and asynchronous operations.
+    /// </summary>
     public string? CorrelationId { get; init; }
+
+    /// <summary>
+    /// Timestamp (UTC recommended) indicating when this webhook request was created.
+    /// </summary>
     public DateTimeOffset CreatedAt { get; init; }
 }
