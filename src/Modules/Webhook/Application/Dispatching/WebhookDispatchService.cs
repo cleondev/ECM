@@ -75,7 +75,10 @@ public sealed class WebhookDispatchService
             Id = Guid.NewGuid(),
             RequestId = request.RequestId,
             EndpointKey = request.EndpointKey,
-            Status = "Pending"
+            PayloadJson = request.PayloadJson,
+            CorrelationId = request.CorrelationId,
+            Status = "Pending",
+            CreatedAt = request.CreatedAt
         };
 
         var endpoint = ResolveEndpoint(request.EndpointKey);
@@ -98,6 +101,10 @@ public sealed class WebhookDispatchService
         delivery.AttemptCount += attempts;
         delivery.LastAttemptAt = lastAttemptAt;
 
+        var failureMessage = response.IsSuccessStatusCode
+            ? null
+            : $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase ?? response.StatusCode.ToString()})";
+
         if (response.IsSuccessStatusCode)
         {
             delivery.MarkSucceeded(lastAttemptAt);
@@ -109,7 +116,7 @@ public sealed class WebhookDispatchService
         }
         else
         {
-            delivery.MarkFailed(lastAttemptAt);
+            delivery.MarkFailed(lastAttemptAt, failureMessage);
             _logger.LogWarning(
                 "Webhook request {RequestId} to {EndpointKey} failed with status code {StatusCode} after {Attempts} attempt(s).",
                 request.RequestId,

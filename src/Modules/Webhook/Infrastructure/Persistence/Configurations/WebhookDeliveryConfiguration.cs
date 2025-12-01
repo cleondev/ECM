@@ -26,6 +26,15 @@ internal sealed class WebhookDeliveryConfiguration : IEntityTypeConfiguration<We
             .HasMaxLength(128)
             .IsRequired();
 
+        builder.Property(entity => entity.PayloadJson)
+            .HasColumnName("payload")
+            .HasColumnType("jsonb")
+            .IsRequired();
+
+        builder.Property(entity => entity.CorrelationId)
+            .HasColumnName("correlation_id")
+            .HasMaxLength(128);
+
         builder.Property(entity => entity.AttemptCount)
             .HasColumnName("attempt_count")
             .ValueGeneratedOnAdd()
@@ -38,14 +47,25 @@ internal sealed class WebhookDeliveryConfiguration : IEntityTypeConfiguration<We
             .HasDefaultValue("Pending");
 
         builder.Property(entity => entity.LastAttemptAt)
-            .HasColumnName("last_attempt_at")
-            .IsRequired();
+            .HasColumnName("last_attempt_at");
+
+        builder.Property(entity => entity.LastError)
+            .HasColumnName("last_error");
+
+        builder.Property(entity => entity.CreatedAt)
+            .HasColumnName("created_at")
+            .IsRequired()
+            .HasDefaultValueSql("NOW()")
+            .ValueGeneratedOnAdd();
 
         builder.HasIndex(entity => new { entity.RequestId, entity.EndpointKey })
             .IsUnique()
             .HasDatabaseName("ux_webhook_delivery_request_endpoint");
 
-        builder.HasIndex(entity => entity.Status)
-            .HasDatabaseName("ix_webhook_delivery_status");
+        builder.HasIndex(entity => new { entity.EndpointKey, entity.Status })
+            .HasDatabaseName("ix_webhook_delivery_endpoint_status");
+
+        builder.HasIndex(entity => entity.CreatedAt)
+            .HasDatabaseName("ix_webhook_delivery_created");
     }
 }
