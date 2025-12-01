@@ -14,6 +14,8 @@ import {
   FolderOpen,
   Info,
   GitBranch,
+  MessageSquare,
+  NotebookPen,
   HardDrive,
   Paperclip,
   Smile,
@@ -54,6 +56,7 @@ type RightSidebarProps = {
   onTabChange: (tab: ActiveTab) => void
   onClose: () => void
   onFileUpdate?: (file: FileItem) => void
+  showTabShortcuts?: boolean
 }
 
 type ChatMessage = {
@@ -102,7 +105,14 @@ function createEditableState(file: FileItem | null): EditableFileState {
   }
 }
 
-export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, onFileUpdate }: RightSidebarProps) {
+export function RightSidebar({
+  selectedFile,
+  activeTab,
+  onTabChange,
+  onClose,
+  onFileUpdate,
+  showTabShortcuts = false,
+}: RightSidebarProps) {
   const [editValues, setEditValues] = useState<EditableFileState>(() => createEditableState(selectedFile))
 
   const [flows, setFlows] = useState<Flow[]>([])
@@ -551,6 +561,13 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
     chat: "Chat",
   }
 
+  const tabIcons: Record<ActiveTab, React.ComponentType<{ className?: string }>> = {
+    info: Info,
+    flow: GitBranch,
+    form: NotebookPen,
+    chat: MessageSquare,
+  }
+
   const sidebarComments: SidebarComment[] = useMemo(
     () =>
       chatMessages.map((message) => ({
@@ -678,6 +695,32 @@ export function RightSidebar({ selectedFile, activeTab, onTabChange, onClose, on
           <X className="h-4 w-4" />
         </Button>
       </div>
+
+      {showTabShortcuts ? (
+        <div className="flex flex-wrap gap-2 border-b border-sidebar-border/80 px-4 py-2">
+          {(Object.keys(tabLabels) as ActiveTab[]).map((tab) => {
+            const Icon = tabIcons[tab]
+            const isActive = activeTab === tab
+            return (
+              <Button
+                key={tab}
+                variant={isActive ? "secondary" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-8 gap-2 rounded-full px-3 text-xs",
+                  isActive
+                    ? "bg-primary/10 text-primary shadow-[0_0_0_1px] shadow-primary/40"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                onClick={() => onTabChange(tab)}
+              >
+                <Icon className="h-4 w-4" />
+                {tabLabels[tab]}
+              </Button>
+            )
+          })}
+        </div>
+      ) : null}
 
       <SidebarShell
         tabs={{ info: true, flow: true, form: true, chat: true }}
