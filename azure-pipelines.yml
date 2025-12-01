@@ -289,6 +289,7 @@ stages:
             Search:search
             Ocr:ocr
             Operations:ops
+            Webhook:webhook
           )
 
           require_env ECM_Database__Connections__iam \
@@ -339,6 +340,14 @@ stages:
             '$(ConnectionStrings__Operations)'
           if [[ -n "${ECM_Database__Connections__ops:-}" ]]; then
             export ConnectionStrings__Operations="${ECM_Database__Connections__ops}"
+          fi
+
+          require_env ECM_Database__Connections__webhook \
+            "ECM_Database__Connections__webhook / ConnectionStrings__Webhook" \
+            '$(ECM_Database__Connections__webhook)' \
+            '$(ConnectionStrings__Webhook)'
+          if [[ -n "${ECM_Database__Connections__webhook:-}" ]]; then
+            export ConnectionStrings__Webhook="${ECM_Database__Connections__webhook}"
           fi
 
           require_env ECM_FileStorage__BucketName "ECM_FileStorage__BucketName" '$(ECM_FileStorage__BucketName)'
