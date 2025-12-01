@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Linq;
 using ECM.Webhook.Domain;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,6 +17,7 @@ public sealed class WebhookDispatchService
     private readonly HttpClient _httpClient;
     private readonly ILogger<WebhookDispatchService> _logger;
     private readonly WebhookDispatcherOptions _options;
+    private readonly IReadOnlyDictionary<string, WebhookEndpointOptions> _endpoints;
     private readonly AsyncPolicy<HttpResponseMessage> _retryPolicy;
 
     public WebhookDispatchService(
@@ -26,6 +30,14 @@ public sealed class WebhookDispatchService
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options.Value ?? throw new ArgumentNullException(nameof(options));
+
+        _endpoints = (_options.Endpoints ?? Array.Empty<WebhookEndpointOptions>())
+            .Where(endpoint => !string.IsNullOrWhiteSpace(endpoint.Key) && !string.IsNullOrWhiteSpace(endpoint.Url))
+            .GroupBy(endpoint => endpoint.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => NormalizeEndpoint(group.Last()),
+                StringComparer.OrdinalIgnoreCase);
 
         _retryPolicy = Policy<HttpResponseMessage>
             .Handle<HttpRequestException>()
@@ -75,8 +87,12 @@ public sealed class WebhookDispatchService
             attempts++;
             lastAttemptAt = DateTimeOffset.UtcNow;
 
-            using var content = new StringContent(request.PayloadJson, Encoding.UTF8, "application/json");
-            return await _httpClient.PostAsync(endpoint, content, ct).ConfigureAwait(false);
+            using var requestMessage = new HttpRequestMessage(new HttpMethod(endpoint.HttpMethod), endpoint.Url)
+            {
+                Content = new StringContent(request.PayloadJson, Encoding.UTF8, "application/json")
+            };
+
+            return await _httpClient.SendAsync(requestMessage, ct).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
 
         delivery.AttemptCount += attempts;
@@ -112,13 +128,25 @@ public sealed class WebhookDispatchService
         }
     }
 
-    private string ResolveEndpoint(string endpointKey)
+    private WebhookEndpointOptions ResolveEndpoint(string endpointKey)
     {
-        if (_options.Endpoints.TryGetValue(endpointKey, out var endpoint) && !string.IsNullOrWhiteSpace(endpoint))
+        if (_endpoints.TryGetValue(endpointKey, out var endpoint))
         {
             return endpoint;
         }
 
         throw new InvalidOperationException($"No webhook endpoint configured for key '{endpointKey}'.");
+    }
+
+    private static WebhookEndpointOptions NormalizeEndpoint(WebhookEndpointOptions endpoint)
+    {
+        return new WebhookEndpointOptions
+        {
+            Key = endpoint.Key,
+            Url = endpoint.Url,
+            HttpMethod = string.IsNullOrWhiteSpace(endpoint.HttpMethod)
+                ? HttpMethod.Post.Method
+                : endpoint.HttpMethod
+        };
     }
 }

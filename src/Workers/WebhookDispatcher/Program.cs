@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Net.Http;
 using ECM.Webhook.Application;
 using ECM.Webhook.Application.Dispatching;
 using ECM.Webhook.Infrastructure;
@@ -79,20 +81,27 @@ public static class Program
         {
             options.MaxRetryAttempts = Math.Max(1, options.MaxRetryAttempts);
 
-            if (options.Endpoints is not Dictionary<string, string> endpoints ||
-                endpoints.Comparer != StringComparer.OrdinalIgnoreCase)
-            {
-                options.Endpoints = new Dictionary<string, string>(options.Endpoints, StringComparer.OrdinalIgnoreCase);
-            }
+            options.InitialBackoff = options.InitialBackoff <= TimeSpan.Zero
+                ? TimeSpan.FromSeconds(2)
+                : options.InitialBackoff;
 
-            if (options.InitialBackoff <= TimeSpan.Zero)
-            {
-                options.InitialBackoff = TimeSpan.FromSeconds(2);
-            }
+            options.Endpoints ??= new List<WebhookEndpointOptions>();
 
             if (options.Endpoints.Count == 0)
             {
-                options.Endpoints["UploadCallback_PGB"] = "https://localhost:7081/api/upload-callback";
+                options.Endpoints.Add(new WebhookEndpointOptions
+                {
+                    Key = "UploadCallback_PGB",
+                    Url = "https://localhost:7081/api/upload-callback",
+                    HttpMethod = "POST"
+                });
+            }
+
+            foreach (var endpoint in options.Endpoints)
+            {
+                endpoint.HttpMethod = string.IsNullOrWhiteSpace(endpoint.HttpMethod)
+                    ? HttpMethod.Post.Method
+                    : endpoint.HttpMethod;
             }
         });
 

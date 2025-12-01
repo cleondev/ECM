@@ -75,7 +75,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ocr", "src\Workers\Ocr.Work
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tagger", "src\Workers\Tagger.Worker\Tagger.csproj", "{EA879C7C-E129-425C-90BB-66AC816459BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebhookDispatcher", "src\Workers\WebhookDispatcher.Worker\WebhookDispatcher.csproj", "{6D6C3FE9-BCD7-4116-8525-720AF3605E4C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebhookDispatcher", "src\Workers\WebhookDispatcher\WebhookDispatcher.csproj", "{6D6C3FE9-BCD7-4116-8525-720AF3605E4C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ECM.Host", "src\ECM\ECM.Host\ECM.Host.csproj", "{2879C29D-7276-464A-B841-53ABD4F4C294}"
 EndProject

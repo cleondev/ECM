@@ -1,14 +1,25 @@
+using System;
 using System.Collections.Generic;
+using System.Net.Http;
 
 namespace ECM.Webhook.Application;
 
 public sealed class WebhookDispatcherOptions
 {
-    public const string SectionName = "WebhookDispatcher";
+    public const string SectionName = "Webhook";
 
     public int MaxRetryAttempts { get; set; } = 3;
 
     public TimeSpan InitialBackoff { get; set; } = TimeSpan.FromSeconds(2);
 
-    public IDictionary<string, string> Endpoints { get; set; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    public IList<WebhookEndpointOptions> Endpoints { get; set; } = new List<WebhookEndpointOptions>();
+}
+
+public sealed class WebhookEndpointOptions
+{
+    public string Key { get; set; } = string.Empty;
+
+    public string Url { get; set; } = string.Empty;
+
+    public string HttpMethod { get; set; } = HttpMethod.Post.Method;
 }
