@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
-
 namespace ECM.Webhook.Application;
 
 public sealed class WebhookDispatcherOptions
@@ -21,5 +17,5 @@ public sealed class WebhookEndpointOptions
 
     public string Url { get; set; } = string.Empty;
 
-    public string HttpMethod { get; set; } = HttpMethod.Post.Method;
+    public string HttpMethod { get; set; } = System.Net.Http.HttpMethod.Post.Method;
 }

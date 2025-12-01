@@ -36,6 +36,11 @@ public static class EventTopics
         public const string Events = "tag.events";
     }
 
+    public static class Webhooks
+    {
+        public const string Events = "webhook-requests";
+    }
+
     /// <summary>
     ///     Topics that are dedicated to long-running pipeline hand-offs where we want a 1:1 mapping between
     ///     topic and integration event type (e.g., upload → OCR → search indexing).

@@ -1,8 +1,11 @@
+using System.Diagnostics.Tracing;
 using System.Text.Json;
 using ECM.Webhook.Application.Dispatching;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+using Shared.Contracts.Messaging;
 using Shared.Contracts.Webhooks;
 using Workers.Shared.Messaging;
 using Workers.Shared.Messaging.Kafka;
@@ -14,9 +17,9 @@ internal sealed class WebhookRequestListener(
     IServiceScopeFactory scopeFactory,
     ILogger<WebhookRequestListener> logger) : BackgroundService
 {
-    private const string Topic = "webhook-requests";
+    private const string Topic = EventTopics.Webhooks.Events;
 
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
     private readonly IKafkaConsumer _consumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
