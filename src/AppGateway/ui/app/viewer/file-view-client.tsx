@@ -348,6 +348,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
               onTabChange={setActiveTab}
               onClose={() => setIsRightSidebarOpen(false)}
               onFileUpdate={(updatedFile) => setFile(updatedFile)}
+              showTabShortcuts
             />
           </aside>
         ) : null}
