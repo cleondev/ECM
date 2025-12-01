@@ -3,7 +3,7 @@ trigger:
     include:
       - main
       - develop
-      - 'feature/*'
+      - 'feature/ci'
 
 variables:
   - group: ECM-SECRETS
@@ -82,9 +82,10 @@ stages:
         docker build -f src/ECM/ECM.Host/Dockerfile -t "$REGISTRY/ecm-host:$TAG" .
 
         echo "= Build Workers"
-        docker build -f src/Workers/Notify.Worker/Dockerfile -t "$REGISTRY/notify-worker:$TAG" .
-        docker build -f src/Workers/OutboxDispatcher.Worker/Dockerfile -t "$REGISTRY/outbox-worker:$TAG" .
-        docker build -f src/Workers/SearchIndexer.Worker/Dockerfile -t "$REGISTRY/searchindexer-worker:$TAG" .
+        docker build -f src/Workers/Notify/Dockerfile -t "$REGISTRY/notify-worker:$TAG" .
+        docker build -f src/Workers/OutboxDispatcher/Dockerfile -t "$REGISTRY/outbox-worker:$TAG" .
+        docker build -f src/Workers/SearchIndexer/Dockerfile -t "$REGISTRY/searchindexer-worker:$TAG" .
+        docker build -f src/Workers/WebhookDispatcher/Dockerfile -t "$REGISTRY/webhook-worker:$TAG" .
 
         echo "= Push all images"
         docker push "$REGISTRY/appgateway-api:$TAG"
@@ -92,6 +93,7 @@ stages:
         docker push "$REGISTRY/notify-worker:$TAG"
         docker push "$REGISTRY/outbox-worker:$TAG"
         docker push "$REGISTRY/searchindexer-worker:$TAG"
+        docker push "$REGISTRY/webhook-worker:$TAG"
       displayName: 'Build & Push Docker Images'
       env:
         HARBOR_USER: $(HARBOR_USER)

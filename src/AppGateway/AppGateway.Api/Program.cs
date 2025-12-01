@@ -1,8 +1,5 @@
-using System;
-using System.IO;
 using AppGateway.Api.Configuration;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
+
 using ServiceDefaults;
 
 namespace AppGateway.Api;

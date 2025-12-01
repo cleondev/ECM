@@ -2,26 +2,23 @@ using ECM.Abstractions;
 using ECM.Abstractions.Security;
 using ECM.Document.Api;
 using ECM.File.Api;
+using ECM.Host.Auth;
+using ECM.Host.Middleware;
+using ECM.Host.Security;
 using ECM.Host.Swagger;
 using ECM.IAM.Api;
+using ECM.Ocr.Api;
 using ECM.SearchIndexer.Infrastructure;
 using ECM.SearchRead.Api;
 using ECM.Signature.Api;
 using ECM.Workflow.Api;
-using ECM.Ocr.Api;
-using ECM.IAM.Api.Auth;
-using ECM.Host.Auth;
-using ECM.Host.Security;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+
 using ServiceDefaults;
-using ServiceDefaults.Authentication;
-using Serilog;
+
 using Swashbuckle.AspNetCore.SwaggerGen;
-using ECM.Host.Middleware;
 
 namespace ECM.Host;
 

@@ -1,18 +1,19 @@
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+
 using ECM.SearchIndexer.Application.Events;
 using ECM.SearchIndexer.Application.Indexing;
 using ECM.SearchIndexer.Application.Indexing.Abstractions;
 using ECM.SearchIndexer.Domain.Indexing;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using SearchIndexer;
+
 using Shared.Contracts.Messaging;
+
 using TestFixtures;
+
 using Workers.Shared.Messaging;
+
 using Xunit;
 
 namespace SearchIndexer.Tests;

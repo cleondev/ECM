@@ -11,10 +11,10 @@
     <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="../../AppGateway/AppGateway.Api/AppGateway.Api.csproj" />
     <ProjectReference Include="../../ECM/ECM.Host/ECM.Host.csproj" />
-    <ProjectReference Include="../../Workers/SearchIndexer.Worker/SearchIndexer.csproj" />
-    <ProjectReference Include="../../Workers/OutboxDispatcher.Worker/OutboxDispatcher.csproj" />
-    <ProjectReference Include="../../Workers/Notify.Worker/Notify.csproj" />
-    <ProjectReference Include="../../Workers/Ocr.Worker/Ocr.csproj" />
+    <ProjectReference Include="../../Workers/SearchIndexer/SearchIndexer.csproj" />
+    <ProjectReference Include="../../Workers/OutboxDispatcher/OutboxDispatcher.csproj" />
+    <ProjectReference Include="../../Workers/Notify/Notify.csproj" />
+    <ProjectReference Include="../../Workers/Ocr/Ocr.csproj" />
     <ProjectReference Include="../../Workers/WebhookDispatcher/WebhookDispatcher.csproj" />
   </ItemGroup>
   <ItemGroup>
