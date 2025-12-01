@@ -141,6 +141,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{84
 		database\05_ocr.sql = database\05_ocr.sql
 		database\06_ops.sql = database\06_ops.sql
 		database\07_share.sql = database\07_share.sql
+		database\08_webhook.sql = database\08_webhook.sql
 		database\10_init_data.sql = database\10_init_data.sql
 	EndProjectSection
 EndProject
