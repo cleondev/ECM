@@ -9,8 +9,6 @@ public sealed class OperationsDbContext(DbContextOptions<OperationsDbContext> op
     public DbSet<RetentionPolicy> RetentionPolicies => Set<RetentionPolicy>();
     public DbSet<RetentionCandidate> RetentionCandidates => Set<RetentionCandidate>();
     public DbSet<UserNotification> Notifications => Set<UserNotification>();
-    public DbSet<WebhookSubscription> Webhooks => Set<WebhookSubscription>();
-    public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

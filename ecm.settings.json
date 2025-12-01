@@ -13,6 +13,10 @@
       "Context": "ECM.File.Infrastructure.Persistence.FileDbContext",
       "Project": "src/Modules/File/ECM.File.csproj"
     },
+    "webhook": {
+      "Context": "ECM.Webhook.Infrastructure.Persistence.WebhookDbContext",
+      "Project": "src/Modules/Webhook/ECM.Webhook.csproj"
+    },
     "operations": {
       "Context": "ECM.Operations.Infrastructure.Persistence.OperationsDbContext",
       "Project": "src/Modules/Operations/ECM.Operations.csproj"

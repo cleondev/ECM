@@ -9,18 +9,21 @@ Tất cả chạy từ **root repo** (nơi có `ecm.ps1`).
 .\ecm.ps1 ef add iam InitIamDb
 .\ecm.ps1 ef add document AddIndexes
 .\ecm.ps1 ef add file InitFileDb
+.\ecm.ps1 ef add webhook InitWebhookDb
 .\ecm.ps1 ef add ocr InitOcrDb
 .\ecm.ps1 ef add operations InitOperations
 
 # Apply DB (module đơn lẻ hoặc all)
 .\ecm.ps1 ef update iam
 .\ecm.ps1 ef update ocr
+.\ecm.ps1 ef update webhook
 .\ecm.ps1 ef update operations
 .\ecm.ps1 ef update all
 
 # Rollback về migration đích ("0" = trống)
 .\ecm.ps1 ef rollback document -name 0
 .\ecm.ps1 ef rollback ocr -name 0
+.\ecm.ps1 ef rollback webhook -name 0
 .\ecm.ps1 ef rollback iam -name 20251017_AddUserIndex
 .\ecm.ps1 ef rollback operations -name 0
 .\ecm.ps1 ef rollback all -name 0
@@ -29,6 +32,7 @@ Tất cả chạy từ **root repo** (nơi có `ecm.ps1`).
 .\ecm.ps1 ef script iam
 .\ecm.ps1 ef script document -from 20251010_Init -to 20251017_AddX -idempotent
 .\ecm.ps1 ef script file -idempotent
+.\ecm.ps1 ef script webhook -idempotent
 .\ecm.ps1 ef script ocr -idempotent
 .\ecm.ps1 ef script operations -idempotent
 .\ecm.ps1 ef script all -idempotent
@@ -48,6 +52,7 @@ Tất cả chạy từ **root repo** (nơi có `ecm.ps1`).
 ef-iam-add InitIamDb
 ef-doc-add AddMetadata
 ef-file-add InitFileDb
+ef-webhook-add InitWebhookDb
 ef-ocr-add InitOcrDb
 ef-operations-add InitOperations
 
@@ -55,6 +60,7 @@ ef-operations-add InitOperations
 ef-iam-update
 ef-doc-update
 ef-file-update
+ef-webhook-update
 ef-ocr-update
 ef-operations-update
 ef-update-all
@@ -63,6 +69,7 @@ ef-update-all
 ef-iam-rollback 0
 ef-doc-rollback 20251017_AddX
 ef-file-rollback 0
+ef-webhook-rollback 0
 ef-ocr-rollback 0
 ef-operations-rollback 0
 ef-rollback-all 0
@@ -71,6 +78,7 @@ ef-rollback-all 0
 ef-iam-script
 ef-doc-script -From 20251010_Init -To 20251017_AddX -Idempotent
 ef-file-script -Idempotent
+ef-webhook-script -Idempotent
 ef-ocr-script -Idempotent
 ef-operations-script -Idempotent
 ef-script-all -Idempotent
@@ -80,6 +88,7 @@ ef-list
 ef-miglist-iam
 ef-miglist-doc
 ef-miglist-file
+ef-miglist-webhook
 ef-miglist-ocr
 ef-miglist-operations
 ef-miglist-all

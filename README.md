@@ -153,7 +153,7 @@ Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings_
 
 ## Khởi tạo cơ sở dữ liệu (EF Core migrations)
 
-Các module sử dụng Entity Framework Core để quản lý schema. Bộ khởi tạo hiện bao gồm module Document với migrations có sẵn tại `src/Modules/Document/Infrastructure/Migrations`.
+Các module sử dụng Entity Framework Core để quản lý schema. Bộ khởi tạo hiện bao gồm module Document (`src/Modules/Document/Infrastructure/Migrations`), Operations (`src/Modules/Operations/Infrastructure/Persistence/Migrations`) và Webhook (`src/Modules/Webhook/Infrastructure/Persistence/Migrations`).
 
 1. **Cài công cụ `dotnet-ef`** (cùng major version 9.x với EF Core trong solution):
 
@@ -185,6 +185,12 @@ Các module sử dụng Entity Framework Core để quản lý schema. Bộ kh�
      --project src/Modules/Document/ECM.Document.csproj \
      --startup-project src/ECM/ECM.Host/ECM.Host.csproj \
      --context ECM.Document.Infrastructure.Persistence.DocumentDbContext
+
+   # Áp dụng schema cho module Webhook (lưu lịch sử delivery)
+   dotnet ef database update \
+     --project src/Modules/Webhook/ECM.Webhook.csproj \
+     --startup-project src/ECM/ECM.Host/ECM.Host.csproj \
+     --context ECM.Webhook.Infrastructure.Persistence.WebhookDbContext
    ```
 
    Lệnh trên sử dụng `ECM.Host` làm startup project để nạp cấu hình và dependency injection. Có thể truyền thêm `-- --environment Development` nếu cần ép môi trường cụ thể.
