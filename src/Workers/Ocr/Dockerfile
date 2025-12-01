@@ -11,7 +11,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Packages.props", "."]
-COPY ["src/Workers/Ocr.Worker/Ocr.csproj", "src/Workers/Ocr.Worker/"]
+COPY ["src/Workers/Ocr/Ocr.csproj", "src/Workers/Ocr/"]
 COPY ["src/Shared/ServiceDefaults/ServiceDefaults.csproj", "src/Shared/ServiceDefaults/"]
 COPY ["src/ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj", "src/ECM/ECM.BuildingBlocks/"]
 COPY ["src/Modules/Ocr/ECM.Ocr.csproj", "src/Modules/Ocr/"]
@@ -23,9 +23,9 @@ COPY ["src/Shared/Utilities/Shared.Utilities.csproj", "src/Shared/Utilities/"]
 COPY ["src/Shared/Contracts/Shared.Contracts.csproj", "src/Shared/Contracts/"]
 COPY ["src/Modules/File/ECM.File.csproj", "src/Modules/File/"]
 COPY ["src/Workers/Shared/Workers.Shared.csproj", "src/Workers/Shared/"]
-RUN dotnet restore "./src/Workers/Ocr.Worker/Ocr.csproj"
+RUN dotnet restore "./src/Workers/Ocr/Ocr.csproj"
 COPY . .
-WORKDIR "/src/src/Workers/Ocr.Worker"
+WORKDIR "/src/src/Workers/Ocr"
 RUN dotnet build "./Ocr.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage

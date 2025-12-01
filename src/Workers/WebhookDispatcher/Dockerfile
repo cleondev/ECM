@@ -11,14 +11,14 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Packages.props", "."]
-COPY ["src/Workers/WebhookDispatcher.Worker/WebhookDispatcher.csproj", "src/Workers/WebhookDispatcher.Worker/"]
+COPY ["src/Workers/WebhookDispatcher/WebhookDispatcher.csproj", "src/Workers/WebhookDispatcher/"]
 COPY ["src/ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj", "src/ECM/ECM.BuildingBlocks/"]
 COPY ["src/Shared/ServiceDefaults/ServiceDefaults.csproj", "src/Shared/ServiceDefaults/"]
 COPY ["src/Shared/Contracts/Shared.Contracts.csproj", "src/Shared/Contracts/"]
 COPY ["src/Workers/Shared/Workers.Shared.csproj", "src/Workers/Shared/"]
-RUN dotnet restore "./src/Workers/WebhookDispatcher.Worker/WebhookDispatcher.csproj"
+RUN dotnet restore "./src/Workers/WebhookDispatcher/WebhookDispatcher.csproj"
 COPY . .
-WORKDIR "/src/src/Workers/WebhookDispatcher.Worker"
+WORKDIR "/src/src/Workers/WebhookDispatcher"
 RUN dotnet build "./WebhookDispatcher.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage

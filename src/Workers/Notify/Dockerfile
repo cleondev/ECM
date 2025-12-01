@@ -11,12 +11,12 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Packages.props", "."]
-COPY ["src/Workers/Notify.Worker/Notify.csproj", "src/Workers/Notify.Worker/"]
+COPY ["src/Workers/Notify/Notify.csproj", "src/Workers/Notify/"]
 COPY ["src/Shared/ServiceDefaults/ServiceDefaults.csproj", "src/Shared/ServiceDefaults/"]
 COPY ["src/ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj", "src/ECM/ECM.BuildingBlocks/"]
-RUN dotnet restore "./src/Workers/Notify.Worker/Notify.csproj"
+RUN dotnet restore "./src/Workers/Notify/Notify.csproj"
 COPY . .
-WORKDIR "/src/src/Workers/Notify.Worker"
+WORKDIR "/src/src/Workers/Notify"
 RUN dotnet build "./Notify.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage

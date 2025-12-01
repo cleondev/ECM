@@ -11,7 +11,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Directory.Packages.props", "."]
-COPY ["src/Workers/Tagger.Worker/Tagger.csproj", "src/Workers/Tagger.Worker/"]
+COPY ["src/Workers/Tagger/Tagger.csproj", "src/Workers/Tagger/"]
 COPY ["src/Shared/ServiceDefaults/ServiceDefaults.csproj", "src/Shared/ServiceDefaults/"]
 COPY ["src/ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj", "src/ECM/ECM.BuildingBlocks/"]
 COPY ["src/Modules/Document/ECM.Document.csproj", "src/Modules/Document/"]
@@ -21,9 +21,9 @@ COPY ["src/Shared/Extensions/Shared.Extensions.csproj", "src/Shared/Extensions/"
 COPY ["src/Shared/Utilities/Shared.Utilities.csproj", "src/Shared/Utilities/"]
 COPY ["src/Shared/Contracts/Shared.Contracts.csproj", "src/Shared/Contracts/"]
 COPY ["src/Workers/Shared/Workers.Shared.csproj", "src/Workers/Shared/"]
-RUN dotnet restore "./src/Workers/Tagger.Worker/Tagger.csproj"
+RUN dotnet restore "./src/Workers/Tagger/Tagger.csproj"
 COPY . .
-WORKDIR "/src/src/Workers/Tagger.Worker"
+WORKDIR "/src/src/Workers/Tagger"
 RUN dotnet build "./Tagger.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
