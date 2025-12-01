@@ -37,6 +37,7 @@ public static class Program
 
         builder.Configuration.AddEnvironmentVariables();
 
+        // Aspire dashboard configuration
         var dashboardDefaults = new Dictionary<string, string?>();
 
         if (string.IsNullOrWhiteSpace(builder.Configuration[DashboardUrlVariable]))
@@ -65,6 +66,7 @@ public static class Program
             builder.Configuration.AddInMemoryCollection(dashboardDefaults);
         }
 
+        // Database connection strings
         var moduleDatabaseNames = new[]
         {
             "IAM",
@@ -73,7 +75,8 @@ public static class Program
             "Workflow",
             "Search",
             "Ocr",
-            "Operations"
+            "Operations",
+            "Webhook"
         };
 
         var moduleDatabases = new Dictionary<string, IResourceBuilder<IResourceWithConnectionString>>(StringComparer.OrdinalIgnoreCase);
@@ -101,6 +104,7 @@ public static class Program
             prefixedConnectionStrings[$"ConnectionStrings:{databaseResourceName}"] = connectionString;
         }
 
+        // External services
         var kafkaResourceName = BuildResourceName(ServiceResourcePrefix, "kafka");
         var minioResourceName = BuildResourceName(ServiceResourcePrefix, "minio");
 
@@ -130,12 +134,14 @@ public static class Program
         var kafka = builder.AddConnectionString(kafkaResourceName);
         var minio = builder.AddConnectionString(minioResourceName);
 
+        // Application URLs
         var ecmUrl = builder.Configuration.GetValue<string>("Urls:Ecm") ?? "http://localhost:8080";
         var gatewayUrl = builder.Configuration.GetValue<string>("Urls:Gateway") ?? "http://localhost:5090";
 
         var ecmUri = EnsureHttpUri(ecmUrl, "Urls:Ecm");
         var gatewayUri = EnsureHttpUri(gatewayUrl, "Urls:Gateway");
 
+        // Application services
         var ecmResourceName = BuildResourceName(AppResourcePrefix, "ecm");
         var ecmHost = builder.AddProject<Projects.ECM_Host>(ecmResourceName)
             .WithReference(kafka)
@@ -155,6 +161,7 @@ public static class Program
 
         appGateway = ConfigureProjectResource(appGateway, gatewayUri, gatewayResourceName);
 
+        // Worker services
         var searchIndexerResourceName = BuildResourceName(WorkerResourcePrefix, "search-indexer");
         var searchIndexer = builder.AddProject<Projects.SearchIndexer>(searchIndexerResourceName)
             .WithReference(kafka)
@@ -188,6 +195,11 @@ public static class Program
         {
             outboxDispatcher = outboxDispatcher.WithEnvironment("ConnectionStrings__Operations", operationsConnection);
         }
+
+        var webhookDispatcherResourceName = BuildResourceName(WorkerResourcePrefix, "webhook");
+        var webhookDispatcher = builder.AddProject<Projects.WebhookDispatcher>(webhookDispatcherResourceName)
+            .WithReference(kafka)
+            .WithReference(moduleDatabases["Webhook"]);
 
         var notifyResourceName = BuildResourceName(WorkerResourcePrefix, "notify");
         builder.AddProject<Projects.SearchIndexer>(notifyResourceName)
