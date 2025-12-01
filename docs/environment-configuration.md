@@ -27,6 +27,7 @@ Tài liệu này tổng hợp các biến môi trường/secrets đã sử dụn
 | `ECM_Database__Connections__search` | `ConnectionStrings:Search` | Chuỗi kết nối module Search. |
 | `ECM_Database__Connections__ocr` | `ConnectionStrings:Ocr` | Chuỗi kết nối module OCR. |
 | `ECM_Database__Connections__ops` | `ConnectionStrings:Operations` | Chuỗi kết nối module Operations (outbox, audit, notifications, retention). |
+| `ECM_Database__Connections__webhook` | `ConnectionStrings:Webhook` | Chuỗi kết nối module Webhook (ghi nhận lịch sử delivery). |
 | `ECM_FileStorage__BucketName` | `FileStorage:BucketName` | Tên bucket MinIO/S3. |
 | `ECM_FileStorage__ServiceUrl` | `FileStorage:ServiceUrl` | Endpoint MinIO/S3 (ví dụ `http://localhost:9000`). |
 | `ECM_FileStorage__AccessKeyId` | `FileStorage:AccessKeyId` | Access key MinIO/S3. |
@@ -37,7 +38,7 @@ Tài liệu này tổng hợp các biến môi trường/secrets đã sử dụn
 
 ### Workers & service phụ trợ
 
-Các worker trong `src/Workers/*` dùng chung cấu hình với `ECM.Host`. Chỉ cần set các biến `ConnectionStrings__Operations` (hoặc secret tương ứng `ECM_Database__Connections__ops`), `Kafka__*` (nếu có), và `ECM_FileStorage__*` tùy vào chức năng worker. Các biến có tiền tố `ECM_` đều được tự động nạp nhờ `ServiceDefaults`.
+Các worker trong `src/Workers/*` dùng chung cấu hình với `ECM.Host`. Chỉ cần set các biến `ConnectionStrings__Operations` (hoặc secret tương ứng `ECM_Database__Connections__ops`), `ConnectionStrings__Webhook` (nếu chạy `WebhookDispatcher`), `Kafka__*` (nếu có), và `ECM_FileStorage__*` tùy vào chức năng worker. Các biến có tiền tố `ECM_` đều được tự động nạp nhờ `ServiceDefaults`.
 
 ### CI/CD & container registry
 
@@ -73,6 +74,7 @@ Các worker trong `src/Workers/*` dùng chung cấu hình với `ECM.Host`. Ch�
    ConnectionStrings__Search=Host=localhost;Port=5432;Database=ecm_search;Username=ecm;Password=ecm
    ConnectionStrings__Ocr=Host=localhost;Port=5432;Database=ecm_ocr;Username=ecm;Password=ecm
    ConnectionStrings__Operations=Host=localhost;Port=5432;Database=ecm_ops;Username=ecm;Password=ecm
+   ConnectionStrings__Webhook=Host=localhost;Port=5432;Database=ecm_webhook;Username=ecm;Password=ecm
 
    # MinIO/S3
    ECM_FileStorage__BucketName=ecm-files
