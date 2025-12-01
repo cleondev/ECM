@@ -89,6 +89,7 @@ Tùy bối cảnh mà lựa chọn chạy hạ tầng nền tảng trực tiếp
     export ConnectionStrings__Search="Host=<host>;Port=5432;Database=ecm_search;Username=<db-user>;Password=<db-pass>"
     export ConnectionStrings__Ocr="Host=<host>;Port=5432;Database=ecm_ocr;Username=<db-user>;Password=<db-pass>"
     export ConnectionStrings__Operations="Host=<host>;Port=5432;Database=ecm_ops;Username=<db-user>;Password=<db-pass>"
+    export ConnectionStrings__Webhook="Host=<host>;Port=5432;Database=ecm_webhook;Username=<db-user>;Password=<db-pass>"
     export FileStorage__ServiceUrl="http://<minio-host>:9000"
     export FileStorage__AccessKeyId=<minio-access-key>
     export FileStorage__SecretAccessKey=<minio-secret>
@@ -148,7 +149,7 @@ Các script khởi tạo (schema DB mẫu, bucket/object, topic) nằm trong `de
   .\deploy\scripts\init-all.ps1
   ```
 
-Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__IAM`, `ConnectionStrings__Document`, `ConnectionStrings__File`, `ConnectionStrings__Workflow`, `ConnectionStrings__Search`, `ConnectionStrings__Ocr`, `ConnectionStrings__Operations`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_NAME_PREFIX`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
+Sau khi chạy, các biến sau sẽ được thiết lập: `ConnectionStrings__IAM`, `ConnectionStrings__Document`, `ConnectionStrings__File`, `ConnectionStrings__Workflow`, `ConnectionStrings__Search`, `ConnectionStrings__Ocr`, `ConnectionStrings__Operations`, `ConnectionStrings__Webhook`, `FileStorage__*`, `Kafka__BootstrapServers`, `Services__Ecm`, `Workflow__Camunda__BaseUrl`, `Workflow__Camunda__TenantId`. Có thể tùy chỉnh trước bằng cách đặt các biến `DB_HOST`, `DB_NAME_PREFIX`, `DB_USER`, `FileStorage__ServiceUrl`,... rồi mới `source`/chạy script.
 
 ## Khởi tạo cơ sở dữ liệu (EF Core migrations)
 

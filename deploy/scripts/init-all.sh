@@ -47,6 +47,7 @@ module_mappings=(
   Search:search
   Ocr:ocr
   Operations:ops
+  Webhook:webhook
 )
 
 for mapping in "${module_mappings[@]}"; do

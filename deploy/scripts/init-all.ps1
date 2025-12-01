@@ -17,6 +17,7 @@ $moduleMappings = @{
   Search        = "search"
   Ocr           = "ocr"
   Operations    = "ops"
+  Webhook       = "webhook"
 }
 
 function Get-DatabaseName([string]$schema) {
