@@ -45,13 +45,20 @@ public sealed class WebhookDispatchService
             .WaitAndRetryAsync(
                 _options.MaxRetryAttempts,
                 retryAttempt => TimeSpan.FromSeconds(Math.Pow(_options.InitialBackoff.TotalSeconds, retryAttempt)),
-                onRetry: (outcome, timespan, attempt, _) =>
+                onRetryAsync: async (outcome, timespan, attempt, context) =>
                 {
                     _logger.LogWarning(
                         outcome.Exception,
                         "Webhook dispatch attempt {Attempt} failed. Waiting {Delay} before retrying...",
                         attempt,
                         timespan);
+
+                    outcome.Result?.Dispose();
+
+                    if (context.TryGetValue("onRetry", out var callback) && callback is Func<DelegateResult<HttpResponseMessage>, Task> retryCallback)
+                    {
+                        await retryCallback(outcome).ConfigureAwait(false);
+                    }
                 });
     }
 
@@ -70,6 +77,8 @@ public sealed class WebhookDispatchService
             return;
         }
 
+        var isNewDelivery = delivery is null;
+
         delivery ??= new WebhookDelivery
         {
             Id = Guid.NewGuid(),
@@ -78,60 +87,70 @@ public sealed class WebhookDispatchService
             PayloadJson = request.PayloadJson,
             CorrelationId = request.CorrelationId,
             Status = "Pending",
-            CreatedAt = request.CreatedAt
+            CreatedAt = request.CreatedAt == default ? DateTimeOffset.UtcNow : request.CreatedAt
         };
 
-        var endpoint = ResolveEndpoint(request.EndpointKey);
-        var attempts = 0;
-        var lastAttemptAt = DateTimeOffset.MinValue;
-
-        using var response = await _retryPolicy.ExecuteAsync(async ct =>
-        {
-            attempts++;
-            lastAttemptAt = DateTimeOffset.UtcNow;
-
-            using var requestMessage = new HttpRequestMessage(new HttpMethod(endpoint.HttpMethod), endpoint.Url)
-            {
-                Content = new StringContent(request.PayloadJson, Encoding.UTF8, "application/json")
-            };
-
-            return await _httpClient.SendAsync(requestMessage, ct).ConfigureAwait(false);
-        }, cancellationToken).ConfigureAwait(false);
-
-        delivery.AttemptCount += attempts;
-        delivery.LastAttemptAt = lastAttemptAt;
-
-        var failureMessage = response.IsSuccessStatusCode
-            ? null
-            : $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase ?? response.StatusCode.ToString()})";
-
-        if (response.IsSuccessStatusCode)
-        {
-            delivery.MarkSucceeded(lastAttemptAt);
-            _logger.LogInformation(
-                "Webhook request {RequestId} delivered to {EndpointKey} after {Attempts} attempt(s).",
-                request.RequestId,
-                request.EndpointKey,
-                attempts);
-        }
-        else
-        {
-            delivery.MarkFailed(lastAttemptAt, failureMessage);
-            _logger.LogWarning(
-                "Webhook request {RequestId} to {EndpointKey} failed with status code {StatusCode} after {Attempts} attempt(s).",
-                request.RequestId,
-                request.EndpointKey,
-                response.StatusCode,
-                attempts);
-        }
-
-        if (delivery.AttemptCount == attempts)
+        if (isNewDelivery)
         {
             await _repository.AddAsync(delivery, cancellationToken).ConfigureAwait(false);
         }
-        else
+
+        var endpoint = ResolveEndpoint(request.EndpointKey);
+        var pollyContext = new Context
         {
+            ["onRetry"] = (Func<DelegateResult<HttpResponseMessage>, Task>)(async outcome =>
+            {
+                delivery.LastError = BuildFailureMessage(outcome.Result, outcome.Exception);
+                await _repository.UpdateAsync(delivery, cancellationToken).ConfigureAwait(false);
+            })
+        };
+
+        try
+        {
+            using var response = await _retryPolicy.ExecuteAsync(async (context, ct) =>
+            {
+                var attemptTimestamp = DateTimeOffset.UtcNow;
+                delivery.RecordAttempt(attemptTimestamp);
+
+                using var requestMessage = new HttpRequestMessage(new HttpMethod(endpoint.HttpMethod), endpoint.Url)
+                {
+                    Content = new StringContent(request.PayloadJson, Encoding.UTF8, "application/json")
+                };
+
+                return await _httpClient.SendAsync(requestMessage, ct).ConfigureAwait(false);
+            }, pollyContext, cancellationToken).ConfigureAwait(false);
+
+            var failureMessage = response.IsSuccessStatusCode
+                ? null
+                : BuildFailureMessage(response, null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                delivery.MarkSucceeded(delivery.LastAttemptAt ?? DateTimeOffset.UtcNow);
+                _logger.LogInformation(
+                    "Webhook request {RequestId} delivered to {EndpointKey} after {Attempts} attempt(s).",
+                    request.RequestId,
+                    request.EndpointKey,
+                    delivery.AttemptCount);
+            }
+            else
+            {
+                delivery.MarkFailed(delivery.LastAttemptAt ?? DateTimeOffset.UtcNow, failureMessage);
+                _logger.LogWarning(
+                    "Webhook request {RequestId} to {EndpointKey} failed with status code {StatusCode} after {Attempts} attempt(s).",
+                    request.RequestId,
+                    request.EndpointKey,
+                    response.StatusCode,
+                    delivery.AttemptCount);
+            }
+
             await _repository.UpdateAsync(delivery, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException)
+        {
+            delivery.MarkFailed(delivery.LastAttemptAt ?? DateTimeOffset.UtcNow, ex.Message);
+            await _repository.UpdateAsync(delivery, cancellationToken).ConfigureAwait(false);
+            throw;
         }
     }
 
@@ -155,5 +174,20 @@ public sealed class WebhookDispatchService
                 ? HttpMethod.Post.Method
                 : endpoint.HttpMethod
         };
+    }
+
+    private static string? BuildFailureMessage(HttpResponseMessage? response, Exception? exception)
+    {
+        if (exception is not null)
+        {
+            return exception.Message;
+        }
+
+        if (response is null)
+        {
+            return null;
+        }
+
+        return $"HTTP {(int)response.StatusCode} ({response.ReasonPhrase ?? response.StatusCode.ToString()})";
     }
 }
