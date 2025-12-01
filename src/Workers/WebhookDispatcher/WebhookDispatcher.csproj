@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" />
+    <ProjectReference Include="../../Modules/Webhook/ECM.Webhook.csproj" />
+    <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
+    <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../Shared/Workers.Shared.csproj" />
+  </ItemGroup>
+</Project>
