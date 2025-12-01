@@ -2,14 +2,14 @@
   "profiles": {
     "WebhookDispatcher": {
       "commandName": "Project",
-        "environmentVariables": {
-          "DOTNET_ENVIRONMENT": "Development",
-          "Kafka__BootstrapServers": "172.20.1.22:9092",
-          "ConnectionStrings__Webhook": "Host=172.20.1.22;Port=5432;Database=webhook;Username=ecm_app;Password=admin123;SearchPath=webhook;",
-          "Webhook__Endpoints__0__Key": "UploadCallback_PGB",
-          "Webhook__Endpoints__0__Url": "https://localhost:7081/api/upload-callback",
-          "Webhook__Endpoints__0__HttpMethod": "POST"
-        },
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Kafka__BootstrapServers": "172.20.1.22:9092",
+        "ConnectionStrings__Webhook": "Host=172.20.1.22;Port=5432;Database=ecm;Username=ecm_app;Password=admin123;SearchPath=webhook;",
+        "Webhook__Endpoints__0__Key": "UploadCallback_PGB",
+        "Webhook__Endpoints__0__Url": "https://localhost:7081/api/upload-callback",
+        "Webhook__Endpoints__0__HttpMethod": "POST"
+      },
       "dotnetRunMessages": true
     },
     "Container (Dockerfile)": {

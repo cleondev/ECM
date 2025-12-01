@@ -25,5 +25,6 @@
     <ProjectReference Include="../../Modules/Signature/ECM.Signature.csproj" />
     <ProjectReference Include="../../Modules/SearchRead/ECM.SearchRead.csproj" />
     <ProjectReference Include="../../Modules/Ocr/ECM.Ocr.csproj" />
+    <ProjectReference Include="..\..\Modules\Webhook\ECM.Webhook.csproj" />
   </ItemGroup>
 </Project>

@@ -12,4 +12,7 @@
     <ProjectReference Include="../Abstractions/ECM.Abstractions.csproj" />
     <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Infrastructure\Persistence\Migrations\" />
+  </ItemGroup>
 </Project>
