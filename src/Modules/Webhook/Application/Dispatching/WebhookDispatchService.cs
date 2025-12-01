@@ -87,7 +87,7 @@ public sealed class WebhookDispatchService
             PayloadJson = request.PayloadJson,
             CorrelationId = request.CorrelationId,
             Status = "Pending",
-            CreatedAt = request.CreatedAt == default ? DateTimeOffset.UtcNow : request.CreatedAt
+            CreatedAt = request.CreatedAt == default ? DateTimeOffset.UtcNow : request.CreatedAt.ToUniversalTime()
         };
 
         if (isNewDelivery)

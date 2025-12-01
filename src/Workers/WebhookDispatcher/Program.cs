@@ -89,12 +89,7 @@ public static class Program
 
             if (options.Endpoints.Count == 0)
             {
-                options.Endpoints.Add(new WebhookEndpointOptions
-                {
-                    Key = "UploadCallback_PGB",
-                    Url = "https://localhost:7081/api/upload-callback",
-                    HttpMethod = "POST"
-                });
+                throw new NotImplementedException("No webhook endpoints configured. Please define at least one endpoint.");
             }
 
             foreach (var endpoint in options.Endpoints)
