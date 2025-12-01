@@ -257,125 +257,7 @@ namespace ECM.Operations.Infrastructure.Persistence.Migrations
 
                     b.ToTable("notification", "ops");
                 });
-
-            modelBuilder.Entity("ECM.Operations.Infrastructure.Persistence.WebhookDelivery", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<int>("AttemptCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("attempt_count");
-
-                    b.Property<DateTimeOffset?>("DeliveredAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("delivered_at");
-
-                    b.Property<DateTimeOffset>("EnqueuedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("enqueued_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<string>("Error")
-                        .IsRequired()
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)")
-                        .HasColumnName("error");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("event_type");
-
-                    b.Property<string>("Payload")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("payload");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("status");
-
-                    b.Property<Guid>("WebhookId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("webhook_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_webhook_delivery");
-
-                    b.HasIndex("WebhookId", "Status")
-                        .HasDatabaseName("ops_webhook_delivery_status_idx");
-
-                    b.ToTable("webhook_delivery", "ops");
-                });
-
-            modelBuilder.Entity("ECM.Operations.Infrastructure.Persistence.WebhookSubscription", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<DateTimeOffset?>("DeactivatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deactivated_at");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("description");
-
-                    b.Property<string[]>("EventTypes")
-                        .IsRequired()
-                        .HasColumnType("text[]")
-                        .HasColumnName("event_types");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("Secret")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)")
-                        .HasColumnName("secret");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("url");
-
-                    b.HasKey("Id")
-                        .HasName("pk_webhook");
-
-                    b.HasIndex("IsActive")
-                        .HasDatabaseName("ops_webhook_active_idx");
-
-                    b.ToTable("webhook", "ops");
-                });
-
+            
             modelBuilder.Entity("ECM.Operations.Infrastructure.Persistence.RetentionCandidate", b =>
                 {
                     b.HasOne("ECM.Operations.Infrastructure.Persistence.RetentionPolicy", "Policy")
@@ -386,18 +268,6 @@ namespace ECM.Operations.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_retention_candidate_retention_policies_policy_id");
 
                     b.Navigation("Policy");
-                });
-
-            modelBuilder.Entity("ECM.Operations.Infrastructure.Persistence.WebhookDelivery", b =>
-                {
-                    b.HasOne("ECM.Operations.Infrastructure.Persistence.WebhookSubscription", "Webhook")
-                        .WithMany()
-                        .HasForeignKey("WebhookId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_webhook_delivery_webhooks_webhook_id");
-
-                    b.Navigation("Webhook");
                 });
 #pragma warning restore 612, 618
         }
