@@ -7,12 +7,19 @@ public sealed class WebhookDelivery
     public string RequestId { get; set; } = default!;
     public string EndpointKey { get; set; } = default!;
 
+    public string PayloadJson { get; set; } = default!;
+    public string? CorrelationId { get; set; }
+
     public int AttemptCount { get; set; }
 
     // "Pending", "Succeeded", "Failed"
     public string Status { get; set; } = "Pending";
 
-    public DateTimeOffset LastAttemptAt { get; set; }
+    public DateTimeOffset? LastAttemptAt { get; set; }
+
+    public string? LastError { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
 
     public void RecordAttempt(DateTimeOffset timestamp)
     {
@@ -24,11 +31,13 @@ public sealed class WebhookDelivery
     {
         Status = "Succeeded";
         LastAttemptAt = timestamp;
+        LastError = null;
     }
 
-    public void MarkFailed(DateTimeOffset timestamp)
+    public void MarkFailed(DateTimeOffset timestamp, string? error = null)
     {
         Status = "Failed";
         LastAttemptAt = timestamp;
+        LastError = error;
     }
 }
