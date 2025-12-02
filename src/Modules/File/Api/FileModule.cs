@@ -1,7 +1,6 @@
 using ECM.Abstractions;
 using ECM.File.Api.Files;
 using ECM.File.Application;
-using ECM.File.Api.Shares;
 using ECM.File.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,8 +20,6 @@ public sealed class FileModule : IModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapFileEndpoints();
-        endpoints.MapShareEndpoints();
-        endpoints.MapPublicShareEndpoints();
     }
 }
 

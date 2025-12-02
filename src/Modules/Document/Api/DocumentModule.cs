@@ -3,6 +3,7 @@ using ECM.Abstractions;
 using ECM.Document.Api.Documents;
 using ECM.Document.Api.Documents.Options;
 using ECM.Document.Api.DocumentTypes;
+using ECM.Document.Api.Shares;
 using ECM.Document.Api.Tags;
 using ECM.Document.Application;
 using ECM.Document.Infrastructure;
@@ -64,6 +65,8 @@ public sealed class DocumentModule : IModule
         endpoints.MapDocumentEndpoints();
         endpoints.MapDocumentTypeEndpoints();
         endpoints.MapTagEndpoints();
+        endpoints.MapShareEndpoints();
+        endpoints.MapPublicShareEndpoints();
     }
 }
 
