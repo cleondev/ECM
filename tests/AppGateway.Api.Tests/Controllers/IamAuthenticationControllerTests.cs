@@ -232,13 +232,52 @@ public class IamAuthenticationControllerTests
         public T Get(string? name) => Value;
     }
 
+    private sealed class RecordingAuthenticationService : IAuthenticationService
+    {
+        public ClaimsPrincipal? LastSignInPrincipal { get; private set; }
+
+        public List<string> SignInSchemes { get; } = [];
+
+        public List<string> SignOutSchemes { get; } = [];
+
+        public Task<AuthenticateResult> AuthenticateAsync(HttpContext context, string? scheme)
+            => Task.FromResult(AuthenticateResult.NoResult());
+
+        public Task ChallengeAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+            => Task.CompletedTask;
+
+        public Task ForbidAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+            => Task.CompletedTask;
+
+        public Task SignInAsync(HttpContext context, string? scheme, ClaimsPrincipal principal, AuthenticationProperties? properties)
+        {
+            if (scheme is not null)
+            {
+                SignInSchemes.Add(scheme);
+            }
+
+            LastSignInPrincipal = principal;
+
+            return Task.CompletedTask;
+        }
+
+        public Task SignOutAsync(HttpContext context, string? scheme, AuthenticationProperties? properties)
+        {
+            if (scheme is not null)
+            {
+                SignOutSchemes.Add(scheme);
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed class TrackingEcmApiClient : IUsersApiClient
     {
         public int GetUserByEmailCalls { get; private set; }
         public int GetCurrentUserProfileCalls { get; private set; }
 
         public UserSummaryDto? UserToReturn { get; set; }
-        public UserSummaryDto? AuthenticatedUser { get; set; }
 
         public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
         {
@@ -259,7 +298,7 @@ public class IamAuthenticationControllerTests
         }
 
         public Task<UserSummaryDto?> AuthenticateUserAsync(AuthenticateUserRequestDto requestDto, CancellationToken cancellationToken = default)
-            => Task.FromResult(AuthenticatedUser);
+            => Task.FromResult(UserToReturn);
 
         public Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
