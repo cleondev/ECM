@@ -107,12 +107,14 @@ function TagTreeItem({
   onEditTag,
   onAddChildTag,
   onDeleteTag,
+  globalViewOnly,
 }: {
   tag: TagNode
   level?: number
   onEditTag: (tag: TagNode) => void
   onAddChildTag: (parentTag: TagNode) => void
   onDeleteTag: (tagId: string) => void
+  globalViewOnly: boolean
 }) {
   const [isExpanded, setIsExpanded] = useState(true)
   const hasChildren = Boolean(tag.children?.length)
@@ -213,6 +215,7 @@ export default function OrganizationManagementPage() {
   const [authorizationError, setAuthorizationError] = useState<string | null>(null)
   const [tags, setTags] = useState<TagNode[]>([])
   const [isLoadingTags, setIsLoadingTags] = useState(false)
+  const [isGlobalTagViewOnly, setIsGlobalTagViewOnly] = useState(true)
   const [tagDialogMode, setTagDialogMode] = useState<TagDialogMode>("create")
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagNode | null>(null)
@@ -528,6 +531,9 @@ export default function OrganizationManagementPage() {
   }
 
   const handleEditTag = (tag: TagNode) => {
+    if ((tag.namespaceScope ?? "user") === "global" && isGlobalTagViewOnly) {
+      return
+    }
     setEditingTag(tag)
     setParentTag(null)
     setTagDialogMode("edit")
@@ -535,6 +541,9 @@ export default function OrganizationManagementPage() {
   }
 
   const handleAddChildTag = (parent: TagNode) => {
+    if ((parent.namespaceScope ?? "user") === "global" && isGlobalTagViewOnly) {
+      return
+    }
     setParentTag(parent)
     setEditingTag(null)
     setTagDialogMode("add-child")
@@ -853,6 +862,7 @@ export default function OrganizationManagementPage() {
                           onEditTag={handleEditTag}
                           onAddChildTag={handleAddChildTag}
                           onDeleteTag={handleDeleteTag}
+                          globalViewOnly={isGlobalTagViewOnly}
                         />
                       ))}
                     </div>
