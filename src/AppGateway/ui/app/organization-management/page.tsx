@@ -149,11 +149,6 @@ function TagTreeItem({
                   ) : null}
                   {tag.isSystem ? <Badge className="text-[10px]">System</Badge> : null}
                 </div>
-                {!isNamespace ? (
-                  <p className="text-xs text-muted-foreground truncate">
-                    Belongs to {tag.namespaceLabel || "default namespace"}
-                  </p>
-                ) : null}
               </div>
             </div>
             <MoreVertical className="h-4 w-4 text-muted-foreground" />
@@ -661,16 +656,10 @@ export default function OrganizationManagementPage() {
           <div className="space-y-2">
             <p className="text-sm uppercase tracking-[0.14em] text-muted-foreground">Organization management</p>
             <h1 className="text-3xl font-bold">Organization Management</h1>
-            <p className="text-sm text-muted-foreground">
-              Configure organization-wide tags/namespaces, users, groups, and document types.
-            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
               <Link href="/app/">Return to app</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/settings">Personalize account</Link>
             </Button>
           </div>
         </div>
@@ -712,9 +701,6 @@ export default function OrganizationManagementPage() {
               <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
                   <CardTitle>Tag & namespace management</CardTitle>
-                  <CardDescription>
-                    The tag/namespace tree mirrors the left sidebar but shows all group/global tags for centralized management.
-                  </CardDescription>
                   <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <Badge variant="outline">Total nodes: {tags.length}</Badge>
                     <Badge variant="secondary">Namespaces: {namespaceNodes.length}</Badge>
@@ -768,9 +754,6 @@ export default function OrganizationManagementPage() {
             <Card>
               <CardHeader>
                 <CardTitle>User management</CardTitle>
-                <CardDescription>
-                  Manage accounts, roles, and sign-in security across the organization.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -922,9 +905,6 @@ export default function OrganizationManagementPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Role directory</CardTitle>
-                <CardDescription>
-                  Standard role catalog with member counts and inline description editing.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1021,9 +1001,6 @@ export default function OrganizationManagementPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Group management</CardTitle>
-                <CardDescription>
-                  Configure functional or project groups, inheritance, and membership for centralized access control.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1131,9 +1108,6 @@ export default function OrganizationManagementPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Document types</CardTitle>
-                <CardDescription>
-                  List active document types for quick review and metadata standardization.
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
