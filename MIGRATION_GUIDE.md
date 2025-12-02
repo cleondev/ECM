@@ -6,23 +6,25 @@ Tất cả chạy từ **root repo** (nơi có `ecm.ps1`).
 
 ```powershell
 # Tạo migration (module đơn lẻ)
-.\ecm.ps1 ef add iam InitIamDb
-.\ecm.ps1 ef add document AddIndexes
-.\ecm.ps1 ef add file InitFileDb
-.\ecm.ps1 ef add webhook InitWebhookDb
-.\ecm.ps1 ef add ocr InitOcrDb
-.\ecm.ps1 ef add operations InitOperations
+.\ecm.ps1 ef add iam Initial
+.\ecm.ps1 ef add document Initial
+.\ecm.ps1 ef add file Initial
+.\ecm.ps1 ef add webhook Initial
+.\ecm.ps1 ef add ocr Initial
+.\ecm.ps1 ef add operations Initial
 
 # Apply DB (module đơn lẻ hoặc all)
 .\ecm.ps1 ef update iam
+.\ecm.ps1 ef update document
+.\ecm.ps1 ef update file
 .\ecm.ps1 ef update ocr
 .\ecm.ps1 ef update webhook
 .\ecm.ps1 ef update operations
-.\ecm.ps1 ef update 
 
 # Remove migration
 .\ecm.ps1 ef remove iam
 .\ecm.ps1 ef remove document
+.\ecm.ps1 ef remove file
 .\ecm.ps1 ef remove ocr
 .\ecm.ps1 ef remove webhook
 .\ecm.ps1 ef remove operations
