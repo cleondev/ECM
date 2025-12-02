@@ -125,12 +125,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{84
 		database\01_iam.sql = database\01_iam.sql
 		database\02_doc.sql = database\02_doc.sql
 		database\03_wf.sql = database\03_wf.sql
-                database\04_search.sql = database\04_search.sql
-                database\05_ocr.sql = database\05_ocr.sql
-                database\06_ops.sql = database\06_ops.sql
-                database\07_webhook.sql = database\07_webhook.sql
-                database\08_init_data.sql = database\08_init_data.sql
-        EndProjectSection
+		database\04_search.sql = database\04_search.sql
+		database\05_ocr.sql = database\05_ocr.sql
+		database\06_ops.sql = database\06_ops.sql
+		database\07_webhook.sql = database\07_webhook.sql
+		database\08_init_data.sql = database\08_init_data.sql
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{25120829-807A-4422-828D-47E3DFD7E61E}"
 EndProject
@@ -377,7 +377,6 @@ Global
 		{1EA6F0B3-890C-4AA4-BD00-0F1372DB7FC4} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
 		{AFA144C0-6B8E-4827-9274-35DCF701563D} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
 		{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A} = {E5F8C4B5-6B0A-4AFA-B2D1-0F15E216F617}
-		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {84A5AF64-2782-47D3-BD8D-32937AC6F1DC}
 		{7079839B-BC6D-F9DC-81F9-8B66AFFD2ED6} = {25120829-807A-4422-828D-47E3DFD7E61E}
 		{7A7FD8D7-9B56-C47C-0EE2-A1D7FB92094F} = {8A498B4A-AF84-4E4D-A455-30904EE2844E}
 		{836720DA-9DF0-5962-D964-87ED0233079A} = {6E0E7B25-96FE-4D18-A954-4E67804C8621}
