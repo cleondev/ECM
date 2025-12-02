@@ -18,6 +18,7 @@ import type {
   Group,
   ShareSubjectType,
   TagScope,
+  Role,
   WorkflowDefinition,
   WorkflowInstance,
   WorkflowInstanceStep,
@@ -184,6 +185,34 @@ type GroupMutationRequest = {
   kind?: string | null
   parentGroupId?: string | null
 }
+
+type RoleResponse = {
+  id: string
+  name: string
+}
+
+const fallbackRoles: Role[] = [
+  {
+    id: "role-admin",
+    name: "System Admin",
+    description: "Full control over system configuration, roles, and access control.",
+  },
+  {
+    id: "role-compliance",
+    name: "Compliance Officer",
+    description: "Monitor, moderate, and audit activities related to sensitive data.",
+  },
+  {
+    id: "role-manager",
+    name: "Department Manager",
+    description: "Manage departments or groups, approve access, and assign work.",
+  },
+  {
+    id: "role-member",
+    name: "Standard User",
+    description: "Standard user with granted document access.",
+  },
+]
 
 type WorkflowDefinitionResponse = {
   id: string
@@ -1527,6 +1556,73 @@ export async function deleteGroup(id: string): Promise<boolean> {
       mockGroups.splice(index, 1)
     }
     return false
+  }
+}
+
+function mapRoleResponseToRole(role: RoleResponse): Role {
+  const fallback = fallbackRoles.find((item) => item.name.toLowerCase() === role.name.toLowerCase())
+  return {
+    id: role.id,
+    name: role.name,
+    description: fallback?.description ?? null,
+  }
+}
+
+export async function fetchRoles(): Promise<Role[]> {
+  try {
+    const response = await gatewayRequest<RoleResponse[]>("/api/iam/roles")
+    if (!response?.length) {
+      return fallbackRoles
+    }
+
+    return response.map(mapRoleResponseToRole)
+  } catch (error) {
+    console.warn("[ui] Failed to fetch roles via gateway, using fallback roles:", error)
+    return fallbackRoles
+  }
+}
+
+export async function createRole(request: { name: string }): Promise<Role | null> {
+  const normalizedName = request.name.trim()
+  if (!normalizedName) {
+    return null
+  }
+
+  try {
+    const response = await gatewayRequest<RoleResponse>("/api/iam/roles", {
+      method: "POST",
+      body: JSON.stringify({ name: normalizedName }),
+    })
+
+    return mapRoleResponseToRole(response)
+  } catch (error) {
+    console.warn("[ui] Failed to create role via gateway, ignoring:", error)
+    const fallback: Role = {
+      id: crypto.randomUUID(),
+      name: normalizedName,
+      description: null,
+    }
+    return fallback
+  }
+}
+
+export async function renameRole(id: string, name: string): Promise<Role | null> {
+  const normalizedId = id.trim()
+  const normalizedName = name.trim()
+  if (!normalizedId || !normalizedName) {
+    return null
+  }
+
+  try {
+    const response = await gatewayRequest<RoleResponse>(`/api/iam/roles/${normalizedId}`, {
+      method: "PUT",
+      body: JSON.stringify({ name: normalizedName }),
+    })
+
+    return mapRoleResponseToRole(response)
+  } catch (error) {
+    console.warn("[ui] Failed to rename role via gateway, keeping existing value:", error)
+    return null
   }
 }
 
