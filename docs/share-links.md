@@ -4,7 +4,7 @@ This document outlines the high level architecture for the secure short link sha
 
 ## Database Objects
 
-Share-link persistence is now owned by the Document module. The PostgreSQL migration maintained by Document in `database/07_share.sql` introduces the `file.share_link` table for share metadata, `file.share_access_event` for auditing, and the `file.share_stats` materialized view for aggregated statistics. The schema follows the requirements in the product specification, including validity windows, quotas, password hashing storage, and IP allow lists, while continuing to use the `file` schema for compatibility.
+Share-link persistence is now owned by the Document module. The PostgreSQL migration maintained by Document in `database/02_doc.sql` introduces the `doc.share_link` table for share metadata, `doc.share_access_event` for auditing, and the `doc.share_stats` materialized view for aggregated statistics. The schema follows the requirements in the product specification, including validity windows, quotas, password hashing storage, and IP allow lists, while colocating the objects with the rest of the document schema.
 
 ## Short Code Generation
 
@@ -16,7 +16,7 @@ Short link codes use a cryptographically strong base62 alphabet. The `Shared.Uti
 * Expose `/api/ecm/shares` CRUD endpoints for administrators to create, update, revoke, and inspect share links together with `/shares/{id}/stats` materialized view lookups.
 * Provide public endpoints `/s/{code}` (interstitial), `/s/{code}/password`, `/s/{code}/presign`, and `/s/{code}/download` that orchestrate password validation, quota tracking, presigned URL generation, and safe redirects.
 * Validate revocation, validity window, subject authorization, password checks, quota limits, and optional IP filtering before serving the interstitial or download redirect.
-* Persist access events in `file.share_access_event` for every view/download/password failure and refresh the `file.share_stats` materialized view to drive reporting.
+* Persist access events in `doc.share_access_event` for every view/download/password failure and refresh the `doc.share_stats` materialized view to drive reporting.
 * Generate presigned GET URLs against MinIO for each approved download, with a configurable 5–15 minute TTL and without exposing storage URLs before authorization completes.
 
 ## Frontend Interstitial Flow

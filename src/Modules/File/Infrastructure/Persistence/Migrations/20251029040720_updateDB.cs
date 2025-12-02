@@ -14,7 +14,7 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "share_link",
-                schema: "file",
+                schema: "doc",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -47,7 +47,7 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "share_access_event",
-                schema: "file",
+                schema: "doc",
                 columns: table => new
                 {
                     id = table.Column<long>(type: "bigint", nullable: false)
@@ -65,7 +65,7 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_share_access_event_share_links_share_id",
                         column: x => x.share_id,
-                        principalSchema: "file",
+                        principalSchema: "doc",
                         principalTable: "share_link",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -73,20 +73,20 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "ix_share_access_event_share_id",
-                schema: "file",
+                schema: "doc",
                 table: "share_access_event",
                 column: "share_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_share_link_code",
-                schema: "file",
+                schema: "doc",
                 table: "share_link",
                 column: "code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_share_link_doc",
-                schema: "file",
+                schema: "doc",
                 table: "share_link",
                 columns: ["document_id", "version_id"]);
         }
@@ -96,11 +96,11 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.DropTable(
                 name: "share_access_event",
-                schema: "file");
+                schema: "doc");
 
             migrationBuilder.DropTable(
                 name: "share_link",
-                schema: "file");
+                schema: "doc");
         }
     }
 }

@@ -68,7 +68,7 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
                     b.HasIndex("ShareId")
                         .HasDatabaseName("ix_share_access_event_share_id");
 
-                    b.ToTable("share_access_event", "file");
+                    b.ToTable("share_access_event", "doc");
                 });
 
             modelBuilder.Entity("ECM.File.Infrastructure.Persistence.Models.ShareLinkEntity", b =>
@@ -186,7 +186,7 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
                     b.HasIndex("DocumentId", "VersionId")
                         .HasDatabaseName("ix_share_link_doc");
 
-                    b.ToTable("share_link", "file");
+                    b.ToTable("share_link", "doc");
                 });
 
             modelBuilder.Entity("ECM.File.Infrastructure.Persistence.Models.ShareStatisticsView", b =>
@@ -213,7 +213,7 @@ namespace ECM.File.Infrastructure.Persistence.Migrations
 
                     b.ToTable((string)null);
 
-                    b.ToView("share_stats", "file");
+                    b.ToView("share_stats", "doc");
                 });
 
             modelBuilder.Entity("ECM.File.Infrastructure.Persistence.Models.StoredFileEntity", b =>

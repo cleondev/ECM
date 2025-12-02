@@ -8,7 +8,7 @@ public sealed class ShareLinkEntityConfiguration : IEntityTypeConfiguration<Shar
 {
     public void Configure(EntityTypeBuilder<ShareLinkEntity> builder)
     {
-        builder.ToTable("share_link", "file");
+        builder.ToTable("share_link", "doc");
 
         builder.HasKey(link => link.Id);
 

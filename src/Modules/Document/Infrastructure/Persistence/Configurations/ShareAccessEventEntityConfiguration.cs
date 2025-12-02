@@ -8,7 +8,7 @@ public sealed class ShareAccessEventEntityConfiguration : IEntityTypeConfigurati
 {
     public void Configure(EntityTypeBuilder<ShareAccessEventEntity> builder)
     {
-        builder.ToTable("share_access_event", "file");
+        builder.ToTable("share_access_event", "doc");
 
         builder.HasKey(evt => evt.Id);
 
