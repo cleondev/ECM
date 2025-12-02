@@ -1441,6 +1441,7 @@ type DocumentTypeResponseDto = {
   isActive: boolean
   createdAtUtc: string
   description?: string | null
+  config?: Record<string, unknown> | null
 }
 
 type DocumentTypeMutationRequestDto = {
@@ -1448,6 +1449,7 @@ type DocumentTypeMutationRequestDto = {
   typeName: string
   description?: string | null
   isActive?: boolean
+  config?: Record<string, unknown> | null
 }
 
 function mapDocumentTypeResponse(type: DocumentTypeResponseDto): DocumentType {
@@ -1458,6 +1460,7 @@ function mapDocumentTypeResponse(type: DocumentTypeResponseDto): DocumentType {
     isActive: type.isActive,
     createdAtUtc: type.createdAtUtc,
     description: type.description ?? null,
+    config: type.config ?? {},
   }
 }
 
@@ -1486,6 +1489,7 @@ export async function createDocumentType(
     typeName: request.typeName.trim(),
     description: request.description?.trim() ?? null,
     isActive: request.isActive ?? true,
+    config: request.config ?? {},
   }
 
   if (!payload.typeName) {
@@ -1508,6 +1512,7 @@ export async function createDocumentType(
       isActive: payload.isActive ?? true,
       createdAtUtc: new Date().toISOString(),
       description: payload.description ?? null,
+      config: payload.config ?? {},
     }
   }
 }
@@ -1522,6 +1527,7 @@ export async function updateDocumentType(
     typeName: request.typeName.trim(),
     description: request.description?.trim() ?? null,
     isActive: request.isActive ?? true,
+    config: request.config ?? {},
   }
 
   if (!normalizedId || !payload.typeName) {
@@ -1544,6 +1550,7 @@ export async function updateDocumentType(
       isActive: payload.isActive ?? true,
       createdAtUtc: new Date().toISOString(),
       description: payload.description ?? null,
+      config: payload.config ?? {},
     }
   }
 }

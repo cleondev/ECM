@@ -1,3 +1,5 @@
+using System;
+using System.Text.Json;
 using ECM.Document.Domain.Documents;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 
@@ -11,6 +13,7 @@ public sealed class DocumentType
     {
         TypeKey = null!;
         TypeName = null!;
+        Config = null!;
     }
 
     public DocumentType(
@@ -19,7 +22,8 @@ public sealed class DocumentType
         string typeName,
         bool isActive,
         DateTimeOffset createdAtUtc,
-        string? description = null)
+        string? description = null,
+        JsonDocument? config = null)
         : this()
     {
         if (string.IsNullOrWhiteSpace(typeKey))
@@ -36,6 +40,7 @@ public sealed class DocumentType
         TypeKey = typeKey.Trim();
         TypeName = typeName.Trim();
         Description = NormalizeDescription(description);
+        Config = NormalizeConfig(config);
         IsActive = isActive;
         CreatedAtUtc = createdAtUtc;
     }
@@ -48,13 +53,15 @@ public sealed class DocumentType
 
     public string? Description { get; private set; }
 
+    public JsonDocument Config { get; private set; }
+
     public bool IsActive { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public IReadOnlyCollection<DomainDocument> Documents => _documents.AsReadOnly();
 
-    public void Update(string typeKey, string typeName, string? description, bool isActive)
+    public void Update(string typeKey, string typeName, string? description, bool isActive, JsonDocument? config = null)
     {
         if (string.IsNullOrWhiteSpace(typeKey))
         {
@@ -69,6 +76,7 @@ public sealed class DocumentType
         TypeKey = typeKey.Trim();
         TypeName = typeName.Trim();
         Description = NormalizeDescription(description);
+        Config = config ?? Config;
         IsActive = isActive;
     }
 
@@ -80,5 +88,15 @@ public sealed class DocumentType
         }
 
         return description.Trim();
+    }
+
+    private static JsonDocument NormalizeConfig(JsonDocument? config)
+    {
+        if (config is not null)
+        {
+            return config;
+        }
+
+        return JsonDocument.Parse("{}");
     }
 }
