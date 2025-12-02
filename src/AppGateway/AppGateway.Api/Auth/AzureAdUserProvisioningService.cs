@@ -21,11 +21,13 @@ public interface IUserProvisioningService
 }
 
 public sealed class AzureAdUserProvisioningService(
-    IEcmApiClient client,
+    IUsersApiClient usersClient,
+    IRolesApiClient rolesClient,
     IOptions<IamOptions> options,
     ILogger<AzureAdUserProvisioningService> logger) : IUserProvisioningService
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IUsersApiClient _usersClient = usersClient;
+    private readonly IRolesApiClient _rolesClient = rolesClient;
     private readonly IOptions<IamOptions> _options = options;
     private readonly ILogger<AzureAdUserProvisioningService> _logger = logger;
 
@@ -45,7 +47,7 @@ public sealed class AzureAdUserProvisioningService(
 
         try
         {
-            var existing = await _client.GetUserByEmailAsync(email, cancellationToken);
+            var existing = await _usersClient.GetUserByEmailAsync(email, cancellationToken);
             if (existing is not null)
             {
                 return existing;
@@ -101,7 +103,7 @@ public sealed class AzureAdUserProvisioningService(
                 RoleIds = roleIds
             };
 
-            var created = await _client.CreateUserAsync(request, cancellationToken);
+            var created = await _usersClient.CreateUserAsync(request, cancellationToken);
             if (created is not null)
             {
                 var createdRoles = created.Roles ?? [];
@@ -139,7 +141,7 @@ public sealed class AzureAdUserProvisioningService(
 
         if (!string.IsNullOrWhiteSpace(configuration.DefaultRoleName))
         {
-            var roles = await _client.GetRolesAsync(cancellationToken);
+            var roles = await _rolesClient.GetRolesAsync(cancellationToken);
             var match = roles.FirstOrDefault(role =>
                 string.Equals(role.Name, configuration.DefaultRoleName, StringComparison.OrdinalIgnoreCase));
 

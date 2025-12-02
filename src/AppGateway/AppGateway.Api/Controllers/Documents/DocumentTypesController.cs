@@ -13,9 +13,9 @@ namespace AppGateway.Api.Controllers.Documents;
 [ApiController]
 [Route("api/document-types")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class DocumentTypesController(IEcmApiClient client) : ControllerBase
+public sealed class DocumentTypesController(IDocumentsApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IDocumentsApiClient _client = client;
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<DocumentTypeDto>), StatusCodes.Status200OK)]

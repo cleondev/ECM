@@ -84,6 +84,15 @@ public static class DependencyInjection
                 logger);
         });
 
+        services.AddScoped<IGroupsApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+        services.AddScoped<IUsersApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+        services.AddScoped<IRolesApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+        services.AddScoped<IRelationsApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+        services.AddScoped<IDocumentsApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+        services.AddScoped<ITagsApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+        services.AddScoped<IWorkflowsApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+        services.AddScoped<ISignaturesApiClient>(sp => sp.GetRequiredService<IEcmApiClient>());
+
         return services;
     }
 }

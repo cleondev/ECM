@@ -14,7 +14,7 @@ namespace AppGateway.Api.Controllers.Documents;
 internal static class DocumentPostUploadActions
 {
     public static async Task AssignTagsAsync(
-        IEcmApiClient client,
+        ITagsApiClient client,
         ILogger logger,
         Guid documentId,
         IReadOnlyCollection<Guid> tagIds,
@@ -52,7 +52,7 @@ internal static class DocumentPostUploadActions
     }
 
     public static async Task StartWorkflowAsync(
-        IEcmApiClient client,
+        IWorkflowsApiClient client,
         ILogger logger,
         Guid documentId,
         string? flowDefinition,

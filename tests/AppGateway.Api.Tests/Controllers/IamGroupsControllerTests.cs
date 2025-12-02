@@ -1,13 +1,8 @@
-using AppGateway.Api.Auth;
 using AppGateway.Api.Controllers.IAM;
 using AppGateway.Contracts.IAM.Groups;
-using AppGateway.Contracts.IAM.Roles;
-using AppGateway.Contracts.IAM.Users;
+using AppGateway.Infrastructure.Ecm;
 
 using FluentAssertions;
-
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 
 using Xunit;
 
@@ -16,7 +11,7 @@ namespace AppGateway.Api.Tests.Controllers;
 public class IamGroupsControllerTests
 {
     [Fact]
-    public void Get_ReturnsGroups_FromCurrentUserProfile()
+    public async Task GetAsync_ReturnsGroups_FromClient()
     {
         var groups = new[]
         {
@@ -24,33 +19,34 @@ public class IamGroupsControllerTests
             new GroupSummaryDto(Guid.NewGuid(), "Group B", "role", "GroupMember")
         };
 
-        var profile = new UserSummaryDto(
-            Guid.NewGuid(),
-            "user@example.com",
-            "Example User",
-            true,
-            false,
-            DateTimeOffset.UtcNow,
-            Guid.NewGuid(),
-            [],
-            [],
-            groups);
+        var client = new TrackingEcmApiClient(groups);
+        var controller = new IamGroupsController(client);
 
-        var httpContext = new DefaultHttpContext();
-        CurrentUserProfileStore.Set(httpContext, profile);
+        var result = await controller.GetAsync(CancellationToken.None);
 
-        var controller = new IamGroupsController
+        result.Should().BeEquivalentTo(groups);
+        client.GetGroupsCalls.Should().Be(1);
+    }
+
+    private sealed class TrackingEcmApiClient(IReadOnlyCollection<GroupSummaryDto> groups) : IGroupsApiClient
+    {
+        private readonly IReadOnlyCollection<GroupSummaryDto> groups = groups;
+
+        public int GetGroupsCalls { get; private set; }
+
+        public Task<IReadOnlyCollection<GroupSummaryDto>> GetGroupsAsync(CancellationToken cancellationToken = default)
         {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = httpContext
-            }
-        };
+            GetGroupsCalls++;
+            return Task.FromResult(groups);
+        }
 
-        var result = controller.Get();
+        public Task<GroupSummaryDto?> CreateGroupAsync(CreateGroupRequestDto requestDto, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
 
-        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
-        var returnedGroups = okResult.Value.Should().BeAssignableTo<IReadOnlyCollection<GroupSummaryDto>>().Subject;
-        returnedGroups.Should().BeEquivalentTo(groups);
+        public Task<GroupSummaryDto?> UpdateGroupAsync(Guid groupId, UpdateGroupRequestDto requestDto, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
+        public Task<bool> DeleteGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
     }
 }

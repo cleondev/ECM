@@ -14,9 +14,9 @@ namespace AppGateway.Api.Controllers.IAM;
 [ApiController]
 [Route("api/iam/relations")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class IamRelationsController(IEcmApiClient client) : ControllerBase
+public sealed class IamRelationsController(IRelationsApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IRelationsApiClient _client = client;
 
     [HttpGet("subjects/{subjectType}/{subjectId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyCollection<AccessRelationDto>), StatusCodes.Status200OK)]

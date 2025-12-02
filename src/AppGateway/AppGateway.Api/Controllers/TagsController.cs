@@ -14,9 +14,9 @@ namespace AppGateway.Api.Controllers;
 [ApiController]
 [Route("api/tags")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class TagsController(IEcmApiClient client) : ControllerBase
+public sealed class TagsController(ITagsApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly ITagsApiClient _client = client;
 
     [HttpPost]
     [ProducesResponseType(typeof(TagLabelDto), StatusCodes.Status201Created)]

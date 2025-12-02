@@ -21,11 +21,11 @@ public sealed class RequireCurrentUserProfileAttribute : TypeFilterAttribute
     }
 
     private sealed class RequireCurrentUserProfileFilter(
-        IEcmApiClient client,
+        IUsersApiClient client,
         ILogger<RequireCurrentUserProfileFilter> logger,
         bool fetchFromApiWhenMissing) : IAsyncActionFilter
     {
-        private readonly IEcmApiClient _client = client;
+        private readonly IUsersApiClient _client = client;
         private readonly ILogger<RequireCurrentUserProfileFilter> _logger = logger;
         private readonly bool _fetchFromApiWhenMissing = fetchFromApiWhenMissing;
 
