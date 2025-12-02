@@ -97,6 +97,12 @@ export type FileDetail = FileItem & {
 
 export type TagScope = "user" | "group" | "global"
 
+export type Role = {
+  id: string
+  name: string
+  description?: string | null
+}
+
 export type TagNode = {
   id: string
   namespaceId: string
