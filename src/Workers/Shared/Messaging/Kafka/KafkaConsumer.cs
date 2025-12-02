@@ -1,7 +1,5 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Confluent.Kafka;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
