@@ -1,0 +1,561 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+#nullable disable
+
+namespace ECM.Document.Infrastructure.Persistence.Migrations
+{
+    /// <inheritdoc />
+    public partial class Initial : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.EnsureSchema(
+                name: "doc");
+
+            migrationBuilder.CreateTable(
+                name: "document_type",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    type_key = table.Column<string>(type: "text", nullable: false),
+                    type_name = table.Column<string>(type: "text", nullable: false),
+                    description = table.Column<string>(type: "text", nullable: true),
+                    config = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{}'::jsonb"),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_document_type", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "effective_acl_flat",
+                schema: "doc",
+                columns: table => new
+                {
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    idempotency_key = table.Column<string>(type: "text", nullable: false),
+                    valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    is_valid = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    source = table.Column<string>(type: "text", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_effective_acl_flat", x => new { x.document_id, x.user_id, x.idempotency_key });
+                });
+
+            migrationBuilder.CreateTable(
+                name: "file_object",
+                schema: "doc",
+                columns: table => new
+                {
+                    storage_key = table.Column<string>(type: "text", nullable: false),
+                    legal_hold = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_file_object", x => x.storage_key);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "share_link",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    code = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
+                    owner_user_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    version_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    subject_type = table.Column<string>(type: "text", nullable: false),
+                    subject_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    permissions = table.Column<string[]>(type: "text[]", nullable: false),
+                    password_hash = table.Column<string>(type: "text", nullable: true),
+                    valid_from = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    max_views = table.Column<int>(type: "integer", nullable: true),
+                    max_downloads = table.Column<int>(type: "integer", nullable: true),
+                    file_name = table.Column<string>(type: "character varying(512)", maxLength: 512, nullable: false),
+                    file_extension = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: true),
+                    file_content_type = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    file_size_bytes = table.Column<long>(type: "bigint", nullable: false),
+                    file_created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    watermark = table.Column<string>(type: "jsonb", nullable: true),
+                    allowed_ips = table.Column<string[]>(type: "text[]", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    revoked_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_share_link", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tag_namespace",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    scope = table.Column<string>(type: "text", nullable: false),
+                    owner_user_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    owner_group_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    display_name = table.Column<string>(type: "text", nullable: true),
+                    is_system = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_tag_namespace", x => x.id);
+                    table.CheckConstraint("chk_tag_namespace_scope", "scope IN ('global','group','user')");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "document",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    title = table.Column<string>(type: "text", nullable: false),
+                    doc_type = table.Column<string>(type: "text", nullable: false),
+                    status = table.Column<string>(type: "text", nullable: false),
+                    sensitivity = table.Column<string>(type: "text", nullable: false, defaultValue: "Internal"),
+                    owner_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    group_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    created_by = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    type_id = table.Column<Guid>(type: "uuid", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_document", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_document_document_types_type_id",
+                        column: x => x.type_id,
+                        principalSchema: "doc",
+                        principalTable: "document_type",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "share_access_event",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    share_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    occurred_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    action = table.Column<string>(type: "text", nullable: false),
+                    remote_ip = table.Column<string>(type: "text", nullable: true),
+                    user_agent = table.Column<string>(type: "text", nullable: true),
+                    ok = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_share_access_event", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_share_access_event_share_links_share_id",
+                        column: x => x.share_id,
+                        principalSchema: "doc",
+                        principalTable: "share_link",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tag_label",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    namespace_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    parent_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    path_ids = table.Column<Guid[]>(type: "uuid[]", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    sort_order = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    color = table.Column<string>(type: "text", nullable: true),
+                    icon_key = table.Column<string>(type: "text", nullable: true),
+                    is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    is_system = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    created_by = table.Column<Guid>(type: "uuid", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_tag_label", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_tag_label_tag_label_parent_id",
+                        column: x => x.parent_id,
+                        principalSchema: "doc",
+                        principalTable: "tag_label",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "fk_tag_label_tag_namespaces_namespace_id",
+                        column: x => x.namespace_id,
+                        principalSchema: "doc",
+                        principalTable: "tag_namespace",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "metadata",
+                schema: "doc",
+                columns: table => new
+                {
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    data = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{}'::jsonb")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_metadata", x => x.document_id);
+                    table.ForeignKey(
+                        name: "fk_metadata_document_document_id",
+                        column: x => x.document_id,
+                        principalSchema: "doc",
+                        principalTable: "document",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "version",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    version_no = table.Column<int>(type: "integer", nullable: false),
+                    storage_key = table.Column<string>(type: "text", nullable: false),
+                    bytes = table.Column<long>(type: "bigint", nullable: false),
+                    mime_type = table.Column<string>(type: "text", nullable: false),
+                    sha256 = table.Column<string>(type: "text", nullable: false),
+                    created_by = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_version", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_version_document_document_id",
+                        column: x => x.document_id,
+                        principalSchema: "doc",
+                        principalTable: "document",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "document_tag",
+                schema: "doc",
+                columns: table => new
+                {
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    tag_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    applied_by = table.Column<Guid>(type: "uuid", nullable: true),
+                    applied_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_document_tag", x => new { x.document_id, x.tag_id });
+                    table.ForeignKey(
+                        name: "fk_document_tag_document_document_id",
+                        column: x => x.document_id,
+                        principalSchema: "doc",
+                        principalTable: "document",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_document_tag_tag_labels_tag_id",
+                        column: x => x.tag_id,
+                        principalSchema: "doc",
+                        principalTable: "tag_label",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "signature_request",
+                schema: "doc",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    document_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    version_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    provider = table.Column<string>(type: "text", nullable: false),
+                    request_ref = table.Column<string>(type: "text", nullable: false),
+                    requested_by = table.Column<Guid>(type: "uuid", nullable: false),
+                    status = table.Column<string>(type: "text", nullable: false, defaultValue: "pending"),
+                    payload = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{}'::jsonb"),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_signature_request", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_signature_request_document_document_id",
+                        column: x => x.document_id,
+                        principalSchema: "doc",
+                        principalTable: "document",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "fk_signature_request_version_version_id",
+                        column: x => x.version_id,
+                        principalSchema: "doc",
+                        principalTable: "version",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "signature_result",
+                schema: "doc",
+                columns: table => new
+                {
+                    request_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    status = table.Column<string>(type: "text", nullable: false),
+                    evidence_hash = table.Column<string>(type: "text", nullable: true),
+                    evidence_url = table.Column<string>(type: "text", nullable: true),
+                    received_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()"),
+                    raw_response = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{}'::jsonb")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_signature_result", x => x.request_id);
+                    table.ForeignKey(
+                        name: "fk_signature_result_signature_request_request_id",
+                        column: x => x.request_id,
+                        principalSchema: "doc",
+                        principalTable: "signature_request",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "doc_document_owner_idx",
+                schema: "doc",
+                table: "document",
+                column: "owner_id");
+
+            migrationBuilder.CreateIndex(
+                name: "doc_document_status_idx",
+                schema: "doc",
+                table: "document",
+                column: "status");
+
+            migrationBuilder.CreateIndex(
+                name: "doc_document_type_idx",
+                schema: "doc",
+                table: "document",
+                column: "doc_type");
+
+            migrationBuilder.CreateIndex(
+                name: "doc_document_updated_at_id_idx",
+                schema: "doc",
+                table: "document",
+                columns: new[] { "updated_at", "id" },
+                descending: new bool[0]);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_created_by",
+                schema: "doc",
+                table: "document",
+                column: "created_by");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_type_id",
+                schema: "doc",
+                table: "document",
+                column: "type_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_tag_applied_by",
+                schema: "doc",
+                table: "document_tag",
+                column: "applied_by");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_tag_tag_id",
+                schema: "doc",
+                table: "document_tag",
+                column: "tag_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_type_type_key",
+                schema: "doc",
+                table: "document_type",
+                column: "type_key",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "doc_effective_acl_flat_user_document_idx",
+                schema: "doc",
+                table: "effective_acl_flat",
+                columns: new[] { "user_id", "is_valid", "document_id" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_share_access_event_share_id",
+                schema: "doc",
+                table: "share_access_event",
+                column: "share_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_share_link_code",
+                schema: "doc",
+                table: "share_link",
+                column: "code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_share_link_doc",
+                schema: "doc",
+                table: "share_link",
+                columns: new[] { "document_id", "version_id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_signature_request_document_id",
+                schema: "doc",
+                table: "signature_request",
+                column: "document_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_signature_request_requested_by",
+                schema: "doc",
+                table: "signature_request",
+                column: "requested_by");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_signature_request_version_id",
+                schema: "doc",
+                table: "signature_request",
+                column: "version_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tag_label_parent_id",
+                schema: "doc",
+                table: "tag_label",
+                column: "parent_id");
+
+            migrationBuilder.CreateIndex(
+                name: "tag_label_name_trgm",
+                schema: "doc",
+                table: "tag_label",
+                column: "name")
+                .Annotation("Npgsql:IndexMethod", "gin")
+                .Annotation("Npgsql:IndexOperators", new[] { "public.gin_trgm_ops" });
+
+            migrationBuilder.CreateIndex(
+                name: "tag_label_ns_parent_idx",
+                schema: "doc",
+                table: "tag_label",
+                columns: new[] { "namespace_id", "parent_id" });
+
+            migrationBuilder.CreateIndex(
+                name: "tag_label_ns_path_gin",
+                schema: "doc",
+                table: "tag_label",
+                column: "path_ids")
+                .Annotation("Npgsql:IndexMethod", "gin");
+
+            migrationBuilder.CreateIndex(
+                name: "uq_tag_sibling_name",
+                schema: "doc",
+                table: "tag_label",
+                columns: new[] { "namespace_id", "parent_id", "name" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "tag_namespace_scope_owner_idx",
+                schema: "doc",
+                table: "tag_namespace",
+                columns: new[] { "scope", "owner_user_id", "owner_group_id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_version_created_by",
+                schema: "doc",
+                table: "version",
+                column: "created_by");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_version_document_id",
+                schema: "doc",
+                table: "version",
+                column: "document_id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_version_document_id_version_no",
+                schema: "doc",
+                table: "version",
+                columns: new[] { "document_id", "version_no" },
+                unique: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "document_tag",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "effective_acl_flat",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "file_object",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "metadata",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "share_access_event",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "signature_result",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "tag_label",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "share_link",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "signature_request",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "tag_namespace",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "version",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "document",
+                schema: "doc");
+
+            migrationBuilder.DropTable(
+                name: "document_type",
+                schema: "doc");
+        }
+    }
+}
