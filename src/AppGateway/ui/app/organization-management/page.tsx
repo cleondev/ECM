@@ -26,7 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
@@ -57,38 +57,40 @@ import {
   fetchGroups,
   fetchTags,
   fetchUsers,
+  fetchRoles,
+  renameRole,
   updateTag,
 } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
-import type { DocumentType, Group, TagNode, TagUpdateData, User } from "@/lib/types"
+import type { DocumentType, Group, Role, TagNode, TagUpdateData, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 const ORG_MANAGEMENT_ROUTE = "/organization-management/"
 
-const roleCatalog = [
+const roleCatalog: Role[] = [
   {
-    key: "admin",
+    id: "role-admin",
     name: "System Admin",
     description: "Full control over system configuration, roles, and access control.",
   },
   {
-    key: "compliance",
+    id: "role-compliance",
     name: "Compliance Officer",
     description: "Monitor, moderate, and audit activities related to sensitive data.",
   },
   {
-    key: "manager",
+    id: "role-manager",
     name: "Department Manager",
     description: "Manage departments or groups, approve access, and assign work.",
   },
   {
-    key: "member",
+    id: "role-member",
     name: "Standard User",
     description: "Standard user with granted document access.",
   },
 ]
 
-const groupKindOptions = ["functional", "project", "security", "business", "operations", "customer"]
+const groupKindOptions = ["system", "team", "guess", "project"]
 
 function isAdminUser(user: User | null): boolean {
   if (!user?.roles?.length) return false
@@ -116,8 +118,9 @@ function TagTreeItem({
   const hasChildren = Boolean(tag.children?.length)
   const isNamespace = tag.kind === "namespace"
   const tagScope = tag.namespaceScope ?? "user"
-  const isManageableLabel = tag.kind === "label" && !tag.isSystem
-  const canAddChild = (isNamespace && !tag.isSystem) || isManageableLabel
+  const isReadOnly = tag.isSystem
+  const isManageableLabel = tag.kind === "label" && !isReadOnly
+  const canAddChild = (isNamespace && !isReadOnly) || isManageableLabel
   const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
   const indicatorStyle = tag.color ? { backgroundColor: tag.color, borderColor: tag.color } : undefined
 
@@ -176,6 +179,7 @@ function TagTreeItem({
                   onEditTag={onEditTag}
                   onAddChildTag={onAddChildTag}
                   onDeleteTag={onDeleteTag}
+                  globalViewOnly={globalViewOnly}
                 />
               ))}
             </div>
@@ -214,6 +218,8 @@ export default function OrganizationManagementPage() {
   const [editingTag, setEditingTag] = useState<TagNode | null>(null)
   const [parentTag, setParentTag] = useState<TagNode | null>(null)
 
+  const [roles, setRoles] = useState<Role[]>(roleCatalog)
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [groups, setGroups] = useState<Group[]>([])
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
@@ -228,7 +234,7 @@ export default function OrganizationManagementPage() {
 
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [groupDrafts, setGroupDrafts] = useState<Record<string, Partial<Group>>>({})
-  const [editingRoleKey, setEditingRoleKey] = useState<string | null>(null)
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null)
   const [roleDrafts, setRoleDrafts] = useState<Record<string, { name?: string; description?: string }>>({})
   const [userDialogOpen, setUserDialogOpen] = useState(false)
   const [userDialogDraft, setUserDialogDraft] = useState<User | null>(null)
@@ -240,14 +246,17 @@ export default function OrganizationManagementPage() {
   const activeUsers = useMemo(() => users.filter((item) => item.isActive ?? true).length, [users])
   const roleAssignments = useMemo(
     () =>
-      roleCatalog.map((role) => ({
+      (roles.length ? roles : roleCatalog).map((role) => ({
         ...role,
-        name: roleDrafts[role.key]?.name ?? role.name,
-        description: roleDrafts[role.key]?.description ?? role.description,
-        memberCount: users.filter((u) => u.roles.some((assigned) => assigned.toLowerCase().includes(role.key))).length,
+        name: roleDrafts[role.id]?.name ?? role.name,
+        description: roleDrafts[role.id]?.description ?? role.description,
+        memberCount: users.filter((u) =>
+          u.roles.some((assigned) => assigned.toLowerCase().includes((role.name ?? role.id).toLowerCase())),
+        ).length,
       })),
-    [roleDrafts, users],
+    [roleDrafts, roles, users],
   )
+  const selectableRoles = useMemo(() => (roles.length ? roles : roleCatalog), [roles])
 
   const namespaceNodes = useMemo(() => tags.filter((tag) => tag.kind === "namespace"), [tags])
   const groupKinds = useMemo(
@@ -348,7 +357,7 @@ export default function OrganizationManagementPage() {
     const loadTags = async () => {
       try {
         setIsLoadingTags(true)
-        const data = await fetchTags({ scope: "all" })
+        const data = await loadCompleteTagTree()
         if (!active) return
         setTags(data)
       } catch (error) {
@@ -404,6 +413,20 @@ export default function OrganizationManagementPage() {
       }
     }
 
+    const loadRoles = async () => {
+      try {
+        setIsLoadingRoles(true)
+        const data = await fetchRoles()
+        if (!active) return
+        setRoles(data)
+      } catch (error) {
+        console.error("[org-settings] Unable to load roles:", error)
+        if (active) setRoles(roleCatalog)
+      } finally {
+        if (active) setIsLoadingRoles(false)
+      }
+    }
+
     const loadDocumentTypes = async () => {
       try {
         setIsLoadingDocumentTypes(true)
@@ -420,6 +443,7 @@ export default function OrganizationManagementPage() {
 
     loadUsers()
     loadGroups()
+    loadRoles()
     loadDocumentTypes()
 
     return () => {
@@ -427,8 +451,59 @@ export default function OrganizationManagementPage() {
     }
   }, [isAuthenticated, isAdmin])
 
+  const mergeTagChildren = (existingChildren: TagNode[] = [], newChildren: TagNode[] = []) => {
+    const merged = [...existingChildren]
+    newChildren.forEach((child) => {
+      const matchIndex = merged.findIndex((item) => item.id === child.id)
+      if (matchIndex >= 0) {
+        merged[matchIndex] = {
+          ...merged[matchIndex],
+          ...child,
+          children: mergeTagChildren(merged[matchIndex].children ?? [], child.children ?? []),
+        }
+      } else {
+        merged.push({ ...child, children: child.children ?? [] })
+      }
+    })
+    return merged
+  }
+
+  const mergeTagTrees = (existing: TagNode[], incoming: TagNode[]) => {
+    const merged = [...existing]
+    incoming.forEach((node) => {
+      const matchIndex = merged.findIndex((item) => item.id === node.id)
+      if (matchIndex >= 0) {
+        merged[matchIndex] = {
+          ...merged[matchIndex],
+          ...node,
+          children: mergeTagChildren(merged[matchIndex].children ?? [], node.children ?? []),
+        }
+      } else {
+        merged.push({ ...node, children: node.children ?? [] })
+      }
+    })
+    return merged
+  }
+
+  const loadCompleteTagTree = async (): Promise<TagNode[]> => {
+    const primary = await fetchTags({ scope: "all" })
+    let combined = primary
+
+    if (!primary.some((tag) => (tag.namespaceScope ?? "user") === "global")) {
+      const globalNodes = await fetchTags({ scope: "global" })
+      combined = mergeTagTrees(combined, globalNodes)
+    }
+
+    if (!combined.some((tag) => (tag.namespaceScope ?? "user") === "group")) {
+      const groupNodes = await fetchTags({ scope: "group" })
+      combined = mergeTagTrees(combined, groupNodes)
+    }
+
+    return combined
+  }
+
   const reloadTags = async () => {
-    const data = await fetchTags({ scope: "all" })
+    const data = await loadCompleteTagTree()
     setTags(data)
   }
 
@@ -440,6 +515,11 @@ export default function OrganizationManagementPage() {
   const reloadGroups = async () => {
     const data = await fetchGroups()
     setGroups(data)
+  }
+
+  const reloadRoles = async () => {
+    const data = await fetchRoles()
+    setRoles(data)
   }
 
   const reloadDocumentTypes = async () => {
@@ -462,6 +542,7 @@ export default function OrganizationManagementPage() {
   }
 
   const handleDeleteTag = async (tagId: string) => {
+    const target = tags.find((tag) => tag.id === tagId)
     await deleteTag(tagId)
     await reloadTags()
   }
@@ -604,25 +685,29 @@ export default function OrganizationManagementPage() {
     setDocTypeDialogDraft(null)
   }
 
-  const startEditingRole = (roleKey: string) => {
-    const role = roleCatalog.find((item) => item.key === roleKey)
-    setEditingRoleKey(roleKey)
-    setRoleDrafts((previous) => ({ ...previous, [roleKey]: { ...role } }))
+  const startEditingRole = (roleId: string) => {
+    const role = roleAssignments.find((item) => item.id === roleId)
+    setEditingRoleId(roleId)
+    setRoleDrafts((previous) => ({ ...previous, [roleId]: { ...role } }))
   }
 
-  const saveRoleInline = (roleKey: string) => {
-    const draft = roleDrafts[roleKey]
-    if (!draft) return
+  const saveRoleInline = async (roleId: string) => {
+    const draft = roleDrafts[roleId]
+    const existing = roles.find((item) => item.id === roleId)
+    if (!draft || !existing) return
 
-    setRoleDrafts((previous) => ({ ...previous, [roleKey]: draft }))
-    setEditingRoleKey(null)
+    const updated = await renameRole(roleId, draft.name ?? existing.name)
+    setRoles((previous) =>
+      previous.map((role) => (role.id === roleId ? { ...role, ...draft, ...(updated ?? {}) } : role)),
+    )
+    setEditingRoleId(null)
   }
 
-  const cancelRoleInline = (roleKey: string) => {
-    setEditingRoleKey(null)
+  const cancelRoleInline = (roleId: string) => {
+    setEditingRoleId(null)
     setRoleDrafts((previous) => {
       const next = { ...previous }
-      delete next[roleKey]
+      delete next[roleId]
       return next
     })
   }
@@ -636,7 +721,7 @@ export default function OrganizationManagementPage() {
       id: `temp-group-${Date.now()}`,
       name: "New group",
       description: "Group description",
-      kind: "functional",
+      kind: "team",
     }
     setGroups((previous) => [newGroup, ...previous])
     startEditingGroup(newGroup)
@@ -746,7 +831,7 @@ export default function OrganizationManagementPage() {
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-3">
                   <Button variant="outline" size="sm" onClick={reloadTags} disabled={isLoadingTags}>
                     <RefreshCcw className="mr-2 h-4 w-4" /> Refresh tag tree
                   </Button>
@@ -759,7 +844,7 @@ export default function OrganizationManagementPage() {
                 {isLoadingTags ? (
                   <p className="text-sm text-muted-foreground">Loading tag tree…</p>
                 ) : namespaceNodes.length ? (
-                  <ScrollArea className="max-h-[540px] rounded-lg border bg-muted/20">
+                  <ScrollArea className="max-h-[60vh] rounded-lg border bg-muted/20">
                     <div className="space-y-2 p-3">
                       {namespaceNodes.map((node) => (
                         <TagTreeItem
@@ -771,6 +856,7 @@ export default function OrganizationManagementPage() {
                         />
                       ))}
                     </div>
+                    <ScrollBar orientation="vertical" />
                   </ScrollArea>
                 ) : (
                   <p className="text-sm text-muted-foreground">No tags or namespaces have been configured.</p>
@@ -914,14 +1000,19 @@ export default function OrganizationManagementPage() {
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <Badge variant="outline">Total roles: {filteredRoles.length}</Badge>
                   </div>
-                  <div className="relative w-56">
-                    <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={roleSearch}
-                      onChange={(event) => setRoleSearch(event.target.value)}
-                      placeholder="Filter by name or description"
-                      className="pl-8"
-                    />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-56">
+                      <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={roleSearch}
+                        onChange={(event) => setRoleSearch(event.target.value)}
+                        placeholder="Filter by name or description"
+                        className="pl-8"
+                      />
+                    </div>
+                    <Button variant="outline" size="sm" onClick={reloadRoles} disabled={isLoadingRoles}>
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
+                    </Button>
                   </div>
                 </div>
                 <div className="overflow-hidden rounded-lg border">
@@ -935,64 +1026,79 @@ export default function OrganizationManagementPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredRoles.map((role) => {
-                        const isEditing = editingRoleKey === role.key
-                        const draft = roleDrafts[role.key] ?? role
+                      {isLoadingRoles ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                            Loading roles…
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredRoles.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                            No roles available.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredRoles.map((role) => {
+                          const isEditing = editingRoleId === role.id
+                          const draft = roleDrafts[role.id] ?? role
 
-                        return (
-                          <TableRow key={role.key} className={isEditing ? "bg-muted/50" : undefined}>
-                            <TableCell>
-                              {isEditing ? (
-                                <Input
-                                  value={draft.name}
-                                  onChange={(event) =>
-                                    setRoleDrafts((previous) => ({
-                                      ...previous,
-                                      [role.key]: { ...(previous[role.key] ?? role), name: event.target.value },
-                                    }))
-                                  }
-                                />
-                              ) : (
-                                <span className="font-medium">{draft.name}</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {isEditing ? (
-                                <Input
-                                  value={draft.description}
-                                  onChange={(event) =>
-                                    setRoleDrafts((previous) => ({
-                                      ...previous,
-                                      [role.key]: { ...(previous[role.key] ?? role), description: event.target.value },
-                                    }))
-                                  }
-                                />
-                              ) : (
-                                <span className="text-sm text-muted-foreground">{draft.description}</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{role.memberCount} members</Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {isEditing ? (
-                                <div className="flex justify-end gap-2">
-                                  <Button size="sm" variant="secondary" onClick={() => saveRoleInline(role.key)}>
-                                    <Check className="mr-2 h-4 w-4" /> Save
+                          return (
+                            <TableRow key={role.id} className={isEditing ? "bg-muted/50" : undefined}>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={draft.name}
+                                    onChange={(event) =>
+                                      setRoleDrafts((previous) => ({
+                                        ...previous,
+                                        [role.id]: { ...(previous[role.id] ?? role), name: event.target.value },
+                                      }))
+                                    }
+                                  />
+                                ) : (
+                                  <span className="font-medium">{draft.name}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={draft.description ?? ""}
+                                    onChange={(event) =>
+                                      setRoleDrafts((previous) => ({
+                                        ...previous,
+                                        [role.id]: { ...(previous[role.id] ?? role), description: event.target.value },
+                                      }))
+                                    }
+                                    placeholder="Optional description"
+                                  />
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">{draft.description ?? "No description"}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary">{role.memberCount} members</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {isEditing ? (
+                                  <div className="flex justify-end gap-2">
+                                    <Button size="sm" variant="secondary" onClick={() => saveRoleInline(role.id)}>
+                                      <Check className="mr-2 h-4 w-4" /> Save
+                                    </Button>
+                                    <Button size="sm" variant="ghost" onClick={() => cancelRoleInline(role.id)}>
+                                      <X className="mr-2 h-4 w-4" /> Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button size="sm" variant="ghost" onClick={() => startEditingRole(role.id)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Edit description
                                   </Button>
-                                  <Button size="sm" variant="ghost" onClick={() => cancelRoleInline(role.key)}>
-                                    <X className="mr-2 h-4 w-4" /> Cancel
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button size="sm" variant="ghost" onClick={() => startEditingRole(role.key)}>
-                                  <Pencil className="mr-2 h-4 w-4" /> Edit description
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -1086,23 +1192,18 @@ export default function OrganizationManagementPage() {
                               <TableCell>
                                 {isEditing ? (
                                   <Select
-                                    value={draft.kind ?? "functional"}
+                                    value={draft.kind ?? groupKindOptions[0]}
                                     onValueChange={(value) => updateGroupDraft(group.id, { kind: value })}
                                   >
                                     <SelectTrigger className="w-44 capitalize">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {[
-                                        ...groupKindOptions,
-                                        ...(groupKinds.includes(draft.kind ?? "") || !draft.kind ? [] : [draft.kind!]),
-                                      ]
-                                        .filter((value, index, array) => array.indexOf(value) === index)
-                                        .map((kind) => (
-                                          <SelectItem key={kind} value={kind} className="capitalize">
-                                            {kind}
-                                          </SelectItem>
-                                        ))}
+                                      {groupKindOptions.map((kind) => (
+                                        <SelectItem key={kind} value={kind} className="capitalize">
+                                          {kind}
+                                        </SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                 ) : draft.kind ? (
@@ -1190,7 +1291,6 @@ export default function OrganizationManagementPage() {
                         <TableHead>Type name</TableHead>
                         <TableHead>Key</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Status</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -1221,11 +1321,6 @@ export default function OrganizationManagementPage() {
                               <span className="text-sm text-muted-foreground line-clamp-2">
                                 {docType.description ?? "No description"}
                               </span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={docType.isActive ? "secondary" : "outline"}>
-                                {docType.isActive ? "Active" : "Inactive"}
-                              </Badge>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {new Date(docType.createdAtUtc).toLocaleDateString("en-US", {
@@ -1290,22 +1385,6 @@ export default function OrganizationManagementPage() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Roles</Label>
-                    <Textarea
-                      value={(userDialogDraft.roles ?? []).join(", ")}
-                      onChange={(event) =>
-                        updateUserDialogDraft({
-                          roles: event.target.value
-                            .split(",")
-                            .map((role) => role.trim())
-                            .filter(Boolean),
-                        })
-                      }
-                      placeholder="Comma separated roles"
-                    />
-                    <p className="text-xs text-muted-foreground">Separate multiple roles with commas.</p>
-                  </div>
-                  <div className="space-y-2">
                     <Label>Status</Label>
                     <div className="flex items-center gap-3 rounded-md border p-3">
                       <Switch
@@ -1320,9 +1399,7 @@ export default function OrganizationManagementPage() {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Primary group</Label>
                     <Select
@@ -1352,7 +1429,49 @@ export default function OrganizationManagementPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
 
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Roles</Label>
+                    <ScrollArea className="h-36 rounded-md border p-3">
+                      <div className="space-y-2">
+                        {selectableRoles.map((role) => {
+                          const isChecked = (userDialogDraft.roles ?? []).some(
+                            (value) => value.toLowerCase() === role.name.toLowerCase(),
+                          )
+
+                          return (
+                            <label key={role.id} className="flex items-center gap-2 text-sm">
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                  const currentRoles = new Set(
+                                    (userDialogDraft.roles ?? []).map((value) => value.trim()).filter(Boolean),
+                                  )
+                                  if (checked) {
+                                    currentRoles.add(role.name)
+                                  } else {
+                                    currentRoles.delete(role.name)
+                                  }
+                                  updateUserDialogDraft({ roles: Array.from(currentRoles) })
+                                }}
+                              />
+                              <div className="flex-1 truncate">
+                                <p className="font-medium leading-tight">{role.name}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {role.description ?? "No description"}
+                                </p>
+                              </div>
+                            </label>
+                          )
+                        })}
+                        {!selectableRoles.length ? (
+                          <p className="text-xs text-muted-foreground">No roles available.</p>
+                        ) : null}
+                      </div>
+                    </ScrollArea>
+                  </div>
                   <div className="space-y-2">
                     <Label>Groups</Label>
                     <ScrollArea className="h-36 rounded-md border p-3">
