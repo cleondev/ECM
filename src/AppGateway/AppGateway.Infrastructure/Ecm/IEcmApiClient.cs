@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -15,6 +16,14 @@ namespace AppGateway.Infrastructure.Ecm;
 
 public interface IEcmApiClient
 {
+    Task<IReadOnlyCollection<GroupSummaryDto>> GetGroupsAsync(CancellationToken cancellationToken = default);
+
+    Task<GroupSummaryDto?> CreateGroupAsync(CreateGroupRequestDto requestDto, CancellationToken cancellationToken = default);
+
+    Task<GroupSummaryDto?> UpdateGroupAsync(Guid groupId, UpdateGroupRequestDto requestDto, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteGroupAsync(Guid groupId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default);
 
     Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default);

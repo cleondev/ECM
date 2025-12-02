@@ -174,7 +174,15 @@ type TagLabelResponse = {
 type GroupSummaryResponse = {
   id: string
   name: string
-  description?: string | null
+  kind?: string | null
+  role?: string | null
+  parentGroupId?: string | null
+}
+
+type GroupMutationRequest = {
+  name: string
+  kind?: string | null
+  parentGroupId?: string | null
 }
 
 type WorkflowDefinitionResponse = {
@@ -452,10 +460,15 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
 }
 
 function mapGroupSummaryToGroup(data: GroupSummaryResponse): Group {
+  const descriptors = [
+    data.role?.trim() ? `Role: ${data.role}` : null,
+    data.kind?.trim() ? `Kind: ${data.kind}` : null,
+  ].filter(Boolean)
+
   return {
     id: data.id,
     name: data.name,
-    description: data.description ?? null,
+    description: descriptors.length > 0 ? descriptors.join(" • ") : null,
   }
 }
 
@@ -1429,6 +1442,83 @@ export async function fetchGroups(): Promise<Group[]> {
     console.warn("[ui] Failed to fetch groups from gateway, using mock data:", error)
     await delay(120)
     return mockGroups
+  }
+}
+
+export async function createGroup(request: GroupMutationRequest): Promise<Group> {
+  const payload: GroupMutationRequest = {
+    name: request.name.trim(),
+    kind: request.kind?.trim() ?? null,
+    parentGroupId: request.parentGroupId?.trim() || null,
+  }
+
+  try {
+    const response = await gatewayRequest<GroupSummaryResponse>("/api/iam/groups", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+
+    return mapGroupSummaryToGroup(response)
+  } catch (error) {
+    console.warn("[ui] Failed to create group via gateway, using mock response:", error)
+    const fallback: Group = {
+      id: crypto.randomUUID(),
+      name: payload.name || "Nhóm mới",
+      description: payload.kind ? `Kind: ${payload.kind}` : null,
+    }
+    mockGroups.push(fallback)
+    return fallback
+  }
+}
+
+export async function updateGroup(id: string, request: GroupMutationRequest): Promise<Group | null> {
+  const trimmedId = id.trim()
+  if (!trimmedId) {
+    return null
+  }
+
+  const payload: GroupMutationRequest = {
+    name: request.name.trim(),
+    kind: request.kind?.trim() ?? null,
+    parentGroupId: request.parentGroupId?.trim() || null,
+  }
+
+  try {
+    const response = await gatewayRequest<GroupSummaryResponse>(`/api/iam/groups/${trimmedId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+
+    return mapGroupSummaryToGroup(response)
+  } catch (error) {
+    console.warn("[ui] Failed to update group via gateway, using mock data:", error)
+    const existing = mockGroups.find((group) => group.id === trimmedId)
+    if (!existing) {
+      return null
+    }
+
+    existing.name = payload.name || existing.name
+    existing.description = payload.kind ? `Kind: ${payload.kind}` : existing.description
+    return { ...existing }
+  }
+}
+
+export async function deleteGroup(id: string): Promise<boolean> {
+  const trimmedId = id.trim()
+  if (!trimmedId) {
+    return false
+  }
+
+  try {
+    await gatewayRequest(`/api/iam/groups/${trimmedId}`, { method: "DELETE" })
+    return true
+  } catch (error) {
+    console.warn("[ui] Failed to delete group via gateway, updating mock list:", error)
+    const index = mockGroups.findIndex((group) => group.id === trimmedId)
+    if (index >= 0) {
+      mockGroups.splice(index, 1)
+    }
+    return false
   }
 }
 

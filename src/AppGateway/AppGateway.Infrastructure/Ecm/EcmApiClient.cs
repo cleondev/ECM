@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Text.Json;
 
 using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -42,6 +43,34 @@ internal sealed class EcmApiClient(
     private readonly ITokenAcquisition _tokenAcquisition = tokenAcquisition;
     private readonly EcmApiClientOptions _options = options.Value;
     private readonly ILogger<EcmApiClient> _logger = logger;
+
+    public async Task<IReadOnlyCollection<GroupSummaryDto>> GetGroupsAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Get, "api/iam/groups", cancellationToken);
+        var response = await SendAsync<IReadOnlyCollection<GroupSummaryDto>>(request, cancellationToken);
+        return response ?? [];
+    }
+
+    public async Task<GroupSummaryDto?> CreateGroupAsync(CreateGroupRequestDto requestDto, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, "api/iam/groups", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<GroupSummaryDto>(request, cancellationToken);
+    }
+
+    public async Task<GroupSummaryDto?> UpdateGroupAsync(Guid groupId, UpdateGroupRequestDto requestDto, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Put, $"api/iam/groups/{groupId}", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<GroupSummaryDto>(request, cancellationToken);
+    }
+
+    public async Task<bool> DeleteGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/iam/groups/{groupId}", cancellationToken);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        return response.IsSuccessStatusCode;
+    }
 
     public async Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
