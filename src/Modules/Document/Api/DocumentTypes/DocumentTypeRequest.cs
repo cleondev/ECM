@@ -2,10 +2,8 @@ using System;
 
 namespace ECM.Document.Api.DocumentTypes;
 
-public sealed record DocumentTypeResponse(
-    Guid Id,
+public sealed record DocumentTypeRequest(
     string TypeKey,
     string TypeName,
     string? Description,
-    bool IsActive,
-    DateTimeOffset CreatedAtUtc);
+    bool? IsActive);
