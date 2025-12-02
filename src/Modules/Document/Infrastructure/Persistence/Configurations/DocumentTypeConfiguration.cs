@@ -32,6 +32,10 @@ public sealed class DocumentTypeConfiguration : IEntityTypeConfiguration<Documen
         builder.Property(type => type.Description)
             .HasColumnName("description");
 
+        builder.Property(type => type.Config)
+            .HasColumnName("config")
+            .ConfigureJsonDocument();
+
         builder.Property(type => type.IsActive)
             .HasColumnName("is_active")
             .HasDefaultValue(true);

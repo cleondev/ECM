@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ECM.Document.Domain.DocumentTypes;
@@ -86,7 +87,8 @@ public static class DocumentTypeEndpoints
             typeName,
             request.IsActive ?? true,
             DateTimeOffset.UtcNow,
-            request.Description);
+            request.Description,
+            NormalizeConfig(request.Config));
 
         context.DocumentTypes.Add(documentType);
         await context.SaveChangesAsync(cancellationToken);
@@ -124,7 +126,9 @@ public static class DocumentTypeEndpoints
             return ValidationProblem("typeKey", "A document type with the same key already exists.");
         }
 
-        documentType.Update(typeKey, typeName, request.Description, request.IsActive ?? documentType.IsActive);
+        var config = NormalizeConfig(request.Config, documentType.Config);
+
+        documentType.Update(typeKey, typeName, request.Description, request.IsActive ?? documentType.IsActive, config);
 
         await context.SaveChangesAsync(cancellationToken);
 
@@ -166,8 +170,19 @@ public static class DocumentTypeEndpoints
             type.TypeName,
             type.Description,
             type.IsActive,
-            type.CreatedAtUtc);
+            type.CreatedAtUtc,
+            type.Config);
 
     private static ValidationProblem ValidationProblem(string key, string message)
         => TypedResults.ValidationProblem(new Dictionary<string, string[]> { [key] = new[] { message } });
+
+    private static JsonDocument NormalizeConfig(JsonDocument? config, JsonDocument? fallback = null)
+    {
+        if (config is not null)
+        {
+            return config;
+        }
+
+        return fallback ?? JsonDocument.Parse("{}");
+    }
 }

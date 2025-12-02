@@ -246,6 +246,8 @@ export default function OrganizationManagementPage() {
   const [userDialogDraft, setUserDialogDraft] = useState<User | null>(null)
   const [docTypeDialogOpen, setDocTypeDialogOpen] = useState(false)
   const [docTypeDialogDraft, setDocTypeDialogDraft] = useState<DocumentType | null>(null)
+  const [docTypeConfigInput, setDocTypeConfigInput] = useState<string>("{}")
+  const [docTypeConfigError, setDocTypeConfigError] = useState<string | null>(null)
   const [groupKindFilter, setGroupKindFilter] = useState<string>("all")
 
   const isAdmin = useMemo(() => isAdminUser(user), [user])
@@ -666,7 +668,7 @@ export default function OrganizationManagementPage() {
   }
 
   const openDocTypeDialog = (docType?: DocumentType) => {
-    setDocTypeDialogDraft(
+    const resolvedDocType =
       docType ?? {
         id: `temp-doc-${Date.now()}`,
         typeKey: `doc-${documentTypes.length + 1}`,
@@ -674,8 +676,12 @@ export default function OrganizationManagementPage() {
         isActive: true,
         createdAtUtc: new Date().toISOString(),
         description: "",
-      },
-    )
+        config: {},
+      }
+
+    setDocTypeDialogDraft(resolvedDocType)
+    setDocTypeConfigInput(JSON.stringify(resolvedDocType.config ?? {}, null, 2))
+    setDocTypeConfigError(null)
     setDocTypeDialogOpen(true)
   }
 
@@ -686,12 +692,23 @@ export default function OrganizationManagementPage() {
   const saveDocTypeDialog = () => {
     if (!docTypeDialogDraft) return
 
+    let parsedConfig: Record<string, unknown>
+
+    try {
+      parsedConfig = docTypeConfigInput.trim() ? JSON.parse(docTypeConfigInput) : {}
+      setDocTypeConfigError(null)
+    } catch (error) {
+      setDocTypeConfigError("Config must be valid JSON.")
+      return
+    }
+
     const performSave = async () => {
       const payload = {
         typeKey: docTypeDialogDraft.typeKey,
         typeName: docTypeDialogDraft.typeName,
         description: docTypeDialogDraft.description ?? null,
         isActive: docTypeDialogDraft.isActive,
+        config: parsedConfig,
       }
 
       const existing = documentTypes.some((item) => item.id === docTypeDialogDraft.id)
@@ -1585,6 +1602,8 @@ export default function OrganizationManagementPage() {
             setDocTypeDialogOpen(open)
             if (!open) {
               setDocTypeDialogDraft(null)
+              setDocTypeConfigInput("{}")
+              setDocTypeConfigError(null)
             }
           }}
         >
@@ -1616,6 +1635,23 @@ export default function OrganizationManagementPage() {
                     placeholder="Add a short description"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doc-type-config">Config (JSON)</Label>
+                  <Textarea
+                    id="doc-type-config"
+                    value={docTypeConfigInput}
+                    onChange={(event) => {
+                      setDocTypeConfigInput(event.target.value)
+                      setDocTypeConfigError(null)
+                    }}
+                    className="font-mono text-xs"
+                    rows={8}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Store additional settings for downstream systems. Provide a valid JSON object.
+                  </p>
+                  {docTypeConfigError ? <p className="text-xs text-destructive">{docTypeConfigError}</p> : null}
+                </div>
                 <div className="flex items-center justify-between rounded-md border p-3">
                   <div>
                     <p className="text-sm font-medium">Active</p>
@@ -1630,7 +1666,10 @@ export default function OrganizationManagementPage() {
                   <Button variant="ghost" onClick={() => setDocTypeDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={saveDocTypeDialog} disabled={!docTypeDialogDraft.typeName.trim()}>
+                  <Button
+                    onClick={saveDocTypeDialog}
+                    disabled={!docTypeDialogDraft.typeName.trim() || Boolean(docTypeConfigError)}
+                  >
                     <Save className="mr-2 h-4 w-4" /> Save changes
                   </Button>
                 </div>

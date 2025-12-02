@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 
 namespace AppGateway.Contracts.Documents;
 
@@ -8,4 +9,5 @@ public sealed record DocumentTypeDto(
     string TypeName,
     string? Description,
     bool IsActive,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    JsonDocument Config);

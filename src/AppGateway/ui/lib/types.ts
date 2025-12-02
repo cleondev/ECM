@@ -20,6 +20,7 @@ export type DocumentType = {
   isActive: boolean
   createdAtUtc: string
   description?: string | null
+  config?: Record<string, unknown>
 }
 
 export type FileItem = {
