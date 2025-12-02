@@ -1,13 +1,13 @@
-using System;
 using ECM.BuildingBlocks.Infrastructure.Configuration;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+
 using Microsoft.Extensions.Options;
+
 using Npgsql;
+
 using Serilog;
+
 using ServiceDefaults;
+
 using Workers.Shared.Messaging;
 
 namespace OutboxDispatcher;

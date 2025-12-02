@@ -1,5 +1,3 @@
-using System;
-
 namespace Workers.Shared.Messaging;
 
 /// <summary>

@@ -1,6 +1,4 @@
-using System;
 using ECM.BuildingBlocks.Domain.Events;
-using ECM.Document.Domain.Documents;
 
 namespace ECM.Document.Domain.Documents.Events;
 
