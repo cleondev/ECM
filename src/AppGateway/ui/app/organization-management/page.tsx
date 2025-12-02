@@ -831,8 +831,8 @@ export default function OrganizationManagementPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tags" className="space-y-4">
-            <Card className="overflow-hidden">
+          <TabsContent value="tags" className="space-y-4 overflow-y-auto">
+            <Card className="overflow-auto">
               <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
                   <CardTitle>Tag & namespace management</CardTitle>
