@@ -120,8 +120,7 @@ function TagTreeItem({
   const hasChildren = Boolean(tag.children?.length)
   const isNamespace = tag.kind === "namespace"
   const tagScope = tag.namespaceScope ?? "user"
-  const isGlobalScope = tagScope === "global"
-  const isReadOnly = tag.isSystem || (isGlobalScope && globalViewOnly)
+  const isReadOnly = tag.isSystem
   const isManageableLabel = tag.kind === "label" && !isReadOnly
   const canAddChild = (isNamespace && !isReadOnly) || isManageableLabel
   const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
@@ -553,9 +552,6 @@ export default function OrganizationManagementPage() {
 
   const handleDeleteTag = async (tagId: string) => {
     const target = tags.find((tag) => tag.id === tagId)
-    if ((target?.namespaceScope ?? "user") === "global" && isGlobalTagViewOnly) {
-      return
-    }
     await deleteTag(tagId)
     await reloadTags()
   }
@@ -845,13 +841,6 @@ export default function OrganizationManagementPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs text-muted-foreground">
-                    <Switch checked={isGlobalTagViewOnly} onCheckedChange={setIsGlobalTagViewOnly} />
-                    <div className="leading-tight">
-                      <p className="font-medium text-foreground">Global tags read-only</p>
-                      <p>Toggle to allow editing global namespaces.</p>
-                    </div>
-                  </div>
                   <Button variant="outline" size="sm" onClick={reloadTags} disabled={isLoadingTags}>
                     <RefreshCcw className="mr-2 h-4 w-4" /> Refresh tag tree
                   </Button>
@@ -1406,6 +1395,54 @@ export default function OrganizationManagementPage() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
+                    <Label>Status</Label>
+                    <div className="flex items-center gap-3 rounded-md border p-3">
+                      <Switch
+                        checked={userDialogDraft.isActive ?? true}
+                        onCheckedChange={(checked) => updateUserDialogDraft({ isActive: checked })}
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{userDialogDraft.isActive === false ? "Suspended" : "Active"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Control whether this account can sign in.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Primary group</Label>
+                    <Select
+                      value={userDialogDraft.primaryGroupId ?? "none"}
+                      onValueChange={(value) => {
+                        const normalized = value === "none" ? null : value
+                        const currentGroups = new Set(userDialogDraft.groupIds ?? [])
+                        if (normalized) {
+                          currentGroups.add(normalized)
+                        }
+                        updateUserDialogDraft({
+                          primaryGroupId: normalized,
+                          groupIds: Array.from(currentGroups),
+                        })
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primary group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No primary group</SelectItem>
+                        {groups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
                     <Label>Roles</Label>
                     <ScrollArea className="h-36 rounded-md border p-3">
                       <div className="space-y-2">
@@ -1445,54 +1482,6 @@ export default function OrganizationManagementPage() {
                       </div>
                     </ScrollArea>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <div className="flex items-center gap-3 rounded-md border p-3">
-                      <Switch
-                        checked={userDialogDraft.isActive ?? true}
-                        onCheckedChange={(checked) => updateUserDialogDraft({ isActive: checked })}
-                      />
-                      <div>
-                        <p className="text-sm font-medium">{userDialogDraft.isActive === false ? "Suspended" : "Active"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Control whether this account can sign in.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Primary group</Label>
-                    <Select
-                      value={userDialogDraft.primaryGroupId ?? "none"}
-                      onValueChange={(value) => {
-                        const normalized = value === "none" ? null : value
-                        const currentGroups = new Set(userDialogDraft.groupIds ?? [])
-                        if (normalized) {
-                          currentGroups.add(normalized)
-                        }
-                        updateUserDialogDraft({
-                          primaryGroupId: normalized,
-                          groupIds: Array.from(currentGroups),
-                        })
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select primary group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No primary group</SelectItem>
-                        {groups.map((group) => (
-                          <SelectItem key={group.id} value={group.id}>
-                            {group.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <div className="space-y-2">
                     <Label>Groups</Label>
                     <ScrollArea className="h-36 rounded-md border p-3">
