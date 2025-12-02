@@ -184,7 +184,7 @@ export function TagManagementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
@@ -231,59 +231,64 @@ export function TagManagementDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="grid grid-cols-6 gap-2">
-              {colorOptions.map((color) => (
-                <button
-                  key={color.value}
-                  type="button"
-                  onClick={() => setTagColor(color.value)}
-                  className={cn(
-                    "w-full aspect-square rounded-md border-2 transition-all",
-                    tagColor === color.value
-                      ? "border-foreground scale-110 ring-2 ring-offset-2 ring-foreground"
-                      : "border-border hover:border-muted-foreground",
-                  )}
-                  style={{ backgroundColor: color.value }}
-                  title={color.name}
-                />
-              ))}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <ScrollArea className="h-48 rounded-md border border-border/60 p-2">
+                <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={() => setTagColor(color.value)}
+                      className={cn(
+                        "w-full aspect-square rounded-md border-2 transition-all",
+                        tagColor === color.value
+                          ? "border-foreground scale-110 ring-2 ring-offset-2 ring-foreground"
+                          : "border-border hover:border-muted-foreground",
+                      )}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+                <ScrollBar orientation="vertical" />
+              </ScrollArea>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Icon (Optional)</Label>
-            <ScrollArea className="max-h-60 w-full rounded-md border border-border/60 p-2">
-              <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-8 md:grid-cols-10">
-                <button
-                  type="button"
-                  onClick={() => setTagIcon(NO_ICON_VALUE)}
-                  className={cn(
-                    "aspect-square rounded border flex items-center justify-center text-xs transition-colors",
-                    tagIcon === NO_ICON_VALUE
-                      ? "border-foreground bg-accent font-bold"
-                      : "border-border hover:bg-accent/50",
-                  )}
-                  title="No icon"
-                >
-                  ✕
-                </button>
-                {iconOptions.map((icon) => (
+            <div className="space-y-2">
+              <Label>Icon (Optional)</Label>
+              <ScrollArea className="h-48 w-full rounded-md border border-border/60 p-2">
+                <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-8 md:grid-cols-10">
                   <button
-                    key={icon}
-                    onClick={() => setTagIcon(icon)}
+                    type="button"
+                    onClick={() => setTagIcon(NO_ICON_VALUE)}
                     className={cn(
-                      "aspect-square rounded border flex items-center justify-center text-lg leading-none transition-colors",
-                      tagIcon === icon ? "border-foreground bg-accent scale-110" : "border-border hover:bg-accent/50",
+                      "aspect-square rounded border flex items-center justify-center text-xs transition-colors",
+                      tagIcon === NO_ICON_VALUE
+                        ? "border-foreground bg-accent font-bold"
+                        : "border-border hover:bg-accent/50",
                     )}
+                    title="No icon"
                   >
-                    {icon}
+                    ✕
                   </button>
-                ))}
-              </div>
-              <ScrollBar orientation="vertical" />
-            </ScrollArea>
+                  {iconOptions.map((icon) => (
+                    <button
+                      key={icon}
+                      onClick={() => setTagIcon(icon)}
+                      className={cn(
+                        "aspect-square rounded border flex items-center justify-center text-lg leading-none transition-colors",
+                        tagIcon === icon ? "border-foreground bg-accent scale-110" : "border-border hover:bg-accent/50",
+                      )}
+                    >
+                      {icon}
+                    </button>
+                  ))}
+                </div>
+                <ScrollBar orientation="vertical" />
+              </ScrollArea>
+            </div>
           </div>
 
           {mode === "edit" && editingTag && editingTag.children && editingTag.children.length > 0 && (

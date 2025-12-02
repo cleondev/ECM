@@ -1202,21 +1202,25 @@ export const mockGroups: Group[] = [
     id: "group-product-design",
     name: "Product Design",
     description: "Designers working on product experiences",
+    kind: "functional",
   },
   {
     id: "group-design-ops",
     name: "Design Ops",
     description: "Operations and tooling for design teams",
+    kind: "operations",
   },
   {
     id: "group-marketing",
     name: "Marketing",
     description: "Growth and marketing initiatives",
+    kind: "business",
   },
   {
     id: "group-customer-success",
     name: "Customer Success",
     description: "Customer onboarding and retention",
+    kind: "customer",
   },
 ]
 
