@@ -338,70 +338,79 @@
         <td>Ghi <code>ops.outbox</code> (AutoTagApplied), <code>ops.audit_event</code>.</td>
       </tr>
 
-      <tr>
-        <th rowspan="3">4. Chia sẻ tài liệu</th>
-        <td>1</td>
-        <td>Tạo link chia sẻ hoặc cấp quyền người ngoài.</td>
-        <td class="actor-none">—</td>
-        <td>Forward <code>POST /links</code> hoặc <code>/files/share/{versionId}</code>.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Áp chính sách link (hạn dùng, mật khẩu, phạm vi).</td>
-        <td class="actor-none">—</td>
-        <td>Shared log lại lý do chia sẻ, ghi nhận subject, resource.</td>
-        <td>Đưa event <code>share.link.created</code> vào outbox.</td>
-        <td class="actor-none">—</td>
-        <td>Tạo thông báo tới chủ sở hữu về chia sẻ mới.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Ghi <code>file.share_link</code> (link_code, expires_at, hashed_password).</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Ghi <code>ops.outbox</code> (ShareLinkCreated), <code>ops.audit_event</code>.</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Người nhận mở link; nếu bảo vệ mật khẩu sẽ nhập mã.</td>
-        <td class="actor-none">—</td>
-        <td>Xử lý interstitial, validate mật khẩu, phát hành presigned URL tải file.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Kiểm tra trạng thái link, log IP và hành vi truy cập.</td>
-        <td class="actor-none">—</td>
-        <td>Shared ghi sự kiện truy cập chia sẻ.</td>
-        <td>OutboxDispatcher chuyển sự kiện truy cập cho Notify.</td>
-        <td class="actor-none">—</td>
-        <td>Notify đẩy cảnh báo truy cập (nếu bật) tới owner.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Cập nhật <code>file.share_access_event</code> (ip, user_agent, accessed_at) và <code>file.share_stats</code>.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Ghi <code>ops.outbox</code> (ShareAccessed), <code>ops.audit_event</code>.</td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Chủ sở hữu thu hồi link hoặc giới hạn lại quyền.</td>
-        <td class="actor-none">—</td>
-        <td>Forward <code>DELETE /links/{id}</code> hoặc cập nhật policy.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Đổi trạng thái link, vô hiệu token, cập nhật lịch sử chia sẻ.</td>
-        <td class="actor-none">—</td>
-        <td>Shared ghi nhận lý do thu hồi.</td>
-        <td>Phát <code>share.link.revoked</code> ra bus.</td>
-        <td>Cập nhật chỉ mục share (nếu indexing).</td>
-        <td>Notify gửi thông báo hủy chia sẻ tới các subscriber.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Cập nhật <code>file.share_link.revoked_at</code>, <code>revoked_reason</code>.</td>
-        <td class="actor-none">—</td>
-        <td class="actor-none">—</td>
-        <td>Ghi <code>ops.outbox</code> (ShareRevoked).</td>
-      </tr>
-
-      <tr>
-        <th rowspan="3">5. Workflow &amp; form</th>
+        <tr>
+          <th rowspan="3">4. Chia sẻ tài liệu</th>
+          <td>1</td>
+          <td>Tạo link chia sẻ hoặc cấp quyền người ngoài.</td>
+          <td class="actor-none">—</td>
+          <td>Forward <code>POST /links</code> hoặc <code>/files/share/{versionId}</code>.</td>
+          <td class="actor-none">—</td>
+          <td>Áp chính sách link (hạn dùng, mật khẩu, phạm vi), ghi lý do chia sẻ.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Đưa event <code>share.link.created</code> vào outbox.</td>
+          <td>Đẩy <code>ShareLinkCreated</code> sang bus/Notify.</td>
+          <td class="actor-none">—</td>
+          <td>Tạo thông báo tới chủ sở hữu về chia sẻ mới.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Ghi <code>file.share_link</code> (link_code, expires_at, hashed_password).</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Ghi <code>ops.outbox</code> (ShareLinkCreated), <code>ops.audit_event</code>.</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Người nhận mở link; nếu bảo vệ mật khẩu sẽ nhập mã.</td>
+          <td class="actor-none">—</td>
+          <td>Proxy interstitial/password/presign request sang ECM Host.</td>
+          <td class="actor-none">—</td>
+          <td>Xử lý interstitial, validate mật khẩu và quota, phát hành presigned URL.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Phát sự kiện <code>share.accessed</code> vào outbox.</td>
+          <td>Chuyển <code>ShareAccessed</code> sang Notify.</td>
+          <td class="actor-none">—</td>
+          <td>Notify đẩy cảnh báo truy cập (nếu bật) tới owner.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Ghi <code>file.share_access_event</code> (ip, user_agent, accessed_at) và <code>file.share_stats</code>.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Ghi <code>ops.outbox</code> (ShareAccessed), <code>ops.audit_event</code>.</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Chủ sở hữu thu hồi link hoặc giới hạn lại quyền.</td>
+          <td class="actor-none">—</td>
+          <td>Forward <code>DELETE /links/{id}</code> hoặc cập nhật policy.</td>
+          <td class="actor-none">—</td>
+          <td>Đổi trạng thái link, vô hiệu token, cập nhật lịch sử chia sẻ.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Phát <code>share.link.revoked</code> ra bus.</td>
+          <td>Chuyển <code>ShareRevoked</code> tới Notify.</td>
+          <td class="actor-none">—</td>
+          <td>Notify gửi thông báo hủy chia sẻ tới các subscriber.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Cập nhật <code>file.share_link.revoked_at</code>, <code>revoked_reason</code>.</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td class="actor-none">—</td>
+          <td>Ghi <code>ops.outbox</code> (ShareRevoked).</td>
+        </tr>
+        <tr>
+          <th rowspan="3">5. Workflow &amp; form</th>
         <td>1</td>
         <td>Khởi tạo workflow, claim task, hoặc mở form từ UI.</td>
         <td class="actor-none">—</td>
@@ -666,10 +675,10 @@
         <td>Quy trình upload phiên bản (<code>/documents/{id}/versions:init</code>, <code>.../complete</code>), quản lý checksum, legal hold.</td>
       </tr>
       <tr>
-        <td><code>file.share_link</code>, <code>file.share_access_event</code>, <code>file.share_stats</code></td>
-        <td>File (Share)</td>
-        <td>Tạo link chia sẻ, ghi nhận lượt truy cập, thu hồi quyền; phục vụ audit và thống kê chia sẻ.</td>
-      </tr>
+          <td><code>file.share_link</code>, <code>file.share_access_event</code>, <code>file.share_stats</code></td>
+          <td>Document (Share)</td>
+          <td>Document module quản lý link chia sẻ (schema <code>file</code>), ghi nhận truy cập và thu hồi quyền để phục vụ audit/thống kê.</td>
+        </tr>
       <tr>
         <td><code>wf.definition</code>, <code>wf.instance</code>, <code>wf.task</code>, <code>wf.form</code>, <code>wf.form_data</code></td>
         <td>Workflow</td>
