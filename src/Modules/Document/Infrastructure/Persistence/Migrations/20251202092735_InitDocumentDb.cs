@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ECM.Document.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class initDocumentDBNew : Migration
+    public partial class InitDocumentDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,6 +22,8 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     type_key = table.Column<string>(type: "text", nullable: false),
                     type_name = table.Column<string>(type: "text", nullable: false),
+                    description = table.Column<string>(type: "text", nullable: true),
+                    config = table.Column<string>(type: "jsonb", nullable: false, defaultValueSql: "'{}'::jsonb"),
                     is_active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     created_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
                 },
@@ -39,6 +41,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
                     idempotency_key = table.Column<string>(type: "text", nullable: false),
                     valid_to = table.Column<DateTimeOffset>(type: "timestamptz", nullable: true),
+                    is_valid = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     source = table.Column<string>(type: "text", nullable: false),
                     updated_at = table.Column<DateTimeOffset>(type: "timestamptz", nullable: false, defaultValueSql: "now()")
                 },
@@ -340,7 +343,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                 name: "doc_effective_acl_flat_user_document_idx",
                 schema: "doc",
                 table: "effective_acl_flat",
-                columns: new[] { "user_id", "valid_to", "document_id" });
+                columns: new[] { "user_id", "is_valid", "document_id" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_signature_request_document_id",

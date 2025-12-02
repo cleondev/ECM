@@ -18,7 +18,15 @@ Tất cả chạy từ **root repo** (nơi có `ecm.ps1`).
 .\ecm.ps1 ef update ocr
 .\ecm.ps1 ef update webhook
 .\ecm.ps1 ef update operations
-.\ecm.ps1 ef update all
+.\ecm.ps1 ef update 
+
+# Remove migration
+.\ecm.ps1 ef remove iam
+.\ecm.ps1 ef remove document
+.\ecm.ps1 ef remove ocr
+.\ecm.ps1 ef remove webhook
+.\ecm.ps1 ef remove operations
+.\ecm.ps1 ef remove all
 
 # Rollback về migration đích ("0" = trống)
 .\ecm.ps1 ef rollback document -name 0

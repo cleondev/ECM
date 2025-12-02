@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ECM.Document.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DocumentDbContext))]
-    [Migration("20251030094128_initDocumentDBNew")]
-    partial class initDocumentDBNew
+    [Migration("20251202092735_InitDocumentDb")]
+    partial class InitDocumentDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -32,11 +32,22 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Config")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("config")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamptz")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("now()");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -528,6 +539,12 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("idempotency_key");
 
+                    b.Property<bool>("IsValid")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_valid");
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasColumnType("text")
@@ -546,7 +563,7 @@ namespace ECM.Document.Infrastructure.Persistence.Migrations
                     b.HasKey("DocumentId", "UserId", "IdempotencyKey")
                         .HasName("pk_effective_acl_flat");
 
-                    b.HasIndex("UserId", "ValidToUtc", "DocumentId")
+                    b.HasIndex("UserId", "IsValid", "DocumentId")
                         .HasDatabaseName("doc_effective_acl_flat_user_document_idx");
 
                     b.ToTable("effective_acl_flat", "doc");
