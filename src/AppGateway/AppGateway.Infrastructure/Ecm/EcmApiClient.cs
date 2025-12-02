@@ -444,6 +444,34 @@ internal sealed class EcmApiClient(
         return response ?? [];
     }
 
+    public async Task<DocumentTypeDto?> CreateDocumentTypeAsync(
+        DocumentTypeRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/document-types", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<DocumentTypeDto>(request, cancellationToken);
+    }
+
+    public async Task<DocumentTypeDto?> UpdateDocumentTypeAsync(
+        Guid documentTypeId,
+        DocumentTypeRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Put, $"api/ecm/document-types/{documentTypeId}", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<DocumentTypeDto>(request, cancellationToken);
+    }
+
+    public async Task<bool> DeleteDocumentTypeAsync(
+        Guid documentTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/document-types/{documentTypeId}", cancellationToken);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/files/preview/{versionId}", cancellationToken);

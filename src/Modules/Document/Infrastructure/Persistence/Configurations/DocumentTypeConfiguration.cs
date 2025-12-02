@@ -29,6 +29,9 @@ public sealed class DocumentTypeConfiguration : IEntityTypeConfiguration<Documen
             .HasColumnName("type_name")
             .IsRequired();
 
+        builder.Property(type => type.Description)
+            .HasColumnName("description");
+
         builder.Property(type => type.IsActive)
             .HasColumnName("is_active")
             .HasDefaultValue(true);

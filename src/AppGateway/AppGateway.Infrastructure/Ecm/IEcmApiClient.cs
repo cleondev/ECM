@@ -93,6 +93,12 @@ public interface IDocumentsApiClient
 
     Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default);
 
+    Task<DocumentTypeDto?> CreateDocumentTypeAsync(DocumentTypeRequestDto requestDto, CancellationToken cancellationToken = default);
+
+    Task<DocumentTypeDto?> UpdateDocumentTypeAsync(Guid documentTypeId, DocumentTypeRequestDto requestDto, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteDocumentTypeAsync(Guid documentTypeId, CancellationToken cancellationToken = default);
+
     Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default);
 
     Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(Guid versionId, int width, int height, string? fit, CancellationToken cancellationToken = default);

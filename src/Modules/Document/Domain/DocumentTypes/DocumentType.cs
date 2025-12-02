@@ -13,7 +13,13 @@ public sealed class DocumentType
         TypeName = null!;
     }
 
-    public DocumentType(Guid id, string typeKey, string typeName, bool isActive, DateTimeOffset createdAtUtc)
+    public DocumentType(
+        Guid id,
+        string typeKey,
+        string typeName,
+        bool isActive,
+        DateTimeOffset createdAtUtc,
+        string? description = null)
         : this()
     {
         if (string.IsNullOrWhiteSpace(typeKey))
@@ -29,6 +35,7 @@ public sealed class DocumentType
         Id = id == Guid.Empty ? Guid.NewGuid() : id;
         TypeKey = typeKey.Trim();
         TypeName = typeName.Trim();
+        Description = NormalizeDescription(description);
         IsActive = isActive;
         CreatedAtUtc = createdAtUtc;
     }
@@ -39,9 +46,39 @@ public sealed class DocumentType
 
     public string TypeName { get; private set; }
 
+    public string? Description { get; private set; }
+
     public bool IsActive { get; private set; }
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
     public IReadOnlyCollection<DomainDocument> Documents => _documents.AsReadOnly();
+
+    public void Update(string typeKey, string typeName, string? description, bool isActive)
+    {
+        if (string.IsNullOrWhiteSpace(typeKey))
+        {
+            throw new ArgumentException("Type key is required.", nameof(typeKey));
+        }
+
+        if (string.IsNullOrWhiteSpace(typeName))
+        {
+            throw new ArgumentException("Type name is required.", nameof(typeName));
+        }
+
+        TypeKey = typeKey.Trim();
+        TypeName = typeName.Trim();
+        Description = NormalizeDescription(description);
+        IsActive = isActive;
+    }
+
+    private static string? NormalizeDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return null;
+        }
+
+        return description.Trim();
+    }
 }

@@ -59,6 +59,9 @@ import {
   fetchUsers,
   fetchRoles,
   renameRole,
+  createRole,
+  createDocumentType,
+  updateDocumentType,
   updateTag,
 } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
@@ -683,15 +686,35 @@ export default function OrganizationManagementPage() {
   const saveDocTypeDialog = () => {
     if (!docTypeDialogDraft) return
 
-    setDocumentTypes((previous) => {
-      const exists = previous.some((item) => item.id === docTypeDialogDraft.id)
-      if (exists) {
-        return previous.map((item) => (item.id === docTypeDialogDraft.id ? { ...item, ...docTypeDialogDraft } : item))
+    const performSave = async () => {
+      const payload = {
+        typeKey: docTypeDialogDraft.typeKey,
+        typeName: docTypeDialogDraft.typeName,
+        description: docTypeDialogDraft.description ?? null,
+        isActive: docTypeDialogDraft.isActive,
       }
-      return [docTypeDialogDraft, ...previous]
-    })
-    setDocTypeDialogOpen(false)
-    setDocTypeDialogDraft(null)
+
+      const existing = documentTypes.some((item) => item.id === docTypeDialogDraft.id)
+      const result = existing
+        ? await updateDocumentType(docTypeDialogDraft.id, payload)
+        : await createDocumentType(payload)
+
+      if (!result) {
+        return
+      }
+
+      setDocumentTypes((previous) => {
+        const exists = previous.some((item) => item.id === result.id)
+        if (exists) {
+          return previous.map((item) => (item.id === result.id ? { ...item, ...result } : item))
+        }
+        return [result, ...previous]
+      })
+      setDocTypeDialogOpen(false)
+      setDocTypeDialogDraft(null)
+    }
+
+    void performSave()
   }
 
   const startEditingRole = (roleId: string) => {
@@ -738,6 +761,18 @@ export default function OrganizationManagementPage() {
 
   const handleAddTempDocType = () => {
     openDocTypeDialog()
+  }
+
+  const handleCreateRole = async () => {
+    const fallbackName = `New role ${roles.length + 1}`
+    const created = await createRole({ name: fallbackName })
+    if (!created) {
+      return
+    }
+
+    setRoles((previous) => [created, ...previous])
+    setEditingRoleId(created.id)
+    setRoleDrafts((previous) => ({ ...previous, [created.id]: { ...created } }))
   }
 
   if (isChecking || isAuthorizing) {
@@ -1022,6 +1057,9 @@ export default function OrganizationManagementPage() {
                     </div>
                     <Button variant="outline" size="sm" onClick={reloadRoles} disabled={isLoadingRoles}>
                       <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
+                    </Button>
+                    <Button size="sm" onClick={handleCreateRole} disabled={isLoadingRoles}>
+                      <Plus className="mr-2 h-4 w-4" /> Add role
                     </Button>
                   </div>
                 </div>

@@ -1443,6 +1443,24 @@ type DocumentTypeResponseDto = {
   description?: string | null
 }
 
+type DocumentTypeMutationRequestDto = {
+  typeKey?: string
+  typeName: string
+  description?: string | null
+  isActive?: boolean
+}
+
+function mapDocumentTypeResponse(type: DocumentTypeResponseDto): DocumentType {
+  return {
+    id: type.id,
+    typeKey: type.typeKey,
+    typeName: type.typeName,
+    isActive: type.isActive,
+    createdAtUtc: type.createdAtUtc,
+    description: type.description ?? null,
+  }
+}
+
 export async function fetchDocumentTypes(): Promise<DocumentType[]> {
   try {
     const response = await gatewayRequest<DocumentTypeResponseDto[]>("/api/document-types")
@@ -1452,18 +1470,96 @@ export async function fetchDocumentTypes(): Promise<DocumentType[]> {
 
     return response
       .filter((type) => type.isActive)
-      .map((type) => ({
-        id: type.id,
-        typeKey: type.typeKey,
-        typeName: type.typeName,
-        isActive: type.isActive,
-        createdAtUtc: type.createdAtUtc,
-        description: type.description ?? null,
-      }))
+      .map(mapDocumentTypeResponse)
       .sort((a, b) => a.typeName.localeCompare(b.typeName, undefined, { sensitivity: "base" }))
   } catch (error) {
     console.warn("[ui] Failed to fetch document types via gateway, returning empty list:", error)
     return []
+  }
+}
+
+export async function createDocumentType(
+  request: DocumentTypeMutationRequestDto,
+): Promise<DocumentType | null> {
+  const payload: DocumentTypeMutationRequestDto = {
+    typeKey: request.typeKey?.trim(),
+    typeName: request.typeName.trim(),
+    description: request.description?.trim() ?? null,
+    isActive: request.isActive ?? true,
+  }
+
+  if (!payload.typeName) {
+    return null
+  }
+
+  try {
+    const response = await gatewayRequest<DocumentTypeResponseDto>("/api/document-types", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+
+    return mapDocumentTypeResponse(response)
+  } catch (error) {
+    console.warn("[ui] Failed to create document type via gateway, using fallback:", error)
+    return {
+      id: crypto.randomUUID(),
+      typeKey: payload.typeKey || `doc-${Math.random().toString(36).slice(2, 8)}`,
+      typeName: payload.typeName,
+      isActive: payload.isActive ?? true,
+      createdAtUtc: new Date().toISOString(),
+      description: payload.description ?? null,
+    }
+  }
+}
+
+export async function updateDocumentType(
+  id: string,
+  request: DocumentTypeMutationRequestDto,
+): Promise<DocumentType | null> {
+  const normalizedId = id.trim()
+  const payload: DocumentTypeMutationRequestDto = {
+    typeKey: request.typeKey?.trim(),
+    typeName: request.typeName.trim(),
+    description: request.description?.trim() ?? null,
+    isActive: request.isActive ?? true,
+  }
+
+  if (!normalizedId || !payload.typeName) {
+    return null
+  }
+
+  try {
+    const response = await gatewayRequest<DocumentTypeResponseDto>(`/api/document-types/${normalizedId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+
+    return mapDocumentTypeResponse(response)
+  } catch (error) {
+    console.warn("[ui] Failed to update document type via gateway, keeping local changes:", error)
+    return {
+      id: normalizedId,
+      typeKey: payload.typeKey || normalizedId,
+      typeName: payload.typeName,
+      isActive: payload.isActive ?? true,
+      createdAtUtc: new Date().toISOString(),
+      description: payload.description ?? null,
+    }
+  }
+}
+
+export async function deleteDocumentType(id: string): Promise<boolean> {
+  const normalizedId = id.trim()
+  if (!normalizedId) {
+    return false
+  }
+
+  try {
+    await gatewayRequest<void>(`/api/document-types/${normalizedId}`, { method: "DELETE" })
+    return true
+  } catch (error) {
+    console.warn("[ui] Failed to delete document type via gateway:", error)
+    return false
   }
 }
 
