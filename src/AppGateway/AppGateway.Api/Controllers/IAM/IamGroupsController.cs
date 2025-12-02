@@ -14,9 +14,9 @@ namespace AppGateway.Api.Controllers.IAM;
 [ApiController]
 [Route("api/iam/groups")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class IamGroupsController(IEcmApiClient client) : ControllerBase
+public sealed class IamGroupsController(IGroupsApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IGroupsApiClient _client = client;
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<GroupSummaryDto>), StatusCodes.Status200OK)]

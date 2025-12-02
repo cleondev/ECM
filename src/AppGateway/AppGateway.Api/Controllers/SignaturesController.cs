@@ -10,9 +10,9 @@ namespace AppGateway.Api.Controllers;
 [ApiController]
 [Route("api/signatures")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class SignaturesController(IEcmApiClient client) : ControllerBase
+public sealed class SignaturesController(ISignaturesApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly ISignaturesApiClient _client = client;
 
     [HttpPost]
     [ProducesResponseType(typeof(SignatureReceiptDto), StatusCodes.Status201Created)]

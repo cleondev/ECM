@@ -15,7 +15,7 @@ public static class CurrentUserProfileResolver
 
     public static async Task<CurrentUserProfileResolution> ResolveAsync(
         HttpContext httpContext,
-        IEcmApiClient client,
+        IUsersApiClient client,
         ILogger logger,
         CancellationToken cancellationToken,
         bool fetchFromApiWhenMissing = true)

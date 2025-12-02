@@ -24,12 +24,12 @@ namespace AppGateway.Api.Controllers.IAM;
 [ApiController]
 [Route("api/iam")]
 public sealed class IamAuthenticationController(
-    IEcmApiClient client,
+    IUsersApiClient client,
     IUserProvisioningService provisioningService,
     IOptionsSnapshot<CookieAuthenticationOptions> cookieOptions,
     ILogger<IamAuthenticationController> logger) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IUsersApiClient _client = client;
     private readonly IUserProvisioningService _provisioningService = provisioningService;
     private readonly CookieAuthenticationOptions _cookieOptions = cookieOptions
         .Get(CookieAuthenticationDefaults.AuthenticationScheme);

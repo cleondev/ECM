@@ -26,9 +26,15 @@ namespace AppGateway.Api.Controllers.Documents;
 [ApiController]
 [Route("api/documents")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsController> logger) : ControllerBase
+public sealed class DocumentsController(
+    IDocumentsApiClient documentsClient,
+    ITagsApiClient tagsClient,
+    IWorkflowsApiClient workflowsClient,
+    ILogger<DocumentsController> logger) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IDocumentsApiClient _documentsClient = documentsClient;
+    private readonly ITagsApiClient _tagsClient = tagsClient;
+    private readonly IWorkflowsApiClient _workflowsClient = workflowsClient;
     private readonly ILogger<DocumentsController> _logger = logger;
 
     [HttpGet]
@@ -42,7 +48,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var documents = await _client.GetDocumentsAsync(request, cancellationToken);
+        var documents = await _documentsClient.GetDocumentsAsync(request, cancellationToken);
         return Ok(documents);
     }
 
@@ -58,7 +64,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var document = await _client.GetDocumentAsync(documentId, cancellationToken);
+        var document = await _documentsClient.GetDocumentAsync(documentId, cancellationToken);
         if (document is null)
         {
             return NotFound();
@@ -99,7 +105,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             OpenReadStream = _ => Task.FromResult(request.File.OpenReadStream()),
         };
 
-        var document = await _client.CreateDocumentAsync(upload, cancellationToken);
+        var document = await _documentsClient.CreateDocumentAsync(upload, cancellationToken);
         if (document is null)
         {
             return Problem(title: "Failed to create document", statusCode: StatusCodes.Status400BadRequest);
@@ -139,7 +145,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var document = await _client.UpdateDocumentAsync(documentId, request, cancellationToken);
+        var document = await _documentsClient.UpdateDocumentAsync(documentId, request, cancellationToken);
         if (document is null)
         {
             return NotFound();
@@ -153,7 +159,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        var deleted = await _client.DeleteDocumentAsync(documentId, cancellationToken);
+        var deleted = await _documentsClient.DeleteDocumentAsync(documentId, cancellationToken);
 
         if (!deleted)
         {
@@ -168,7 +174,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteByVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        var deleted = await _client.DeleteDocumentByVersionAsync(versionId, cancellationToken);
+        var deleted = await _documentsClient.DeleteDocumentByVersionAsync(versionId, cancellationToken);
 
         if (!deleted)
         {
@@ -246,7 +252,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
 
             try
             {
-                var document = await _client.CreateDocumentAsync(upload, cancellationToken);
+                var document = await _documentsClient.CreateDocumentAsync(upload, cancellationToken);
                 if (document is null)
                 {
                     failures.Add(new DocumentUploadFailureDto(upload.FileName, "The document service returned an empty response."));
@@ -258,7 +264,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
                 if (tagActor.HasValue)
                 {
                     await DocumentPostUploadActions.AssignTagsAsync(
-                        _client,
+                        _tagsClient,
                         _logger,
                         document.Id,
                         tagIds,
@@ -267,7 +273,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
                 }
 
                 await DocumentPostUploadActions.StartWorkflowAsync(
-                    _client,
+                    _workflowsClient,
                     _logger,
                     document.Id,
                     flowDefinition,
@@ -299,7 +305,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DownloadVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        var file = await _client.DownloadDocumentVersionAsync(versionId, cancellationToken);
+        var file = await _documentsClient.DownloadDocumentVersionAsync(versionId, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -313,7 +319,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> PreviewVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        var file = await _client.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
+        var file = await _documentsClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -371,7 +377,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             SubjectType = normalizedSubjectType,
             SubjectId = normalizedSubjectId,
         };
-        var link = await _client.CreateDocumentShareLinkAsync(normalizedRequest, cancellationToken);
+        var link = await _documentsClient.CreateDocumentShareLinkAsync(normalizedRequest, cancellationToken);
         if (link is null)
         {
             return NotFound();
@@ -407,7 +413,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var file = await _client.GetDocumentVersionThumbnailAsync(versionId, width, height, normalizedFit, cancellationToken);
+        var file = await _documentsClient.GetDocumentVersionThumbnailAsync(versionId, width, height, normalizedFit, cancellationToken);
         if (file is null)
         {
             return NotFound();
@@ -427,7 +433,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var assigned = await _client.AssignTagToDocumentAsync(documentId, request, cancellationToken);
+        var assigned = await _tagsClient.AssignTagToDocumentAsync(documentId, request, cancellationToken);
         if (!assigned)
         {
             return Problem(title: "Failed to assign tag to document", statusCode: StatusCodes.Status400BadRequest);
@@ -447,7 +453,7 @@ public sealed class DocumentsController(IEcmApiClient client, ILogger<DocumentsC
             return ValidationProblem(ModelState);
         }
 
-        var removed = await _client.RemoveTagFromDocumentAsync(documentId, tagId, cancellationToken);
+        var removed = await _tagsClient.RemoveTagFromDocumentAsync(documentId, tagId, cancellationToken);
         if (!removed)
         {
             return Problem(title: "Failed to remove tag from document", statusCode: StatusCodes.Status400BadRequest);

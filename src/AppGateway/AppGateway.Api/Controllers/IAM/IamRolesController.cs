@@ -14,9 +14,9 @@ namespace AppGateway.Api.Controllers.IAM;
 [ApiController]
 [Route("api/iam/roles")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class IamRolesController(IEcmApiClient client) : ControllerBase
+public sealed class IamRolesController(IRolesApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IRolesApiClient _client = client;
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<RoleSummaryDto>), StatusCodes.Status200OK)]

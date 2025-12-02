@@ -14,9 +14,9 @@ namespace AppGateway.Api.Controllers.IAM;
 [ApiController]
 [Route("api/iam/users")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class IamUsersController(IEcmApiClient client) : ControllerBase
+public sealed class IamUsersController(IUsersApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IUsersApiClient _client = client;
 
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyCollection<UserSummaryDto>), StatusCodes.Status200OK)]

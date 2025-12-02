@@ -10,9 +10,9 @@ namespace AppGateway.Api.Controllers;
 [ApiController]
 [Route("api/workflows")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class WorkflowsController(IEcmApiClient client) : ControllerBase
+public sealed class WorkflowsController(IWorkflowsApiClient client) : ControllerBase
 {
-    private readonly IEcmApiClient _client = client;
+    private readonly IWorkflowsApiClient _client = client;
 
     [HttpPost("instances")]
     [ProducesResponseType(typeof(WorkflowInstanceDto), StatusCodes.Status202Accepted)]
