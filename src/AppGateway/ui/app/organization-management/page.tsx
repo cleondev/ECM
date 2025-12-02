@@ -15,6 +15,7 @@ import {
   Search,
   Shield,
   Tags,
+  Plus,
   UserCheck,
   Users,
   X,
@@ -57,22 +58,22 @@ const roleCatalog = [
   {
     key: "admin",
     name: "System Admin",
-    description: "Toàn quyền cấu hình hệ thống, vai trò và kiểm soát truy cập.",
+    description: "Full control over system configuration, roles, and access control.",
   },
   {
     key: "compliance",
     name: "Compliance Officer",
-    description: "Theo dõi, kiểm duyệt và kiểm tra các hoạt động liên quan tới dữ liệu nhạy cảm.",
+    description: "Monitor, moderate, and audit activities related to sensitive data.",
   },
   {
     key: "manager",
     name: "Department Manager",
-    description: "Quản trị nhóm/bộ phận, duyệt quyền truy cập và phân công nhiệm vụ.",
+    description: "Manage departments or groups, approve access, and assign work.",
   },
   {
     key: "member",
     name: "Standard User",
-    description: "Người dùng thông thường với quyền truy cập tài liệu được cấp.",
+    description: "Standard user with granted document access.",
   },
 ]
 
@@ -144,13 +145,13 @@ function TagTreeItem({
                     <Badge variant="secondary" className="text-[10px]">{tag.namespaceLabel}</Badge>
                   ) : null}
                   {isNamespace ? (
-                    <Badge variant="outline" className="text-[10px]">Phạm vi: {tagScope}</Badge>
+                    <Badge variant="outline" className="text-[10px]">Scope: {tagScope}</Badge>
                   ) : null}
                   {tag.isSystem ? <Badge className="text-[10px]">System</Badge> : null}
                 </div>
                 {!isNamespace ? (
                   <p className="text-xs text-muted-foreground truncate">
-                    Nằm trong {tag.namespaceLabel || "namespace mặc định"}
+                    Belongs to {tag.namespaceLabel || "default namespace"}
                   </p>
                 ) : null}
               </div>
@@ -175,10 +176,10 @@ function TagTreeItem({
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
         <ContextMenuItem inset disabled={isNamespace || !isManageableLabel} onSelect={() => onEditTag(tag)}>
-          <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
+          <Edit className="mr-2 h-4 w-4" /> Edit
         </ContextMenuItem>
         <ContextMenuItem inset disabled={!canAddChild} onSelect={() => onAddChildTag(tag)}>
-          <Tags className="mr-2 h-4 w-4" /> Thêm tag con
+          <Tags className="mr-2 h-4 w-4" /> Add child tag
         </ContextMenuItem>
         <ContextMenuItem
           inset
@@ -186,7 +187,7 @@ function TagTreeItem({
           className="text-destructive focus:text-destructive"
           onSelect={() => onDeleteTag(tag.id)}
         >
-          <FolderCog className="mr-2 h-4 w-4" /> Xóa tag
+          <FolderCog className="mr-2 h-4 w-4" /> Delete tag
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
@@ -297,7 +298,7 @@ export default function OrganizationManagementPage() {
       } catch (error) {
         console.error("[org-settings] Unable to load profile:", error)
         if (!active) return
-        setAuthorizationError("Không thể tải thông tin người dùng. Vui lòng thử lại.")
+        setAuthorizationError("Unable to load user details. Please try again.")
       } finally {
         if (active) {
           setIsAuthorizing(false)
@@ -581,7 +582,7 @@ export default function OrganizationManagementPage() {
   const handleAddTempUser = () => {
     const newUser: User = {
       id: `temp-user-${Date.now()}`,
-      displayName: "Người dùng mới",
+      displayName: "New user",
       email: "user@example.com",
       roles: ["member"],
       isActive: true,
@@ -594,8 +595,8 @@ export default function OrganizationManagementPage() {
   const handleAddTempGroup = () => {
     const newGroup: Group = {
       id: `temp-group-${Date.now()}`,
-      name: "Nhóm mới",
-      description: "Mô tả nhóm",
+      name: "New group",
+      description: "Group description",
     }
     setGroups((previous) => [newGroup, ...previous])
     startEditingGroup(newGroup)
@@ -605,7 +606,7 @@ export default function OrganizationManagementPage() {
     const newDocType: DocumentType = {
       id: `temp-doc-${Date.now()}`,
       typeKey: `doc-${documentTypes.length + 1}`,
-      typeName: "Loại tài liệu mới",
+      typeName: "New document type",
       isActive: true,
       createdAtUtc: new Date().toISOString(),
     }
@@ -617,8 +618,8 @@ export default function OrganizationManagementPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/40 text-muted-foreground">
         <div className="space-y-3 text-center">
-          <p className="text-lg font-semibold">Đang kiểm tra quyền truy cập…</p>
-          <p className="text-sm">Vui lòng chờ trong giây lát.</p>
+          <p className="text-lg font-semibold">Checking access…</p>
+          <p className="text-sm">Please wait a moment.</p>
         </div>
       </div>
     )
@@ -633,18 +634,18 @@ export default function OrganizationManagementPage() {
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-6 px-6 py-10 text-center">
         <Card>
           <CardHeader>
-            <CardTitle>Bạn không có quyền truy cập</CardTitle>
+            <CardTitle>You do not have access</CardTitle>
             <CardDescription>
-              Trang Organization Management chỉ dành cho tài khoản quản trị. Vui lòng liên hệ quản trị viên để được cấp quyền.
+              The Organization Management page is restricted to administrators. Please contact an admin to request access.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button asChild variant="outline">
-                <Link href="/app/">Quay lại trang chính</Link>
+                <Link href="/app/">Return to home</Link>
               </Button>
               <Button asChild>
-                <Link href="/settings">Cập nhật hồ sơ cá nhân</Link>
+                <Link href="/settings">Update profile</Link>
               </Button>
             </div>
           </CardContent>
@@ -658,18 +659,18 @@ export default function OrganizationManagementPage() {
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-sm uppercase tracking-[0.14em] text-muted-foreground">Quản lý tổ chức</p>
+            <p className="text-sm uppercase tracking-[0.14em] text-muted-foreground">Organization management</p>
             <h1 className="text-3xl font-bold">Organization Management</h1>
             <p className="text-sm text-muted-foreground">
-              Cấu hình phạm vi toàn tổ chức: tag/namespace, người dùng, nhóm và loại tài liệu.
+              Configure organization-wide tags/namespaces, users, groups, and document types.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
-              <Link href="/app/">Quay lại app</Link>
+              <Link href="/app/">Return to app</Link>
             </Button>
             <Button asChild>
-              <Link href="/settings">Cá nhân hóa tài khoản</Link>
+              <Link href="/settings">Personalize account</Link>
             </Button>
           </div>
         </div>
@@ -677,7 +678,7 @@ export default function OrganizationManagementPage() {
         {authorizationError ? (
           <Card className="mt-6 border-destructive/40 bg-destructive/5">
             <CardHeader>
-              <CardTitle className="text-destructive">Không thể tải thông tin</CardTitle>
+              <CardTitle className="text-destructive">Unable to load information</CardTitle>
               <CardDescription className="text-destructive">
                 {authorizationError}
               </CardDescription>
@@ -693,16 +694,16 @@ export default function OrganizationManagementPage() {
               <Tags className="mr-2 h-4 w-4" /> Tag & Namespace
             </TabsTrigger>
             <TabsTrigger value="users" className="text-sm">
-              <UserCheck className="mr-2 h-4 w-4" /> Người dùng
+              <UserCheck className="mr-2 h-4 w-4" /> Users
             </TabsTrigger>
             <TabsTrigger value="roles" className="text-sm">
               <Shield className="mr-2 h-4 w-4" /> Roles
             </TabsTrigger>
             <TabsTrigger value="groups" className="text-sm">
-              <Users className="mr-2 h-4 w-4" /> Nhóm
+              <Users className="mr-2 h-4 w-4" /> Groups
             </TabsTrigger>
             <TabsTrigger value="doc-types" className="text-sm">
-              <FolderCog className="mr-2 h-4 w-4" /> Loại tài liệu
+              <FolderCog className="mr-2 h-4 w-4" /> Document types
             </TabsTrigger>
           </TabsList>
 
@@ -710,34 +711,30 @@ export default function OrganizationManagementPage() {
             <Card>
               <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
-                  <CardTitle>Quản trị tag & namespace</CardTitle>
+                  <CardTitle>Tag & namespace management</CardTitle>
                   <CardDescription>
-                    Cây tag/namespace tương tự thanh bên trái nhưng hiển thị đầy đủ tag group/global để bạn quản lý tập trung.
+                    The tag/namespace tree mirrors the left sidebar but shows all group/global tags for centralized management.
                   </CardDescription>
                   <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline">Tổng số node: {tags.length}</Badge>
+                    <Badge variant="outline">Total nodes: {tags.length}</Badge>
                     <Badge variant="secondary">Namespaces: {namespaceNodes.length}</Badge>
                     <Badge variant="outline">
-                      Tag group/global: {tags.filter((tag) => (tag.namespaceScope ?? "") !== "user").length}
+                      Group/global tags: {tags.filter((tag) => (tag.namespaceScope ?? "") !== "user").length}
                     </Badge>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={reloadTags} disabled={isLoadingTags}>
-                    <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới cây tag
+                    <RefreshCcw className="mr-2 h-4 w-4" /> Refresh tag tree
                   </Button>
                   <Button size="sm" onClick={handleCreateNewTag} disabled={isLoadingTags}>
-                    <Plus className="mr-2 h-4 w-4" /> Thêm tag mới
+                    <Plus className="mr-2 h-4 w-4" /> Add tag
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <Badge variant="secondary">Hỗ trợ chỉnh sửa cả namespace group & global</Badge>
-                  <Badge variant="outline">Nhấp chuột phải hoặc nút menu để chỉnh sửa/xóa</Badge>
-                </div>
                 {isLoadingTags ? (
-                  <p className="text-sm text-muted-foreground">Đang tải cây tag…</p>
+                  <p className="text-sm text-muted-foreground">Loading tag tree…</p>
                 ) : namespaceNodes.length ? (
                   <ScrollArea className="max-h-[540px] rounded-lg border bg-muted/20">
                     <div className="space-y-2 p-3">
@@ -753,7 +750,7 @@ export default function OrganizationManagementPage() {
                     </div>
                   </ScrollArea>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Chưa có tag hoặc namespace nào được cấu hình.</p>
+                  <p className="text-sm text-muted-foreground">No tags or namespaces have been configured.</p>
                 )}
               </CardContent>
             </Card>
@@ -770,16 +767,16 @@ export default function OrganizationManagementPage() {
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Quản trị người dùng</CardTitle>
+                <CardTitle>User management</CardTitle>
                 <CardDescription>
-                  Kiểm soát tài khoản, vai trò và bảo mật đăng nhập cho toàn bộ tổ chức.
+                  Manage accounts, roles, and sign-in security across the organization.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline">Tổng: {users.length}</Badge>
-                    <Badge variant="secondary">Đang hoạt động: {activeUsers}</Badge>
+                    <Badge variant="outline">Total: {users.length}</Badge>
+                    <Badge variant="secondary">Active: {activeUsers}</Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="relative w-56">
@@ -787,15 +784,15 @@ export default function OrganizationManagementPage() {
                       <Input
                         value={userSearch}
                         onChange={(event) => setUserSearch(event.target.value)}
-                        placeholder="Tìm theo tên, email, role"
+                        placeholder="Search by name, email, or role"
                         className="pl-8"
                       />
                     </div>
                     <Button variant="outline" size="sm" onClick={reloadUsers} disabled={isLoadingUsers}>
-                      <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
                     </Button>
                     <Button size="sm" onClick={handleAddTempUser}>
-                      <Plus className="mr-2 h-4 w-4" /> Thêm user
+                      <Plus className="mr-2 h-4 w-4" /> Add user
                     </Button>
                   </div>
                 </div>
@@ -804,25 +801,25 @@ export default function OrganizationManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Tên hiển thị</TableHead>
+                        <TableHead>Display name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Roles</TableHead>
-                        <TableHead>Trạng thái</TableHead>
-                        <TableHead>Ngày tạo</TableHead>
-                        <TableHead className="text-right">Thao tác</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoadingUsers ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
-                            Đang tải danh sách người dùng…
+                            Loading users…
                           </TableCell>
                         </TableRow>
                       ) : filteredUsers.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
-                            Không tìm thấy người dùng nào phù hợp.
+                            No matching users found.
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -883,13 +880,13 @@ export default function OrganizationManagementPage() {
                                     onCheckedChange={(checked) => updateUserDraft(item.id, { isActive: checked })}
                                   />
                                   <span className="text-xs text-muted-foreground">
-                                    {draft.isActive === false ? "Tạm khóa" : "Đang hoạt động"}
+                                    {draft.isActive === false ? "Suspended" : "Active"}
                                   </span>
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
                                 {draft.createdAtUtc
-                                  ? new Date(draft.createdAtUtc).toLocaleDateString("vi-VN")
+                                  ? new Date(draft.createdAtUtc).toLocaleDateString("en-US")
                                   : "--"}
                               </TableCell>
                               <TableCell className="text-right">
@@ -897,15 +894,15 @@ export default function OrganizationManagementPage() {
                                   {isEditing ? (
                                     <>
                                       <Button size="sm" variant="secondary" onClick={() => saveUserInline(item.id)}>
-                                        <Save className="mr-2 h-4 w-4" /> Lưu
+                                        <Save className="mr-2 h-4 w-4" /> Save
                                       </Button>
                                       <Button size="sm" variant="ghost" onClick={() => cancelUserInline(item.id)}>
-                                        <X className="mr-2 h-4 w-4" /> Hủy
+                                        <X className="mr-2 h-4 w-4" /> Cancel
                                       </Button>
                                     </>
                                   ) : (
                                     <Button size="sm" variant="ghost" onClick={() => startEditingUser(item)}>
-                                      <Pencil className="mr-2 h-4 w-4" /> Sửa nhanh
+                                      <Pencil className="mr-2 h-4 w-4" /> Quick edit
                                     </Button>
                                   )}
                                 </div>
@@ -915,7 +912,6 @@ export default function OrganizationManagementPage() {
                         })
                       )}
                     </TableBody>
-                    <TableCaption>Action bar phía trên hỗ trợ tìm kiếm, thêm mới và refresh danh sách.</TableCaption>
                   </Table>
                 </div>
               </CardContent>
@@ -925,22 +921,22 @@ export default function OrganizationManagementPage() {
           <TabsContent value="roles" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Danh sách role</CardTitle>
+                <CardTitle>Role directory</CardTitle>
                 <CardDescription>
-                  Tổng hợp role chuẩn cùng số lượng thành viên đang sở hữu, hỗ trợ chỉnh sửa mô tả inline.
+                  Standard role catalog with member counts and inline description editing.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline">Tổng role: {filteredRoles.length}</Badge>
+                    <Badge variant="outline">Total roles: {filteredRoles.length}</Badge>
                   </div>
                   <div className="relative w-56">
                     <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       value={roleSearch}
                       onChange={(event) => setRoleSearch(event.target.value)}
-                      placeholder="Lọc theo tên, mô tả"
+                      placeholder="Filter by name or description"
                       className="pl-8"
                     />
                   </div>
@@ -949,10 +945,10 @@ export default function OrganizationManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Tên role</TableHead>
-                        <TableHead>Mô tả</TableHead>
-                        <TableHead>Số thành viên</TableHead>
-                        <TableHead className="text-right">Thao tác</TableHead>
+                        <TableHead>Role name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Members</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -993,21 +989,21 @@ export default function OrganizationManagementPage() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <Badge variant="secondary">{role.memberCount} thành viên</Badge>
+                              <Badge variant="secondary">{role.memberCount} members</Badge>
                             </TableCell>
                             <TableCell className="text-right">
                               {isEditing ? (
                                 <div className="flex justify-end gap-2">
                                   <Button size="sm" variant="secondary" onClick={() => saveRoleInline(role.key)}>
-                                    <Check className="mr-2 h-4 w-4" /> Lưu
+                                    <Check className="mr-2 h-4 w-4" /> Save
                                   </Button>
                                   <Button size="sm" variant="ghost" onClick={() => cancelRoleInline(role.key)}>
-                                    <X className="mr-2 h-4 w-4" /> Hủy
+                                    <X className="mr-2 h-4 w-4" /> Cancel
                                   </Button>
                                 </div>
                               ) : (
                                 <Button size="sm" variant="ghost" onClick={() => startEditingRole(role.key)}>
-                                  <Pencil className="mr-2 h-4 w-4" /> Sửa mô tả
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit description
                                 </Button>
                               )}
                             </TableCell>
@@ -1015,7 +1011,6 @@ export default function OrganizationManagementPage() {
                         )
                       })}
                     </TableBody>
-                    <TableCaption>Bảng roles hỗ trợ chỉnh sửa inline để đồng bộ mô tả và tên hiển thị.</TableCaption>
                   </Table>
                 </div>
               </CardContent>
@@ -1025,16 +1020,16 @@ export default function OrganizationManagementPage() {
           <TabsContent value="groups" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Quản trị nhóm</CardTitle>
+                <CardTitle>Group management</CardTitle>
                 <CardDescription>
-                  Thiết lập nhóm chức năng/dự án, quyền kế thừa và đồng bộ thành viên để áp dụng phân quyền tập trung.
+                  Configure functional or project groups, inheritance, and membership for centralized access control.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline">Tổng nhóm: {groups.length}</Badge>
-                    <Badge variant="secondary">Đang xem: {filteredGroups.length}</Badge>
+                    <Badge variant="outline">Total groups: {groups.length}</Badge>
+                    <Badge variant="secondary">Showing: {filteredGroups.length}</Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="relative w-56">
@@ -1042,15 +1037,15 @@ export default function OrganizationManagementPage() {
                       <Input
                         value={groupSearch}
                         onChange={(event) => setGroupSearch(event.target.value)}
-                        placeholder="Tìm theo tên nhóm"
+                        placeholder="Search by group name"
                         className="pl-8"
                       />
                     </div>
                     <Button variant="outline" size="sm" onClick={reloadGroups} disabled={isLoadingGroups}>
-                      <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
                     </Button>
                     <Button size="sm" onClick={handleAddTempGroup}>
-                      <Plus className="mr-2 h-4 w-4" /> Thêm nhóm
+                      <Plus className="mr-2 h-4 w-4" /> Add group
                     </Button>
                   </div>
                 </div>
@@ -1059,22 +1054,22 @@ export default function OrganizationManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Tên nhóm</TableHead>
-                        <TableHead>Mô tả</TableHead>
-                        <TableHead className="text-right">Thao tác</TableHead>
+                        <TableHead>Group name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoadingGroups ? (
                         <TableRow>
                           <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
-                            Đang tải danh sách nhóm…
+                            Loading groups…
                           </TableCell>
                         </TableRow>
                       ) : filteredGroups.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
-                            Không có nhóm nào thỏa điều kiện lọc.
+                            No groups match the current filter.
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1099,25 +1094,25 @@ export default function OrganizationManagementPage() {
                                   <Input
                                     value={draft.description ?? ""}
                                     onChange={(event) => updateGroupDraft(group.id, { description: event.target.value })}
-                                    placeholder="Thêm mô tả"
+                                    placeholder="Add description"
                                   />
                                 ) : (
-                                  <span className="text-sm text-muted-foreground">{draft.description || "Chưa có mô tả"}</span>
+                                  <span className="text-sm text-muted-foreground">{draft.description || "No description"}</span>
                                 )}
                               </TableCell>
                               <TableCell className="text-right">
                                 {isEditing ? (
                                   <div className="flex justify-end gap-2">
                                     <Button size="sm" variant="secondary" onClick={() => saveGroupInline(group.id)}>
-                                      <Save className="mr-2 h-4 w-4" /> Lưu
+                                      <Save className="mr-2 h-4 w-4" /> Save
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => cancelGroupInline(group.id)}>
-                                      <X className="mr-2 h-4 w-4" /> Hủy
+                                      <X className="mr-2 h-4 w-4" /> Cancel
                                     </Button>
                                   </div>
                                 ) : (
                                   <Button size="sm" variant="ghost" onClick={() => startEditingGroup(group)}>
-                                    <Pencil className="mr-2 h-4 w-4" /> Sửa inline
+                                    <Pencil className="mr-2 h-4 w-4" /> Inline edit
                                   </Button>
                                 )}
                               </TableCell>
@@ -1126,7 +1121,6 @@ export default function OrganizationManagementPage() {
                         })
                       )}
                     </TableBody>
-                    <TableCaption>Chỉnh sửa trực tiếp để cập nhật tên nhóm và mô tả.</TableCaption>
                   </Table>
                 </div>
               </CardContent>
@@ -1136,17 +1130,17 @@ export default function OrganizationManagementPage() {
           <TabsContent value="doc-types" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Danh sách loại tài liệu</CardTitle>
+                <CardTitle>Document types</CardTitle>
                 <CardDescription>
-                  Bổ sung danh sách loại tài liệu đang được kích hoạt để tiện rà soát và chuẩn hóa metadata.
+                  List active document types for quick review and metadata standardization.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline">Tổng loại: {documentTypes.length}</Badge>
+                    <Badge variant="outline">Total types: {documentTypes.length}</Badge>
                     <Badge variant="secondary">
-                      Đang hoạt động: {documentTypes.filter((doc) => doc.isActive).length}
+                      Active: {documentTypes.filter((doc) => doc.isActive).length}
                     </Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -1155,15 +1149,15 @@ export default function OrganizationManagementPage() {
                       <Input
                         value={docTypeSearch}
                         onChange={(event) => setDocTypeSearch(event.target.value)}
-                        placeholder="Tìm theo tên hoặc key"
+                        placeholder="Search by name or key"
                         className="pl-8"
                       />
                     </div>
                     <Button variant="outline" size="sm" onClick={reloadDocumentTypes} disabled={isLoadingDocumentTypes}>
-                      <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
                     </Button>
                     <Button size="sm" onClick={handleAddTempDocType}>
-                      <Plus className="mr-2 h-4 w-4" /> Thêm loại
+                      <Plus className="mr-2 h-4 w-4" /> Add type
                     </Button>
                   </div>
                 </div>
@@ -1172,24 +1166,24 @@ export default function OrganizationManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Tên loại</TableHead>
+                        <TableHead>Type name</TableHead>
                         <TableHead>Key</TableHead>
-                        <TableHead>Trạng thái</TableHead>
-                        <TableHead>Ngày tạo</TableHead>
-                        <TableHead className="text-right">Thao tác</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoadingDocumentTypes ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                            Đang tải loại tài liệu…
+                            Loading document types…
                           </TableCell>
                         </TableRow>
                       ) : filteredDocumentTypes.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                            Không có loại tài liệu nào.
+                            No document types available.
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1220,12 +1214,12 @@ export default function OrganizationManagementPage() {
                                     onCheckedChange={(checked) => updateDocTypeDraft(docType.id, { isActive: checked })}
                                   />
                                   <span className="text-xs text-muted-foreground">
-                                    {draft.isActive ? "Đang dùng" : "Không hoạt động"}
+                                    {draft.isActive ? "Active" : "Inactive"}
                                   </span>
                                 </div>
                               </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
-                                {new Date(draft.createdAtUtc).toLocaleDateString("vi-VN", {
+                                {new Date(draft.createdAtUtc).toLocaleDateString("en-US", {
                                   year: "numeric",
                                   month: "short",
                                   day: "numeric",
@@ -1235,15 +1229,15 @@ export default function OrganizationManagementPage() {
                                 {isEditing ? (
                                   <div className="flex justify-end gap-2">
                                     <Button size="sm" variant="secondary" onClick={() => saveDocTypeInline(docType.id)}>
-                                      <Check className="mr-2 h-4 w-4" /> Lưu
+                                      <Check className="mr-2 h-4 w-4" /> Save
                                     </Button>
                                     <Button size="sm" variant="ghost" onClick={() => cancelDocTypeInline(docType.id)}>
-                                      <X className="mr-2 h-4 w-4" /> Hủy
+                                      <X className="mr-2 h-4 w-4" /> Cancel
                                     </Button>
                                   </div>
                                 ) : (
                                   <Button size="sm" variant="ghost" onClick={() => startEditingDocType(docType)}>
-                                    <Pencil className="mr-2 h-4 w-4" /> Sửa inline
+                                    <Pencil className="mr-2 h-4 w-4" /> Inline edit
                                   </Button>
                                 )}
                               </TableCell>
@@ -1252,7 +1246,6 @@ export default function OrganizationManagementPage() {
                         })
                       )}
                     </TableBody>
-                    <TableCaption>Bảng loại tài liệu được hiển thị dưới dạng data grid với hỗ trợ chỉnh sửa nhanh.</TableCaption>
                   </Table>
                 </div>
               </CardContent>
