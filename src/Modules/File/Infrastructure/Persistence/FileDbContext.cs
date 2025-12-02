@@ -10,12 +10,6 @@ public sealed class FileDbContext(DbContextOptions<FileDbContext> options) : DbC
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
-    public DbSet<ShareLinkEntity> ShareLinks => Set<ShareLinkEntity>();
-
-    public DbSet<ShareAccessEventEntity> ShareAccessEvents => Set<ShareAccessEventEntity>();
-
-    public DbSet<ShareStatisticsView> ShareStatistics => Set<ShareStatisticsView>();
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("file");

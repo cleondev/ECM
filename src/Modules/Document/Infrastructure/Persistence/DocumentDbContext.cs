@@ -4,6 +4,7 @@ using ECM.Document.Domain.Files;
 using ECM.Document.Domain.Signatures;
 using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
+using ECM.Document.Infrastructure.Persistence.Models;
 using ECM.Operations.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
@@ -36,6 +37,12 @@ public sealed class DocumentDbContext(DbContextOptions<DocumentDbContext> option
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public DbSet<EffectiveAclFlatEntry> EffectiveAclEntries => Set<EffectiveAclFlatEntry>();
+
+    public DbSet<ShareLinkEntity> ShareLinks => Set<ShareLinkEntity>();
+
+    public DbSet<ShareAccessEventEntity> ShareAccessEvents => Set<ShareAccessEventEntity>();
+
+    public DbSet<ShareStatisticsView> ShareStatistics => Set<ShareStatisticsView>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

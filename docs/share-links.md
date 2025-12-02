@@ -4,7 +4,7 @@ This document outlines the high level architecture for the secure short link sha
 
 ## Database Objects
 
-The PostgreSQL migration defined in `database/07_share.sql` introduces the `file.share_link` table for share metadata, `file.share_access_event` for auditing, and the `file.share_stats` materialized view for aggregated statistics. The schema follows the requirements in the product specification, including validity windows, quotas, password hashing storage, and IP allow lists.
+The PostgreSQL migration defined in `database/07_share.sql` introduces the `file.share_link` table for share metadata, `file.share_access_event` for auditing, and the `file.share_stats` materialized view for aggregated statistics. The schema follows the requirements in the product specification, including validity windows, quotas, password hashing storage, and IP allow lists. These objects are now managed by the Document module (while still using the `file` schema) so that link sharing is aligned with document ownership and lifecycle rules.
 
 ## Short Code Generation
 

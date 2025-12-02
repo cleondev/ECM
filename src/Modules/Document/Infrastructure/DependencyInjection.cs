@@ -4,12 +4,14 @@ using ECM.BuildingBlocks.Infrastructure.Time;
 using ECM.Document.Application.Documents.AccessControl;
 using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.Shares;
 using ECM.Document.Application.Tags.Repositories;
 using ECM.Document.Infrastructure.AccessControl;
 using ECM.Document.Infrastructure.Documents;
 using ECM.Document.Infrastructure.Documents.Queries;
 using ECM.Document.Infrastructure.Tags;
 using ECM.Document.Infrastructure.Persistence;
+using ECM.Document.Infrastructure.Shares;
 using EFCore.NamingConventions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +25,10 @@ public static class DocumentInfrastructureModuleExtensions
     public static IServiceCollection AddDocumentInfrastructure(this IServiceCollection services)
     {
         services.AddSingleton<ISystemClock, SystemClock>();
+
+        services.AddOptions<ShareLinkOptions>()
+            .BindConfiguration(ShareLinkOptions.SectionName)
+            .ValidateOnStart();
 
         services.AddDbContext<DocumentDbContext>((serviceProvider, options) =>
         {
@@ -40,6 +46,8 @@ public static class DocumentInfrastructureModuleExtensions
         services.AddScoped<ITagLabelRepository, TagLabelRepository>();
         services.AddScoped<ITagNamespaceRepository, TagNamespaceRepository>();
         services.AddScoped<IEffectiveAclFlatWriter, EffectiveAclFlatWriter>();
+        services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
+        services.AddSingleton<ISharePasswordHasher, Argon2SharePasswordHasher>();
 
         return services;
     }
