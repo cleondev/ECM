@@ -95,6 +95,7 @@ public static class GatewayEndpointConfiguration
         MapExportedRouteFallback(app, "/s", "s/index.html");
         MapExportedRouteFallback(app, "/settings", "settings/index.html");
         MapExportedRouteFallback(app, "/viewer", "viewer/index.html");
+        MapExportedRouteFallback(app, "/organization-management", "organization-management/index.html");
         MapExportedRouteFallback(app, Program.UiRequestPath, "index.html");
         app.MapFallbackToFile("index.html").AllowAnonymous();
     }
