@@ -1,15 +1,9 @@
+using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
 
 using AppGateway.Api.Controllers.IAM;
-using AppGateway.Contracts.Documents;
-using AppGateway.Contracts.IAM.Groups;
-using AppGateway.Contracts.IAM.Relations;
-using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
-using AppGateway.Contracts.Signatures;
-using AppGateway.Contracts.Tags;
-using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
 
@@ -75,37 +69,37 @@ public class IamUserProfileControllerTests
 
     private sealed class TrackingEcmApiClient(UserSummaryDto profile) : IUsersApiClient
     {
-        public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken)
-            => Task.FromResult<IReadOnlyCollection<UserSummaryDto>>(Array.Empty<UserSummaryDto>());
+        public Task<IReadOnlyCollection<UserSummaryDto>> GetUsersAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyCollection<UserSummaryDto>>([]);
 
-        public Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(null);
 
-        public Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(null);
 
-        public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> GetCurrentUserProfileAsync(CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(profile);
 
-        public Task<UserSummaryDto?> AuthenticateUserAsync(AuthenticateUserRequestDto requestDto, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> AuthenticateUserAsync(AuthenticateUserRequestDto requestDto, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(null);
 
-        public Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> CreateUserAsync(CreateUserRequestDto requestDto, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(null);
 
-        public Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto requestDto, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> UpdateUserAsync(Guid userId, UpdateUserRequestDto requestDto, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(null);
 
-        public Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto requestDto, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> UpdateCurrentUserProfileAsync(UpdateUserProfileRequestDto requestDto, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(profile);
 
-        public Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto requestDto, CancellationToken cancellationToken)
+        public Task<PasswordUpdateResult> UpdateCurrentUserPasswordAsync(UpdateUserPasswordRequestDto requestDto, CancellationToken cancellationToken = default)
             => Task.FromResult(new PasswordUpdateResult(HttpStatusCode.NoContent));
 
-        public Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(null);
 
-        public Task<UserSummaryDto?> RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken)
+        public Task<UserSummaryDto?> RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default)
             => Task.FromResult<UserSummaryDto?>(null);
     }
 }
