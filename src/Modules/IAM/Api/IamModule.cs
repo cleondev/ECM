@@ -1,6 +1,7 @@
 using ECM.Abstractions;
 using ECM.Abstractions.Users;
 using ECM.IAM.Api.Auth;
+using ECM.IAM.Api.Groups;
 using ECM.IAM.Api.Relations;
 using ECM.IAM.Api.Roles;
 using ECM.IAM.Api.Users;
@@ -31,6 +32,7 @@ public sealed class IamModule : IModule
         endpoints.MapUserProfileEndpoints();
         endpoints.MapAuthenticationEndpoints();
         endpoints.MapRoleEndpoints();
+        endpoints.MapGroupEndpoints();
         endpoints.MapRelationEndpoints();
     }
 }

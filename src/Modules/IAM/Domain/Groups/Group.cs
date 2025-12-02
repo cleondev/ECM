@@ -106,4 +106,9 @@ public sealed class Group
 
         ParentGroupId = parentGroupId;
     }
+
+    public void SetKind(GroupKind kind)
+    {
+        Kind = kind;
+    }
 }

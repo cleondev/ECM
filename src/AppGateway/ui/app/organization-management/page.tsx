@@ -32,7 +32,7 @@ import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import type { DocumentType, Group, TagNode, TagUpdateData, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-const ORG_MANAGEMENT_ROUTE = "/app/organization-management/"
+const ORG_MANAGEMENT_ROUTE = "/organization-management/"
 
 const groupGovernancePlaybooks = [
   {
