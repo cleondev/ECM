@@ -184,7 +184,7 @@ export function TagManagementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
@@ -254,8 +254,8 @@ export function TagManagementDialog({
 
           <div className="space-y-2">
             <Label>Icon (Optional)</Label>
-            <ScrollArea className="max-h-48 rounded-md border border-border/60 p-2">
-              <div className="grid grid-cols-8 gap-1">
+            <ScrollArea className="max-h-60 w-full rounded-md border border-border/60 p-2">
+              <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-8 md:grid-cols-10">
                 <button
                   type="button"
                   onClick={() => setTagIcon(NO_ICON_VALUE)}
@@ -274,7 +274,7 @@ export function TagManagementDialog({
                     key={icon}
                     onClick={() => setTagIcon(icon)}
                     className={cn(
-                      "aspect-square rounded border flex items-center justify-center transition-colors",
+                      "aspect-square rounded border flex items-center justify-center text-lg leading-none transition-colors",
                       tagIcon === icon ? "border-foreground bg-accent scale-110" : "border-border hover:bg-accent/50",
                     )}
                   >
