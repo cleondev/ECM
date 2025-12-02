@@ -639,9 +639,9 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
             </DropdownMenuItem>
             {isAdmin && (
               <DropdownMenuItem asChild>
-                <a href="/settings/organization" className="cursor-pointer">
+                <a href="/organization-management" className="cursor-pointer">
                   <ShieldCheck className="mr-2 h-4 w-4" />
-                  Organization Settings
+                  Organization Management
                 </a>
               </DropdownMenuItem>
             )}
