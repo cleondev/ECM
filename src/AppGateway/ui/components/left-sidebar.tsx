@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ChevronDown,
   Tag,
+  ShieldCheck,
   MoreVertical,
   Plus,
   Edit,
@@ -309,6 +310,11 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     () =>
       tagTree.some((node) => node.kind === "namespace" && (node.namespaceScope ?? "user") === "user"),
     [tagTree],
+  )
+
+  const isAdmin = useMemo(
+    () => (user?.roles ?? []).some((role) => role?.toLowerCase().includes("admin")),
+    [user?.roles],
   )
 
   useEffect(() => {
@@ -631,6 +637,14 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
                 Profile
               </a>
             </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <a href="/organization-management" className="cursor-pointer">
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Organization Management
+                </a>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
               <a href="/settings" className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
