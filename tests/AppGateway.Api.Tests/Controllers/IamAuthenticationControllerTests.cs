@@ -5,6 +5,7 @@ using AppGateway.Api;
 using AppGateway.Api.Auth;
 using AppGateway.Api.Controllers.IAM;
 using AppGateway.Contracts.Documents;
+using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Relations;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
@@ -414,6 +415,26 @@ public class IamAuthenticationControllerTests
         }
 
         public Task<DocumentFileContent?> DownloadDocumentVersionAsync(Guid versionId, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyCollection<GroupSummaryDto>> GetGroupsAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<GroupSummaryDto?> CreateGroupAsync(CreateGroupRequestDto requestDto, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<GroupSummaryDto?> UpdateGroupAsync(Guid groupId, UpdateGroupRequestDto requestDto, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> DeleteGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
