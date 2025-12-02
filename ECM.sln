@@ -125,13 +125,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{84
 		database\01_iam.sql = database\01_iam.sql
 		database\02_doc.sql = database\02_doc.sql
 		database\03_wf.sql = database\03_wf.sql
-		database\04_search.sql = database\04_search.sql
-		database\05_ocr.sql = database\05_ocr.sql
-		database\06_ops.sql = database\06_ops.sql
-		database\07_share.sql = database\07_share.sql
-		database\08_webhook.sql = database\08_webhook.sql
-		database\10_init_data.sql = database\10_init_data.sql
-	EndProjectSection
+                database\04_search.sql = database\04_search.sql
+                database\05_ocr.sql = database\05_ocr.sql
+                database\06_ops.sql = database\06_ops.sql
+                database\07_webhook.sql = database\07_webhook.sql
+                database\08_init_data.sql = database\08_init_data.sql
+        EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{25120829-807A-4422-828D-47E3DFD7E61E}"
 EndProject
