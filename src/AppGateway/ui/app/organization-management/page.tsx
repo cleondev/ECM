@@ -2,7 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ChevronDown, ChevronRight, Edit, FolderCog, MoreVertical, Shield, Tags, UserCheck, UserCog, Users } from "lucide-react"
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  FolderCog,
+  MoreVertical,
+  Pencil,
+  RefreshCcw,
+  Save,
+  Search,
+  Shield,
+  Tags,
+  UserCheck,
+  Users,
+  X,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +26,9 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Switch } from "@/components/ui/switch"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -33,36 +52,6 @@ import type { DocumentType, Group, TagNode, TagUpdateData, User } from "@/lib/ty
 import { cn } from "@/lib/utils"
 
 const ORG_MANAGEMENT_ROUTE = "/organization-management/"
-
-const groupGovernancePlaybooks = [
-  {
-    title: "Cấu trúc nhóm",
-    description: "Tạo nhóm chức năng, dự án hoặc chuyên môn để phân quyền nhanh chóng thay vì cấu hình lẻ tẻ.",
-  },
-  {
-    title: "Kế thừa quyền",
-    description: "Thiết lập quan hệ cha-con giữa các nhóm để quyền truy cập được kế thừa nhất quán.",
-  },
-  {
-    title: "Đồng bộ danh bạ",
-    description: "Kết nối hệ thống nhân sự/directory để tự động cập nhật thành viên và vai trò nhóm.",
-  },
-]
-
-const documentTypePolicies = [
-  {
-    title: "Danh mục loại tài liệu",
-    description: "Chuẩn hóa danh sách loại hồ sơ, tài liệu nghiệp vụ và biểu mẫu sử dụng trong toàn hệ thống.",
-  },
-  {
-    title: "Mẫu metadata",
-    description: "Định nghĩa trường bắt buộc, nhãn, và validation cho từng loại tài liệu để tránh nhập thiếu.",
-  },
-  {
-    title: "Vòng đời & lưu trữ",
-    description: "Thiết lập thời gian lưu trữ, nhắc gia hạn và quy tắc hủy cho từng loại tài liệu quan trọng.",
-  },
-]
 
 const roleCatalog = [
   {
@@ -113,9 +102,8 @@ function TagTreeItem({
   const hasChildren = Boolean(tag.children?.length)
   const isNamespace = tag.kind === "namespace"
   const tagScope = tag.namespaceScope ?? "user"
-  const isReadOnlyScope = tagScope === "group" || tagScope === "global"
-  const isManageableLabel = tag.kind === "label" && !tag.isSystem && !isReadOnlyScope
-  const canAddChild = (isNamespace && !isReadOnlyScope) || isManageableLabel
+  const isManageableLabel = tag.kind === "label" && !tag.isSystem
+  const canAddChild = (isNamespace && !tag.isSystem) || isManageableLabel
   const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
   const indicatorStyle = tag.color ? { backgroundColor: tag.color, borderColor: tag.color } : undefined
 
@@ -224,16 +212,73 @@ export default function OrganizationManagementPage() {
   const [isLoadingGroups, setIsLoadingGroups] = useState(false)
   const [isLoadingDocumentTypes, setIsLoadingDocumentTypes] = useState(false)
 
+  const [userSearch, setUserSearch] = useState("")
+  const [groupSearch, setGroupSearch] = useState("")
+  const [docTypeSearch, setDocTypeSearch] = useState("")
+  const [roleSearch, setRoleSearch] = useState("")
+
+  const [editingUserId, setEditingUserId] = useState<string | null>(null)
+  const [userDrafts, setUserDrafts] = useState<Record<string, Partial<User>>>({})
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [groupDrafts, setGroupDrafts] = useState<Record<string, Partial<Group>>>({})
+  const [editingDocTypeId, setEditingDocTypeId] = useState<string | null>(null)
+  const [docTypeDrafts, setDocTypeDrafts] = useState<Record<string, Partial<DocumentType>>>({})
+  const [editingRoleKey, setEditingRoleKey] = useState<string | null>(null)
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, { name?: string; description?: string }>>({})
+
   const isAdmin = useMemo(() => isAdminUser(user), [user])
   const activeUsers = useMemo(() => users.filter((item) => item.isActive ?? true).length, [users])
   const roleAssignments = useMemo(
     () =>
       roleCatalog.map((role) => ({
         ...role,
+        name: roleDrafts[role.key]?.name ?? role.name,
+        description: roleDrafts[role.key]?.description ?? role.description,
         memberCount: users.filter((u) => u.roles.some((assigned) => assigned.toLowerCase().includes(role.key))).length,
       })),
-    [users],
+    [roleDrafts, users],
   )
+
+  const namespaceNodes = useMemo(() => tags.filter((tag) => tag.kind === "namespace"), [tags])
+  const filteredUsers = useMemo(() => {
+    const query = userSearch.trim().toLowerCase()
+    if (!query) return users
+
+    return users.filter(
+      (item) =>
+        item.displayName.toLowerCase().includes(query) ||
+        item.email.toLowerCase().includes(query) ||
+        item.roles.some((role) => role.toLowerCase().includes(query)),
+    )
+  }, [userSearch, users])
+
+  const filteredGroups = useMemo(() => {
+    const query = groupSearch.trim().toLowerCase()
+    if (!query) return groups
+
+    return groups.filter((group) => group.name.toLowerCase().includes(query) || (group.description ?? "").toLowerCase().includes(query))
+  }, [groupSearch, groups])
+
+  const filteredDocumentTypes = useMemo(() => {
+    const query = docTypeSearch.trim().toLowerCase()
+    if (!query) return documentTypes
+
+    return documentTypes.filter(
+      (docType) =>
+        docType.typeName.toLowerCase().includes(query) ||
+        docType.typeKey.toLowerCase().includes(query) ||
+        (docType.isActive ? "active" : "inactive").includes(query),
+    )
+  }, [docTypeSearch, documentTypes])
+
+  const filteredRoles = useMemo(() => {
+    const query = roleSearch.trim().toLowerCase()
+    if (!query) return roleAssignments
+
+    return roleAssignments.filter(
+      (role) => role.name.toLowerCase().includes(query) || (role.description ?? "").toLowerCase().includes(query),
+    )
+  }, [roleAssignments, roleSearch])
 
   useEffect(() => {
     let active = true
@@ -360,6 +405,21 @@ export default function OrganizationManagementPage() {
     setTags(data)
   }
 
+  const reloadUsers = async () => {
+    const data = await fetchUsers()
+    setUsers(data)
+  }
+
+  const reloadGroups = async () => {
+    const data = await fetchGroups()
+    setGroups(data)
+  }
+
+  const reloadDocumentTypes = async () => {
+    const data = await fetchDocumentTypes()
+    setDocumentTypes(data)
+  }
+
   const handleEditTag = (tag: TagNode) => {
     setEditingTag(tag)
     setParentTag(null)
@@ -415,6 +475,142 @@ export default function OrganizationManagementPage() {
       await createTag(data, namespaceNode)
     }
     await reloadTags()
+  }
+
+  const updateUserDraft = (userId: string, data: Partial<User>) =>
+    setUserDrafts((previous) => ({ ...previous, [userId]: { ...(previous[userId] ?? users.find((u) => u.id === userId)), ...data } }))
+
+  const updateGroupDraft = (groupId: string, data: Partial<Group>) =>
+    setGroupDrafts((previous) => ({ ...previous, [groupId]: { ...(previous[groupId] ?? groups.find((group) => group.id === groupId)), ...data } }))
+
+  const updateDocTypeDraft = (docTypeId: string, data: Partial<DocumentType>) =>
+    setDocTypeDrafts((previous) => ({
+      ...previous,
+      [docTypeId]: { ...(previous[docTypeId] ?? documentTypes.find((docType) => docType.id === docTypeId)), ...data },
+    }))
+
+  const startEditingUser = (user: User) => {
+    setEditingUserId(user.id)
+    setUserDrafts((previous) => ({ ...previous, [user.id]: { ...user } }))
+  }
+
+  const saveUserInline = (userId: string) => {
+    const draft = userDrafts[userId]
+    if (!draft) return
+
+    setUsers((previous) => previous.map((user) => (user.id === userId ? { ...user, ...draft } : user)))
+    setEditingUserId(null)
+  }
+
+  const cancelUserInline = (userId: string) => {
+    setEditingUserId(null)
+    setUserDrafts((previous) => {
+      const next = { ...previous }
+      delete next[userId]
+      return next
+    })
+  }
+
+  const startEditingGroup = (group: Group) => {
+    setEditingGroupId(group.id)
+    setGroupDrafts((previous) => ({ ...previous, [group.id]: { ...group } }))
+  }
+
+  const saveGroupInline = (groupId: string) => {
+    const draft = groupDrafts[groupId]
+    if (!draft) return
+
+    setGroups((previous) => previous.map((group) => (group.id === groupId ? { ...group, ...draft } : group)))
+    setEditingGroupId(null)
+  }
+
+  const cancelGroupInline = (groupId: string) => {
+    setEditingGroupId(null)
+    setGroupDrafts((previous) => {
+      const next = { ...previous }
+      delete next[groupId]
+      return next
+    })
+  }
+
+  const startEditingDocType = (docType: DocumentType) => {
+    setEditingDocTypeId(docType.id)
+    setDocTypeDrafts((previous) => ({ ...previous, [docType.id]: { ...docType } }))
+  }
+
+  const saveDocTypeInline = (docTypeId: string) => {
+    const draft = docTypeDrafts[docTypeId]
+    if (!draft) return
+
+    setDocumentTypes((previous) => previous.map((item) => (item.id === docTypeId ? { ...item, ...draft } : item)))
+    setEditingDocTypeId(null)
+  }
+
+  const cancelDocTypeInline = (docTypeId: string) => {
+    setEditingDocTypeId(null)
+    setDocTypeDrafts((previous) => {
+      const next = { ...previous }
+      delete next[docTypeId]
+      return next
+    })
+  }
+
+  const startEditingRole = (roleKey: string) => {
+    const role = roleCatalog.find((item) => item.key === roleKey)
+    setEditingRoleKey(roleKey)
+    setRoleDrafts((previous) => ({ ...previous, [roleKey]: { ...role } }))
+  }
+
+  const saveRoleInline = (roleKey: string) => {
+    const draft = roleDrafts[roleKey]
+    if (!draft) return
+
+    setRoleDrafts((previous) => ({ ...previous, [roleKey]: draft }))
+    setEditingRoleKey(null)
+  }
+
+  const cancelRoleInline = (roleKey: string) => {
+    setEditingRoleKey(null)
+    setRoleDrafts((previous) => {
+      const next = { ...previous }
+      delete next[roleKey]
+      return next
+    })
+  }
+
+  const handleAddTempUser = () => {
+    const newUser: User = {
+      id: `temp-user-${Date.now()}`,
+      displayName: "Người dùng mới",
+      email: "user@example.com",
+      roles: ["member"],
+      isActive: true,
+      createdAtUtc: new Date().toISOString(),
+    }
+    setUsers((previous) => [newUser, ...previous])
+    startEditingUser(newUser)
+  }
+
+  const handleAddTempGroup = () => {
+    const newGroup: Group = {
+      id: `temp-group-${Date.now()}`,
+      name: "Nhóm mới",
+      description: "Mô tả nhóm",
+    }
+    setGroups((previous) => [newGroup, ...previous])
+    startEditingGroup(newGroup)
+  }
+
+  const handleAddTempDocType = () => {
+    const newDocType: DocumentType = {
+      id: `temp-doc-${Date.now()}`,
+      typeKey: `doc-${documentTypes.length + 1}`,
+      typeName: "Loại tài liệu mới",
+      isActive: true,
+      createdAtUtc: new Date().toISOString(),
+    }
+    setDocumentTypes((previous) => [newDocType, ...previous])
+    startEditingDocType(newDocType)
   }
 
   if (isChecking || isAuthorizing) {
@@ -512,36 +708,40 @@ export default function OrganizationManagementPage() {
 
           <TabsContent value="tags" className="space-y-4">
             <Card>
-              <CardHeader className="space-y-3">
-                <CardTitle>Quản trị tag & namespace</CardTitle>
-                <CardDescription>
-                  Cây tag/namespace ở đây đồng bộ với thanh bên trái, cho phép chỉnh sửa, tạo tag con và quản lý phạm vi.
-                </CardDescription>
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline">Tổng số node: {tags.length}</Badge>
-                  <Badge variant="secondary">Chỉ chỉnh sửa được tag label trong phạm vi user</Badge>
+              <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="space-y-2">
+                  <CardTitle>Quản trị tag & namespace</CardTitle>
+                  <CardDescription>
+                    Cây tag/namespace tương tự thanh bên trái nhưng hiển thị đầy đủ tag group/global để bạn quản lý tập trung.
+                  </CardDescription>
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline">Tổng số node: {tags.length}</Badge>
+                    <Badge variant="secondary">Namespaces: {namespaceNodes.length}</Badge>
+                    <Badge variant="outline">
+                      Tag group/global: {tags.filter((tag) => (tag.namespaceScope ?? "") !== "user").length}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={reloadTags} disabled={isLoadingTags}>
+                    <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới cây tag
+                  </Button>
+                  <Button size="sm" onClick={handleCreateNewTag} disabled={isLoadingTags}>
+                    <Plus className="mr-2 h-4 w-4" /> Thêm tag mới
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">
-                    Sử dụng menu chuột phải (context menu) để chỉnh sửa nhanh, tạo tag con hoặc xóa giống như tại thanh bên.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" onClick={reloadTags} disabled={isLoadingTags}>
-                      Làm mới cây tag
-                    </Button>
-                    <Button onClick={handleCreateNewTag} disabled={isLoadingTags}>
-                      Thêm tag mới
-                    </Button>
-                  </div>
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <Badge variant="secondary">Hỗ trợ chỉnh sửa cả namespace group & global</Badge>
+                  <Badge variant="outline">Nhấp chuột phải hoặc nút menu để chỉnh sửa/xóa</Badge>
                 </div>
                 {isLoadingTags ? (
                   <p className="text-sm text-muted-foreground">Đang tải cây tag…</p>
-                ) : tags.length ? (
-                  <ScrollArea className="h-[520px] rounded-md border p-4">
-                    <div className="space-y-2">
-                      {tags.map((node) => (
+                ) : namespaceNodes.length ? (
+                  <ScrollArea className="max-h-[540px] rounded-lg border bg-muted/20">
+                    <div className="space-y-2 p-3">
+                      {namespaceNodes.map((node) => (
                         <TagTreeItem
                           key={node.id}
                           tag={node}
@@ -576,66 +776,148 @@ export default function OrganizationManagementPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <Badge variant="outline">Tổng: {users.length}</Badge>
-                  <Badge variant="secondary">Đang hoạt động: {activeUsers}</Badge>
-                  <Badge variant="outline">Role phổ biến: {roleAssignments[0]?.name}</Badge>
-                </div>
-                {isLoadingUsers ? (
-                  <p className="text-sm text-muted-foreground">Đang tải danh sách người dùng…</p>
-                ) : (
-                  <ScrollArea className="max-h-[460px] rounded-md border">
-                    <div className="divide-y">
-                      {users.map((item) => (
-                        <ContextMenu key={item.id}>
-                          <ContextMenuTrigger asChild>
-                            <div className="flex flex-col gap-1 px-4 py-3 hover:bg-muted/60">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="flex flex-col gap-1 min-w-0">
-                                  <span className="font-semibold truncate">{item.displayName}</span>
-                                  <span className="text-xs text-muted-foreground truncate">{item.email}</span>
-                                </div>
-                                <Badge variant={item.isActive === false ? "outline" : "secondary"}>
-                                  {item.isActive === false ? "Tạm khóa" : "Đang hoạt động"}
-                                </Badge>
-                              </div>
-                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                <Badge variant="outline">Roles: {item.roles.join(", ") || "Chưa có"}</Badge>
-                                {item.primaryGroupId ? (
-                                  <Badge variant="outline">Nhóm chính: {item.primaryGroupId}</Badge>
-                                ) : null}
-                              </div>
-                            </div>
-                          </ContextMenuTrigger>
-                          <ContextMenuContent className="w-56">
-                            <ContextMenuItem inset onSelect={(event) => event.preventDefault()}>
-                              <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa hồ sơ
-                            </ContextMenuItem>
-                            <ContextMenuItem inset onSelect={(event) => event.preventDefault()}>
-                              <Users className="mr-2 h-4 w-4" /> Cập nhật nhóm
-                            </ContextMenuItem>
-                            <ContextMenuItem inset onSelect={(event) => event.preventDefault()}>
-                              <UserCog className="mr-2 h-4 w-4" /> Cập nhật role
-                            </ContextMenuItem>
-                          </ContextMenuContent>
-                        </ContextMenu>
-                      ))}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="outline">Tổng: {users.length}</Badge>
+                    <Badge variant="secondary">Đang hoạt động: {activeUsers}</Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-56">
+                      <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={userSearch}
+                        onChange={(event) => setUserSearch(event.target.value)}
+                        placeholder="Tìm theo tên, email, role"
+                        className="pl-8"
+                      />
                     </div>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Trạng thái phiên đăng nhập</CardTitle>
-                <CardDescription>
-                  Xem nhanh thông tin tài khoản đang dùng để đảm bảo thao tác đúng phân quyền.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-3 text-sm">
-                <Badge variant="secondary">User: {user?.displayName ?? "--"}</Badge>
-                <Badge variant="secondary">Email: {user?.email ?? "--"}</Badge>
-                <Badge variant="outline">Roles: {user?.roles?.join(", ") || "Chưa có"}</Badge>
+                    <Button variant="outline" size="sm" onClick={reloadUsers} disabled={isLoadingUsers}>
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới
+                    </Button>
+                    <Button size="sm" onClick={handleAddTempUser}>
+                      <Plus className="mr-2 h-4 w-4" /> Thêm user
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tên hiển thị</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Roles</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Ngày tạo</TableHead>
+                        <TableHead className="text-right">Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingUsers ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                            Đang tải danh sách người dùng…
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredUsers.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                            Không tìm thấy người dùng nào phù hợp.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredUsers.map((item) => {
+                          const isEditing = editingUserId === item.id
+                          const draft = (isEditing ? userDrafts[item.id] : undefined) ?? item
+
+                          return (
+                            <TableRow key={item.id} className={isEditing ? "bg-muted/50" : undefined}>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={draft.displayName}
+                                    onChange={(event) => updateUserDraft(item.id, { displayName: event.target.value })}
+                                  />
+                                ) : (
+                                  <span className="font-medium">{draft.displayName}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={draft.email}
+                                    onChange={(event) => updateUserDraft(item.id, { email: event.target.value })}
+                                  />
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">{draft.email}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={(draft.roles ?? []).join(", ")}
+                                    onChange={(event) =>
+                                      updateUserDraft(item.id, {
+                                        roles: event.target.value
+                                          .split(",")
+                                          .map((role) => role.trim())
+                                          .filter(Boolean),
+                                      })
+                                    }
+                                  />
+                                ) : (
+                                  <div className="flex flex-wrap gap-1">
+                                    {(draft.roles ?? []).map((role) => (
+                                      <Badge key={role} variant="outline" className="text-[11px]">
+                                        {role}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={draft.isActive ?? true}
+                                    disabled={!isEditing}
+                                    onCheckedChange={(checked) => updateUserDraft(item.id, { isActive: checked })}
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    {draft.isActive === false ? "Tạm khóa" : "Đang hoạt động"}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {draft.createdAtUtc
+                                  ? new Date(draft.createdAtUtc).toLocaleDateString("vi-VN")
+                                  : "--"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  {isEditing ? (
+                                    <>
+                                      <Button size="sm" variant="secondary" onClick={() => saveUserInline(item.id)}>
+                                        <Save className="mr-2 h-4 w-4" /> Lưu
+                                      </Button>
+                                      <Button size="sm" variant="ghost" onClick={() => cancelUserInline(item.id)}>
+                                        <X className="mr-2 h-4 w-4" /> Hủy
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button size="sm" variant="ghost" onClick={() => startEditingUser(item)}>
+                                      <Pencil className="mr-2 h-4 w-4" /> Sửa nhanh
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      )}
+                    </TableBody>
+                    <TableCaption>Action bar phía trên hỗ trợ tìm kiếm, thêm mới và refresh danh sách.</TableCaption>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -645,21 +927,97 @@ export default function OrganizationManagementPage() {
               <CardHeader>
                 <CardTitle>Danh sách role</CardTitle>
                 <CardDescription>
-                  Tổng hợp role chuẩn cùng số lượng thành viên đang sở hữu, giúp kiểm tra nhanh việc phân quyền.
+                  Tổng hợp role chuẩn cùng số lượng thành viên đang sở hữu, hỗ trợ chỉnh sửa mô tả inline.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                {roleAssignments.map((role) => (
-                  <div key={role.key} className="rounded-lg border bg-muted/30 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold">{role.name}</p>
-                        <p className="text-xs text-muted-foreground">{role.description}</p>
-                      </div>
-                      <Badge variant="secondary">{role.memberCount} thành viên</Badge>
-                    </div>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="outline">Tổng role: {filteredRoles.length}</Badge>
                   </div>
-                ))}
+                  <div className="relative w-56">
+                    <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={roleSearch}
+                      onChange={(event) => setRoleSearch(event.target.value)}
+                      placeholder="Lọc theo tên, mô tả"
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tên role</TableHead>
+                        <TableHead>Mô tả</TableHead>
+                        <TableHead>Số thành viên</TableHead>
+                        <TableHead className="text-right">Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRoles.map((role) => {
+                        const isEditing = editingRoleKey === role.key
+                        const draft = roleDrafts[role.key] ?? role
+
+                        return (
+                          <TableRow key={role.key} className={isEditing ? "bg-muted/50" : undefined}>
+                            <TableCell>
+                              {isEditing ? (
+                                <Input
+                                  value={draft.name}
+                                  onChange={(event) =>
+                                    setRoleDrafts((previous) => ({
+                                      ...previous,
+                                      [role.key]: { ...(previous[role.key] ?? role), name: event.target.value },
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                <span className="font-medium">{draft.name}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {isEditing ? (
+                                <Input
+                                  value={draft.description}
+                                  onChange={(event) =>
+                                    setRoleDrafts((previous) => ({
+                                      ...previous,
+                                      [role.key]: { ...(previous[role.key] ?? role), description: event.target.value },
+                                    }))
+                                  }
+                                />
+                              ) : (
+                                <span className="text-sm text-muted-foreground">{draft.description}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{role.memberCount} thành viên</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isEditing ? (
+                                <div className="flex justify-end gap-2">
+                                  <Button size="sm" variant="secondary" onClick={() => saveRoleInline(role.key)}>
+                                    <Check className="mr-2 h-4 w-4" /> Lưu
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={() => cancelRoleInline(role.key)}>
+                                    <X className="mr-2 h-4 w-4" /> Hủy
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button size="sm" variant="ghost" onClick={() => startEditingRole(role.key)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Sửa mô tả
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                    <TableCaption>Bảng roles hỗ trợ chỉnh sửa inline để đồng bộ mô tả và tên hiển thị.</TableCaption>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -672,39 +1030,105 @@ export default function OrganizationManagementPage() {
                   Thiết lập nhóm chức năng/dự án, quyền kế thừa và đồng bộ thành viên để áp dụng phân quyền tập trung.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                  <Badge variant="outline">Tổng nhóm: {groups.length}</Badge>
-                  <Badge variant="secondary">Sẵn sàng cho kế thừa quyền</Badge>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="outline">Tổng nhóm: {groups.length}</Badge>
+                    <Badge variant="secondary">Đang xem: {filteredGroups.length}</Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-56">
+                      <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={groupSearch}
+                        onChange={(event) => setGroupSearch(event.target.value)}
+                        placeholder="Tìm theo tên nhóm"
+                        className="pl-8"
+                      />
+                    </div>
+                    <Button variant="outline" size="sm" onClick={reloadGroups} disabled={isLoadingGroups}>
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới
+                    </Button>
+                    <Button size="sm" onClick={handleAddTempGroup}>
+                      <Plus className="mr-2 h-4 w-4" /> Thêm nhóm
+                    </Button>
+                  </div>
                 </div>
-                {isLoadingGroups ? (
-                  <p className="text-sm text-muted-foreground">Đang tải danh sách nhóm…</p>
-                ) : (
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {groups.map((group) => (
-                      <div key={group.id} className="rounded-lg border bg-muted/30 p-4">
-                        <p className="font-semibold">{group.name}</p>
-                        <p className="text-xs text-muted-foreground">{group.description || "Chưa có mô tả"}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Gợi ý triển khai</CardTitle>
-                <CardDescription>
-                  Bắt đầu với các nhóm lõi (quản trị, vận hành), sau đó mở rộng nhóm dự án/chuyên môn để kế thừa quyền hợp lý.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-3">
-                {groupGovernancePlaybooks.map((item) => (
-                  <div key={item.title} className="rounded-lg border bg-muted/30 p-4">
-                    <h3 className="font-semibold">{item.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
-                  </div>
-                ))}
+
+                <div className="overflow-hidden rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tên nhóm</TableHead>
+                        <TableHead>Mô tả</TableHead>
+                        <TableHead className="text-right">Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingGroups ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                            Đang tải danh sách nhóm…
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredGroups.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                            Không có nhóm nào thỏa điều kiện lọc.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredGroups.map((group) => {
+                          const isEditing = editingGroupId === group.id
+                          const draft = (isEditing ? groupDrafts[group.id] : undefined) ?? group
+
+                          return (
+                            <TableRow key={group.id} className={isEditing ? "bg-muted/50" : undefined}>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={draft.name}
+                                    onChange={(event) => updateGroupDraft(group.id, { name: event.target.value })}
+                                  />
+                                ) : (
+                                  <span className="font-medium">{draft.name}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={draft.description ?? ""}
+                                    onChange={(event) => updateGroupDraft(group.id, { description: event.target.value })}
+                                    placeholder="Thêm mô tả"
+                                  />
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">{draft.description || "Chưa có mô tả"}</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {isEditing ? (
+                                  <div className="flex justify-end gap-2">
+                                    <Button size="sm" variant="secondary" onClick={() => saveGroupInline(group.id)}>
+                                      <Save className="mr-2 h-4 w-4" /> Lưu
+                                    </Button>
+                                    <Button size="sm" variant="ghost" onClick={() => cancelGroupInline(group.id)}>
+                                      <X className="mr-2 h-4 w-4" /> Hủy
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button size="sm" variant="ghost" onClick={() => startEditingGroup(group)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Sửa inline
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      )}
+                    </TableBody>
+                    <TableCaption>Chỉnh sửa trực tiếp để cập nhật tên nhóm và mô tả.</TableCaption>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -717,49 +1141,120 @@ export default function OrganizationManagementPage() {
                   Bổ sung danh sách loại tài liệu đang được kích hoạt để tiện rà soát và chuẩn hóa metadata.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {isLoadingDocumentTypes ? (
-                  <p className="text-sm text-muted-foreground">Đang tải loại tài liệu…</p>
-                ) : (
-                  <ScrollArea className="max-h-[360px] rounded-md border">
-                    <div className="divide-y">
-                      {documentTypes.map((docType) => (
-                        <div key={docType.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-semibold truncate">{docType.typeName}</span>
-                            <span className="text-xs text-muted-foreground truncate">Key: {docType.typeKey}</span>
-                          </div>
-                          <div className="flex flex-col items-end text-xs text-muted-foreground">
-                            <Badge variant="secondary">{docType.isActive ? "Đang dùng" : "Không hoạt động"}</Badge>
-                            <span>
-                              Tạo ngày {new Date(docType.createdAtUtc).toLocaleDateString("vi-VN", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Checklist triển khai</CardTitle>
-                <CardDescription>
-                  Xác định loại tài liệu ưu tiên, thêm metadata bắt buộc và gắn tag/namespace mặc định trước khi mở rộng.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-3">
-                {documentTypePolicies.map((item) => (
-                  <div key={item.title} className="rounded-lg border bg-muted/30 p-4">
-                    <h3 className="font-semibold">{item.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="outline">Tổng loại: {documentTypes.length}</Badge>
+                    <Badge variant="secondary">
+                      Đang hoạt động: {documentTypes.filter((doc) => doc.isActive).length}
+                    </Badge>
                   </div>
-                ))}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-56">
+                      <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={docTypeSearch}
+                        onChange={(event) => setDocTypeSearch(event.target.value)}
+                        placeholder="Tìm theo tên hoặc key"
+                        className="pl-8"
+                      />
+                    </div>
+                    <Button variant="outline" size="sm" onClick={reloadDocumentTypes} disabled={isLoadingDocumentTypes}>
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Làm mới
+                    </Button>
+                    <Button size="sm" onClick={handleAddTempDocType}>
+                      <Plus className="mr-2 h-4 w-4" /> Thêm loại
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tên loại</TableHead>
+                        <TableHead>Key</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Ngày tạo</TableHead>
+                        <TableHead className="text-right">Thao tác</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingDocumentTypes ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                            Đang tải loại tài liệu…
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredDocumentTypes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                            Không có loại tài liệu nào.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredDocumentTypes.map((docType) => {
+                          const isEditing = editingDocTypeId === docType.id
+                          const draft = (isEditing ? docTypeDrafts[docType.id] : undefined) ?? docType
+
+                          return (
+                            <TableRow key={docType.id} className={isEditing ? "bg-muted/50" : undefined}>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Input
+                                    value={draft.typeName}
+                                    onChange={(event) => updateDocTypeDraft(docType.id, { typeName: event.target.value })}
+                                  />
+                                ) : (
+                                  <span className="font-medium">{draft.typeName}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input value={draft.typeKey} disabled />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={draft.isActive}
+                                    disabled={!isEditing}
+                                    onCheckedChange={(checked) => updateDocTypeDraft(docType.id, { isActive: checked })}
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    {draft.isActive ? "Đang dùng" : "Không hoạt động"}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {new Date(draft.createdAtUtc).toLocaleDateString("vi-VN", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {isEditing ? (
+                                  <div className="flex justify-end gap-2">
+                                    <Button size="sm" variant="secondary" onClick={() => saveDocTypeInline(docType.id)}>
+                                      <Check className="mr-2 h-4 w-4" /> Lưu
+                                    </Button>
+                                    <Button size="sm" variant="ghost" onClick={() => cancelDocTypeInline(docType.id)}>
+                                      <X className="mr-2 h-4 w-4" /> Hủy
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button size="sm" variant="ghost" onClick={() => startEditingDocType(docType)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Sửa inline
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      )}
+                    </TableBody>
+                    <TableCaption>Bảng loại tài liệu được hiển thị dưới dạng data grid với hỗ trợ chỉnh sửa nhanh.</TableCaption>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
