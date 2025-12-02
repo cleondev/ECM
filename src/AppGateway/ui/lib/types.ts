@@ -19,6 +19,7 @@ export type DocumentType = {
   typeName: string
   isActive: boolean
   createdAtUtc: string
+  description?: string | null
 }
 
 export type FileItem = {
@@ -162,6 +163,8 @@ export type Group = {
   id: string
   name: string
   description?: string | null
+  kind?: string | null
+  role?: string | null
 }
 
 export type NotificationItem = {

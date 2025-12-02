@@ -469,6 +469,8 @@ function mapGroupSummaryToGroup(data: GroupSummaryResponse): Group {
     id: data.id,
     name: data.name,
     description: descriptors.length > 0 ? descriptors.join(" • ") : null,
+    kind: data.kind ?? null,
+    role: data.role ?? null,
   }
 }
 
@@ -1389,9 +1391,13 @@ function resolveSortField(sortBy: NonNullable<FileQueryParams["sortBy"]>): strin
   }
 }
 
-export async function fetchTags(): Promise<TagNode[]> {
+export async function fetchTags(options?: { scope?: "all" | "user" | "group" | "global" }): Promise<TagNode[]> {
   try {
-    const response = await gatewayRequest<TagLabelResponse[]>("/api/tags")
+    const params = new URLSearchParams()
+    params.set("scope", options?.scope ?? "all")
+    params.set("includeAll", "true")
+
+    const response = await gatewayRequest<TagLabelResponse[]>(`/api/tags?${params.toString()}`)
     return buildTagTree(response)
   } catch (error) {
     console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
@@ -1405,6 +1411,7 @@ type DocumentTypeResponseDto = {
   typeName: string
   isActive: boolean
   createdAtUtc: string
+  description?: string | null
 }
 
 export async function fetchDocumentTypes(): Promise<DocumentType[]> {
@@ -1422,6 +1429,7 @@ export async function fetchDocumentTypes(): Promise<DocumentType[]> {
         typeName: type.typeName,
         isActive: type.isActive,
         createdAtUtc: type.createdAtUtc,
+        description: type.description ?? null,
       }))
       .sort((a, b) => a.typeName.localeCompare(b.typeName, undefined, { sensitivity: "base" }))
   } catch (error) {

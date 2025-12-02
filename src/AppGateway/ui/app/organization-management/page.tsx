@@ -36,6 +36,17 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TagManagementDialog } from "@/components/tag-management-dialog"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import {
@@ -76,6 +87,8 @@ const roleCatalog = [
     description: "Standard user with granted document access.",
   },
 ]
+
+const groupKindOptions = ["functional", "project", "security", "business", "operations", "customer"]
 
 function isAdminUser(user: User | null): boolean {
   if (!user?.roles?.length) return false
@@ -218,14 +231,15 @@ export default function OrganizationManagementPage() {
   const [docTypeSearch, setDocTypeSearch] = useState("")
   const [roleSearch, setRoleSearch] = useState("")
 
-  const [editingUserId, setEditingUserId] = useState<string | null>(null)
-  const [userDrafts, setUserDrafts] = useState<Record<string, Partial<User>>>({})
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [groupDrafts, setGroupDrafts] = useState<Record<string, Partial<Group>>>({})
-  const [editingDocTypeId, setEditingDocTypeId] = useState<string | null>(null)
-  const [docTypeDrafts, setDocTypeDrafts] = useState<Record<string, Partial<DocumentType>>>({})
   const [editingRoleKey, setEditingRoleKey] = useState<string | null>(null)
   const [roleDrafts, setRoleDrafts] = useState<Record<string, { name?: string; description?: string }>>({})
+  const [userDialogOpen, setUserDialogOpen] = useState(false)
+  const [userDialogDraft, setUserDialogDraft] = useState<User | null>(null)
+  const [docTypeDialogOpen, setDocTypeDialogOpen] = useState(false)
+  const [docTypeDialogDraft, setDocTypeDialogDraft] = useState<DocumentType | null>(null)
+  const [groupKindFilter, setGroupKindFilter] = useState<string>("all")
 
   const isAdmin = useMemo(() => isAdminUser(user), [user])
   const activeUsers = useMemo(() => users.filter((item) => item.isActive ?? true).length, [users])
@@ -241,6 +255,17 @@ export default function OrganizationManagementPage() {
   )
 
   const namespaceNodes = useMemo(() => tags.filter((tag) => tag.kind === "namespace"), [tags])
+  const groupKinds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          groups
+            .map((group) => group.kind?.trim().toLowerCase())
+            .filter((kind): kind is string => Boolean(kind && kind.length > 0)),
+        ),
+      ),
+    [groups],
+  )
   const filteredUsers = useMemo(() => {
     const query = userSearch.trim().toLowerCase()
     if (!query) return users
@@ -255,10 +280,16 @@ export default function OrganizationManagementPage() {
 
   const filteredGroups = useMemo(() => {
     const query = groupSearch.trim().toLowerCase()
-    if (!query) return groups
+    const matches = groups.filter((group) =>
+      group.name.toLowerCase().includes(query) || (group.description ?? "").toLowerCase().includes(query),
+    )
 
-    return groups.filter((group) => group.name.toLowerCase().includes(query) || (group.description ?? "").toLowerCase().includes(query))
-  }, [groupSearch, groups])
+    if (groupKindFilter === "all") {
+      return matches
+    }
+
+    return matches.filter((group) => (group.kind ?? "").toLowerCase() === groupKindFilter.toLowerCase())
+  }, [groupKindFilter, groupSearch, groups])
 
   const filteredDocumentTypes = useMemo(() => {
     const query = docTypeSearch.trim().toLowerCase()
@@ -322,7 +353,7 @@ export default function OrganizationManagementPage() {
     const loadTags = async () => {
       try {
         setIsLoadingTags(true)
-        const data = await fetchTags()
+        const data = await fetchTags({ scope: "all" })
         if (!active) return
         setTags(data)
       } catch (error) {
@@ -402,7 +433,7 @@ export default function OrganizationManagementPage() {
   }, [isAuthenticated, isAdmin])
 
   const reloadTags = async () => {
-    const data = await fetchTags()
+    const data = await fetchTags({ scope: "all" })
     setTags(data)
   }
 
@@ -447,8 +478,17 @@ export default function OrganizationManagementPage() {
     setIsTagDialogOpen(true)
   }
 
-  const findCreatableNamespace = (nodes: TagNode[]): TagNode | null =>
-    nodes.find((node) => node.kind === "namespace" && (node.namespaceScope ?? "user") === "user") ?? null
+  const findCreatableNamespace = (nodes: TagNode[]): TagNode | null => {
+    const scored = nodes
+      .filter((node) => node.kind === "namespace" && !node.isSystem)
+      .map((node) => ({
+        node,
+        score: (node.namespaceScope === "global" ? 3 : node.namespaceScope === "group" ? 2 : 1) + (node.isSystem ? -5 : 0),
+      }))
+
+    scored.sort((a, b) => b.score - a.score)
+    return scored[0]?.node ?? null
+  }
 
   const resolveNamespaceNode = async (): Promise<TagNode | null> => {
     const existing = findCreatableNamespace(tags)
@@ -456,7 +496,7 @@ export default function OrganizationManagementPage() {
       return existing
     }
 
-    const refreshed = await fetchTags()
+    const refreshed = await fetchTags({ scope: "all" })
     setTags(refreshed)
 
     return findCreatableNamespace(refreshed)
@@ -478,38 +518,41 @@ export default function OrganizationManagementPage() {
     await reloadTags()
   }
 
-  const updateUserDraft = (userId: string, data: Partial<User>) =>
-    setUserDrafts((previous) => ({ ...previous, [userId]: { ...(previous[userId] ?? users.find((u) => u.id === userId)), ...data } }))
-
   const updateGroupDraft = (groupId: string, data: Partial<Group>) =>
     setGroupDrafts((previous) => ({ ...previous, [groupId]: { ...(previous[groupId] ?? groups.find((group) => group.id === groupId)), ...data } }))
 
-  const updateDocTypeDraft = (docTypeId: string, data: Partial<DocumentType>) =>
-    setDocTypeDrafts((previous) => ({
-      ...previous,
-      [docTypeId]: { ...(previous[docTypeId] ?? documentTypes.find((docType) => docType.id === docTypeId)), ...data },
-    }))
-
-  const startEditingUser = (user: User) => {
-    setEditingUserId(user.id)
-    setUserDrafts((previous) => ({ ...previous, [user.id]: { ...user } }))
+  const openUserDialog = (target?: User) => {
+    setUserDialogDraft(
+      target ?? {
+        id: `temp-user-${Date.now()}`,
+        displayName: "New user",
+        email: "user@example.com",
+        roles: ["member"],
+        isActive: true,
+        createdAtUtc: new Date().toISOString(),
+        groupIds: [],
+        primaryGroupId: null,
+      },
+    )
+    setUserDialogOpen(true)
   }
 
-  const saveUserInline = (userId: string) => {
-    const draft = userDrafts[userId]
-    if (!draft) return
-
-    setUsers((previous) => previous.map((user) => (user.id === userId ? { ...user, ...draft } : user)))
-    setEditingUserId(null)
+  const updateUserDialogDraft = (data: Partial<User>) => {
+    setUserDialogDraft((previous) => (previous ? { ...previous, ...data } : previous))
   }
 
-  const cancelUserInline = (userId: string) => {
-    setEditingUserId(null)
-    setUserDrafts((previous) => {
-      const next = { ...previous }
-      delete next[userId]
-      return next
+  const saveUserDialog = () => {
+    if (!userDialogDraft) return
+
+    setUsers((previous) => {
+      const exists = previous.some((item) => item.id === userDialogDraft.id)
+      if (exists) {
+        return previous.map((item) => (item.id === userDialogDraft.id ? { ...item, ...userDialogDraft } : item))
+      }
+      return [userDialogDraft, ...previous]
     })
+    setUserDialogOpen(false)
+    setUserDialogDraft(null)
   }
 
   const startEditingGroup = (group: Group) => {
@@ -534,26 +577,36 @@ export default function OrganizationManagementPage() {
     })
   }
 
-  const startEditingDocType = (docType: DocumentType) => {
-    setEditingDocTypeId(docType.id)
-    setDocTypeDrafts((previous) => ({ ...previous, [docType.id]: { ...docType } }))
+  const openDocTypeDialog = (docType?: DocumentType) => {
+    setDocTypeDialogDraft(
+      docType ?? {
+        id: `temp-doc-${Date.now()}`,
+        typeKey: `doc-${documentTypes.length + 1}`,
+        typeName: "New document type",
+        isActive: true,
+        createdAtUtc: new Date().toISOString(),
+        description: "",
+      },
+    )
+    setDocTypeDialogOpen(true)
   }
 
-  const saveDocTypeInline = (docTypeId: string) => {
-    const draft = docTypeDrafts[docTypeId]
-    if (!draft) return
-
-    setDocumentTypes((previous) => previous.map((item) => (item.id === docTypeId ? { ...item, ...draft } : item)))
-    setEditingDocTypeId(null)
+  const updateDocTypeDialogDraft = (data: Partial<DocumentType>) => {
+    setDocTypeDialogDraft((previous) => (previous ? { ...previous, ...data } : previous))
   }
 
-  const cancelDocTypeInline = (docTypeId: string) => {
-    setEditingDocTypeId(null)
-    setDocTypeDrafts((previous) => {
-      const next = { ...previous }
-      delete next[docTypeId]
-      return next
+  const saveDocTypeDialog = () => {
+    if (!docTypeDialogDraft) return
+
+    setDocumentTypes((previous) => {
+      const exists = previous.some((item) => item.id === docTypeDialogDraft.id)
+      if (exists) {
+        return previous.map((item) => (item.id === docTypeDialogDraft.id ? { ...item, ...docTypeDialogDraft } : item))
+      }
+      return [docTypeDialogDraft, ...previous]
     })
+    setDocTypeDialogOpen(false)
+    setDocTypeDialogDraft(null)
   }
 
   const startEditingRole = (roleKey: string) => {
@@ -580,16 +633,7 @@ export default function OrganizationManagementPage() {
   }
 
   const handleAddTempUser = () => {
-    const newUser: User = {
-      id: `temp-user-${Date.now()}`,
-      displayName: "New user",
-      email: "user@example.com",
-      roles: ["member"],
-      isActive: true,
-      createdAtUtc: new Date().toISOString(),
-    }
-    setUsers((previous) => [newUser, ...previous])
-    startEditingUser(newUser)
+    openUserDialog()
   }
 
   const handleAddTempGroup = () => {
@@ -597,21 +641,14 @@ export default function OrganizationManagementPage() {
       id: `temp-group-${Date.now()}`,
       name: "New group",
       description: "Group description",
+      kind: "functional",
     }
     setGroups((previous) => [newGroup, ...previous])
     startEditingGroup(newGroup)
   }
 
   const handleAddTempDocType = () => {
-    const newDocType: DocumentType = {
-      id: `temp-doc-${Date.now()}`,
-      typeKey: `doc-${documentTypes.length + 1}`,
-      typeName: "New document type",
-      isActive: true,
-      createdAtUtc: new Date().toISOString(),
-    }
-    setDocumentTypes((previous) => [newDocType, ...previous])
-    startEditingDocType(newDocType)
+    openDocTypeDialog()
   }
 
   if (isChecking || isAuthorizing) {
@@ -708,7 +745,7 @@ export default function OrganizationManagementPage() {
           </TabsList>
 
           <TabsContent value="tags" className="space-y-4">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
                   <CardTitle>Tag & namespace management</CardTitle>
@@ -765,7 +802,7 @@ export default function OrganizationManagementPage() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>User management</CardTitle>
                 <CardDescription>
@@ -797,12 +834,13 @@ export default function OrganizationManagementPage() {
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border">
+                <div className="overflow-x-auto rounded-lg border">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Display name</TableHead>
                         <TableHead>Email</TableHead>
+                        <TableHead>Primary group</TableHead>
                         <TableHead>Roles</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Created</TableHead>
@@ -812,100 +850,65 @@ export default function OrganizationManagementPage() {
                     <TableBody>
                       {isLoadingUsers ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
                             Loading users…
                           </TableCell>
                         </TableRow>
                       ) : filteredUsers.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
                             No matching users found.
                           </TableCell>
                         </TableRow>
                       ) : (
                         filteredUsers.map((item) => {
-                          const isEditing = editingUserId === item.id
-                          const draft = (isEditing ? userDrafts[item.id] : undefined) ?? item
+                          const primaryGroup = groups.find((group) => group.id === item.primaryGroupId)
+                          const groupCount = item.groupIds?.length ?? 0
 
                           return (
-                            <TableRow key={item.id} className={isEditing ? "bg-muted/50" : undefined}>
+                            <TableRow key={item.id}>
                               <TableCell>
-                                {isEditing ? (
-                                  <Input
-                                    value={draft.displayName}
-                                    onChange={(event) => updateUserDraft(item.id, { displayName: event.target.value })}
-                                  />
-                                ) : (
-                                  <span className="font-medium">{draft.displayName}</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {isEditing ? (
-                                  <Input
-                                    value={draft.email}
-                                    onChange={(event) => updateUserDraft(item.id, { email: event.target.value })}
-                                  />
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">{draft.email}</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {isEditing ? (
-                                  <Input
-                                    value={(draft.roles ?? []).join(", ")}
-                                    onChange={(event) =>
-                                      updateUserDraft(item.id, {
-                                        roles: event.target.value
-                                          .split(",")
-                                          .map((role) => role.trim())
-                                          .filter(Boolean),
-                                      })
-                                    }
-                                  />
-                                ) : (
-                                  <div className="flex flex-wrap gap-1">
-                                    {(draft.roles ?? []).map((role) => (
-                                      <Badge key={role} variant="outline" className="text-[11px]">
-                                        {role}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Switch
-                                    checked={draft.isActive ?? true}
-                                    disabled={!isEditing}
-                                    onCheckedChange={(checked) => updateUserDraft(item.id, { isActive: checked })}
-                                  />
-                                  <span className="text-xs text-muted-foreground">
-                                    {draft.isActive === false ? "Suspended" : "Active"}
-                                  </span>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{item.displayName}</span>
+                                  <span className="text-xs text-muted-foreground">{item.id}</span>
                                 </div>
                               </TableCell>
+                              <TableCell>
+                                <span className="text-sm text-muted-foreground">{item.email}</span>
+                              </TableCell>
+                              <TableCell>
+                                {primaryGroup ? (
+                                  <Badge variant="secondary">{primaryGroup.name}</Badge>
+                                ) : (
+                                  <Badge variant="outline">No main group</Badge>
+                                )}
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {groupCount > 0 ? `${groupCount} group${groupCount > 1 ? "s" : ""}` : "No groups assigned"}
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-wrap gap-1">
+                                  {(item.roles ?? []).map((role) => (
+                                    <Badge key={role} variant="outline" className="text-[11px]">
+                                      {role}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={item.isActive === false ? "outline" : "secondary"}>
+                                  {item.isActive === false ? "Suspended" : "Active"}
+                                </Badge>
+                              </TableCell>
                               <TableCell className="text-sm text-muted-foreground">
-                                {draft.createdAtUtc
-                                  ? new Date(draft.createdAtUtc).toLocaleDateString("en-US")
+                                {item.createdAtUtc
+                                  ? new Date(item.createdAtUtc).toLocaleDateString("en-US")
                                   : "--"}
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  {isEditing ? (
-                                    <>
-                                      <Button size="sm" variant="secondary" onClick={() => saveUserInline(item.id)}>
-                                        <Save className="mr-2 h-4 w-4" /> Save
-                                      </Button>
-                                      <Button size="sm" variant="ghost" onClick={() => cancelUserInline(item.id)}>
-                                        <X className="mr-2 h-4 w-4" /> Cancel
-                                      </Button>
-                                    </>
-                                  ) : (
-                                    <Button size="sm" variant="ghost" onClick={() => startEditingUser(item)}>
-                                      <Pencil className="mr-2 h-4 w-4" /> Quick edit
-                                    </Button>
-                                  )}
-                                </div>
+                                <Button size="sm" variant="ghost" onClick={() => openUserDialog(item)}>
+                                  <Pencil className="mr-2 h-4 w-4" /> Edit user
+                                </Button>
                               </TableCell>
                             </TableRow>
                           )
@@ -919,7 +922,7 @@ export default function OrganizationManagementPage() {
           </TabsContent>
 
           <TabsContent value="roles" className="space-y-4">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Role directory</CardTitle>
                 <CardDescription>
@@ -1018,7 +1021,7 @@ export default function OrganizationManagementPage() {
           </TabsContent>
 
           <TabsContent value="groups" className="space-y-4">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Group management</CardTitle>
                 <CardDescription>
@@ -1032,6 +1035,19 @@ export default function OrganizationManagementPage() {
                     <Badge variant="secondary">Showing: {filteredGroups.length}</Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
+                    <Select value={groupKindFilter} onValueChange={setGroupKindFilter}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Filter by kind" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All group kinds</SelectItem>
+                        {groupKinds.map((kind) => (
+                          <SelectItem key={kind} value={kind} className="capitalize">
+                            {kind}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="relative w-56">
                       <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -1050,11 +1066,12 @@ export default function OrganizationManagementPage() {
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border">
+                <div className="overflow-x-auto rounded-lg border">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Group name</TableHead>
+                        <TableHead>Group kind</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -1087,6 +1104,36 @@ export default function OrganizationManagementPage() {
                                   />
                                 ) : (
                                   <span className="font-medium">{draft.name}</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {isEditing ? (
+                                  <Select
+                                    value={draft.kind ?? "functional"}
+                                    onValueChange={(value) => updateGroupDraft(group.id, { kind: value })}
+                                  >
+                                    <SelectTrigger className="w-44 capitalize">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[
+                                        ...groupKindOptions,
+                                        ...(groupKinds.includes(draft.kind ?? "") || !draft.kind ? [] : [draft.kind!]),
+                                      ]
+                                        .filter((value, index, array) => array.indexOf(value) === index)
+                                        .map((kind) => (
+                                          <SelectItem key={kind} value={kind} className="capitalize">
+                                            {kind}
+                                          </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : draft.kind ? (
+                                  <Badge variant="outline" className="capitalize text-[11px]">
+                                    {draft.kind}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">Not set</span>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -1128,7 +1175,7 @@ export default function OrganizationManagementPage() {
           </TabsContent>
 
           <TabsContent value="doc-types" className="space-y-4">
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Document types</CardTitle>
                 <CardDescription>
@@ -1162,12 +1209,13 @@ export default function OrganizationManagementPage() {
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border">
+                <div className="overflow-x-auto rounded-lg border">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Type name</TableHead>
                         <TableHead>Key</TableHead>
+                        <TableHead>Description</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -1187,63 +1235,38 @@ export default function OrganizationManagementPage() {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredDocumentTypes.map((docType) => {
-                          const isEditing = editingDocTypeId === docType.id
-                          const draft = (isEditing ? docTypeDrafts[docType.id] : undefined) ?? docType
-
-                          return (
-                            <TableRow key={docType.id} className={isEditing ? "bg-muted/50" : undefined}>
-                              <TableCell>
-                                {isEditing ? (
-                                  <Input
-                                    value={draft.typeName}
-                                    onChange={(event) => updateDocTypeDraft(docType.id, { typeName: event.target.value })}
-                                  />
-                                ) : (
-                                  <span className="font-medium">{draft.typeName}</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Input value={draft.typeKey} disabled />
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Switch
-                                    checked={draft.isActive}
-                                    disabled={!isEditing}
-                                    onCheckedChange={(checked) => updateDocTypeDraft(docType.id, { isActive: checked })}
-                                  />
-                                  <span className="text-xs text-muted-foreground">
-                                    {draft.isActive ? "Active" : "Inactive"}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-sm text-muted-foreground">
-                                {new Date(draft.createdAtUtc).toLocaleDateString("en-US", {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                })}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {isEditing ? (
-                                  <div className="flex justify-end gap-2">
-                                    <Button size="sm" variant="secondary" onClick={() => saveDocTypeInline(docType.id)}>
-                                      <Check className="mr-2 h-4 w-4" /> Save
-                                    </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => cancelDocTypeInline(docType.id)}>
-                                      <X className="mr-2 h-4 w-4" /> Cancel
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Button size="sm" variant="ghost" onClick={() => startEditingDocType(docType)}>
-                                    <Pencil className="mr-2 h-4 w-4" /> Inline edit
-                                  </Button>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })
+                        filteredDocumentTypes.map((docType) => (
+                          <TableRow key={docType.id}>
+                            <TableCell>
+                              <span className="font-medium">{docType.typeName}</span>
+                            </TableCell>
+                            <TableCell>
+                              <Input value={docType.typeKey} disabled />
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground line-clamp-2">
+                                {docType.description ?? "No description"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={docType.isActive ? "secondary" : "outline"}>
+                                {docType.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {new Date(docType.createdAtUtc).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button size="sm" variant="ghost" onClick={() => openDocTypeDialog(docType)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit type
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>
@@ -1252,6 +1275,230 @@ export default function OrganizationManagementPage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog
+          open={userDialogOpen}
+          onOpenChange={(open) => {
+            setUserDialogOpen(open)
+            if (!open) {
+              setUserDialogDraft(null)
+            }
+          }}
+        >
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{userDialogDraft ? `Edit ${userDialogDraft.displayName}` : "Edit user"}</DialogTitle>
+              <DialogDescription>
+                Update user profile details, primary group, and assigned groups.
+              </DialogDescription>
+            </DialogHeader>
+
+            {userDialogDraft ? (
+              <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="user-name">Display name</Label>
+                    <Input
+                      id="user-name"
+                      value={userDialogDraft.displayName}
+                      onChange={(event) => updateUserDialogDraft({ displayName: event.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="user-email">Email</Label>
+                    <Input
+                      id="user-email"
+                      value={userDialogDraft.email}
+                      onChange={(event) => updateUserDialogDraft({ email: event.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Roles</Label>
+                    <Textarea
+                      value={(userDialogDraft.roles ?? []).join(", ")}
+                      onChange={(event) =>
+                        updateUserDialogDraft({
+                          roles: event.target.value
+                            .split(",")
+                            .map((role) => role.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      placeholder="Comma separated roles"
+                    />
+                    <p className="text-xs text-muted-foreground">Separate multiple roles with commas.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <div className="flex items-center gap-3 rounded-md border p-3">
+                      <Switch
+                        checked={userDialogDraft.isActive ?? true}
+                        onCheckedChange={(checked) => updateUserDialogDraft({ isActive: checked })}
+                      />
+                      <div>
+                        <p className="text-sm font-medium">{userDialogDraft.isActive === false ? "Suspended" : "Active"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Control whether this account can sign in.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Primary group</Label>
+                    <Select
+                      value={userDialogDraft.primaryGroupId ?? "none"}
+                      onValueChange={(value) => {
+                        const normalized = value === "none" ? null : value
+                        const currentGroups = new Set(userDialogDraft.groupIds ?? [])
+                        if (normalized) {
+                          currentGroups.add(normalized)
+                        }
+                        updateUserDialogDraft({
+                          primaryGroupId: normalized,
+                          groupIds: Array.from(currentGroups),
+                        })
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primary group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No primary group</SelectItem>
+                        {groups.map((group) => (
+                          <SelectItem key={group.id} value={group.id}>
+                            {group.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Groups</Label>
+                    <ScrollArea className="h-36 rounded-md border p-3">
+                      <div className="space-y-2">
+                        {groups.map((group) => {
+                          const isChecked = (userDialogDraft.groupIds ?? []).includes(group.id)
+                          const isPrimary = userDialogDraft.primaryGroupId === group.id
+
+                          return (
+                            <label key={group.id} className="flex items-center gap-2 text-sm">
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                  const nextGroups = new Set(userDialogDraft.groupIds ?? [])
+                                  if (checked) {
+                                    nextGroups.add(group.id)
+                                  } else {
+                                    nextGroups.delete(group.id)
+                                  }
+                                  const nextGroupIds = Array.from(nextGroups)
+                                  const nextPrimary = isPrimary && !checked ? null : userDialogDraft.primaryGroupId
+                                  updateUserDialogDraft({
+                                    groupIds: nextGroupIds,
+                                    primaryGroupId: nextPrimary,
+                                  })
+                                }}
+                              />
+                              <span className="flex-1 truncate">{group.name}</span>
+                              {group.kind ? (
+                                <Badge variant="outline" className="text-[10px] capitalize">
+                                  {group.kind}
+                                </Badge>
+                              ) : null}
+                            </label>
+                          )
+                        })}
+                        {!groups.length ? (
+                          <p className="text-xs text-muted-foreground">No groups available.</p>
+                        ) : null}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button variant="ghost" onClick={() => setUserDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={saveUserDialog} disabled={!userDialogDraft.displayName.trim()}>
+                    <Save className="mr-2 h-4 w-4" /> Save changes
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Select a user to edit.</p>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={docTypeDialogOpen}
+          onOpenChange={(open) => {
+            setDocTypeDialogOpen(open)
+            if (!open) {
+              setDocTypeDialogDraft(null)
+            }
+          }}
+        >
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>{docTypeDialogDraft ? `Edit ${docTypeDialogDraft.typeName}` : "Edit document type"}</DialogTitle>
+              <DialogDescription>Update metadata shown to users when categorizing documents.</DialogDescription>
+            </DialogHeader>
+
+            {docTypeDialogDraft ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="doc-type-name">Type name</Label>
+                  <Input
+                    id="doc-type-name"
+                    value={docTypeDialogDraft.typeName}
+                    onChange={(event) => updateDocTypeDialogDraft({ typeName: event.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="doc-type-key">Key</Label>
+                  <Input id="doc-type-key" value={docTypeDialogDraft.typeKey} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={docTypeDialogDraft.description ?? ""}
+                    onChange={(event) => updateDocTypeDialogDraft({ description: event.target.value })}
+                    placeholder="Add a short description"
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">Active</p>
+                    <p className="text-xs text-muted-foreground">Toggle availability for assignment.</p>
+                  </div>
+                  <Switch
+                    checked={docTypeDialogDraft.isActive}
+                    onCheckedChange={(checked) => updateDocTypeDialogDraft({ isActive: checked })}
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button variant="ghost" onClick={() => setDocTypeDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={saveDocTypeDialog} disabled={!docTypeDialogDraft.typeName.trim()}>
+                    <Save className="mr-2 h-4 w-4" /> Save changes
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Select a document type to edit.</p>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
