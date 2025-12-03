@@ -94,6 +94,11 @@ public sealed class TagNamespace
 
     public IReadOnlyCollection<TagLabel> Labels => _labels.AsReadOnly();
 
+    public void Rename(string? displayName)
+    {
+        DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
+    }
+
     private static Guid? NormalizeOwner(Guid? identifier)
     {
         if (identifier is null)

@@ -31,6 +31,8 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
     public Task<TagLabel[]> ListWithNamespaceAsync(
         Guid? ownerUserId,
         Guid? primaryGroupId,
+        string? scope,
+        bool includeAllNamespaces,
         CancellationToken cancellationToken = default)
     {
         CapturedToken = cancellationToken;
@@ -92,5 +94,12 @@ internal sealed class FakeTagLabelRepository : ITagLabelRepository
 
         CapturedToken = cancellationToken;
         return Task.CompletedTask;
+    }
+
+    public Task<bool> AnyInNamespaceAsync(Guid namespaceId, CancellationToken cancellationToken = default)
+    {
+        CapturedToken = cancellationToken;
+        var exists = _tags.Values.Any(tag => tag.NamespaceId == namespaceId);
+        return Task.FromResult(exists);
     }
 }
