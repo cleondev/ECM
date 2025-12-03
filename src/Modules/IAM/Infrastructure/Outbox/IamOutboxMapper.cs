@@ -1,8 +1,8 @@
 using System.Linq;
-using System.Text.Json;
 using ECM.IAM.Domain.Relations.Events;
 using ECM.IAM.Domain.Users.Events;
 using ECM.BuildingBlocks.Domain.Events;
+using ECM.Operations.Infrastructure.Outbox;
 using ECM.Operations.Infrastructure.Persistence;
 using Shared.Contracts.IAM;
 
@@ -10,8 +10,6 @@ namespace ECM.IAM.Infrastructure.Outbox;
 
 internal static class IamOutboxMapper
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
-
     public static IEnumerable<OutboxMessage> ToOutboxMessages(IEnumerable<IDomainEvent> domainEvents)
     {
         ArgumentNullException.ThrowIfNull(domainEvents);
@@ -40,13 +38,11 @@ internal static class IamOutboxMapper
             domainEvent.IsActive,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "user",
             aggregateId: domainEvent.UserId,
             type: IamEventNames.UserCreated,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -58,13 +54,11 @@ internal static class IamOutboxMapper
             domainEvent.RoleName,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "user",
             aggregateId: domainEvent.UserId,
             type: IamEventNames.UserRoleAssigned,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -75,13 +69,11 @@ internal static class IamOutboxMapper
             domainEvent.RoleId,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "user",
             aggregateId: domainEvent.UserId,
             type: IamEventNames.UserRoleRemoved,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -97,13 +89,11 @@ internal static class IamOutboxMapper
             domainEvent.ValidToUtc,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "access-relation",
             aggregateId: CreateDeterministicGuid(domainEvent.SubjectType, domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
             type: IamEventNames.AccessRelationCreated,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -118,13 +108,11 @@ internal static class IamOutboxMapper
             domainEvent.ValidToUtc,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "access-relation",
             aggregateId: CreateDeterministicGuid(domainEvent.SubjectType, domainEvent.SubjectId, domainEvent.ObjectType, domainEvent.ObjectId, domainEvent.Relation),
             type: IamEventNames.AccessRelationDeleted,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 

@@ -4,11 +4,17 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ECM.Operations.Infrastructure.Persistence.Configurations;
 
-internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage>
+public sealed class OutboxMessageConfiguration(bool excludeFromMigrations = false) : IEntityTypeConfiguration<OutboxMessage>
 {
     public void Configure(EntityTypeBuilder<OutboxMessage> builder)
     {
-        builder.ToTable("outbox", "ops");
+        builder.ToTable("outbox", "ops", tableBuilder =>
+        {
+            if (excludeFromMigrations)
+            {
+                tableBuilder.ExcludeFromMigrations();
+            }
+        });
 
         builder.HasKey(message => message.Id);
 

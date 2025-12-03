@@ -1,9 +1,9 @@
 using System.Linq;
-using System.Text.Json;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.Document.Domain.Documents.Events;
 using ECM.Document.Domain.Tags.Events;
 using ECM.Operations.Infrastructure.Persistence;
+using ECM.Operations.Infrastructure.Outbox;
 
 using Shared.Contracts.Documents;
 using Shared.Contracts.Messaging;
@@ -12,8 +12,6 @@ namespace ECM.Document.Infrastructure.Outbox;
 
 internal static class DocumentOutboxMapper
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
-
     public static IEnumerable<OutboxMessage> ToOutboxMessages(IEnumerable<IDomainEvent> domainEvents)
     {
         ArgumentNullException.ThrowIfNull(domainEvents);
@@ -45,13 +43,11 @@ internal static class DocumentOutboxMapper
             domainEvent.CreatedBy,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
             type: EventNames.Document.Created,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -66,13 +62,11 @@ internal static class DocumentOutboxMapper
             domainEvent.UpdatedBy,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
             type: EventNames.Document.Updated,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -83,13 +77,11 @@ internal static class DocumentOutboxMapper
             domainEvent.DeletedBy,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
             type: EventNames.Document.Deleted,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -101,13 +93,11 @@ internal static class DocumentOutboxMapper
             domainEvent.AppliedBy,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
             type: EventNames.Document.TagAssigned,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -118,13 +108,11 @@ internal static class DocumentOutboxMapper
             domainEvent.TagId,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "document",
             aggregateId: domainEvent.DocumentId.Value,
             type: EventNames.Document.TagRemoved,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -143,13 +131,11 @@ internal static class DocumentOutboxMapper
             domainEvent.CreatedBy,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "tag-label",
             aggregateId: domainEvent.TagId,
             type: EventNames.TagLabel.Created,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -160,13 +146,11 @@ internal static class DocumentOutboxMapper
             domainEvent.NamespaceId,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "tag-label",
             aggregateId: domainEvent.TagId,
             type: EventNames.TagLabel.Deleted,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 
@@ -185,13 +169,11 @@ internal static class DocumentOutboxMapper
             domainEvent.UpdatedBy,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "tag-label",
             aggregateId: domainEvent.TagId,
             type: EventNames.TagLabel.Updated,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 }
