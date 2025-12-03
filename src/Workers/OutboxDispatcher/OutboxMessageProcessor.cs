@@ -104,7 +104,7 @@ internal sealed class OutboxMessageProcessor
         var aggregateId = reader.GetGuid(2);
         var type = reader.GetString(3);
         var payload = reader.GetString(4);
-        var occurredAt = reader.GetFieldValue<DateTimeOffset>(5);
+        var occurredAt = await reader.GetFieldValueAsync<DateTimeOffset>(5);
 
         return new PendingOutboxMessage(id, aggregate, aggregateId, type, payload, occurredAt);
     }

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 
 namespace AppHost;
 
@@ -19,8 +19,49 @@ public static class Program
     {
         var builder = DistributedApplication.CreateBuilder(args);
 
-        var environmentName = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+        var environmentName = GetEnvironmentName();
+        ConfigureConfiguration(builder, environmentName);
+        ConfigureDashboard(builder);
 
+        var connectionStrings = LoadConnectionStrings(builder.Configuration);
+        var moduleDatabaseNames = GetModuleDatabaseNames();
+
+        var prefixedConnectionStrings = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        var moduleDatabaseResourceNames = ConfigureModuleDatabaseResources(
+            moduleDatabaseNames,
+            connectionStrings,
+            prefixedConnectionStrings);
+
+        var (kafkaResourceName, minioResourceName) = ConfigureExternalServiceResources(
+            connectionStrings,
+            prefixedConnectionStrings);
+
+        ApplyPrefixedConnectionStrings(builder, prefixedConnectionStrings);
+
+        var moduleDatabases = CreateModuleDatabaseResources(builder, moduleDatabaseResourceNames);
+        var kafka = builder.AddConnectionString(kafkaResourceName);
+        var minio = builder.AddConnectionString(minioResourceName);
+
+        var (ecmUri, gatewayUri) = GetApplicationUris(builder.Configuration);
+
+        var ecmHost = ConfigureEcmHost(builder, moduleDatabases, kafka, minio, ecmUri);
+        ConfigureGateway(builder, ecmHost, ecmUri, gatewayUri);
+
+        ConfigureWorkers(builder, builder.Configuration, connectionStrings, moduleDatabases, kafka, ecmHost);
+
+        builder.Build().Run();
+    }
+
+    #region Configuration & Dashboard
+
+    private static string GetEnvironmentName()
+    {
+        return Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+    }
+
+    private static void ConfigureConfiguration(IDistributedApplicationBuilder builder, string environmentName)
+    {
         builder.Configuration
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true);
@@ -31,8 +72,10 @@ public static class Program
         }
 
         builder.Configuration.AddEnvironmentVariables();
+    }
 
-        // Aspire dashboard configuration
+    private static void ConfigureDashboard(IDistributedApplicationBuilder builder)
+    {
         var dashboardDefaults = new Dictionary<string, string?>();
 
         if (string.IsNullOrWhiteSpace(builder.Configuration[DashboardUrlVariable]))
@@ -60,9 +103,22 @@ public static class Program
         {
             builder.Configuration.AddInMemoryCollection(dashboardDefaults);
         }
+    }
 
-        // Database connection strings
-        var moduleDatabaseNames = new[]
+    private static IReadOnlyDictionary<string, string?> LoadConnectionStrings(IConfiguration configuration)
+    {
+        return configuration
+            .GetSection("ConnectionStrings")
+            .GetChildren()
+            .ToDictionary(
+                section => section.Key,
+                section => section.Value,
+                StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string[] GetModuleDatabaseNames()
+    {
+        return new[]
         {
             "IAM",
             "Document",
@@ -73,22 +129,23 @@ public static class Program
             "Operations",
             "Webhook"
         };
+    }
 
-        var moduleDatabases = new Dictionary<string, IResourceBuilder<IResourceWithConnectionString>>(StringComparer.OrdinalIgnoreCase);
+    #endregion
 
-        var connectionStrings = builder.Configuration
-            .GetSection("ConnectionStrings")
-            .GetChildren()
-            .ToDictionary(section => section.Key, section => section.Value, StringComparer.OrdinalIgnoreCase);
+    #region Database & External Services
 
+    private static IDictionary<string, string> ConfigureModuleDatabaseResources(
+        IEnumerable<string> moduleDatabaseNames,
+        IReadOnlyDictionary<string, string?> connectionStrings,
+        IDictionary<string, string?> prefixedConnectionStrings)
+    {
         var moduleDatabaseResourceNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var prefixedConnectionStrings = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var moduleDatabaseName in moduleDatabaseNames)
         {
-            var connectionString = builder.Configuration.GetConnectionString(moduleDatabaseName);
-
-            if (string.IsNullOrWhiteSpace(connectionString))
+            if (!connectionStrings.TryGetValue(moduleDatabaseName, out var connectionString)
+                || string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException(
                     $"Connection string '{moduleDatabaseName}' must be configured in the Aspire AppHost before starting the application.");
@@ -99,45 +156,85 @@ public static class Program
             prefixedConnectionStrings[$"ConnectionStrings:{databaseResourceName}"] = connectionString;
         }
 
-        // External services
+        return moduleDatabaseResourceNames;
+    }
+
+    private static (string kafkaResourceName, string minioResourceName) ConfigureExternalServiceResources(
+        IReadOnlyDictionary<string, string?> connectionStrings,
+        IDictionary<string, string?> prefixedConnectionStrings)
+    {
         var kafkaResourceName = BuildResourceName(ServiceResourcePrefix, "kafka");
         var minioResourceName = BuildResourceName(ServiceResourcePrefix, "minio");
 
-        if (!connectionStrings.TryGetValue("kafka", out var kafkaConnectionString) || string.IsNullOrWhiteSpace(kafkaConnectionString))
+        if (!connectionStrings.TryGetValue("kafka", out var kafkaConnectionString)
+            || string.IsNullOrWhiteSpace(kafkaConnectionString))
         {
-            throw new InvalidOperationException("Connection string 'kafka' must be configured in the Aspire AppHost before starting the application.");
+            throw new InvalidOperationException(
+                "Connection string 'kafka' must be configured in the Aspire AppHost before starting the application.");
         }
 
-        if (!connectionStrings.TryGetValue("minio", out var minioConnectionString) || string.IsNullOrWhiteSpace(minioConnectionString))
+        if (!connectionStrings.TryGetValue("minio", out var minioConnectionString)
+            || string.IsNullOrWhiteSpace(minioConnectionString))
         {
-            throw new InvalidOperationException("Connection string 'minio' must be configured in the Aspire AppHost before starting the application.");
+            throw new InvalidOperationException(
+                "Connection string 'minio' must be configured in the Aspire AppHost before starting the application.");
         }
 
         prefixedConnectionStrings[$"ConnectionStrings:{kafkaResourceName}"] = kafkaConnectionString;
         prefixedConnectionStrings[$"ConnectionStrings:{minioResourceName}"] = minioConnectionString;
 
-        if (prefixedConnectionStrings.Count > 0)
+        return (kafkaResourceName, minioResourceName);
+    }
+
+    private static void ApplyPrefixedConnectionStrings(
+        IDistributedApplicationBuilder builder,
+        IDictionary<string, string?> prefixedConnectionStrings)
+    {
+        if (prefixedConnectionStrings.Count == 0)
         {
-            builder.Configuration.AddInMemoryCollection(prefixedConnectionStrings);
+            return;
         }
+
+        builder.Configuration.AddInMemoryCollection(prefixedConnectionStrings);
+    }
+
+    private static IDictionary<string, IResourceBuilder<IResourceWithConnectionString>> CreateModuleDatabaseResources(
+        IDistributedApplicationBuilder builder,
+        IDictionary<string, string> moduleDatabaseResourceNames)
+    {
+        var moduleDatabases = new Dictionary<string, IResourceBuilder<IResourceWithConnectionString>>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var moduleDatabase in moduleDatabaseResourceNames)
         {
             moduleDatabases[moduleDatabase.Key] = builder.AddConnectionString(moduleDatabase.Value);
         }
 
-        var kafka = builder.AddConnectionString(kafkaResourceName);
-        var minio = builder.AddConnectionString(minioResourceName);
+        return moduleDatabases;
+    }
 
-        // Application URLs
-        var ecmUrl = builder.Configuration.GetValue<string>("Urls:Ecm") ?? "http://localhost:8080";
-        var gatewayUrl = builder.Configuration.GetValue<string>("Urls:Gateway") ?? "http://localhost:5090";
+    #endregion
 
+    #region Applications (ECM + Gateway)
+
+    private static (Uri ecmUri, Uri gatewayUri) GetApplicationUris(IConfiguration configuration)
+    {
+        var ecmUrl = configuration.GetValue<string>("Urls:Ecm") ?? string.Empty;
+        var gatewayUrl = configuration.GetValue<string>("Urls:Gateway") ?? string.Empty;
         var ecmUri = EnsureHttpUri(ecmUrl, "Urls:Ecm");
         var gatewayUri = EnsureHttpUri(gatewayUrl, "Urls:Gateway");
 
-        // Application services
+        return (ecmUri, gatewayUri);
+    }
+
+    private static IResourceBuilder<ProjectResource> ConfigureEcmHost(
+        IDistributedApplicationBuilder builder,
+        IDictionary<string, IResourceBuilder<IResourceWithConnectionString>> moduleDatabases,
+        IResourceBuilder<IResourceWithConnectionString> kafka,
+        IResourceBuilder<IResourceWithConnectionString> minio,
+        Uri ecmUri)
+    {
         var ecmResourceName = BuildResourceName(AppResourcePrefix, "ecm");
+
         var ecmHost = builder.AddProject<Projects.ECM_Host>(ecmResourceName)
             .WithReference(kafka)
             .WithReference(minio);
@@ -147,79 +244,158 @@ public static class Program
             ecmHost = ecmHost.WithReference(moduleDatabase);
         }
 
-        ecmHost = ConfigureProjectResource(ecmHost, ecmUri, ecmResourceName);
+        ConfigureProjectResource(ecmHost, ecmUri, ecmResourceName);
 
+        return ecmHost;
+    }
+
+    private static void ConfigureGateway(
+        IDistributedApplicationBuilder builder,
+        IResourceBuilder<ProjectResource> ecmHost,
+        Uri ecmUri,
+        Uri gatewayUri)
+    {
         var gatewayResourceName = BuildResourceName(ServiceResourcePrefix, "app-gateway");
+
         var appGateway = builder.AddProject<Projects.AppGateway_Api>(gatewayResourceName)
             .WithReference(ecmHost)
             .WithEnvironment("Services__Ecm", ecmUri.ToString());
 
-        appGateway = ConfigureProjectResource(appGateway, gatewayUri, gatewayResourceName);
+        ConfigureProjectResource(appGateway, gatewayUri, gatewayResourceName);
+    }
 
-        // Worker services
+    #endregion
+
+    private static void ConfigureWorkers(
+        IDistributedApplicationBuilder builder,
+        IConfiguration configuration,
+        IReadOnlyDictionary<string, string?> connectionStrings,
+        IDictionary<string, IResourceBuilder<IResourceWithConnectionString>> moduleDatabases,
+        IResourceBuilder<IResourceWithConnectionString> kafka,
+        IResourceBuilder<ProjectResource> ecmHost)
+    {
+        ConfigureSearchIndexerWorker(builder, moduleDatabases, kafka, ecmHost);
+        ConfigureOcrWorker(builder, configuration, connectionStrings, kafka, ecmHost);
+        ConfigureOutboxDispatcherWorker(builder, connectionStrings, moduleDatabases, kafka, ecmHost);
+        ConfigureWebhookDispatcherWorker(builder, moduleDatabases, kafka);
+        ConfigureTaggerWorker(builder, kafka);
+        ConfigureNotifyWorker(builder, kafka);
+    }
+
+    private static void ConfigureSearchIndexerWorker(
+        IDistributedApplicationBuilder builder,
+        IDictionary<string, IResourceBuilder<IResourceWithConnectionString>> moduleDatabases,
+        IResourceBuilder<IResourceWithConnectionString> kafka,
+        IResourceBuilder<ProjectResource> ecmHost)
+    {
         var searchIndexerResourceName = BuildResourceName(WorkerResourcePrefix, "search-indexer");
-        var searchIndexer = builder.AddProject<Projects.SearchIndexer>(searchIndexerResourceName)
+
+        builder.AddProject<Projects.SearchIndexer>(searchIndexerResourceName)
             .WithReference(kafka)
             .WithReference(ecmHost)
             .WithReference(moduleDatabases["Search"]);
+    }
 
+    private static void ConfigureOcrWorker(
+        IDistributedApplicationBuilder builder,
+        IConfiguration configuration,
+        IReadOnlyDictionary<string, string?> connectionStrings,
+        IResourceBuilder<IResourceWithConnectionString> kafka,
+        IResourceBuilder<ProjectResource> ecmHost)
+    {
         var ocrWorkerResourceName = BuildResourceName(WorkerResourcePrefix, "ocr");
+
         var ocrWorker = builder.AddProject<Projects.Ocr>(ocrWorkerResourceName)
             .WithReference(kafka)
             .WithReference(ecmHost);
 
-        if (connectionStrings.TryGetValue("Ocr", out var ocrConnection))
+        if (connectionStrings.TryGetValue("Ocr", out var ocrConnection)
+            && !string.IsNullOrWhiteSpace(ocrConnection))
         {
-            ocrWorker = ocrWorker.WithEnvironment("ConnectionStrings__Ocr", ocrConnection);
+            ocrWorker.WithEnvironment("ConnectionStrings__Ocr", ocrConnection);
         }
 
-        var dotOcrConfiguration = builder.Configuration.GetSection("Ocr:Dot");
+        var dotOcrConfiguration = configuration.GetSection("Ocr:Dot");
         foreach (var setting in dotOcrConfiguration.GetChildren())
         {
             var key = $"Ocr__Dot__{setting.Key}";
-            ocrWorker = ocrWorker.WithEnvironment(key, setting.Value);
+            ocrWorker.WithEnvironment(key, setting.Value);
         }
+    }
 
+    private static void ConfigureOutboxDispatcherWorker(
+        IDistributedApplicationBuilder builder,
+        IReadOnlyDictionary<string, string?> connectionStrings,
+        IDictionary<string, IResourceBuilder<IResourceWithConnectionString>> moduleDatabases,
+        IResourceBuilder<IResourceWithConnectionString> kafka,
+        IResourceBuilder<ProjectResource> ecmHost)
+    {
         var outboxDispatcherResourceName = BuildResourceName(WorkerResourcePrefix, "outbox-dispatcher");
+
         var outboxDispatcher = builder.AddProject<Projects.OutboxDispatcher>(outboxDispatcherResourceName)
             .WithReference(kafka)
             .WithReference(ecmHost)
             .WithReference(moduleDatabases["Operations"]);
 
-        if (connectionStrings.TryGetValue("Operations", out var operationsConnection))
+        if (connectionStrings.TryGetValue("Operations", out var operationsConnection)
+            && !string.IsNullOrWhiteSpace(operationsConnection))
         {
-            outboxDispatcher = outboxDispatcher.WithEnvironment("ConnectionStrings__Operations", operationsConnection);
+            outboxDispatcher.WithEnvironment("ConnectionStrings__Operations", operationsConnection);
         }
+    }
 
+    private static void ConfigureWebhookDispatcherWorker(
+        IDistributedApplicationBuilder builder,
+        IDictionary<string, IResourceBuilder<IResourceWithConnectionString>> moduleDatabases,
+        IResourceBuilder<IResourceWithConnectionString> kafka)
+    {
         var webhookDispatcherResourceName = BuildResourceName(WorkerResourcePrefix, "webhook");
-        var webhookDispatcher = builder.AddProject<Projects.WebhookDispatcher>(webhookDispatcherResourceName)
+
+        builder.AddProject<Projects.WebhookDispatcher>(webhookDispatcherResourceName)
             .WithReference(kafka)
             .WithReference(moduleDatabases["Webhook"]);
-
-        var notifyResourceName = BuildResourceName(WorkerResourcePrefix, "notify");
-        builder.AddProject<Projects.SearchIndexer>(notifyResourceName)
-            .WithReference(kafka);
-
-        builder.Build().Run();
     }
+
+    private static void ConfigureTaggerWorker(
+        IDistributedApplicationBuilder builder,
+        IResourceBuilder<IResourceWithConnectionString> kafka)
+    {
+        var taggerResourceName = BuildResourceName(WorkerResourcePrefix, "tagger");
+
+        builder.AddProject<Projects.Tagger>(taggerResourceName)
+            .WithReference(kafka);
+    }
+
+    private static void ConfigureNotifyWorker(
+        IDistributedApplicationBuilder builder,
+        IResourceBuilder<IResourceWithConnectionString> kafka)
+    {
+        var notifyResourceName = BuildResourceName(WorkerResourcePrefix, "notify");
+
+        builder.AddProject<Projects.Notify>(notifyResourceName)
+            .WithReference(kafka);
+    }
+
 
     private static Uri EnsureHttpUri(string value, string settingName)
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
         {
-            throw new InvalidOperationException($"The configured URL '{value}' for '{settingName}' must be an absolute URI.");
+            throw new InvalidOperationException(
+                $"The configured URL '{value}' for '{settingName}' must be an absolute URI.");
         }
 
         if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"The configured URL '{value}' for '{settingName}' must use HTTP or HTTPS.");
+            throw new InvalidOperationException(
+                $"The configured URL '{value}' for '{settingName}' must use HTTP or HTTPS.");
         }
 
         return uri;
     }
 
-    private static IResourceBuilder<ProjectResource> ConfigureProjectResource(
+    private static void ConfigureProjectResource(
         IResourceBuilder<ProjectResource> builder,
         Uri uri,
         string endpointBaseName)
@@ -230,7 +406,7 @@ public static class Program
 
         if (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
         {
-            builder = builder.WithHttpsEndpoint(
+            builder.WithHttpsEndpoint(
                 port: port,
                 targetPort: port,
                 name: $"{endpointBaseName}-https",
@@ -238,16 +414,14 @@ public static class Program
         }
         else
         {
-            builder = builder.WithHttpEndpoint(
+            builder.WithHttpEndpoint(
                 port: port,
                 targetPort: port,
                 name: $"{endpointBaseName}-http",
                 isProxied: false);
         }
 
-        builder = builder.WithEnvironment("ASPNETCORE_URLS", BuildBindingUrl(uri));
-
-        return builder;
+        builder.WithEnvironment("ASPNETCORE_URLS", BuildBindingUrl(uri));
     }
 
     private static string BuildBindingUrl(Uri uri)
@@ -274,7 +448,8 @@ public static class Program
 
         var endpointsToRemove = projectResource.Annotations
             .OfType<EndpointAnnotation>()
-            .Where(annotation => string.Equals(annotation.UriScheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            .Where(annotation =>
+                string.Equals(annotation.UriScheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(annotation.UriScheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             .ToList();
 

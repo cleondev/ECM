@@ -49,7 +49,7 @@ public static class EventTopics
     {
         public static class Document
         {
-            public const string Uploaded = EventNames.Document.Uploaded;
+            public const string Uploaded = EventNames.Document.Created;
         }
 
         public static class Ocr

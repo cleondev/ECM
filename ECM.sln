@@ -103,21 +103,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Utilities", "src\Sha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Extensions", "src\Shared\Extensions\Shared.Extensions.csproj", "{ACB9678B-3A6B-40FE-B1F7-B964EB8E783A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
-	ProjectSection(SolutionItems) = preProject
-		docs\api-reference.md = docs\api-reference.md
-		docs\azure-entra-app-registration.md = docs\azure-entra-app-registration.md
-		docs\azure-pipelines.md = docs\azure-pipelines.md
-		docs\changelog.md = docs\changelog.md
-		docs\dataflow.html = docs\dataflow.html
-		docs\environment-configuration.md = docs\environment-configuration.md
-		docs\gateway-ecm-flow.md = docs\gateway-ecm-flow.md
-		docs\Login Flow.png = docs\Login Flow.png
-		docs\migrations-troubleshooting.md = docs\migrations-troubleshooting.md
-		docs\ocr-integration.md = docs\ocr-integration.md
-		docs\share-links.md = docs\share-links.md
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{84A5AF64-2782-47D3-BD8D-32937AC6F1DC}"
 	ProjectSection(SolutionItems) = preProject
 		database\00_extensions.sql = database\00_extensions.sql

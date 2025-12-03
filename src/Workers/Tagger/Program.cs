@@ -1,11 +1,11 @@
-using System;
-using System.Threading.Tasks;
 using Ecm.Sdk.Extensions;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
+
 using Microsoft.Extensions.Options;
+
 using Serilog;
+
 using ServiceDefaults;
+
 using Workers.Shared.Messaging;
 
 namespace Tagger;

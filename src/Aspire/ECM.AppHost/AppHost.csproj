@@ -16,6 +16,7 @@
     <ProjectReference Include="../../Workers/Notify/Notify.csproj" />
     <ProjectReference Include="../../Workers/Ocr/Ocr.csproj" />
     <ProjectReference Include="../../Workers/WebhookDispatcher/WebhookDispatcher.csproj" />
+    <ProjectReference Include="..\..\Workers\Tagger\Tagger.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.Development.json">

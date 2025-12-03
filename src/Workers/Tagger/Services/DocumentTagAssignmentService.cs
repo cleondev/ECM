@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Ecm.Sdk.Clients;
 using Ecm.Sdk.Models.Tags;
-using Microsoft.Extensions.Logging;
+
 using Microsoft.Extensions.Options;
 
 namespace Tagger;

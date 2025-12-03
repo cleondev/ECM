@@ -16,8 +16,8 @@ internal sealed class TaggingIntegrationEventListener(
     IServiceScopeFactory scopeFactory,
     ILogger<TaggingIntegrationEventListener> logger) : BackgroundService
 {
-    private const string DocumentUploadedTopic = EventTopics.Pipelines.Document.Uploaded;
-    private const string OcrCompletedTopic = EventTopics.Pipelines.Ocr.Completed;
+    private const string DocumentUploadedTopic = EventTopics.Document.Events;
+    private const string OcrCompletedTopic = EventTopics.Ocr.Events;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
