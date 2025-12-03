@@ -387,7 +387,7 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
     const index = namespaceOrder.size + 1
     const label = normalizedLabel || `Namespace ${index}`
     const namespaceNode: TagNode = {
-      id: `ns:${namespaceId}`,
+      id: `${namespaceId}`,
       namespaceId,
       name: label,
       namespaceLabel: label,
