@@ -20,9 +20,13 @@ public static class DocumentApplicationModuleExtensions
         services.AddScoped<CreateTagLabelCommandHandler>();
         services.AddScoped<UpdateTagLabelCommandHandler>();
         services.AddScoped<DeleteTagLabelCommandHandler>();
+        services.AddScoped<CreateTagNamespaceCommandHandler>();
+        services.AddScoped<UpdateTagNamespaceCommandHandler>();
+        services.AddScoped<DeleteTagNamespaceCommandHandler>();
         services.AddScoped<AssignTagToDocumentCommandHandler>();
         services.AddScoped<RemoveTagFromDocumentCommandHandler>();
         services.AddScoped<ListTagLabelsQueryHandler>();
+        services.AddScoped<ListTagNamespacesQueryHandler>();
         services.AddScoped<CreateShareLinkCommandHandler>();
         services.AddScoped<UpdateShareLinkCommandHandler>();
         services.AddScoped<ShareLinkService>();

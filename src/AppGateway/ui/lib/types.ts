@@ -121,6 +121,16 @@ export type TagNode = {
   namespaceScope?: TagScope
 }
 
+export type TagNamespace = {
+  id: string
+  scope: TagScope
+  ownerUserId?: string | null
+  ownerGroupId?: string | null
+  displayName?: string | null
+  isSystem?: boolean
+  createdAtUtc?: string
+}
+
 export type TagUpdateData = {
   name: string
   color?: string | null
