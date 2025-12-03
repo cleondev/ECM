@@ -18,6 +18,7 @@ import type {
   Group,
   ShareSubjectType,
   TagScope,
+  TagNamespace,
   Role,
   WorkflowDefinition,
   WorkflowInstance,
@@ -169,6 +170,16 @@ type TagLabelResponse = {
   isActive: boolean
   isSystem: boolean
   createdBy?: string | null
+  createdAtUtc: string
+}
+
+type TagNamespaceResponse = {
+  id: string
+  scope: string
+  ownerUserId?: string | null
+  ownerGroupId?: string | null
+  displayName?: string | null
+  isSystem: boolean
   createdAtUtc: string
 }
 
@@ -332,7 +343,7 @@ function normalizeScope(value?: string | null): TagScope {
   return "user"
 }
 
-function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
+function buildTagTree(labels: TagLabelResponse[], namespaces: TagNamespace[] = []): TagNode[] {
   if (!labels?.length) {
     return []
   }
@@ -340,6 +351,11 @@ function buildTagTree(labels: TagLabelResponse[]): TagNode[] {
   const labelNodes = new Map<string, TagNode>()
   const namespaceNodes = new Map<string, TagNode>()
   const namespaceOrder = new Map<string, number>()
+
+  namespaces.forEach((ns, index) => {
+    ensureNamespace(ns.id, ns.displayName, ns.scope)
+    namespaceOrder.set(ns.id, index + 1)
+  })
 
   const sortedLabels = [...labels].sort((a, b) => {
     const depthA = a.pathIds?.length ?? 0
@@ -1420,18 +1436,96 @@ function resolveSortField(sortBy: NonNullable<FileQueryParams["sortBy"]>): strin
   }
 }
 
-export async function fetchTags(options?: { scope?: "all" | "user" | "group" | "global" }): Promise<TagNode[]> {
+export async function fetchTags(options?: {
+  scope?: "all" | "user" | "group" | "global"
+  includeAll?: boolean
+  namespaces?: TagNamespace[]
+}): Promise<TagNode[]> {
   try {
     const params = new URLSearchParams()
     params.set("scope", options?.scope ?? "all")
-    params.set("includeAll", "true")
+    if (options?.includeAll) {
+      params.set("includeAll", "true")
+    }
 
     const response = await gatewayRequest<TagLabelResponse[]>(`/api/tags?${params.toString()}`)
-    return buildTagTree(response)
+    return buildTagTree(response, options?.namespaces ?? [])
   } catch (error) {
     console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
     return normalizeMockTagTree(mockTagTree)
   }
+}
+
+function mapNamespaceResponse(response: TagNamespaceResponse): TagNamespace {
+  return {
+    id: response.id,
+    scope: normalizeScope(response.scope),
+    ownerUserId: response.ownerUserId ?? null,
+    ownerGroupId: response.ownerGroupId ?? null,
+    displayName: response.displayName ?? null,
+    isSystem: response.isSystem,
+    createdAtUtc: response.createdAtUtc,
+  }
+}
+
+export async function fetchTagNamespaces(options?: {
+  scope?: "all" | "user" | "group" | "global"
+  includeAll?: boolean
+}): Promise<TagNamespace[]> {
+  const params = new URLSearchParams()
+  params.set("scope", options?.scope ?? "all")
+  if (options?.includeAll) {
+    params.set("includeAll", "true")
+  }
+
+  try {
+    const response = await gatewayRequest<TagNamespaceResponse[]>(`/api/tags/namespaces?${params.toString()}`)
+    return response.map(mapNamespaceResponse)
+  } catch (error) {
+    console.warn("[ui] Failed to fetch tag namespaces, returning empty list:", error)
+    return []
+  }
+}
+
+export async function createTagNamespace(data: {
+  scope: "global" | "group" | "user"
+  displayName?: string | null
+  ownerGroupId?: string | null
+  ownerUserId?: string | null
+}): Promise<TagNamespace> {
+  const payload = {
+    Scope: data.scope,
+    DisplayName: data.displayName ?? null,
+    OwnerGroupId: data.scope === "group" ? data.ownerGroupId ?? null : null,
+    OwnerUserId: data.scope === "user" ? data.ownerUserId ?? null : null,
+    CreatedBy: null as string | null,
+  }
+
+  const response = await gatewayRequest<TagNamespaceResponse>(`/api/tags/namespaces`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+
+  return mapNamespaceResponse(response)
+}
+
+export async function updateTagNamespace(
+  namespaceId: string,
+  data: { displayName?: string | null },
+): Promise<void> {
+  const payload = {
+    DisplayName: data.displayName ?? null,
+    UpdatedBy: null as string | null,
+  }
+
+  await gatewayRequest(`/api/tags/namespaces/${namespaceId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteTagNamespace(namespaceId: string): Promise<void> {
+  await gatewayRequest(`/api/tags/namespaces/${namespaceId}`, { method: "DELETE" })
 }
 
 type DocumentTypeResponseDto = {
@@ -1768,7 +1862,7 @@ export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<
       throw new Error("Tag name is required")
     }
 
-    const namespaceId = parent?.kind === "namespace" ? parent.id : parent?.namespaceId ?? null
+    const namespaceId = parent?.kind === "namespace" ? parent.namespaceId : parent?.namespaceId ?? null
 
     const parentId = parent?.kind === "label" ? parent.id : null
 

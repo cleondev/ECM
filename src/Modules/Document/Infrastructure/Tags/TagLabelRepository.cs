@@ -24,6 +24,8 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
     public Task<TagLabel[]> ListWithNamespaceAsync(
         Guid? ownerUserId,
         Guid? primaryGroupId,
+        string? scope,
+        bool includeAllNamespaces,
         CancellationToken cancellationToken = default)
     {
         IQueryable<TagLabel> query = _context.TagLabels
@@ -31,14 +33,40 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
 
         query = query.Include(label => label.Namespace);
 
-        query = query.Where(label => label.Namespace != null && (
-            label.Namespace.Scope == "global"
-            || (ownerUserId.HasValue
-                && label.Namespace.Scope == "user"
-                && label.Namespace.OwnerUserId == ownerUserId.Value)
-            || (primaryGroupId.HasValue
-                && label.Namespace.Scope == "group"
-                && label.Namespace.OwnerGroupId == primaryGroupId.Value)));
+        var normalizedScope = NormalizeScope(scope);
+
+        if (includeAllNamespaces)
+        {
+            query = query.Where(label => label.Namespace != null);
+
+            if (normalizedScope is not null && normalizedScope != "all")
+            {
+                query = query.Where(label => label.Namespace!.Scope == normalizedScope);
+            }
+        }
+        else
+        {
+            var includeUser = normalizedScope is null
+                || normalizedScope == "all"
+                || normalizedScope == "user";
+            var includeGroup = normalizedScope is null
+                || normalizedScope == "all"
+                || normalizedScope == "group";
+            var includeGlobal = normalizedScope is null
+                || normalizedScope == "all"
+                || normalizedScope == "global";
+
+            query = query.Where(label => label.Namespace != null && (
+                (includeGlobal && label.Namespace!.Scope == "global")
+                || (includeUser
+                    && ownerUserId.HasValue
+                    && label.Namespace!.Scope == "user"
+                    && label.Namespace.OwnerUserId == ownerUserId.Value)
+                || (includeGroup
+                    && primaryGroupId.HasValue
+                    && label.Namespace!.Scope == "group"
+                    && label.Namespace.OwnerGroupId == primaryGroupId.Value)));
+        }
 
         return query
             .OrderBy(label => label.NamespaceId)
@@ -95,6 +123,9 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public Task<bool> AnyInNamespaceAsync(Guid namespaceId, CancellationToken cancellationToken = default)
+        => _context.TagLabels.AsNoTracking().AnyAsync(label => label.NamespaceId == namespaceId, cancellationToken);
+
     private async Task EnqueueOutboxMessagesAsync(CancellationToken cancellationToken)
     {
         var entitiesWithEvents = _context.ChangeTracker
@@ -121,5 +152,15 @@ public sealed class TagLabelRepository(DocumentDbContext context) : ITagLabelRep
         {
             entity.ClearDomainEvents();
         }
+    }
+
+    private static string? NormalizeScope(string? scope)
+    {
+        if (string.IsNullOrWhiteSpace(scope))
+        {
+            return null;
+        }
+
+        return scope.Trim().ToLowerInvariant();
     }
 }
