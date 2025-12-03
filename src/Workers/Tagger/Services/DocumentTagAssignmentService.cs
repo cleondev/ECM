@@ -169,7 +169,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     private void EnsureUserContext()
     {
         var userKey = _userOptions.CurrentValue.UserKey;
-
+        userKey = string.IsNullOrEmpty(userKey) ? "system@local" : userKey;
         if (!string.IsNullOrWhiteSpace(userKey))
         {
             ManualEcmUserContext.SetUserKey(userKey);
@@ -181,7 +181,6 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
             return;
         }
 
-        throw new InvalidOperationException(
-            "No ECM user identity configured. Provide EcmUser:UserKey or call ManualEcmUserContext.SetUserKey before assigning tags.");
+        throw new InvalidOperationException("No ECM user identity configured. Provide EcmUser:UserKey or call ManualEcmUserContext.SetUserKey before assigning tags.");
     }
 }

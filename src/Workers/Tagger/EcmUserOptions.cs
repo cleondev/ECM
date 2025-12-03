@@ -7,5 +7,5 @@ public sealed class EcmUserOptions
     /// <summary>
     /// User identity (email or cloud id) that the Tagger worker should use when calling the ECM SDK.
     /// </summary>
-    public string UserKey { get; init; } = string.Empty;
+    public string UserKey { get; init; } = "system@local";
 }
