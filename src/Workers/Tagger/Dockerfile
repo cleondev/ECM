@@ -14,13 +14,11 @@ COPY ["Directory.Packages.props", "."]
 COPY ["src/Workers/Tagger/Tagger.csproj", "src/Workers/Tagger/"]
 COPY ["src/Shared/ServiceDefaults/ServiceDefaults.csproj", "src/Shared/ServiceDefaults/"]
 COPY ["src/ECM/ECM.BuildingBlocks/ECM.BuildingBlocks.csproj", "src/ECM/ECM.BuildingBlocks/"]
-COPY ["src/Modules/Document/ECM.Document.csproj", "src/Modules/Document/"]
-COPY ["src/Modules/Abstractions/ECM.Abstractions.csproj", "src/Modules/Abstractions/"]
-COPY ["src/Modules/Operations/ECM.Operations.csproj", "src/Modules/Operations/"]
 COPY ["src/Shared/Extensions/Shared.Extensions.csproj", "src/Shared/Extensions/"]
 COPY ["src/Shared/Utilities/Shared.Utilities.csproj", "src/Shared/Utilities/"]
 COPY ["src/Shared/Contracts/Shared.Contracts.csproj", "src/Shared/Contracts/"]
 COPY ["src/Workers/Shared/Workers.Shared.csproj", "src/Workers/Shared/"]
+COPY ["sdk/Ecm.Sdk/Ecm.Sdk.csproj", "sdk/Ecm.Sdk/"]
 RUN dotnet restore "./src/Workers/Tagger/Tagger.csproj"
 COPY . .
 WORKDIR "/src/src/Workers/Tagger"
