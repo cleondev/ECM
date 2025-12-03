@@ -24,12 +24,14 @@ public sealed class EcmAccessTokenHandler(
     EcmAuthenticator authenticator,
     IHttpContextAccessor httpContextAccessor,
     IOptions<EcmIntegrationOptions> options,
-    ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
+    ILogger<EcmAccessTokenHandler> logger,
+    IServiceProvider serviceProvider) : DelegatingHandler
 {
     private readonly EcmAuthenticator _authenticator = authenticator;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly EcmIntegrationOptions _options = options.Value;
     private readonly ILogger<EcmAccessTokenHandler> _logger = logger;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     /// <summary>
     /// Adds the bearer token to outgoing requests and delegates execution to the next handler.
@@ -68,12 +70,10 @@ public sealed class EcmAccessTokenHandler(
         }
 
         string userKey = "system@local";
-        if (httpContext != null)
-        {
-            var sp = httpContext.RequestServices;
-            var currentUserContext = sp.GetService<IEcmUserContext>();
-            userKey = currentUserContext?.GetUserKey() ?? userKey;
-        }
+        var currentUserContext = httpContext?.RequestServices.GetService<IEcmUserContext>()
+            ?? _serviceProvider.GetService<IEcmUserContext>();
+
+        userKey = currentUserContext?.GetUserKey() ?? userKey;
 
         var session = await _authenticator.GetSessionForUserAsync(userKey, cancellationToken);
 
