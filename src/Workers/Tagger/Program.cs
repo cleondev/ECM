@@ -1,4 +1,7 @@
+using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Extensions;
+
+using Microsoft.AspNetCore.Http;
 
 using Microsoft.Extensions.Options;
 
@@ -25,6 +28,15 @@ public static class Program
             var builder = Host.CreateApplicationBuilder(args);
             builder.AddServiceDefaults();
 
+            builder.Services.AddSingleton<IHttpContextAccessor>(static sp => new HttpContextAccessor
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    RequestServices = sp
+                }
+            });
+
+            builder.Services.AddSingleton<IEcmUserContext, SystemUserContext>();
             builder.Services.AddEcmSdk(builder.Configuration);
 
             builder.Services.AddSingleton<IValidateOptions<TaggingRulesOptions>, TaggingRulesOptionsValidator>();
