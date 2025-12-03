@@ -69,11 +69,17 @@ public sealed class EcmAccessTokenHandler(
             }
         }
 
-        string userKey = "system@local";
+        var defaultUserKey = _options.ApiKey.DefaultUserEmail;
         var currentUserContext = httpContext?.RequestServices.GetService<IEcmUserContext>()
             ?? _serviceProvider.GetService<IEcmUserContext>();
 
-        userKey = currentUserContext?.GetUserKey() ?? userKey;
+        var userKey = currentUserContext?.GetUserKey() ?? defaultUserKey;
+
+        if (string.IsNullOrWhiteSpace(userKey))
+        {
+            throw new ArgumentException(
+                "Missing user identity. Provide an IEcmUserContext implementation or configure ApiKey.DefaultUserEmail.");
+        }
 
         var session = await _authenticator.GetSessionForUserAsync(userKey, cancellationToken);
 
