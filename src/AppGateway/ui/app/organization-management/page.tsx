@@ -16,6 +16,7 @@ import {
   Shield,
   Tags,
   Plus,
+  Sparkles,
   UserCheck,
   Users,
   X,
@@ -306,6 +307,16 @@ export default function OrganizationManagementPage() {
   const selectableRoles = useMemo(() => (roles.length ? roles : roleCatalog), [roles])
 
   const namespaceNodes = useMemo(() => tags.filter((tag) => tag.kind === "namespace"), [tags])
+  const tagStats = useMemo(
+    () => ({
+      namespaces: namespaceNodes.length,
+      totalLabels: tags.filter((tag) => tag.kind === "label").length,
+      global: tags.filter((tag) => tag.namespaceScope === "global").length,
+      group: tags.filter((tag) => tag.namespaceScope === "group").length,
+      personal: tags.filter((tag) => (tag.namespaceScope ?? "user") === "user").length,
+    }),
+    [namespaceNodes.length, tags],
+  )
   const groupKinds = useMemo(
     () =>
       Array.from(
@@ -644,7 +655,7 @@ export default function OrganizationManagementPage() {
       return existing
     }
 
-    const refreshed = await fetchTags({ scope: "all" })
+    const refreshed = await fetchTags({ scope: "all", includeAll: true, namespaces })
     setTags(refreshed)
 
     return findCreatableNamespace(refreshed)
@@ -937,6 +948,71 @@ export default function OrganizationManagementPage() {
           </TabsList>
 
           <TabsContent value="tags" className="space-y-4 overflow-y-auto">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="bg-gradient-to-br from-primary/10 via-background to-background/80 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="h-4 w-4 text-primary" /> Tag workspace overview
+                  </CardTitle>
+                  <CardDescription>
+                    Tóm tắt nhanh số lượng namespace và tag trong toàn tổ chức.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Namespaces</p>
+                    <p className="text-2xl font-semibold">{tagStats.namespaces}</p>
+                  </div>
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Tổng số tag</p>
+                    <p className="text-2xl font-semibold">{tagStats.totalLabels}</p>
+                  </div>
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Global / Group</p>
+                    <p className="text-lg font-semibold">{tagStats.global} / {tagStats.group}</p>
+                  </div>
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Personal</p>
+                    <p className="text-lg font-semibold">{tagStats.personal}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-dashed">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Hướng dẫn thao tác</CardTitle>
+                  <CardDescription>Nhấp chuột phải trên từng node để mở menu thao tác.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>• Chỉ quản trị viên mới có thể chỉnh sửa global/group tags.</p>
+                  <p>• Bật/tắt chế độ chỉnh sửa global ở thanh công cụ bên dưới.</p>
+                  <p>• Namespace có thể được tạo/sửa/xoá trực tiếp trên cây tag.</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-muted/40">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Không gian làm việc</CardTitle>
+                  <CardDescription>
+                    Cây tag cho phép quản lý độc lập giữa workspace tổ chức và cá nhân.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+                    <span>Global</span>
+                    <Badge variant="secondary">{tagStats.global} tag</Badge>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+                    <span>Group</span>
+                    <Badge variant="outline">{tagStats.group} tag</Badge>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+                    <span>Personal</span>
+                    <Badge variant="outline">{tagStats.personal} tag</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
             <Card className="overflow-auto">
               <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
