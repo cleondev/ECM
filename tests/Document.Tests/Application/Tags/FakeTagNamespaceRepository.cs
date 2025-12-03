@@ -50,4 +50,19 @@ internal sealed class FakeTagNamespaceRepository : ITagNamespaceRepository
         Seed(tagNamespace);
         return Task.FromResult(tagNamespace);
     }
+
+    public Task<TagNamespace[]> ListAsync(string? scope = null, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<TagNamespace> UpdateAsync(TagNamespace tagNamespace, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task RemoveAsync(TagNamespace tagNamespace, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }
