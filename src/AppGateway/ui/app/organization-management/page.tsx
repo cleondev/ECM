@@ -601,9 +601,8 @@ export default function OrganizationManagementPage() {
       const namespaceNode = await resolveNamespaceNode()
       if (!namespaceNode) {
         console.warn("[org-settings] Unable to determine namespace for new tag creation")
-        return
       }
-      await createTag(data, namespaceNode)
+      await createTag(data, namespaceNode ?? undefined)
     }
     await reloadTags()
   }
