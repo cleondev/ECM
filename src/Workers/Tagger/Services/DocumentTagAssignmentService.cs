@@ -1,3 +1,5 @@
+using System.Threading;
+
 using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Clients;
 using Ecm.Sdk.Models.Tags;
@@ -21,6 +23,10 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     private readonly ILogger<DocumentTagAssignmentService> _logger;
     private readonly IOptionsMonitor<TaggingRulesOptions> _options;
     private readonly IOptionsMonitor<EcmUserOptions> _userOptions;
+    private readonly SemaphoreSlim _userIdLock = new(1, 1);
+
+    private Guid? _cachedUserId;
+    private bool _userIdResolved;
 
     public DocumentTagAssignmentService(
         EcmFileClient client,
@@ -47,7 +53,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
             return 0;
         }
 
-        var appliedBy = _options.CurrentValue.AppliedBy;
+        var appliedBy = await ResolveAppliedByAsync(cancellationToken).ConfigureAwait(false);
         var appliedCount = 0;
         var seen = new HashSet<Guid>();
 
@@ -134,15 +140,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
             return existing.Id;
         }
 
-        var createdBy = _options.CurrentValue.AppliedBy;
-        if (createdBy is null)
-        {
-            _logger.LogWarning(
-                "Cannot create tag {TagName} because AppliedBy is not configured.",
-                normalized);
-            return null;
-        }
-
+        var createdBy = await ResolveAppliedByAsync(cancellationToken).ConfigureAwait(false);
         var created = await _client.CreateTagAsync(
             new TagCreateRequest(
                 NamespaceId: null,
@@ -164,6 +162,51 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
 
         tagLookup[created.Name] = created;
         return created.Id;
+    }
+
+    private async Task<Guid?> ResolveAppliedByAsync(CancellationToken cancellationToken)
+    {
+        if (_options.CurrentValue.AppliedBy is { } appliedBy)
+        {
+            return appliedBy;
+        }
+
+        var userKey = _userOptions.CurrentValue.UserKey;
+
+        if (Guid.TryParse(userKey, out var userId))
+        {
+            return userId;
+        }
+
+        if (_userIdResolved)
+        {
+            return _cachedUserId;
+        }
+
+        await _userIdLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_userIdResolved)
+            {
+                return _cachedUserId;
+            }
+
+            var profile = await _client.GetCurrentUserProfileAsync(cancellationToken).ConfigureAwait(false);
+            _cachedUserId = profile?.Id;
+            _userIdResolved = true;
+
+            if (_cachedUserId is null && !string.IsNullOrWhiteSpace(userKey))
+            {
+                _logger.LogDebug(
+                    "Failed to resolve user id for configured EcmUser:UserKey; tag creations will be recorded as automated.");
+            }
+
+            return _cachedUserId;
+        }
+        finally
+        {
+            _userIdLock.Release();
+        }
     }
 
     private void EnsureUserContext()
