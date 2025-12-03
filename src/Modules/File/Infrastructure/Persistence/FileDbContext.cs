@@ -1,5 +1,6 @@
-using ECM.Operations.Infrastructure.Persistence;
 using ECM.File.Infrastructure.Persistence.Models;
+using ECM.Operations.Infrastructure.Persistence;
+using ECM.Operations.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECM.File.Infrastructure.Persistence;
@@ -14,5 +15,6 @@ public sealed class FileDbContext(DbContextOptions<FileDbContext> options) : DbC
     {
         modelBuilder.HasDefaultSchema("file");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(FileDbContext).Assembly);
+        modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration(excludeFromMigrations: true));
     }
 }

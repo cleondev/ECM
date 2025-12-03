@@ -6,6 +6,7 @@ using ECM.Document.Domain.Tags;
 using ECM.Document.Domain.Versions;
 using ECM.Document.Infrastructure.Persistence.Models;
 using ECM.Operations.Infrastructure.Persistence;
+using ECM.Operations.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 using ECM.Document.Infrastructure.Persistence.ReadModels;
@@ -48,5 +49,6 @@ public sealed class DocumentDbContext(DbContextOptions<DocumentDbContext> option
     {
         modelBuilder.HasDefaultSchema("doc");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(DocumentDbContext).Assembly);
+        modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration(excludeFromMigrations: true));
     }
 }

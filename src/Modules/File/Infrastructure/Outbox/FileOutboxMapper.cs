@@ -1,9 +1,9 @@
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using ECM.BuildingBlocks.Domain.Events;
 using ECM.File.Domain.Files.Events;
+using ECM.Operations.Infrastructure.Outbox;
 using ECM.Operations.Infrastructure.Persistence;
 
 using Shared.Contracts.Files;
@@ -13,8 +13,6 @@ namespace ECM.File.Infrastructure.Outbox;
 
 internal static class FileOutboxMapper
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
-
     public static IEnumerable<OutboxMessage> ToOutboxMessages(IEnumerable<IDomainEvent> domainEvents)
     {
         ArgumentNullException.ThrowIfNull(domainEvents);
@@ -37,13 +35,11 @@ internal static class FileOutboxMapper
             domainEvent.LegalHold,
             domainEvent.OccurredAtUtc);
 
-        var payload = JsonSerializer.Serialize(contract, SerializerOptions);
-
-        return new OutboxMessage(
+        return OutboxMessageFactory.Create(
             aggregate: "file",
             aggregateId: CreateDeterministicGuid(domainEvent.StorageKey),
             type: EventNames.File.Uploaded,
-            payload: payload,
+            payload: contract,
             occurredAtUtc: domainEvent.OccurredAtUtc);
     }
 

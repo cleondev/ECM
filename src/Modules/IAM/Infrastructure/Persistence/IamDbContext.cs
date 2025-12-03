@@ -3,6 +3,7 @@ using ECM.IAM.Domain.Roles;
 using ECM.IAM.Domain.Users;
 using ECM.IAM.Domain.Groups;
 using ECM.Operations.Infrastructure.Persistence;
+using ECM.Operations.Infrastructure.Persistence.Configurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace ECM.IAM.Infrastructure.Persistence;
@@ -27,5 +28,6 @@ public sealed class IamDbContext(DbContextOptions<IamDbContext> options) : DbCon
     {
         modelBuilder.HasDefaultSchema("iam");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IamDbContext).Assembly);
+        modelBuilder.ApplyConfiguration(new OutboxMessageConfiguration(excludeFromMigrations: true));
     }
 }
