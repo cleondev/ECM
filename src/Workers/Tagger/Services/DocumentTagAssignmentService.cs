@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 
 using Ecm.Sdk.Authentication;
@@ -55,7 +56,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
 
         var appliedBy = await ResolveAppliedByAsync(cancellationToken).ConfigureAwait(false);
         var appliedCount = 0;
-        var seen = new HashSet<Guid>();
+        var seen = await GetExistingTagIdsAsync(documentId, cancellationToken).ConfigureAwait(false);
 
         var tagLookup = await BuildTagLookupAsync(tagNames, cancellationToken).ConfigureAwait(false);
 
@@ -109,6 +110,15 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         }
 
         return appliedCount;
+    }
+
+    private async Task<HashSet<Guid>> GetExistingTagIdsAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        var document = await _client.GetDocumentAsync(documentId, cancellationToken).ConfigureAwait(false);
+
+        return document?.Tags is null
+            ? new HashSet<Guid>()
+            : document.Tags.Select(tag => tag.Id).ToHashSet();
     }
 
     private async Task<Dictionary<string, TagLabelDto>> BuildTagLookupAsync(
