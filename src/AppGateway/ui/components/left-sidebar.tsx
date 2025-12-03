@@ -400,9 +400,8 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
       const namespaceNode = await resolveNamespaceNode()
       if (!namespaceNode) {
         console.warn("[sidebar] Unable to determine namespace for new tag creation")
-        return
       }
-      await createTag(data, namespaceNode)
+      await createTag(data, namespaceNode ?? undefined)
     }
     const updatedTags = await fetchTags()
     setTagTree(updatedTags)
