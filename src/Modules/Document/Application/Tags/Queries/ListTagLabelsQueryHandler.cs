@@ -14,10 +14,12 @@ public sealed class ListTagLabelsQueryHandler(ITagLabelRepository tagLabelReposi
     public async Task<TagLabelResult[]> HandleAsync(
         Guid? ownerUserId,
         Guid? primaryGroupId,
+        string? scope,
+        bool includeAllNamespaces,
         CancellationToken cancellationToken = default)
     {
         var tagLabels = await _tagLabelRepository
-            .ListWithNamespaceAsync(ownerUserId, primaryGroupId, cancellationToken)
+            .ListWithNamespaceAsync(ownerUserId, primaryGroupId, scope, includeAllNamespaces, cancellationToken)
             .ConfigureAwait(false);
 
         return [.. tagLabels
