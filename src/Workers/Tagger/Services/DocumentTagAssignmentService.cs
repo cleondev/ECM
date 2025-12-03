@@ -1,3 +1,4 @@
+using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Clients;
 using Ecm.Sdk.Models.Tags;
 
@@ -19,15 +20,18 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     private readonly EcmFileClient _client;
     private readonly ILogger<DocumentTagAssignmentService> _logger;
     private readonly IOptionsMonitor<TaggingRulesOptions> _options;
+    private readonly IOptionsMonitor<EcmUserOptions> _userOptions;
 
     public DocumentTagAssignmentService(
         EcmFileClient client,
         ILogger<DocumentTagAssignmentService> logger,
-        IOptionsMonitor<TaggingRulesOptions> options)
+        IOptionsMonitor<TaggingRulesOptions> options,
+        IOptionsMonitor<EcmUserOptions> userOptions)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _userOptions = userOptions ?? throw new ArgumentNullException(nameof(userOptions));
     }
 
     public async Task<int> AssignTagsAsync(
@@ -36,6 +40,8 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         IReadOnlyCollection<string> tagNames,
         CancellationToken cancellationToken = default)
     {
+        EnsureUserContext();
+
         if ((tagIds is null || tagIds.Count == 0) && (tagNames is null || tagNames.Count == 0))
         {
             return 0;
@@ -158,5 +164,11 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
 
         tagLookup[created.Name] = created;
         return created.Id;
+    }
+
+    private void EnsureUserContext()
+    {
+        var userKey = _userOptions.CurrentValue.UserKey;
+        ManualEcmUserContext.SetUserKey(userKey);
     }
 }
