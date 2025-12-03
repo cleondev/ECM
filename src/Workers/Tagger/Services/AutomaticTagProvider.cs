@@ -107,6 +107,6 @@ internal static class AutomaticTagProvider
             trimmed = trimmed[..trimmed.IndexOf(',', StringComparison.Ordinal)];
         }
 
-        return trimmed.StartsWith('.', StringComparison.Ordinal) ? trimmed : $".{trimmed}";
+        return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed : $".{trimmed}";
     }
 }

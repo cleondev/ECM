@@ -75,4 +75,9 @@ internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
         LastTagIds = tagIds;
         return Task.FromResult(AssignTagsResult);
     }
+
+    public Task<int> AssignTagsAsync(Guid documentId, IReadOnlyCollection<Guid> tagIds, IReadOnlyCollection<string> tagNames, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }

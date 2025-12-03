@@ -116,7 +116,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C
 		docs\migrations-troubleshooting.md = docs\migrations-troubleshooting.md
 		docs\ocr-integration.md = docs\ocr-integration.md
 		docs\share-links.md = docs\share-links.md
-		docs\tag-sample-script.sql = docs\tag-sample-script.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{84A5AF64-2782-47D3-BD8D-32937AC6F1DC}"
