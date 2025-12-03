@@ -16,6 +16,7 @@ import {
   Shield,
   Tags,
   Plus,
+  Sparkles,
   UserCheck,
   Users,
   X,
@@ -51,21 +52,25 @@ import { TagManagementDialog } from "@/components/tag-management-dialog"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import {
   createTag,
+  createTagNamespace,
   deleteTag,
+  deleteTagNamespace,
   fetchCurrentUserProfile,
   fetchDocumentTypes,
   fetchGroups,
   fetchTags,
+  fetchTagNamespaces,
   fetchUsers,
   fetchRoles,
   renameRole,
   createRole,
   createDocumentType,
   updateDocumentType,
+  updateTagNamespace,
   updateTag,
 } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
-import type { DocumentType, Group, Role, TagNode, TagUpdateData, User } from "@/lib/types"
+import type { DocumentType, Group, Role, TagNamespace, TagNode, TagUpdateData, User } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 const ORG_MANAGEMENT_ROUTE = "/organization-management/"
@@ -111,6 +116,9 @@ function TagTreeItem({
   onAddChildTag,
   onDeleteTag,
   globalViewOnly,
+  allowNamespaceActions,
+  onEditNamespace,
+  onDeleteNamespace,
 }: {
   tag: TagNode
   level?: number
@@ -118,6 +126,9 @@ function TagTreeItem({
   onAddChildTag: (parentTag: TagNode) => void
   onDeleteTag: (tagId: string) => void
   globalViewOnly: boolean
+  allowNamespaceActions?: boolean
+  onEditNamespace?: (tag: TagNode) => void
+  onDeleteNamespace?: (tag: TagNode) => void
 }) {
   const [isExpanded, setIsExpanded] = useState(true)
   const hasChildren = Boolean(tag.children?.length)
@@ -126,6 +137,7 @@ function TagTreeItem({
   const isReadOnly = tag.isSystem
   const isManageableLabel = tag.kind === "label" && !isReadOnly
   const canAddChild = (isNamespace && !isReadOnly) || isManageableLabel
+  const canManageNamespace = isNamespace && allowNamespaceActions && !isReadOnly
   const displayIcon = tag.iconKey && tag.iconKey.trim() !== "" ? tag.iconKey : DEFAULT_TAG_ICON
   const indicatorStyle = tag.color ? { backgroundColor: tag.color, borderColor: tag.color } : undefined
 
@@ -185,6 +197,9 @@ function TagTreeItem({
                   onAddChildTag={onAddChildTag}
                   onDeleteTag={onDeleteTag}
                   globalViewOnly={globalViewOnly}
+                  allowNamespaceActions={allowNamespaceActions}
+                  onEditNamespace={onEditNamespace}
+                  onDeleteNamespace={onDeleteNamespace}
                 />
               ))}
             </div>
@@ -192,12 +207,26 @@ function TagTreeItem({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
+        {canManageNamespace ? (
+          <ContextMenuItem inset onSelect={() => onEditNamespace?.(tag)}>
+            <Edit className="mr-2 h-4 w-4" /> Edit namespace
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem inset disabled={isNamespace || !isManageableLabel} onSelect={() => onEditTag(tag)}>
           <Edit className="mr-2 h-4 w-4" /> Edit
         </ContextMenuItem>
         <ContextMenuItem inset disabled={!canAddChild} onSelect={() => onAddChildTag(tag)}>
           <Tags className="mr-2 h-4 w-4" /> Add child tag
         </ContextMenuItem>
+        {canManageNamespace ? (
+          <ContextMenuItem
+            inset
+            className="text-destructive focus:text-destructive"
+            onSelect={() => onDeleteNamespace?.(tag)}
+          >
+            <FolderCog className="mr-2 h-4 w-4" /> Delete namespace
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem
           inset
           disabled={!isManageableLabel}
@@ -218,11 +247,22 @@ export default function OrganizationManagementPage() {
   const [authorizationError, setAuthorizationError] = useState<string | null>(null)
   const [tags, setTags] = useState<TagNode[]>([])
   const [isLoadingTags, setIsLoadingTags] = useState(false)
-  const [isGlobalTagViewOnly, setIsGlobalTagViewOnly] = useState(true)
+  const [isGlobalTagViewOnly, setIsGlobalTagViewOnly] = useState(false)
+  const [namespaces, setNamespaces] = useState<TagNamespace[]>([])
   const [tagDialogMode, setTagDialogMode] = useState<TagDialogMode>("create")
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagNode | null>(null)
   const [parentTag, setParentTag] = useState<TagNode | null>(null)
+  const [namespaceDialogOpen, setNamespaceDialogOpen] = useState(false)
+  const [namespaceDialogMode, setNamespaceDialogMode] = useState<"create" | "edit">("create")
+  const [editingNamespace, setEditingNamespace] = useState<TagNamespace | null>(null)
+  const [namespaceDraft, setNamespaceDraft] = useState<{ name: string; scope: TagScope; ownerGroupId?: string | null }>(
+    {
+      name: "",
+      scope: "global",
+      ownerGroupId: null,
+    },
+  )
 
   const [roles, setRoles] = useState<Role[]>(roleCatalog)
   const [isLoadingRoles, setIsLoadingRoles] = useState(false)
@@ -267,6 +307,16 @@ export default function OrganizationManagementPage() {
   const selectableRoles = useMemo(() => (roles.length ? roles : roleCatalog), [roles])
 
   const namespaceNodes = useMemo(() => tags.filter((tag) => tag.kind === "namespace"), [tags])
+  const tagStats = useMemo(
+    () => ({
+      namespaces: namespaceNodes.length,
+      totalLabels: tags.filter((tag) => tag.kind === "label").length,
+      global: tags.filter((tag) => tag.namespaceScope === "global").length,
+      group: tags.filter((tag) => tag.namespaceScope === "group").length,
+      personal: tags.filter((tag) => (tag.namespaceScope ?? "user") === "user").length,
+    }),
+    [namespaceNodes.length, tags],
+  )
   const groupKinds = useMemo(
     () =>
       Array.from(
@@ -372,6 +422,7 @@ export default function OrganizationManagementPage() {
         console.error("[org-settings] Unable to load tags:", error)
         if (active) {
           setTags([])
+          setNamespaces([])
         }
       } finally {
         if (active) {
@@ -459,55 +510,12 @@ export default function OrganizationManagementPage() {
     }
   }, [isAuthenticated, isAdmin])
 
-  const mergeTagChildren = (existingChildren: TagNode[] = [], newChildren: TagNode[] = []) => {
-    const merged = [...existingChildren]
-    newChildren.forEach((child) => {
-      const matchIndex = merged.findIndex((item) => item.id === child.id)
-      if (matchIndex >= 0) {
-        merged[matchIndex] = {
-          ...merged[matchIndex],
-          ...child,
-          children: mergeTagChildren(merged[matchIndex].children ?? [], child.children ?? []),
-        }
-      } else {
-        merged.push({ ...child, children: child.children ?? [] })
-      }
-    })
-    return merged
-  }
-
-  const mergeTagTrees = (existing: TagNode[], incoming: TagNode[]) => {
-    const merged = [...existing]
-    incoming.forEach((node) => {
-      const matchIndex = merged.findIndex((item) => item.id === node.id)
-      if (matchIndex >= 0) {
-        merged[matchIndex] = {
-          ...merged[matchIndex],
-          ...node,
-          children: mergeTagChildren(merged[matchIndex].children ?? [], node.children ?? []),
-        }
-      } else {
-        merged.push({ ...node, children: node.children ?? [] })
-      }
-    })
-    return merged
-  }
-
   const loadCompleteTagTree = async (): Promise<TagNode[]> => {
-    const primary = await fetchTags({ scope: "all" })
-    let combined = primary
+    const namespaceList = await fetchTagNamespaces({ scope: "all", includeAll: true })
+    setNamespaces(namespaceList)
 
-    if (!primary.some((tag) => (tag.namespaceScope ?? "user") === "global")) {
-      const globalNodes = await fetchTags({ scope: "global" })
-      combined = mergeTagTrees(combined, globalNodes)
-    }
-
-    if (!combined.some((tag) => (tag.namespaceScope ?? "user") === "group")) {
-      const groupNodes = await fetchTags({ scope: "group" })
-      combined = mergeTagTrees(combined, groupNodes)
-    }
-
-    return combined
+    const tagTree = await fetchTags({ scope: "all", includeAll: true, namespaces: namespaceList })
+    return tagTree
   }
 
   const reloadTags = async () => {
@@ -568,6 +576,67 @@ export default function OrganizationManagementPage() {
     setIsTagDialogOpen(true)
   }
 
+  const openNamespaceDialog = (target?: TagNamespace | TagNode) => {
+    if (target && "namespaceScope" in target) {
+      const matched = namespaces.find((ns) => ns.id === target.namespaceId)
+      setEditingNamespace(matched ?? null)
+      setNamespaceDraft({
+        name: matched?.displayName ?? target.name,
+        scope: (matched?.scope ?? target.namespaceScope ?? "global") as TagScope,
+        ownerGroupId: matched?.ownerGroupId ?? null,
+      })
+      setNamespaceDialogMode("edit")
+    } else if (target) {
+      setEditingNamespace(target)
+      setNamespaceDraft({
+        name: target.displayName ?? target.scope,
+        scope: target.scope,
+        ownerGroupId: target.ownerGroupId ?? null,
+      })
+      setNamespaceDialogMode("edit")
+    } else {
+      setEditingNamespace(null)
+      setNamespaceDraft({ name: "", scope: "global", ownerGroupId: null })
+      setNamespaceDialogMode("create")
+    }
+
+    setNamespaceDialogOpen(true)
+  }
+
+  const handleDeleteNamespaceNode = async (node: TagNode) => {
+    const namespaceId = node.namespaceId
+    if (!namespaceId) return
+    if (!window.confirm(`Delete namespace "${node.name}"? All tags inside must be removed first.`)) {
+      return
+    }
+    try {
+      await deleteTagNamespace(namespaceId)
+      await reloadTags()
+    } catch (error) {
+      console.error("[org-settings] Unable to delete namespace", error)
+    }
+  }
+
+  const handleSaveNamespace = async () => {
+    if (namespaceDialogMode === "edit" && editingNamespace) {
+      await updateTagNamespace(editingNamespace.id, { displayName: namespaceDraft.name })
+    } else {
+      if (namespaceDraft.scope === "group" && !(namespaceDraft.ownerGroupId ?? groups[0]?.id)) {
+        console.warn("[org-settings] Group namespace requires a group owner")
+        return
+      }
+      await createTagNamespace({
+        scope: namespaceDraft.scope,
+        displayName: namespaceDraft.name,
+        ownerGroupId: namespaceDraft.scope === "group" ? namespaceDraft.ownerGroupId ?? groups[0]?.id ?? null : null,
+        ownerUserId: null,
+      })
+    }
+
+    setNamespaceDialogOpen(false)
+    await reloadTags()
+  }
+
   const findCreatableNamespace = (nodes: TagNode[]): TagNode | null => {
     const scored = nodes
       .filter((node) => node.kind === "namespace" && !node.isSystem)
@@ -586,7 +655,7 @@ export default function OrganizationManagementPage() {
       return existing
     }
 
-    const refreshed = await fetchTags({ scope: "all" })
+    const refreshed = await fetchTags({ scope: "all", includeAll: true, namespaces })
     setTags(refreshed)
 
     return findCreatableNamespace(refreshed)
@@ -879,27 +948,105 @@ export default function OrganizationManagementPage() {
           </TabsList>
 
           <TabsContent value="tags" className="space-y-4 overflow-y-auto">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="bg-gradient-to-br from-primary/10 via-background to-background/80 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="h-4 w-4 text-primary" /> Tag workspace overview
+                  </CardTitle>
+                  <CardDescription>
+                    Tóm tắt nhanh số lượng namespace và tag trong toàn tổ chức.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Namespaces</p>
+                    <p className="text-2xl font-semibold">{tagStats.namespaces}</p>
+                  </div>
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Tổng số tag</p>
+                    <p className="text-2xl font-semibold">{tagStats.totalLabels}</p>
+                  </div>
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Global / Group</p>
+                    <p className="text-lg font-semibold">{tagStats.global} / {tagStats.group}</p>
+                  </div>
+                  <div className="rounded-md border bg-background/60 p-3">
+                    <p className="text-muted-foreground">Personal</p>
+                    <p className="text-lg font-semibold">{tagStats.personal}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-dashed">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Hướng dẫn thao tác</CardTitle>
+                  <CardDescription>Nhấp chuột phải trên từng node để mở menu thao tác.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <p>• Chỉ quản trị viên mới có thể chỉnh sửa global/group tags.</p>
+                  <p>• Bật/tắt chế độ chỉnh sửa global ở thanh công cụ bên dưới.</p>
+                  <p>• Namespace có thể được tạo/sửa/xoá trực tiếp trên cây tag.</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-muted/40">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Không gian làm việc</CardTitle>
+                  <CardDescription>
+                    Cây tag cho phép quản lý độc lập giữa workspace tổ chức và cá nhân.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+                    <span>Global</span>
+                    <Badge variant="secondary">{tagStats.global} tag</Badge>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+                    <span>Group</span>
+                    <Badge variant="outline">{tagStats.group} tag</Badge>
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
+                    <span>Personal</span>
+                    <Badge variant="outline">{tagStats.personal} tag</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
             <Card className="overflow-auto">
               <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
                   <CardTitle>Tag & namespace management</CardTitle>
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline">Total nodes: {tags.length}</Badge>
-                    <Badge variant="secondary">Namespaces: {namespaceNodes.length}</Badge>
-                    <Badge variant="outline">
-                      Group/global tags: {tags.filter((tag) => (tag.namespaceScope ?? "") !== "user").length}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button variant="outline" size="sm" onClick={reloadTags} disabled={isLoadingTags}>
-                    <RefreshCcw className="mr-2 h-4 w-4" /> Refresh tag tree
-                  </Button>
-                  <Button size="sm" onClick={handleCreateNewTag} disabled={isLoadingTags}>
-                    <Plus className="mr-2 h-4 w-4" /> Add tag
-                  </Button>
-                </div>
-              </CardHeader>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <Badge variant="outline">Total nodes: {tags.length}</Badge>
+                <Badge variant="secondary">Namespaces: {namespaceNodes.length}</Badge>
+                <Badge variant="outline">
+                  Group/global tags: {tags.filter((tag) => (tag.namespaceScope ?? "") !== "user").length}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <Switch
+                  checked={!isGlobalTagViewOnly}
+                  onCheckedChange={(checked) => setIsGlobalTagViewOnly(!checked)}
+                  id="global-tag-edit-toggle"
+                />
+                <Label htmlFor="global-tag-edit-toggle" className="text-sm font-medium">
+                  Allow edits to global/group tags
+                </Label>
+              </div>
+              <Button variant="outline" size="sm" onClick={reloadTags} disabled={isLoadingTags}>
+                <RefreshCcw className="mr-2 h-4 w-4" /> Refresh tag tree
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => openNamespaceDialog()} disabled={isLoadingTags}>
+                <FolderCog className="mr-2 h-4 w-4" /> Add namespace
+              </Button>
+              <Button size="sm" onClick={handleCreateNewTag} disabled={isLoadingTags}>
+                <Plus className="mr-2 h-4 w-4" /> Add tag
+              </Button>
+            </div>
+          </CardHeader>
               <CardContent className="space-y-4">
                 {isLoadingTags ? (
                   <p className="text-sm text-muted-foreground">Loading tag tree…</p>
@@ -914,6 +1061,9 @@ export default function OrganizationManagementPage() {
                           onAddChildTag={handleAddChildTag}
                           onDeleteTag={handleDeleteTag}
                           globalViewOnly={isGlobalTagViewOnly}
+                          allowNamespaceActions={!isGlobalTagViewOnly || (node.namespaceScope ?? "user") !== "global"}
+                          onEditNamespace={(target) => openNamespaceDialog(target)}
+                          onDeleteNamespace={handleDeleteNamespaceNode}
                         />
                       ))}
                     </div>
@@ -932,6 +1082,83 @@ export default function OrganizationManagementPage() {
               parentTag={parentTag ?? undefined}
               onSave={handleSaveTag}
             />
+            <Dialog open={namespaceDialogOpen} onOpenChange={setNamespaceDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {namespaceDialogMode === "edit" ? "Edit namespace" : "Add namespace"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Manage global or group namespaces used to organize tags.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="namespace-name">Display name</Label>
+                    <Input
+                      id="namespace-name"
+                      value={namespaceDraft.name}
+                      onChange={(event) =>
+                        setNamespaceDraft((previous) => ({ ...previous, name: event.target.value }))
+                      }
+                      placeholder="Namespace label"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Scope</Label>
+                      <Select
+                        value={namespaceDraft.scope}
+                        onValueChange={(value: TagScope) =>
+                          setNamespaceDraft((previous) => ({
+                            ...previous,
+                            scope: value,
+                            ownerGroupId: value === "group" ? previous.ownerGroupId ?? groups[0]?.id ?? null : null,
+                          }))
+                        }
+                        disabled={namespaceDialogMode === "edit" && editingNamespace?.isSystem}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select scope" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="global">Global</SelectItem>
+                          <SelectItem value="group">Group</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {namespaceDraft.scope === "group" ? (
+                      <div className="space-y-2">
+                        <Label>Owning group</Label>
+                        <Select
+                          value={namespaceDraft.ownerGroupId ?? undefined}
+                          onValueChange={(value) =>
+                            setNamespaceDraft((previous) => ({ ...previous, ownerGroupId: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {groups.map((group) => (
+                              <SelectItem key={group.id} value={group.id}>
+                                {group.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setNamespaceDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveNamespace}>Save namespace</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">

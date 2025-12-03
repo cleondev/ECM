@@ -12,6 +12,8 @@ public interface ITagLabelRepository
     Task<TagLabel[]> ListWithNamespaceAsync(
         Guid? ownerUserId,
         Guid? primaryGroupId,
+        string? scope,
+        bool includeAllNamespaces,
         CancellationToken cancellationToken = default);
 
     Task<bool> ExistsWithNameAsync(
@@ -28,4 +30,6 @@ public interface ITagLabelRepository
     Task<TagLabel> UpdateAsync(TagLabel tagLabel, CancellationToken cancellationToken = default);
 
     Task RemoveAsync(TagLabel tagLabel, CancellationToken cancellationToken = default);
+
+    Task<bool> AnyInNamespaceAsync(Guid namespaceId, CancellationToken cancellationToken = default);
 }

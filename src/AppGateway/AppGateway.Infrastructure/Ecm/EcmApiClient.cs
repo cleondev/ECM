@@ -1221,6 +1221,11 @@ internal sealed class EcmApiClient(
     private async Task<T?> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            throw new UnauthorizedAccessException("Upstream request was unauthorized.");
+        }
+
         if (!response.IsSuccessStatusCode)
         {
             return default;
@@ -1237,6 +1242,12 @@ internal sealed class EcmApiClient(
     private async Task<bool> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            throw new UnauthorizedAccessException("Upstream request was unauthorized.");
+        }
+
         return response.IsSuccessStatusCode;
     }
 

@@ -32,6 +32,7 @@ public sealed class CreateTagLabelCommandHandler(
             return OperationResult<TagLabelResult>.Failure("A valid creator identifier is required.");
         }
 
+        var normalizedNamespaceId = NormalizeGuid(command.NamespaceId);
         var normalizedParentId = NormalizeGuid(command.ParentId);
 
         TagLabel? parent = null;
@@ -47,8 +48,26 @@ public sealed class CreateTagLabelCommandHandler(
             }
         }
 
-        var tagNamespace = await EnsurePersonalNamespaceAsync(command.CreatedBy.Value, cancellationToken)
-            .ConfigureAwait(false);
+        TagNamespace tagNamespace;
+        if (normalizedNamespaceId is not null)
+        {
+            var existingNamespace = await _tagNamespaceRepository
+                .GetAsync(normalizedNamespaceId.Value, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (existingNamespace is null)
+            {
+                return OperationResult<TagLabelResult>.Failure("Tag namespace does not exist.");
+            }
+
+            tagNamespace = existingNamespace;
+        }
+        else
+        {
+            tagNamespace = await EnsurePersonalNamespaceAsync(command.CreatedBy.Value, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         var namespaceId = tagNamespace.Id;
         var namespaceScope = string.IsNullOrWhiteSpace(tagNamespace.Scope)
             ? null
