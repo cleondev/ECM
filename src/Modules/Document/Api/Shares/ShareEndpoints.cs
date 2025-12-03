@@ -133,7 +133,7 @@ public static class ShareEndpoints
         return result.IsFailure ? MapErrors(result.Errors) : TypedResults.NoContent();
     }
 
-    internal static string? ResolveRequestBaseUrl(HttpRequest request)
+    public static string? ResolveRequestBaseUrl(HttpRequest request)
     {
         var forwardedScheme = GetForwardedHeaderValue(request, "X-Forwarded-Proto");
         var forwardedHost = GetForwardedHeaderValue(request, "X-Forwarded-Host");
