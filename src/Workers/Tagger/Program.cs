@@ -1,7 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using ECM.Document.Application;
-using ECM.Document.Infrastructure;
+using Ecm.Sdk.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -26,8 +25,7 @@ public static class Program
             var builder = Host.CreateApplicationBuilder(args);
             builder.AddServiceDefaults();
 
-            builder.Services.AddDocumentApplication();
-            builder.Services.AddDocumentInfrastructure();
+            builder.Services.AddEcmSdk(builder.Configuration);
 
             builder.Services.AddSingleton<IValidateOptions<TaggingRulesOptions>, TaggingRulesOptionsValidator>();
             builder.Services

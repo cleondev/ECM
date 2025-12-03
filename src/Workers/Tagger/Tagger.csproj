@@ -12,8 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" />
-    <ProjectReference Include="../../Modules/Document/ECM.Document.csproj" />
     <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
     <ProjectReference Include="../Shared/Workers.Shared.csproj" />
+    <ProjectReference Include="../../../sdk/Ecm.Sdk/Ecm.Sdk.csproj" />
   </ItemGroup>
 </Project>

@@ -37,17 +37,19 @@ internal sealed class TaggingEventProcessor(
             integrationEvent.Metadata);
 
         var matchingTags = _ruleEngine.Evaluate(context, trigger);
-        if (matchingTags.Count == 0)
+        var automaticTags = AutomaticTagProvider.GetAutomaticTags(integrationEvent);
+
+        if (matchingTags.Count == 0 && automaticTags.Count == 0)
         {
             _logger.LogDebug(
-                "No tagging rules matched document {DocumentId} on trigger {Trigger}.",
+                "No tagging rules matched document {DocumentId} on trigger {Trigger} and no automatic tags derived.",
                 integrationEvent.DocumentId,
                 trigger);
             return;
         }
 
         var appliedCount = await _assignmentService
-            .AssignTagsAsync(integrationEvent.DocumentId, matchingTags, cancellationToken)
+            .AssignTagsAsync(integrationEvent.DocumentId, matchingTags, automaticTags, cancellationToken)
             .ConfigureAwait(false);
 
         if (appliedCount == 0)

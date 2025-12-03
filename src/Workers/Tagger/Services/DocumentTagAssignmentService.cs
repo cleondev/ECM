@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ECM.Document.Application.Tags.Commands;
+using Ecm.Sdk.Clients;
+using Ecm.Sdk.Models.Tags;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,28 +12,36 @@ namespace Tagger;
 
 internal interface IDocumentTagAssignmentService
 {
-    Task<int> AssignTagsAsync(Guid documentId, IReadOnlyCollection<Guid> tagIds, CancellationToken cancellationToken = default);
+    Task<int> AssignTagsAsync(
+        Guid documentId,
+        IReadOnlyCollection<Guid> tagIds,
+        IReadOnlyCollection<string> tagNames,
+        CancellationToken cancellationToken = default);
 }
 
 internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentService
 {
-    private readonly AssignTagToDocumentCommandHandler _handler;
+    private readonly EcmFileClient _client;
     private readonly ILogger<DocumentTagAssignmentService> _logger;
     private readonly IOptionsMonitor<TaggingRulesOptions> _options;
 
     public DocumentTagAssignmentService(
-        AssignTagToDocumentCommandHandler handler,
+        EcmFileClient client,
         ILogger<DocumentTagAssignmentService> logger,
         IOptionsMonitor<TaggingRulesOptions> options)
     {
-        _handler = handler ?? throw new ArgumentNullException(nameof(handler));
+        _client = client ?? throw new ArgumentNullException(nameof(client));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    public async Task<int> AssignTagsAsync(Guid documentId, IReadOnlyCollection<Guid> tagIds, CancellationToken cancellationToken = default)
+    public async Task<int> AssignTagsAsync(
+        Guid documentId,
+        IReadOnlyCollection<Guid> tagIds,
+        IReadOnlyCollection<string> tagNames,
+        CancellationToken cancellationToken = default)
     {
-        if (tagIds is null || tagIds.Count == 0)
+        if ((tagIds is null || tagIds.Count == 0) && (tagNames is null || tagNames.Count == 0))
         {
             return 0;
         }
@@ -41,6 +50,8 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         var appliedCount = 0;
         var seen = new HashSet<Guid>();
 
+        var tagLookup = await BuildTagLookupAsync(tagNames, cancellationToken).ConfigureAwait(false);
+
         foreach (var tagId in tagIds.Where(tagId => tagId != Guid.Empty))
         {
             if (!seen.Add(tagId))
@@ -48,27 +59,109 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
                 continue;
             }
 
-            var result = await _handler
-                .HandleAsync(new AssignTagToDocumentCommand(documentId, tagId, appliedBy), cancellationToken)
+            var result = await _client.AssignTagToDocumentAsync(documentId, tagId, appliedBy, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (result.IsFailure || result.Value is not true)
+            if (!result)
             {
-                if (result.Errors.Count > 0)
-                {
-                    _logger.LogWarning(
-                        "Skipping tag {TagId} for document {DocumentId}: {Reason}",
-                        tagId,
-                        documentId,
-                        string.Join("; ", result.Errors));
-                }
-
+                _logger.LogWarning(
+                    "Skipping tag {TagId} for document {DocumentId}: assignment failed.",
+                    tagId,
+                    documentId);
                 continue;
             }
 
             appliedCount++;
         }
 
+        if (tagNames is not null && tagNames.Count > 0)
+        {
+            foreach (var tagName in tagNames)
+            {
+                var tagId = await ResolveTagIdAsync(tagName, tagLookup, cancellationToken).ConfigureAwait(false);
+
+                if (tagId is null || tagId == Guid.Empty || !seen.Add(tagId.Value))
+                {
+                    continue;
+                }
+
+                var assigned = await _client.AssignTagToDocumentAsync(documentId, tagId.Value, appliedBy, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (!assigned)
+                {
+                    _logger.LogWarning(
+                        "Skipping tag {TagName} for document {DocumentId}: assignment failed.",
+                        tagName,
+                        documentId);
+                    continue;
+                }
+
+                appliedCount++;
+            }
+        }
+
         return appliedCount;
+    }
+
+    private async Task<Dictionary<string, TagLabelDto>> BuildTagLookupAsync(
+        IReadOnlyCollection<string>? tagNames,
+        CancellationToken cancellationToken)
+    {
+        if (tagNames is null || tagNames.Count == 0)
+        {
+            return new Dictionary<string, TagLabelDto>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var existing = await _client.ListTagsAsync(cancellationToken).ConfigureAwait(false);
+        return existing.ToDictionary(tag => tag.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task<Guid?> ResolveTagIdAsync(
+        string? tagName,
+        IDictionary<string, TagLabelDto> tagLookup,
+        CancellationToken cancellationToken)
+    {
+        var normalized = tagName?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return null;
+        }
+
+        if (tagLookup.TryGetValue(normalized, out var existing))
+        {
+            return existing.Id;
+        }
+
+        var createdBy = _options.CurrentValue.AppliedBy;
+        if (createdBy is null)
+        {
+            _logger.LogWarning(
+                "Cannot create tag {TagName} because AppliedBy is not configured.",
+                normalized);
+            return null;
+        }
+
+        var created = await _client.CreateTagAsync(
+            new TagCreateRequest(
+                NamespaceId: null,
+                ParentId: null,
+                Name: normalized,
+                SortOrder: null,
+                Color: null,
+                IconKey: null,
+                CreatedBy: createdBy,
+                IsSystem: true),
+            cancellationToken)
+            .ConfigureAwait(false);
+
+        if (created is null)
+        {
+            _logger.LogWarning("Failed to create tag {TagName}.", normalized);
+            return null;
+        }
+
+        tagLookup[created.Name] = created;
+        return created.Id;
     }
 }
