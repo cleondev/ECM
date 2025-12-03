@@ -41,9 +41,9 @@ public sealed class EcmAccessTokenHandler(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var httpContext = _httpContextAccessor.HttpContext
-            ?? throw new ArgumentException("Missing user identity");
-        if (_options.Sso.Enabled)
+        var httpContext = _httpContextAccessor.HttpContext;
+
+        if (_options.Sso.Enabled && httpContext is not null)
         {
             var incomingAuthorization = httpContext.Request.Headers["Authorization"];
 
