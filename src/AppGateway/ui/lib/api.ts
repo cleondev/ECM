@@ -1768,10 +1768,7 @@ export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<
       throw new Error("Tag name is required")
     }
 
-    const namespaceId = parent?.namespaceId
-    if (!namespaceId) {
-      throw new Error("A target namespace is required to create a tag")
-    }
+    const namespaceId = parent?.kind === "namespace" ? parent.id : parent?.namespaceId ?? null
 
     const parentId = parent?.kind === "label" ? parent.id : null
 
