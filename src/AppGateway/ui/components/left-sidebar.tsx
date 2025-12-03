@@ -306,9 +306,9 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     system: false,
   })
 
-  const canCreateTags = useMemo(
+  const canCreateNameSpace = useMemo(
     () =>
-      tagTree.some((node) => node.kind === "namespace" && (node.namespaceScope ?? "user") === "user"),
+      !tagTree.some((node) => node.kind === "namespace" && (node.namespaceScope ?? "user") === "user"),
     [tagTree],
   )
 
@@ -367,7 +367,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   }
 
   const handleCreateNewTag = () => {
-    if (!canCreateTags) {
+    if (!canCreateNameSpace) {
       return
     }
     setEditingTag(null)
@@ -462,12 +462,12 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
                 Tags
               </span>
               <div className="flex items-center gap-1">
+                { canCreateNameSpace ?
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  title="Create new tag"
-                  disabled={!canCreateTags}
+                  title="Create new tag "
                   onClick={(event) => {
                     event.stopPropagation()
                     handleCreateNewTag()
@@ -475,6 +475,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
+                  : null}
                 <ChevronDown
                   className={cn(
                     "h-4 w-4 text-muted-foreground transition-transform",
