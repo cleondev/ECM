@@ -14,6 +14,11 @@ public sealed class ManualEcmUserContext : IEcmUserContext
     private static readonly AsyncLocal<string?> CurrentUserKey = new();
 
     /// <summary>
+    /// Indicates whether a user key is set for the current async context.
+    /// </summary>
+    public static bool HasUserKey => !string.IsNullOrWhiteSpace(CurrentUserKey.Value);
+
+    /// <summary>
     /// Sets the user key for the current async context.
     /// </summary>
     /// <param name="userKey">Identity value (email/cloud id) used when acquiring tokens.</param>

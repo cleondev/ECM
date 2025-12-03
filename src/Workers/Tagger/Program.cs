@@ -30,9 +30,7 @@ public static class Program
 
             builder.Services
                 .AddOptions<EcmUserOptions>()
-                .Bind(builder.Configuration.GetSection(EcmUserOptions.SectionName))
-                .Validate(options => !string.IsNullOrWhiteSpace(options.UserKey), "EcmUser:UserKey is required.")
-                .ValidateOnStart();
+                .Bind(builder.Configuration.GetSection(EcmUserOptions.SectionName));
 
             builder.Services.AddSingleton<IEcmUserContext, ManualEcmUserContext>();
 

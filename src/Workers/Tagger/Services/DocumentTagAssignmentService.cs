@@ -169,6 +169,19 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     private void EnsureUserContext()
     {
         var userKey = _userOptions.CurrentValue.UserKey;
-        ManualEcmUserContext.SetUserKey(userKey);
+
+        if (!string.IsNullOrWhiteSpace(userKey))
+        {
+            ManualEcmUserContext.SetUserKey(userKey);
+            return;
+        }
+
+        if (ManualEcmUserContext.HasUserKey)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            "No ECM user identity configured. Provide EcmUser:UserKey or call ManualEcmUserContext.SetUserKey before assigning tags.");
     }
 }
