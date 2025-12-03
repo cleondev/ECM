@@ -24,12 +24,14 @@ public sealed class EcmAccessTokenHandler(
     EcmAuthenticator authenticator,
     IHttpContextAccessor httpContextAccessor,
     IOptions<EcmIntegrationOptions> options,
-    ILogger<EcmAccessTokenHandler> logger) : DelegatingHandler
+    ILogger<EcmAccessTokenHandler> logger,
+    IServiceProvider serviceProvider) : DelegatingHandler
 {
     private readonly EcmAuthenticator _authenticator = authenticator;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly EcmIntegrationOptions _options = options.Value;
     private readonly ILogger<EcmAccessTokenHandler> _logger = logger;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     /// <summary>
     /// Adds the bearer token to outgoing requests and delegates execution to the next handler.
@@ -41,9 +43,9 @@ public sealed class EcmAccessTokenHandler(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var httpContext = _httpContextAccessor.HttpContext
-            ?? throw new ArgumentException("Missing user identity");
-        if (_options.Sso.Enabled)
+        var httpContext = _httpContextAccessor.HttpContext;
+
+        if (_options.Sso.Enabled && httpContext is not null)
         {
             var incomingAuthorization = httpContext.Request.Headers["Authorization"];
 
@@ -67,12 +69,16 @@ public sealed class EcmAccessTokenHandler(
             }
         }
 
-        string userKey = "system@local";
-        if (httpContext != null)
+        var defaultUserKey = _options.ApiKey.DefaultUserEmail;
+        var currentUserContext = httpContext?.RequestServices.GetService<IEcmUserContext>()
+            ?? _serviceProvider.GetService<IEcmUserContext>();
+
+        var userKey = currentUserContext?.GetUserKey() ?? defaultUserKey;
+
+        if (string.IsNullOrWhiteSpace(userKey))
         {
-            var sp = httpContext.RequestServices;
-            var currentUserContext = sp.GetService<IEcmUserContext>();
-            userKey = currentUserContext?.GetUserKey() ?? userKey;
+            throw new ArgumentException(
+                "Missing user identity. Provide an IEcmUserContext implementation or configure ApiKey.DefaultUserEmail.");
         }
 
         var session = await _authenticator.GetSessionForUserAsync(userKey, cancellationToken);

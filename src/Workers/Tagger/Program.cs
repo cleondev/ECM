@@ -1,8 +1,6 @@
 using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Extensions;
 
-using Microsoft.AspNetCore.Http;
-
 using Microsoft.Extensions.Options;
 
 using Serilog;
@@ -28,16 +26,13 @@ public static class Program
             var builder = Host.CreateApplicationBuilder(args);
             builder.AddServiceDefaults();
 
-            builder.Services.AddSingleton<IHttpContextAccessor>(static sp => new HttpContextAccessor
-            {
-                HttpContext = new DefaultHttpContext
-                {
-                    RequestServices = sp
-                }
-            });
-
-            builder.Services.AddSingleton<IEcmUserContext, SystemUserContext>();
             builder.Services.AddEcmSdk(builder.Configuration);
+
+            builder.Services
+                .AddOptions<EcmUserOptions>()
+                .Bind(builder.Configuration.GetSection(EcmUserOptions.SectionName));
+
+            builder.Services.AddSingleton<IEcmUserContext, ManualEcmUserContext>();
 
             builder.Services.AddSingleton<IValidateOptions<TaggingRulesOptions>, TaggingRulesOptionsValidator>();
             builder.Services

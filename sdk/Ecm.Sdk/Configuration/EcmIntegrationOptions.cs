@@ -40,6 +40,12 @@ public sealed class ApiKeyOptions
     /// API key used to authenticate requests for access tokens.
     /// </summary>
     public string? ApiKey { get; set; }
+
+    /// <summary>
+    /// Default user identity (email) used when no <see cref="IEcmUserContext"/>
+    /// is available, such as in console/worker environments without HTTP context.
+    /// </summary>
+    public string? DefaultUserEmail { get; set; }
 }
 
 /// <summary>
