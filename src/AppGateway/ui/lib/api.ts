@@ -40,6 +40,10 @@ import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapsho
 
 const SIMULATED_DELAY = 800 // milliseconds
 
+const TAG_MANAGEMENT_BASE = "/api/ecm/tag-management"
+const TAG_MANAGEMENT_TAGS_ENDPOINT = `${TAG_MANAGEMENT_BASE}/tags`
+const TAG_MANAGEMENT_NAMESPACES_ENDPOINT = `${TAG_MANAGEMENT_BASE}/namespaces`
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const userIdentityRequestCache = new Map<string, Promise<UserIdentity | null>>()
@@ -1512,7 +1516,7 @@ export async function fetchTags(options?: {
       params.set("includeAll", "true")
     }
 
-    const response = await gatewayRequest<TagLabelResponse[]>(`/api/tags?${params.toString()}`)
+    const response = await gatewayRequest<TagLabelResponse[]>(`${TAG_MANAGEMENT_TAGS_ENDPOINT}?${params.toString()}`)
     return buildTagTree(response, options?.namespaces ?? [])
   } catch (error) {
     console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
@@ -1543,7 +1547,9 @@ export async function fetchTagNamespaces(options?: {
   }
 
   try {
-    const response = await gatewayRequest<TagNamespaceResponse[]>(`/api/tags/namespaces?${params.toString()}`)
+    const response = await gatewayRequest<TagNamespaceResponse[]>(
+      `${TAG_MANAGEMENT_NAMESPACES_ENDPOINT}?${params.toString()}`,
+    )
     return response.map(mapNamespaceResponse)
   } catch (error) {
     console.warn("[ui] Failed to fetch tag namespaces, returning empty list:", error)
@@ -1565,7 +1571,7 @@ export async function createTagNamespace(data: {
     CreatedBy: null as string | null,
   }
 
-  const response = await gatewayRequest<TagNamespaceResponse>(`/api/tags/namespaces`, {
+  const response = await gatewayRequest<TagNamespaceResponse>(TAG_MANAGEMENT_NAMESPACES_ENDPOINT, {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -1582,14 +1588,14 @@ export async function updateTagNamespace(
     UpdatedBy: null as string | null,
   }
 
-  await gatewayRequest(`/api/tags/namespaces/${namespaceId}`, {
+  await gatewayRequest(`${TAG_MANAGEMENT_NAMESPACES_ENDPOINT}/${namespaceId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   })
 }
 
 export async function deleteTagNamespace(namespaceId: string): Promise<void> {
-  await gatewayRequest(`/api/tags/namespaces/${namespaceId}`, { method: "DELETE" })
+  await gatewayRequest(`${TAG_MANAGEMENT_NAMESPACES_ENDPOINT}/${namespaceId}`, { method: "DELETE" })
 }
 
 type DocumentTypeResponseDto = {
@@ -1941,7 +1947,7 @@ export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<
       IsSystem: false,
     }
 
-    const response = await gatewayRequest<TagLabelResponse>("/api/tags", {
+    const response = await gatewayRequest<TagLabelResponse>(TAG_MANAGEMENT_TAGS_ENDPOINT, {
       method: "POST",
       body: JSON.stringify(payload),
     })
@@ -2001,7 +2007,7 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
       UpdatedBy: null as string | null,
     }
 
-    const response = await gatewayRequest<TagLabelResponse>(`/api/tags/${tag.id}`, {
+    const response = await gatewayRequest<TagLabelResponse>(`${TAG_MANAGEMENT_TAGS_ENDPOINT}/${tag.id}`, {
       method: "PUT",
       body: JSON.stringify(payload),
     })
@@ -2034,7 +2040,7 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
 
 export async function deleteTag(tagId: string): Promise<void> {
   try {
-    await gatewayRequest(`/api/tags/${tagId}`, {
+    await gatewayRequest(`${TAG_MANAGEMENT_TAGS_ENDPOINT}/${tagId}`, {
       method: "DELETE",
     })
   } catch (error) {
