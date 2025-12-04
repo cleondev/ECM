@@ -10,6 +10,7 @@ import type {
   Flow,
   SystemTag,
   User,
+  UserIdentity,
   SelectedTag,
   ShareOptions,
   ShareLink,
@@ -56,6 +57,14 @@ type UserSummaryResponse = {
   primaryGroupId?: string | null
   groupIds?: string[]
   hasPassword?: boolean
+}
+
+type UserIdentityResponse = {
+  id: string
+  displayName: string
+  email?: string | null
+  avatarUrl?: string | null
+  isAuthenticated: boolean
 }
 
 type CheckLoginResponse = {
@@ -702,6 +711,35 @@ function mapUserSummaryToUser(profile: UserSummaryResponse): User {
     primaryGroupId,
     groupIds: uniqueGroupIds,
     hasPassword: Boolean(profile.hasPassword),
+  }
+}
+
+export async function fetchCurrentUserIdentity(): Promise<UserIdentity | null> {
+  try {
+    const response = await gatewayFetch("/api/iam/profile/identity")
+
+    if ([401, 403, 404].includes(response.status)) {
+      clearCachedAuthSnapshot()
+      return null
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch current user identity (${response.status})`)
+    }
+
+    const data = (await response.json()) as UserIdentityResponse
+
+    return {
+      id: data.id,
+      displayName: data.displayName,
+      email: data.email ?? null,
+      avatarUrl: data.avatarUrl ?? null,
+      isAuthenticated: data.isAuthenticated,
+    }
+  } catch (error) {
+    clearCachedAuthSnapshot()
+    console.error("[ui] Failed to fetch current user identity:", error)
+    return null
   }
 }
 

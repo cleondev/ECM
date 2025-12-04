@@ -138,4 +138,37 @@ public sealed class IamUserProfileController(
             return Unauthorized();
         }
     }
+
+    [HttpGet("identity")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(UserIdentityResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetIdentityAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (HttpContext.User?.Identity?.IsAuthenticated is not true)
+        {
+            return Ok(UserIdentityResponse.Anonymous);
+        }
+
+        try
+        {
+            var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
+            return Ok(profile is null
+                ? UserIdentityResponse.Anonymous
+                : UserIdentityResponse.FromProfile(profile));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Ok(UserIdentityResponse.Anonymous);
+        }
+    }
+}
+
+public sealed record UserIdentityResponse(Guid Id, string DisplayName, string? Email, string? AvatarUrl, bool IsAuthenticated)
+{
+    public static UserIdentityResponse Anonymous { get; } = new(Guid.Empty, "Guest", null, AvatarUrl: null, IsAuthenticated: false);
+
+    public static UserIdentityResponse FromProfile(UserSummaryDto profile) =>
+        new(profile.Id, profile.DisplayName, profile.Email, AvatarUrl: null, IsAuthenticated: true);
 }

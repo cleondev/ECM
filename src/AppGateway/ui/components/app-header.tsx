@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { BrandLogo } from "@/components/brand-logo"
+import { CurrentUserIdentity } from "@/components/user/current-user-identity"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -392,6 +393,7 @@ export function AppHeader({
         </Dialog>
 
         <div className="flex shrink-0 items-center gap-3 justify-self-end">
+          <CurrentUserIdentity size="sm" profileHref="/me" lazy />
           <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
             <PopoverTrigger asChild>
               <Button
