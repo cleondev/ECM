@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AppGateway.Api.Controllers;
 
 [ApiController]
-[Route("api/ecm/tag-management")]
+[Route("api/tag-management")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
 public sealed class TagManagementController(IEcmApiClient client) : ControllerBase
 {
@@ -68,7 +68,7 @@ public sealed class TagManagementController(IEcmApiClient client) : ControllerBa
             return Problem(title: "Failed to create managed tag", statusCode: StatusCodes.Status400BadRequest);
         }
 
-        return Created($"/api/ecm/tag-management/tags/{tag.Id}", tag);
+        return Created($"/api/tag-management/tags/{tag.Id}", tag);
     }
 
     [HttpPut("tags/{tagId:guid}")]
@@ -152,7 +152,7 @@ public sealed class TagManagementController(IEcmApiClient client) : ControllerBa
             return Problem(title: "Failed to create tag namespace", statusCode: StatusCodes.Status400BadRequest);
         }
 
-        return Created($"/api/ecm/tag-management/namespaces/{created.Id}", created);
+        return Created($"/api/tag-management/namespaces/{created.Id}", created);
     }
 
     [HttpPut("namespaces/{namespaceId:guid}")]
