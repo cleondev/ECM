@@ -11,6 +11,8 @@ export type DocumentTag = {
   pathIds?: string[]
   isActive?: boolean
   isSystem?: boolean
+  appliedBy?: string | null
+  appliedAtUtc?: string | null
 }
 
 export type DocumentType = {
