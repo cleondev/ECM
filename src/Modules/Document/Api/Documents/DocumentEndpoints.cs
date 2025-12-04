@@ -507,11 +507,9 @@ public static class DocumentEndpoints
 
         var title = NormalizeTitle(request.Title, request.File.FileName);
         var groupId = NormalizeGuid(request.GroupId) ?? NormalizeGuid(defaults.GroupId);
-
         var docType = ResolveValue(request.DocType, defaults.DocType, "general");
         var status = ResolveValue(request.Status, defaults.Status, "draft");
         var sensitivity = ResolveValue(request.Sensitivity, defaults.Sensitivity, "Internal");
-
         var documentTypeId = request.DocumentTypeId ?? defaults.DocumentTypeId;
 
         var contentType = string.IsNullOrWhiteSpace(request.File.ContentType)

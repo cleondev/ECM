@@ -146,14 +146,12 @@ public sealed class GroupService(
         Group guestGroup,
         CancellationToken cancellationToken)
     {
-        if (assignment.GroupId == systemGroup.Id
-            || string.Equals(assignment.Identifier, systemGroup.Name, Comparer))
+        if (Comparer.Equals(assignment.Identifier, systemGroup.Name))
         {
             return systemGroup;
         }
 
-        if (assignment.GroupId == guestGroup.Id
-            || string.Equals(assignment.Identifier, guestGroup.Name, Comparer))
+        if (Comparer.Equals(assignment.Identifier, guestGroup.Name))
         {
             return guestGroup;
         }
