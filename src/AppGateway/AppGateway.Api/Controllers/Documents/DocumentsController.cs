@@ -1,22 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 
 using AppGateway.Api.Auth;
 using AppGateway.Api.Fake;
 using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Tags;
-using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
 
 using Shared.Extensions.Http;
 using Shared.Extensions.Primitives;
@@ -60,19 +51,13 @@ public sealed class DocumentsController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        if (documentId == Guid.Empty)
+        if (!EnsureNotEmptyGuid(documentId, nameof(documentId), "A valid document identifier is required."))
         {
-            ModelState.AddModelError(nameof(documentId), "A valid document identifier is required.");
             return ValidationProblem(ModelState);
         }
 
         var document = await _documentsClient.GetDocumentAsync(documentId, cancellationToken);
-        if (document is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(document);
+        return document is null ? NotFound() : Ok(document);
     }
 
     [HttpGet("{documentId:guid}/flows")]
@@ -80,9 +65,8 @@ public sealed class DocumentsController(
     [ProducesResponseType(typeof(IReadOnlyCollection<FakeFlowResponse>), StatusCodes.Status200OK)]
     public IActionResult GetFlows(Guid documentId)
     {
-        if (documentId == Guid.Empty)
+        if (!EnsureNotEmptyGuid(documentId, nameof(documentId), "A valid document identifier is required."))
         {
-            ModelState.AddModelError(nameof(documentId), "A valid document identifier is required.");
             return ValidationProblem(ModelState);
         }
 
@@ -117,8 +101,8 @@ public sealed class DocumentsController(
             GroupId = primaryGroupId,
             Sensitivity = request.Sensitivity,
             DocumentTypeId = request.DocumentTypeId,
-            FileName = string.IsNullOrWhiteSpace(request.File.FileName) ? "upload.bin" : request.File.FileName,
-            ContentType = string.IsNullOrWhiteSpace(request.File.ContentType) ? "application/octet-stream" : request.File.ContentType,
+            FileName = NormalizeFileName(request.File.FileName, "upload.bin"),
+            ContentType = NormalizeContentType(request.File.ContentType),
             FileSize = request.File.Length,
             OpenReadStream = _ => Task.FromResult(request.File.OpenReadStream()),
         };
@@ -141,35 +125,25 @@ public sealed class DocumentsController(
         [FromBody] UpdateDocumentRequestDto? request,
         CancellationToken cancellationToken)
     {
-        if (documentId == Guid.Empty)
+        if (!EnsureNotEmptyGuid(documentId, nameof(documentId), "A valid document identifier is required."))
         {
-            ModelState.AddModelError(nameof(documentId), "A valid document identifier is required.");
+            return ValidationProblem(ModelState);
         }
 
         request ??= new UpdateDocumentRequestDto();
 
-        if (request.HasGroupId && request.GroupId == Guid.Empty)
+        if (request.HasGroupId && !EnsureNotEmptyGuid(request.GroupId, nameof(request.GroupId), "Group identifier must be a valid GUID when provided."))
         {
-            ModelState.AddModelError(nameof(request.GroupId), "Group identifier must be a valid GUID when provided.");
+            return ValidationProblem(ModelState);
         }
 
-        if (request.HasDocumentTypeId && request.DocumentTypeId == Guid.Empty)
-        {
-            ModelState.AddModelError(nameof(request.DocumentTypeId), "Document type must be a valid GUID when provided.");
-        }
-
-        if (!ModelState.IsValid)
+        if (request.HasDocumentTypeId && !EnsureNotEmptyGuid(request.DocumentTypeId, nameof(request.DocumentTypeId), "Document type must be a valid GUID when provided."))
         {
             return ValidationProblem(ModelState);
         }
 
         var document = await _documentsClient.UpdateDocumentAsync(documentId, request, cancellationToken);
-        if (document is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(document);
+        return document is null ? NotFound() : Ok(document);
     }
 
     [HttpDelete("{documentId:guid}")]
@@ -178,13 +152,7 @@ public sealed class DocumentsController(
     public async Task<IActionResult> DeleteAsync(Guid documentId, CancellationToken cancellationToken)
     {
         var deleted = await _documentsClient.DeleteDocumentAsync(documentId, cancellationToken);
-
-        if (!deleted)
-        {
-            return NotFound();
-        }
-
-        return NoContent();
+        return deleted ? NoContent() : NotFound();
     }
 
     [HttpDelete("files/{versionId:guid}")]
@@ -193,13 +161,7 @@ public sealed class DocumentsController(
     public async Task<IActionResult> DeleteByVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
         var deleted = await _documentsClient.DeleteDocumentByVersionAsync(versionId, cancellationToken);
-
-        if (!deleted)
-        {
-            return NotFound();
-        }
-
-        return NoContent();
+        return deleted ? NoContent() : NotFound();
     }
 
     [HttpPost("batch")]
@@ -217,20 +179,17 @@ public sealed class DocumentsController(
 
         var createdBy = request.CreatedBy;
         var ownerId = request.OwnerId;
-
         var docType = request.DocType?.Trim() ?? string.Empty;
         var status = request.Status?.Trim() ?? string.Empty;
-        var sensitivity = string.IsNullOrWhiteSpace(request.Sensitivity)
-            ? null
-            : request.Sensitivity.Trim();
+        var sensitivity = NormalizeOptional(request.Sensitivity);
         var documentTypeId = request.DocumentTypeId;
-        var flowDefinition = string.IsNullOrWhiteSpace(request.FlowDefinition)
-            ? null
-            : request.FlowDefinition.Trim();
+        var flowDefinition = NormalizeOptional(request.FlowDefinition);
+
         var primaryGroupId = await ResolvePrimaryGroupIdAsync(cancellationToken);
         var tagIds = request.TagIds.Count == 0
-            ? []
+            ? Array.Empty<Guid>()
             : request.TagIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+
         var tagActor = createdBy ?? ownerId;
 
         var documents = new List<DocumentDto>();
@@ -246,11 +205,13 @@ public sealed class DocumentsController(
 
             if (file.Length <= 0)
             {
-                failures.Add(new DocumentUploadFailureDto(file.FileName ?? "upload.bin", "The uploaded file was empty."));
+                failures.Add(new DocumentUploadFailureDto(
+                    file.FileName ?? "upload.bin",
+                    "The uploaded file was empty."));
                 continue;
             }
 
-            var requestedTitle = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim();
+            var requestedTitle = NormalizeOptional(request.Title);
             if (requestedTitle is not null && request.Files.Count > 1)
             {
                 requestedTitle = $"{requestedTitle} ({index + 1})";
@@ -266,8 +227,8 @@ public sealed class DocumentsController(
                 GroupId = primaryGroupId,
                 Sensitivity = sensitivity,
                 DocumentTypeId = documentTypeId,
-                FileName = string.IsNullOrWhiteSpace(file.FileName) ? "upload.bin" : file.FileName,
-                ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
+                FileName = NormalizeFileName(file.FileName, "upload.bin"),
+                ContentType = NormalizeContentType(file.ContentType),
                 FileSize = file.Length,
                 OpenReadStream = _ => Task.FromResult(file.OpenReadStream()),
             };
@@ -277,7 +238,9 @@ public sealed class DocumentsController(
                 var document = await _documentsClient.CreateDocumentAsync(upload, cancellationToken);
                 if (document is null)
                 {
-                    failures.Add(new DocumentUploadFailureDto(upload.FileName, "The document service returned an empty response."));
+                    failures.Add(new DocumentUploadFailureDto(
+                        upload.FileName,
+                        "The document service returned an empty response."));
                     continue;
                 }
 
@@ -328,12 +291,7 @@ public sealed class DocumentsController(
     public async Task<IActionResult> DownloadVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
         var file = await _documentsClient.DownloadDocumentVersionAsync(versionId, cancellationToken);
-        if (file is null)
-        {
-            return NotFound();
-        }
-
-        return DocumentFileResultFactory.Create(file);
+        return file is null ? NotFound() : DocumentFileResultFactory.Create(file);
     }
 
     [HttpGet("files/preview/{versionId:guid}")]
@@ -342,35 +300,33 @@ public sealed class DocumentsController(
     public async Task<IActionResult> PreviewVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
         var file = await _documentsClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
-        if (file is null)
-        {
-            return NotFound();
-        }
-
-        return DocumentFileResultFactory.Create(file);
+        return file is null ? NotFound() : DocumentFileResultFactory.Create(file);
     }
 
     [HttpPost("files/share/{versionId:guid}")]
     [ProducesResponseType(typeof(DocumentShareLinkDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ShareVersionAsync(
         Guid versionId,
         [FromBody] CreateShareLinkRequestDto request,
         CancellationToken cancellationToken)
     {
-        if (request.DocumentId == Guid.Empty)
+        if (!EnsureNotEmptyGuid(request.DocumentId, nameof(request.DocumentId), "Document identifier is required."))
         {
-            ModelState.AddModelError(nameof(request.DocumentId), "Document identifier is required.");
+            return ValidationProblem(ModelState);
         }
 
         var effectiveVersionId = request.VersionId == Guid.Empty ? versionId : request.VersionId;
-        if (effectiveVersionId == Guid.Empty)
+        if (!EnsureNotEmptyGuid(effectiveVersionId, nameof(request.VersionId), "Version identifier is required."))
         {
-            ModelState.AddModelError(nameof(request.VersionId), "Version identifier is required.");
+            return ValidationProblem(ModelState);
         }
-        else if (effectiveVersionId != versionId)
+
+        if (effectiveVersionId != versionId)
         {
             ModelState.AddModelError(nameof(request.VersionId), "Version identifier does not match the route parameter.");
+            return ValidationProblem(ModelState);
         }
 
         var normalizedSubjectType = request.GetNormalizedSubjectType();
@@ -399,13 +355,9 @@ public sealed class DocumentsController(
             SubjectType = normalizedSubjectType,
             SubjectId = normalizedSubjectId,
         };
-        var link = await _documentsClient.CreateDocumentShareLinkAsync(normalizedRequest, cancellationToken);
-        if (link is null)
-        {
-            return NotFound();
-        }
 
-        return Ok(link);
+        var link = await _documentsClient.CreateDocumentShareLinkAsync(normalizedRequest, cancellationToken);
+        return link is null ? NotFound() : Ok(link);
     }
 
     [HttpGet("files/thumbnails/{versionId:guid}")]
@@ -425,23 +377,15 @@ public sealed class DocumentsController(
             return ValidationProblem(ModelState);
         }
 
-        var normalizedFit = string.IsNullOrWhiteSpace(fit)
-            ? null
-            : fit.Trim().ToLowerInvariant();
-
-        if (normalizedFit is not null && normalizedFit != "cover" && normalizedFit != "contain")
+        var normalizedFit = NormalizeOptional(fit)?.ToLowerInvariant();
+        if (normalizedFit is not null && normalizedFit is not ("cover" or "contain"))
         {
             ModelState.AddModelError("fit", "Parameter 'fit' must be either 'cover' or 'contain'.");
             return ValidationProblem(ModelState);
         }
 
         var file = await _documentsClient.GetDocumentVersionThumbnailAsync(versionId, width, height, normalizedFit, cancellationToken);
-        if (file is null)
-        {
-            return NotFound();
-        }
-
-        return DocumentFileResultFactory.Create(file);
+        return file is null ? NotFound() : DocumentFileResultFactory.Create(file);
     }
 
     [HttpPost("{documentId:guid}/tags")]
@@ -449,9 +393,8 @@ public sealed class DocumentsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> AssignTagAsync(Guid documentId, [FromBody] AssignTagRequestDto request, CancellationToken cancellationToken)
     {
-        if (request.TagId == Guid.Empty)
+        if (!EnsureNotEmptyGuid(request.TagId, nameof(request.TagId), "Tag identifier is required."))
         {
-            ModelState.AddModelError(nameof(request.TagId), "Tag identifier is required.");
             return ValidationProblem(ModelState);
         }
 
@@ -469,9 +412,8 @@ public sealed class DocumentsController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RemoveTagAsync(Guid documentId, Guid tagId, CancellationToken cancellationToken)
     {
-        if (tagId == Guid.Empty)
+        if (!EnsureNotEmptyGuid(tagId, nameof(tagId), "Tag identifier is required."))
         {
-            ModelState.AddModelError(nameof(tagId), "Tag identifier is required.");
             return ValidationProblem(ModelState);
         }
 
@@ -484,6 +426,8 @@ public sealed class DocumentsController(
         return NoContent();
     }
 
+    // ----------------- Helpers -----------------
+
     private async Task<Guid?> ResolvePrimaryGroupIdAsync(CancellationToken cancellationToken)
     {
         var claimValue = User.FindFirstValue("primary_group_id");
@@ -492,7 +436,12 @@ public sealed class DocumentsController(
             return parsed;
         }
 
-        var resolution = await CurrentUserProfileResolver.ResolveAsync(HttpContext, _usersClient, _logger, cancellationToken);
+        var resolution = await CurrentUserProfileResolver.ResolveAsync(
+            HttpContext,
+            _usersClient,
+            _logger,
+            cancellationToken);
+
         var primaryGroupId = resolution.Profile?.PrimaryGroupId;
         return primaryGroupId is { } id && id != Guid.Empty ? id : null;
     }
@@ -581,23 +530,38 @@ public sealed class DocumentsController(
             }
         }
 
-        return parsed.HasValues ? [.. parsed.Values] : [];
+        return parsed.HasValues ? [.. parsed.Values] : Array.Empty<Guid>();
     }
 
     private static string? ReadQueryString(IQueryCollection query, IEnumerable<string> keys)
     {
-        if (!query.TryGetString(keys, out var value))
-        {
-            return null;
-        }
-
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        return query.TryGetString(keys, out var value)
+            ? NormalizeOptional(value)
+            : null;
     }
 
+    private static string NormalizeContentType(string? contentType)
+        => string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType.Trim();
+
+    private static string NormalizeFileName(string? fileName, string fallback)
+        => string.IsNullOrWhiteSpace(fileName) ? fallback : fileName.Trim();
+
+    private static string? NormalizeOptional(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static string FormatInvalidValue(string? raw)
-    {
-        return string.IsNullOrWhiteSpace(raw)
+        => string.IsNullOrWhiteSpace(raw)
             ? "The provided value is not valid."
             : $"The value '{raw}' is not valid.";
+
+    private bool EnsureNotEmptyGuid(Guid? value, string key, string message)
+    {
+        if (value.HasValue && value.Value != Guid.Empty)
+        {
+            return true;
+        }
+
+        ModelState.AddModelError(key, message);
+        return false;
     }
 }

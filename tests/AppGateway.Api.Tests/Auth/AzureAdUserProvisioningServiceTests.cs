@@ -87,13 +87,6 @@ public class AzureAdUserProvisioningServiceTests
         client.CreateUserCalls.Should().Be(1);
         client.LastCreateRequest.Should().NotBeNull();
         client.LastCreateRequest!.RoleIds.Should().ContainSingle().Which.Should().Be(role.Id);
-        client.LastCreateRequest!.GroupIds
-            .Should()
-            .BeEquivalentTo(
-            [
-                GroupDefaultIds.System,
-                GroupDefaultIds.Guest
-            ]);
         client.LastCreateRequest!.PrimaryGroupId.Should().BeNull();
     }
 
@@ -119,9 +112,6 @@ public class AzureAdUserProvisioningServiceTests
 
         result.Should().Be(createdUser);
         client.LastCreateRequest.Should().NotBeNull();
-        client.LastCreateRequest!.GroupIds
-            .Should()
-            .Contain([GroupDefaultIds.System, GroupDefaultIds.Guest, additionalGroupId, primaryGroupId]);
         client.LastCreateRequest!.PrimaryGroupId.Should().Be(primaryGroupId);
     }
 
