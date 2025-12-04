@@ -276,22 +276,25 @@ public static class DocumentEndpoints
         IUserLookupService userLookupService,
         CancellationToken cancellationToken)
     {
+        var hasDocumentManagementOverride = principal.HasDocumentManagementOverride();
+
         var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
-        if (userId is null)
+        if (userId is null && !hasDocumentManagementOverride)
         {
             return TypedResults.Forbid();
         }
 
         var documentIdValue = DocumentId.FromGuid(documentId);
 
-        var hasAccess = await context.EffectiveAclEntries
-            .AsNoTracking()
-            .AnyAsync(
-                entry =>
-                    entry.UserId == userId.Value
-                    && entry.IsValid
-                    && entry.DocumentId == documentIdValue,
-                cancellationToken);
+        var hasAccess = hasDocumentManagementOverride
+            || await context.EffectiveAclEntries
+                .AsNoTracking()
+                .AnyAsync(
+                    entry =>
+                        entry.UserId == userId!.Value
+                        && entry.IsValid
+                        && entry.DocumentId == documentIdValue,
+                    cancellationToken);
 
         if (!hasAccess)
         {
@@ -329,8 +332,9 @@ public static class DocumentEndpoints
         var pageSize = request.PageSize <= 0 ? 24 : request.PageSize;
         pageSize = pageSize > 200 ? 200 : pageSize;
 
+        var hasDocumentManagementOverride = principal.HasDocumentManagementOverride();
         var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
-        if (userId is null)
+        if (userId is null && !hasDocumentManagementOverride)
         {
             var emptyResponse = new DocumentListResponse(
                 page,
@@ -342,26 +346,31 @@ public static class DocumentEndpoints
             return TypedResults.Ok(emptyResponse);
         }
 
-        var accessibleDocumentIdsQuery = context.EffectiveAclEntries
-            .AsNoTracking()
-            .Where(entry =>
-                entry.UserId == userId.Value
-                && entry.IsValid
-            )
-            .Select(entry => entry.DocumentId)
-            .Distinct();
+        var query = context.Documents.AsNoTracking();
 
-        var hasAccessibleDocuments = await accessibleDocumentIdsQuery.AnyAsync(cancellationToken);
-
-        if (!hasAccessibleDocuments)
+        if (!hasDocumentManagementOverride)
         {
-            var emptyResponse = new DocumentListResponse(page, pageSize, 0, 0, []);
-            return TypedResults.Ok(emptyResponse);
+            var accessibleDocumentIdsQuery = context.EffectiveAclEntries
+                .AsNoTracking()
+                .Where(entry =>
+                    entry.UserId == userId!.Value
+                    && entry.IsValid
+                )
+                .Select(entry => entry.DocumentId)
+                .Distinct();
+
+            var hasAccessibleDocuments = await accessibleDocumentIdsQuery.AnyAsync(cancellationToken);
+
+            if (!hasAccessibleDocuments)
+            {
+                var emptyResponse = new DocumentListResponse(page, pageSize, 0, 0, []);
+                return TypedResults.Ok(emptyResponse);
+            }
+
+            query = query.Where(document => accessibleDocumentIdsQuery.Contains(document.Id));
         }
 
-        var query = context
-            .Documents.AsNoTracking()
-            .Where(document => accessibleDocumentIdsQuery.Contains(document.Id))
+        query = query
             .Include(document => document.Versions)
             .Include(document => document.Tags)
                 .ThenInclude(documentTag => documentTag.Tag)
