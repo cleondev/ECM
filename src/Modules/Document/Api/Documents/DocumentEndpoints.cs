@@ -277,8 +277,10 @@ public static class DocumentEndpoints
         IUserLookupService userLookupService,
         CancellationToken cancellationToken)
     {
+        var hasDocumentManagementOverride = principal.HasDocumentManagementOverride();
+
         var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
-        if (userId is null)
+        if (userId is null && !hasDocumentManagementOverride)
         {
             return TypedResults.Forbid();
         }
@@ -336,8 +338,9 @@ public static class DocumentEndpoints
         var pageSize = request.PageSize <= 0 ? 24 : request.PageSize;
         pageSize = pageSize > 200 ? 200 : pageSize;
 
+        var hasDocumentManagementOverride = principal.HasDocumentManagementOverride();
         var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
-        if (userId is null)
+        if (userId is null && !hasDocumentManagementOverride)
         {
             var emptyResponse = new DocumentListResponse(
                 page,

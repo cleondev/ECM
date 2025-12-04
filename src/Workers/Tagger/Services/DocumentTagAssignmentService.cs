@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
 using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Clients;
 using Ecm.Sdk.Models.Documents;
@@ -64,7 +60,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         var document = await _client.GetDocumentAsync(documentId, cancellationToken).ConfigureAwait(false);
         if (document is null)
         {
-            _logger.LogWarning("Không tìm thấy document {DocumentId} khi áp dụng tag.", documentId);
+            _logger.LogWarning("Document {DocumentId} was not found when applying the tag.", documentId);
             return 0;
         }
 
@@ -171,7 +167,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         if (targetGroupId is null || targetGroupId == Guid.Empty)
         {
             _logger.LogWarning(
-                "Không thể xác định group cho document {DocumentId}; bỏ qua việc tạo tag.",
+               "Unable to determine the group for document {DocumentId}; skipping tag creation.",
                 document.Id);
             return null;
         }
@@ -196,7 +192,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         if (created is null)
         {
             _logger.LogWarning(
-                "Không thể tạo namespace cho group {GroupId} khi gắn tag cho document {DocumentId}.",
+               "Unable to create namespace for group {GroupId} when tagging document {DocumentId}.",
                 targetGroupId,
                 document.Id);
         }
@@ -243,7 +239,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
             if (created is null)
             {
                 _logger.LogWarning(
-                    "Không thể tạo tag đường dẫn {Segment} trong namespace {NamespaceId}.",
+                    "Unable to create path segment tag {Segment} in namespace {NamespaceId}.",
                     segment,
                     namespaceId);
                 return null;
