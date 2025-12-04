@@ -23,7 +23,7 @@ public static class TagManagementEndpoints
 {
     public static void MapTagManagementEndpoints(this IEndpointRouteBuilder builder)
     {
-        var managementGroup = builder.MapGroup("/api/ecm/tag-management");
+        var managementGroup = builder.MapGroup("/api/tag-management");
         managementGroup.WithTags("Tag Management");
         managementGroup.WithGroupName(DocumentSwagger.DocumentName);
 
@@ -166,7 +166,7 @@ public static class TagManagementEndpoints
 
         var response = TagEndpointMapping.ToResponse(result.Value, TagEndpointMapping.ManagementDefaultIconKey);
 
-        return TypedResults.Created($"/api/ecm/tag-management/tags/{response.Id}", response);
+        return TypedResults.Created($"/api/tag-management/tags/{response.Id}", response);
     }
 
     private static async Task<Results<Created<TagNamespaceResponse>, ValidationProblem>> CreateNamespaceAsync(
@@ -204,7 +204,7 @@ public static class TagManagementEndpoints
             result.Value.IsSystem,
             result.Value.CreatedAtUtc);
 
-        return TypedResults.Created($"/api/ecm/tag-management/namespaces/{response.Id}", response);
+        return TypedResults.Created($"/api/tag-management/namespaces/{response.Id}", response);
     }
 
     private static async Task<Results<Ok<TagLabelResponse>, ValidationProblem, NotFound>> UpdateTagAsync(

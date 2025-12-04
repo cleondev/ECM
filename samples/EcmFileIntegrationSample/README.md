@@ -97,7 +97,7 @@ Trang **Upload hàng loạt** minh hoạ API `POST /api/ecm/documents/batch` (ho
 
 Ngoài upload, trang mẫu còn cung cấp form mẫu cho các API ECM:
 
-- CRUD tag (`GET/POST/PUT/DELETE /api/ecm/tags`) để tạo, cập nhật, xoá tag label.
+- CRUD tag (`GET/POST/PUT/DELETE /api/tags`) để tạo, cập nhật, xoá tag label.
 - Liệt kê tài liệu (`GET /api/ecm/documents`), cập nhật metadata (`PUT /api/ecm/documents/{id}`) và xoá tài liệu (`DELETE /api/ecm/documents/{id}`).
 - Xem chi tiết tài liệu (`GET /api/ecm/documents/{id}`) và lấy presigned URL download cho phiên bản mới nhất.
 - Tải trực tiếp nội dung file qua API preview (`GET /api/ecm/files/preview/{versionId}`) bằng cách nhập Version ID.

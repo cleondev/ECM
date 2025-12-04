@@ -38,8 +38,8 @@ internal sealed class EcmApiClient(
     private const string HomeAccountIdClaimType = "homeAccountId";
     private const string ApiKeyHeaderName = "X-Api-Key";
     private const string subjectTypePublic = "public";
-    private const string TagManagementTagsEndpoint = "api/ecm/tag-management/tags";
-    private const string TagManagementNamespacesEndpoint = "api/ecm/tag-management/namespaces";
+    private const string TagManagementTagsEndpoint = "api/tag-management/tags";
+    private const string TagManagementNamespacesEndpoint = "api/tag-management/namespaces";
     private readonly HttpClient _httpClient = httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly ITokenAcquisition _tokenAcquisition = tokenAcquisition;
@@ -744,7 +744,7 @@ internal sealed class EcmApiClient(
 
     public async Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Get, "api/ecm/tags", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Get, "api/tags", cancellationToken);
         var response = await SendAsync<IReadOnlyCollection<TagLabelDto>>(request, cancellationToken);
         return response ?? [];
     }
@@ -777,7 +777,7 @@ internal sealed class EcmApiClient(
 
     public async Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/tags", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Post, "api/tags", cancellationToken);
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<TagLabelDto>(request, cancellationToken);
     }
@@ -794,7 +794,7 @@ internal sealed class EcmApiClient(
 
     public async Task<TagLabelDto?> UpdateTagAsync(Guid tagId, UpdateTagRequestDto requestDto, CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Put, $"api/ecm/tags/{tagId}", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Put, $"api/tags/{tagId}", cancellationToken);
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<TagLabelDto>(request, cancellationToken);
     }
@@ -812,7 +812,7 @@ internal sealed class EcmApiClient(
 
     public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
     {
-        using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/tags/{tagId}", cancellationToken);
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/tags/{tagId}", cancellationToken);
         return await SendAsync(request, cancellationToken);
     }
 
