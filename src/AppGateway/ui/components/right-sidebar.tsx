@@ -46,6 +46,7 @@ import {
   SidebarShell,
   type SidebarComment,
 } from "./shared/sidebar-tabs"
+import { UserIdentity } from "@/components/user/user-identity"
 
 type ActiveTab = "info" | "flow" | "form" | "chat"
 
@@ -184,6 +185,7 @@ export function RightSidebar({
   const ownerDisplayName = ownerProfile?.displayName ?? selectedFile?.ownerName ?? selectedFile?.owner ?? "Owner"
   const ownerEmail = ownerProfile?.email ?? selectedFile?.ownerEmail ?? selectedFile?.owner ?? ""
   const ownerDisplayValue = ownerProfile?.displayName ?? ownerEmail ?? selectedFile?.owner ?? ""
+  const ownerLookup = selectedFile?.ownerId ?? selectedFile?.owner ?? ""
 
   useEffect(() => {
     if (!ownerDisplayValue || !selectedFile) {
@@ -784,7 +786,7 @@ export function RightSidebar({
                     </button>
                     {!collapsedSections.has("information") && (
                       <div className="space-y-3">
-                        {[ 
+                        {[
                           {
                             label: "Document Type",
                             value: selectedDocumentType?.typeName ?? selectedFile.docType ?? "Document",
@@ -802,7 +804,16 @@ export function RightSidebar({
                           },
                           {
                             label: "Owner",
-                            value: ownerEmail || ownerDisplayName,
+                            value: ownerLookup ? (
+                              <UserIdentity
+                                userId={ownerLookup}
+                                size="sm"
+                                hint="Chủ sở hữu"
+                                className="px-0 py-0"
+                              />
+                            ) : (
+                              "Unknown"
+                            ),
                             icon: UserIcon,
                           },
                           {
@@ -815,7 +826,7 @@ export function RightSidebar({
                             <Icon className="h-4 w-4 text-muted-foreground mt-0.5" />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs text-muted-foreground">{label}</p>
-                              <p className="text-sm font-medium text-sidebar-foreground/90 capitalize">{value}</p>
+                              <div className="text-sm font-medium text-sidebar-foreground/90">{value}</div>
                             </div>
                           </div>
                         ))}
@@ -850,9 +861,20 @@ export function RightSidebar({
                             <div className="space-y-3">
                               {appliedUserTags.map(([applier, tags]) => (
                                 <div key={applier} className="space-y-1 px-1">
-                                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                                    Applied by {applier}
-                                  </p>
+                                  <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                                    <span>Applied by</span>
+                                    {applier === "Unknown" ? (
+                                      <span className="text-sidebar-foreground/80">Unknown</span>
+                                    ) : (
+                                      <UserIdentity
+                                        userId={applier}
+                                        size="sm"
+                                        interactive={false}
+                                        className="px-0 py-0"
+                                        hint="Người áp dụng"
+                                      />
+                                    )}
+                                  </div>
                                   <div className="flex flex-wrap gap-1.5">
                                     {tags.map((tag) => {
                                       const color = tag.color ?? getTagColor(tag.name)
