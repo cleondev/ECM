@@ -65,6 +65,7 @@ public sealed class DocumentModule : IModule
         endpoints.MapDocumentEndpoints();
         endpoints.MapDocumentTypeEndpoints();
         endpoints.MapTagEndpoints();
+        endpoints.MapTagManagementEndpoints();
         endpoints.MapShareEndpoints();
         endpoints.MapPublicShareEndpoints();
     }
