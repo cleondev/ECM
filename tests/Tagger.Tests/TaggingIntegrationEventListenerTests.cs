@@ -52,7 +52,7 @@ public class TaggingIntegrationEventListenerTests
         }, SerializerOptions);
 
         var message = new KafkaMessage(
-            EventTopics.Pipelines.Document.Uploaded,
+            EventNames.Document.Uploaded,
             documentId.ToString(),
             payload,
             DateTimeOffset.UtcNow);
@@ -100,7 +100,7 @@ public class TaggingIntegrationEventListenerTests
         }, SerializerOptions);
 
         var message = new KafkaMessage(
-            EventTopics.Pipelines.Ocr.Completed,
+            EventNames.Ocr.Completed,
             documentId.ToString(),
             payload,
             DateTimeOffset.UtcNow);

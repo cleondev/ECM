@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -21,8 +20,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-using Npgsql.EntityFrameworkCore.PostgreSQL;
-
 using Shared.Extensions.Http;
 
 using DomainDocument = ECM.Document.Domain.Documents.Document;
@@ -31,7 +28,6 @@ namespace ECM.Document.Api.Documents;
 
 public static class DocumentEndpoints
 {
-    private static readonly TimeSpan DownloadLinkLifetime = TimeSpan.FromMinutes(10);
 
     private const string ShareDurationValidationKey = "expiresInMinutes";
 
@@ -455,6 +451,17 @@ public static class DocumentEndpoints
         return TypedResults.Ok(response);
     }
 
+    private static string ResolveValue(string? value, string? defaultValue, string fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            return value.Trim();
+
+        if (!string.IsNullOrWhiteSpace(defaultValue))
+            return defaultValue.Trim();
+
+        return fallback;
+    }
+
     private static async Task<
         Results<Created<DocumentResponse>, ValidationProblem>
     > CreateDocumentAsync(
@@ -474,21 +481,12 @@ public static class DocumentEndpoints
         var defaults = defaultsOptions.Value ?? new DocumentUploadDefaultsOptions();
 
         var title = NormalizeTitle(request.Title, request.File.FileName);
-        var docType = string.IsNullOrWhiteSpace(request.DocType)
-            ? (string.IsNullOrWhiteSpace(defaults.DocType) ? "general" : defaults.DocType.Trim())
-            : request.DocType.Trim();
-        var status = string.IsNullOrWhiteSpace(request.Status)
-            ? (string.IsNullOrWhiteSpace(defaults.Status) ? "draft" : defaults.Status.Trim())
-            : request.Status.Trim();
-
         var groupId = NormalizeGuid(request.GroupId) ?? NormalizeGuid(defaults.GroupId);
-        var sensitivity = string.IsNullOrWhiteSpace(request.Sensitivity)
-            ? (
-                string.IsNullOrWhiteSpace(defaults.Sensitivity)
-                    ? "Internal"
-                    : defaults.Sensitivity.Trim()
-            )
-            : request.Sensitivity.Trim();
+
+        var docType = ResolveValue(request.DocType, defaults.DocType, "general");
+        var status = ResolveValue(request.Status, defaults.Status, "draft");
+        var sensitivity = ResolveValue(request.Sensitivity, defaults.Sensitivity, "Internal");
+
         var documentTypeId = request.DocumentTypeId ?? defaults.DocumentTypeId;
 
         var contentType = string.IsNullOrWhiteSpace(request.File.ContentType)
@@ -766,18 +764,6 @@ public static class DocumentEndpoints
 
     private sealed record ThumbnailQueryParameters(int? Width, int? Height, string? Fit)
     {
-        public static ValueTask<ThumbnailQueryParameters?> BindAsync(HttpContext context)
-        {
-            var query = context.Request.Query;
-
-            var parameters = new ThumbnailQueryParameters(
-                Width: query.GetInt32("w"),
-                Height: query.GetInt32("h"),
-                Fit: query.GetString("fit")
-            );
-
-            return ValueTask.FromResult<ThumbnailQueryParameters?>(parameters);
-        }
     }
 
     private static IResult MapFileErrors(IReadOnlyCollection<string> errors)

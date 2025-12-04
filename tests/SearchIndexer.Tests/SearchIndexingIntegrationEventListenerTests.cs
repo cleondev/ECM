@@ -54,7 +54,7 @@ public class SearchIndexingIntegrationEventListenerTests
         }, CachedWebOptions);
 
         var message = new KafkaMessage(
-            EventTopics.Pipelines.Document.Uploaded,
+            EventNames.Document.Uploaded,
             Key: documentId.ToString(),
             Value: payload,
             Timestamp: DateTimeOffset.UtcNow);
@@ -103,7 +103,7 @@ public class SearchIndexingIntegrationEventListenerTests
         }, CachedWebOptions);
 
         var message = new KafkaMessage(
-            EventTopics.Pipelines.Ocr.Completed,
+            EventNames.Ocr.Completed,
             Key: documentId.ToString(),
             Value: payload,
             Timestamp: DateTimeOffset.UtcNow);

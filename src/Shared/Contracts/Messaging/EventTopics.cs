@@ -40,21 +40,4 @@ public static class EventTopics
     {
         public const string Events = "webhook-requests";
     }
-
-    /// <summary>
-    ///     Topics that are dedicated to long-running pipeline hand-offs where we want a 1:1 mapping between
-    ///     topic and integration event type (e.g., upload → OCR → search indexing).
-    /// </summary>
-    public static class Pipelines
-    {
-        public static class Document
-        {
-            public const string Uploaded = EventNames.Document.Created;
-        }
-
-        public static class Ocr
-        {
-            public const string Completed = EventNames.Ocr.Completed;
-        }
-    }
 }

@@ -14,8 +14,8 @@ internal sealed class SearchIndexingIntegrationEventListener(
     IServiceScopeFactory scopeFactory,
     ILogger<SearchIndexingIntegrationEventListener> logger) : BackgroundService
 {
-    private const string DocumentUploadedTopic = EventTopics.Pipelines.Document.Uploaded;
-    private const string OcrCompletedTopic = EventTopics.Pipelines.Ocr.Completed;
+    private const string DocumentUploadedTopic = EventNames.Document.Uploaded;
+    private const string OcrCompletedTopic = EventNames.Ocr.Completed;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
 
