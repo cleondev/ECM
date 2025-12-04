@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,11 +30,13 @@ namespace AppGateway.Api.Controllers.Documents;
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
 public sealed class DocumentsController(
     IDocumentsApiClient documentsClient,
+    IUsersApiClient usersClient,
     ITagsApiClient tagsClient,
     IWorkflowsApiClient workflowsClient,
     ILogger<DocumentsController> logger) : ControllerBase
 {
     private readonly IDocumentsApiClient _documentsClient = documentsClient;
+    private readonly IUsersApiClient _usersClient = usersClient;
     private readonly ITagsApiClient _tagsClient = tagsClient;
     private readonly IWorkflowsApiClient _workflowsClient = workflowsClient;
     private readonly ILogger<DocumentsController> _logger = logger;
@@ -104,6 +107,8 @@ public sealed class DocumentsController(
             return ValidationProblem(ModelState);
         }
 
+        var primaryGroupId = await ResolvePrimaryGroupIdAsync(cancellationToken);
+
         var upload = new CreateDocumentUpload
         {
             Title = request.Title,
@@ -111,7 +116,7 @@ public sealed class DocumentsController(
             Status = request.Status,
             OwnerId = request.OwnerId,
             CreatedBy = request.CreatedBy,
-            GroupId = null,
+            GroupId = primaryGroupId,
             GroupIds = Array.Empty<Guid>(),
             Sensitivity = request.Sensitivity,
             DocumentTypeId = request.DocumentTypeId,
@@ -221,6 +226,7 @@ public sealed class DocumentsController(
         var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
         var documentTypeId = request.DocumentTypeId;
         var flowDefinition = NormalizeOptional(request.FlowDefinition);
+        var primaryGroupId = await ResolvePrimaryGroupIdAsync(cancellationToken);
         var tagIds = request.TagIds.Count == 0
             ? []
             : request.TagIds.Where(id => id != Guid.Empty).Distinct().ToArray();
@@ -256,7 +262,7 @@ public sealed class DocumentsController(
                 Status = normalizedStatus,
                 OwnerId = ownerId,
                 CreatedBy = createdBy,
-                GroupId = null,
+                GroupId = primaryGroupId,
                 GroupIds = Array.Empty<Guid>(),
                 Sensitivity = normalizedSensitivity,
                 DocumentTypeId = documentTypeId,
@@ -476,6 +482,19 @@ public sealed class DocumentsController(
         }
 
         return NoContent();
+    }
+
+    private async Task<Guid?> ResolvePrimaryGroupIdAsync(CancellationToken cancellationToken)
+    {
+        var claimValue = User.FindFirstValue("primary_group_id");
+        if (Guid.TryParse(claimValue, out var parsed) && parsed != Guid.Empty)
+        {
+            return parsed;
+        }
+
+        var resolution = await CurrentUserProfileResolver.ResolveAsync(HttpContext, _usersClient, _logger, cancellationToken);
+        var primaryGroupId = resolution.Profile?.PrimaryGroupId;
+        return primaryGroupId is { } id && id != Guid.Empty ? id : null;
     }
 
     private ListDocumentsRequestDto BindListDocumentsRequest()
