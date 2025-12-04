@@ -764,6 +764,18 @@ public static class DocumentEndpoints
 
     private sealed record ThumbnailQueryParameters(int? Width, int? Height, string? Fit)
     {
+        public static ValueTask<ThumbnailQueryParameters?> BindAsync(HttpContext context)
+        {
+            var query = context.Request.Query;
+
+            var parameters = new ThumbnailQueryParameters(
+                Width: query.GetInt32("w"),
+                Height: query.GetInt32("h"),
+                Fit: query.GetString("fit")
+            );
+
+            return ValueTask.FromResult<ThumbnailQueryParameters?>(parameters);
+        }
     }
 
     private static IResult MapFileErrors(IReadOnlyCollection<string> errors)
