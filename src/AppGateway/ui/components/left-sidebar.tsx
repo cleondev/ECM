@@ -41,7 +41,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { CurrentUserIdentity } from "@/components/user/current-user-identity"
+import { UserIdentity } from "@/components/user/user-identity"
 
 const DEFAULT_TAG_ICON = "📁"
 
@@ -601,7 +601,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
               className="w-full justify-start px-3 py-2 h-auto min-h-[4.5rem] rounded-xl border leftbar-section-surface text-left transition-colors hover:bg-sidebar-accent/50"
             >
               <div className="flex w-full items-center gap-3">
-                <CurrentUserIdentity
+                <UserIdentity
                   size="sm"
                   profileHref="/me"
                   lazy
@@ -615,7 +615,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
           <DropdownMenuContent align="start" sideOffset={8} className="w-60">
             <DropdownMenuLabel>
               <div className="flex flex-col gap-2">
-                <CurrentUserIdentity
+                <UserIdentity
                   size="md"
                   profileHref="/me"
                   lazy

@@ -146,17 +146,37 @@ public sealed class IamUserProfileController(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (HttpContext.User?.Identity?.IsAuthenticated is not true)
-        {
-            return Ok(UserIdentityResponse.Anonymous);
-        }
+        var includeSensitive = HttpContext.User?.Identity?.IsAuthenticated is true;
 
         try
         {
             var profile = await _client.GetCurrentUserProfileAsync(cancellationToken);
             return Ok(profile is null
                 ? UserIdentityResponse.Anonymous
-                : UserIdentityResponse.FromProfile(profile));
+                : UserIdentityResponse.FromProfile(profile, includeSensitive));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Ok(UserIdentityResponse.Anonymous);
+        }
+    }
+
+    [HttpGet("identity/{userId:guid}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(UserIdentityResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetIdentityByIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var includeSensitive = HttpContext.User?.Identity?.IsAuthenticated is true;
+
+        try
+        {
+            var profile = await _client.GetUserAsync(userId, cancellationToken);
+            return profile is null
+                ? NotFound()
+                : Ok(UserIdentityResponse.FromProfile(profile, includeSensitive));
         }
         catch (UnauthorizedAccessException)
         {
@@ -169,6 +189,6 @@ public sealed record UserIdentityResponse(Guid Id, string DisplayName, string? E
 {
     public static UserIdentityResponse Anonymous { get; } = new(Guid.Empty, "Guest", null, AvatarUrl: null, IsAuthenticated: false);
 
-    public static UserIdentityResponse FromProfile(UserSummaryDto profile) =>
-        new(profile.Id, profile.DisplayName, profile.Email, AvatarUrl: null, IsAuthenticated: true);
+    public static UserIdentityResponse FromProfile(UserSummaryDto profile, bool includeSensitive) =>
+        new(profile.Id, profile.DisplayName, includeSensitive ? profile.Email : null, AvatarUrl: null, IsAuthenticated: includeSensitive);
 }

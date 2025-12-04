@@ -27,7 +27,7 @@ import {
 import type { ShareInterstitial, User } from "@/lib/types"
 import { attemptSilentLogin, resolveGatewayUrl } from "@/lib/auth"
 import { createSignInRedirectPath } from "@/lib/utils"
-import { CurrentUserIdentity } from "@/components/user/current-user-identity"
+import { UserIdentity } from "@/components/user/user-identity"
 
 export type ShareDownloadPageProps = {
   initialCode?: string
@@ -398,7 +398,7 @@ function ShareDownloadPageContent({
                     You are using the account {currentUser.displayName} to view this shared content.
                   </CardDescription>
                 </div>
-                <CurrentUserIdentity
+                <UserIdentity
                   size="sm"
                   profileHref="/me"
                   lazy

@@ -42,6 +42,8 @@ const SIMULATED_DELAY = 800 // milliseconds
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+const userIdentityRequestCache = new Map<string, Promise<UserIdentity | null>>()
+
 type RoleSummaryResponse = {
   id: string
   name: string
@@ -714,34 +716,56 @@ function mapUserSummaryToUser(profile: UserSummaryResponse): User {
   }
 }
 
-export async function fetchCurrentUserIdentity(): Promise<UserIdentity | null> {
-  try {
-    const response = await gatewayFetch("/api/iam/profile/identity")
+export async function fetchUserIdentity(userId?: string | null): Promise<UserIdentity | null> {
+  const cacheKey = userId ?? "current"
+  const cached = userIdentityRequestCache.get(cacheKey)
 
-    if ([401, 403, 404].includes(response.status)) {
-      clearCachedAuthSnapshot()
+  if (cached) {
+    return cached
+  }
+
+  const request = (async () => {
+    try {
+      const path = userId ? `/api/iam/profile/identity/${encodeURIComponent(userId)}` : "/api/iam/profile/identity"
+      const response = await gatewayFetch(path)
+
+      if ([401, 403].includes(response.status)) {
+        clearCachedAuthSnapshot()
+        return null
+      }
+
+      if (response.status === 404) {
+        return null
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user identity (${response.status})`)
+      }
+
+      const data = (await response.json()) as UserIdentityResponse
+
+      return {
+        id: data.id,
+        displayName: data.displayName,
+        email: data.email ?? null,
+        avatarUrl: data.avatarUrl ?? null,
+        isAuthenticated: data.isAuthenticated,
+      }
+    } catch (error) {
+      if (!userId) {
+        clearCachedAuthSnapshot()
+      }
+
+      console.error(`[ui] Failed to fetch user identity for ${userId ?? "current user"}:`, error)
       return null
     }
+  })()
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch current user identity (${response.status})`)
-    }
-
-    const data = (await response.json()) as UserIdentityResponse
-
-    return {
-      id: data.id,
-      displayName: data.displayName,
-      email: data.email ?? null,
-      avatarUrl: data.avatarUrl ?? null,
-      isAuthenticated: data.isAuthenticated,
-    }
-  } catch (error) {
-    clearCachedAuthSnapshot()
-    console.error("[ui] Failed to fetch current user identity:", error)
-    return null
-  }
+  userIdentityRequestCache.set(cacheKey, request)
+  return request
 }
+
+export const fetchCurrentUserIdentity = () => fetchUserIdentity()
 
 export async function fetchCurrentUserProfile(): Promise<User | null> {
   try {
