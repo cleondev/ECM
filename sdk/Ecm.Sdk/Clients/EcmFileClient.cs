@@ -209,7 +209,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Document {DocumentId} không tồn tại.", documentId);
+            _logger.LogWarning("Document {DocumentId} does not exist.", documentId);
             return null;
         }
 
@@ -272,7 +272,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Version {VersionId} không tồn tại khi tải.", versionId);
+            _logger.LogWarning("Version {VersionId} does not exist when loading.", versionId);
             return null;
         }
 
@@ -394,7 +394,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Không tìm thấy tag {TagId} khi cập nhật.", tagId);
+            _logger.LogWarning("Tag {TagId} was not found during update.", tagId);
             return null;
         }
 
@@ -422,7 +422,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Không tìm thấy tag {TagId} khi cập nhật (management API).", tagId);
+            _logger.LogWarning("Tag {TagId} was not found during update (management API).", tagId);
             return null;
         }
 
@@ -443,7 +443,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Không tìm thấy tag {TagId} khi xoá.", tagId);
+            _logger.LogWarning("Tag {TagId} was not found when deleting.", tagId);
             return false;
         }
 
@@ -465,7 +465,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Không tìm thấy tag {TagId} khi xoá (management API).", tagId);
+            _logger.LogWarning("Tag {TagId} was not found when deleting (management API).", tagId);
             return false;
         }
 
@@ -511,7 +511,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Không tìm thấy namespace {NamespaceId} khi cập nhật.", namespaceId);
+            _logger.LogWarning("Namespace {NamespaceId} was not found during update.", namespaceId);
             return false;
         }
 
@@ -533,7 +533,7 @@ public sealed class EcmFileClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Không tìm thấy namespace {NamespaceId} khi xoá.", namespaceId);
+            _logger.LogWarning("Namespace {NamespaceId} was not found when deleting.", namespaceId);
             return false;
         }
 
@@ -566,7 +566,7 @@ public sealed class EcmFileClient
         }
 
         _logger.LogWarning(
-            "Không thể gán tag {TagId} cho document {DocumentId}. Status: {Status}",
+            "Cannot assign tag {TagId} to document {DocumentId}. Status: {Status}",
             tagId,
             documentId,
             response.StatusCode);
@@ -592,7 +592,7 @@ public sealed class EcmFileClient
         }
 
         _logger.LogWarning(
-            "Không thể xoá tag {TagId} khỏi document {DocumentId}. Status: {Status}",
+            "Cannot remove tag {TagId} from document {DocumentId}. Status: {Status}",
             tagId,
             documentId,
             response.StatusCode);
@@ -627,13 +627,13 @@ public sealed class EcmFileClient
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Document {DocumentId} không tồn tại khi cập nhật.", documentId);
+            _logger.LogWarning("Document {DocumentId} does not exist during update.", documentId);
             return null;
         }
 
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
-            _logger.LogWarning("Không đủ quyền cập nhật document {DocumentId}.", documentId);
+            _logger.LogWarning("Insufficient permissions to update document {DocumentId}.", documentId);
             return null;
         }
 
@@ -653,13 +653,13 @@ public sealed class EcmFileClient
 
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Document {DocumentId} không tồn tại khi xoá.", documentId);
+            _logger.LogWarning("Document {DocumentId} does not exist when deleting.", documentId);
             return false;
         }
 
         if (response.StatusCode is HttpStatusCode.Forbidden)
         {
-            _logger.LogWarning("Không đủ quyền xoá document {DocumentId}.", documentId);
+            _logger.LogWarning("Insufficient permissions to delete document {DocumentId}.", documentId);
             return false;
         }
 
@@ -679,13 +679,13 @@ public sealed class EcmFileClient
 
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
-            _logger.LogWarning("Document version {VersionId} không tồn tại khi xoá.", versionId);
+            _logger.LogWarning("Document version {VersionId} does not exist when deleting.", versionId);
             return false;
         }
 
         if (response.StatusCode is HttpStatusCode.Forbidden)
         {
-            _logger.LogWarning("Không đủ quyền xoá tài liệu chứa version {VersionId}.", versionId);
+            _logger.LogWarning("Insufficient permissions to delete the document containing version {VersionId}.", versionId);
             return false;
         }
 
