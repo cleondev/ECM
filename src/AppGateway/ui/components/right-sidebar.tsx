@@ -810,7 +810,6 @@ export function RightSidebar({
                                 userId={ownerLookup}
                                 size="sm"
                                 density="compact"
-                                hint="Chủ sở hữu"
                                 className="px-0 py-0"
                               />
                             ) : (
@@ -856,9 +855,6 @@ export function RightSidebar({
                     {!collapsedSections.has("tags") && (
                       <div className="space-y-3">
                         <div className="space-y-2">
-                          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
-                            User Defined
-                          </p>
                           {appliedUserTags.length ? (
                             <div className="space-y-3">
                               {appliedUserTags.map(([applier, tags]) => (
@@ -874,7 +870,6 @@ export function RightSidebar({
                                         density="compact"
                                         interactive={false}
                                         className="px-0 py-0"
-                                        hint="Người áp dụng"
                                       />
                                     )}
                                   </div>

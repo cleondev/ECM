@@ -149,7 +149,7 @@ export function UserIdentity({
     sizeStyles[size]
 
   const hasEmail = Boolean(user?.email)
-  const hintText = hint ?? (user?.isAuthenticated ? "Mở trang hồ sơ" : "Người dùng")
+  const hintText = hint ?? (user?.isAuthenticated ? user?.email : "")
 
   const resolvedProfileHref = profileHref ?? (userId ? `/users/${userId}` : "/me")
 
