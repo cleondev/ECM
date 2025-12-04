@@ -10,6 +10,7 @@ using ECM.Document.Api.Tags.Requests;
 using ECM.Document.Api.Tags.Responses;
 using ECM.Document.Application.Tags.Commands;
 using ECM.Document.Application.Tags.Queries;
+using ECM.Document.Application.Tags.Repositories;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -33,19 +34,9 @@ public static class TagEndpoints
             .WithDescription("Retrieve all tag labels grouped by namespace.");
 
         tagGroup
-            .MapGet("/namespaces", ListNamespacesAsync)
-            .WithName("ListTagNamespaces")
-            .WithDescription("Retrieve tag namespaces available to the caller or all namespaces when requested.");
-
-        tagGroup
             .MapPost("/", CreateTagAsync)
             .WithName("CreateTag")
             .WithDescription("Create a tag label within an existing namespace.");
-
-        tagGroup
-            .MapPost("/namespaces", CreateNamespaceAsync)
-            .WithName("CreateTagNamespace")
-            .WithDescription("Create a new tag namespace.");
 
         tagGroup
             .MapPut("/{tagId:guid}", UpdateTagAsync)
@@ -53,21 +44,11 @@ public static class TagEndpoints
             .WithDescription("Update an existing tag label.");
 
         tagGroup
-            .MapPut("/namespaces/{namespaceId:guid}", UpdateNamespaceAsync)
-            .WithName("UpdateTagNamespace")
-            .WithDescription("Update a tag namespace.");
-
-        tagGroup
             .MapDelete("/{tagId:guid}", DeleteTagAsync)
             .WithName("DeleteTag")
             .WithDescription(
                 "Delete a tag label. Existing document assignments will be removed by cascade."
             );
-
-        tagGroup
-            .MapDelete("/namespaces/{namespaceId:guid}", DeleteNamespaceAsync)
-            .WithName("DeleteTagNamespace")
-            .WithDescription("Delete an empty tag namespace.");
 
         var documentTagGroup = builder.MapGroup("/api/ecm/documents/{documentId:guid}/tags");
         documentTagGroup.WithTags("Document Tags");
@@ -91,6 +72,7 @@ public static class TagEndpoints
         ClaimsPrincipal principal,
         UpdateTagRequest request,
         UpdateTagLabelCommandHandler handler,
+        ITagLabelRepository tagLabelRepository,
         IUserLookupService userLookupService,
         CancellationToken cancellationToken
     )
@@ -100,14 +82,23 @@ public static class TagEndpoints
             .ConfigureAwait(false);
         var updatedBy = NormalizeGuid(request.UpdatedBy) ?? claimedUserId;
 
+        var existingTag = await tagLabelRepository
+            .GetByIdAsync(tagId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (existingTag is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         var command = new UpdateTagLabelCommand(
             tagId,
-            request.NamespaceId,
+            existingTag.NamespaceId,
             request.ParentId,
             request.Name,
             request.SortOrder,
-            request.Color,
-            request.IconKey,
+            TagEndpointMapping.NormalizeColor(request.Color),
+            TagEndpointMapping.NormalizeIcon(request.IconKey, TagEndpointMapping.UserDefaultIconKey),
             request.IsActive,
             updatedBy
         );
@@ -130,62 +121,15 @@ public static class TagEndpoints
             return TypedResults.NotFound();
         }
 
-        var response = new TagLabelResponse(
-            result.Value.Id,
-            result.Value.NamespaceId,
-            result.Value.NamespaceScope,
-            result.Value.NamespaceDisplayName,
-            result.Value.ParentId,
-            result.Value.Name,
-            result.Value.PathIds,
-            result.Value.SortOrder,
-            result.Value.Color,
-            result.Value.IconKey,
-            result.Value.IsActive,
-            result.Value.IsSystem,
-            result.Value.CreatedBy,
-            result.Value.CreatedAtUtc
+        return TypedResults.Ok(
+            TagEndpointMapping.ToResponse(result.Value, TagEndpointMapping.UserDefaultIconKey)
         );
-
-        return TypedResults.Ok(response);
-    }
-
-    private static async Task<Results<NoContent, ValidationProblem, NotFound>> UpdateNamespaceAsync(
-        Guid namespaceId,
-        ClaimsPrincipal principal,
-        UpdateTagNamespaceRequest request,
-        UpdateTagNamespaceCommandHandler handler,
-        IUserLookupService userLookupService,
-        CancellationToken cancellationToken)
-    {
-        var claimedUserId = await principal
-            .GetUserObjectIdAsync(userLookupService, cancellationToken)
-            .ConfigureAwait(false);
-        var updatedBy = NormalizeGuid(request.UpdatedBy) ?? claimedUserId;
-
-        var command = new UpdateTagNamespaceCommand(namespaceId, request.DisplayName, updatedBy);
-
-        var result = await handler.HandleAsync(command, cancellationToken).ConfigureAwait(false);
-
-        if (result.IsFailure)
-        {
-            if (result.Errors.Contains("Tag namespace was not found."))
-            {
-                return TypedResults.NotFound();
-            }
-
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["namespace"] = [.. result.Errors] });
-        }
-
-        return TypedResults.NoContent();
     }
 
     private static async Task<Ok<TagLabelResponse[]>> ListTagsAsync(
         ClaimsPrincipal principal,
         ListTagLabelsQueryHandler handler,
         IUserLookupService userLookupService,
-        [FromQuery(Name = "scope")] string? scope,
-        [FromQuery(Name = "includeAll")] bool? includeAll,
         CancellationToken cancellationToken
     )
     {
@@ -202,64 +146,11 @@ public static class TagEndpoints
         }
 
         var tagLabels = await handler
-            .HandleAsync(ownerUserId, primaryGroupId, scope, includeAll ?? false, cancellationToken)
+            .HandleAsync(ownerUserId, primaryGroupId, scope: null, includeAllNamespaces: false, cancellationToken)
             .ConfigureAwait(false);
 
         var response = tagLabels
-            .Select(tag => new TagLabelResponse(
-                tag.Id,
-                tag.NamespaceId,
-                tag.NamespaceScope,
-                tag.NamespaceDisplayName,
-                tag.ParentId,
-                tag.Name,
-                tag.PathIds,
-                tag.SortOrder,
-                tag.Color,
-                tag.IconKey,
-                tag.IsActive,
-                tag.IsSystem,
-                tag.CreatedBy,
-                tag.CreatedAtUtc
-            ))
-            .ToArray();
-
-        return TypedResults.Ok(response);
-    }
-
-    private static async Task<Ok<TagNamespaceResponse[]>> ListNamespacesAsync(
-        ClaimsPrincipal principal,
-        ListTagNamespacesQueryHandler handler,
-        IUserLookupService userLookupService,
-        [FromQuery(Name = "scope")] string? scope,
-        [FromQuery(Name = "includeAll")] bool? includeAll,
-        CancellationToken cancellationToken)
-    {
-        var ownerUserId = await principal
-            .GetUserObjectIdAsync(userLookupService, cancellationToken)
-            .ConfigureAwait(false);
-        Guid? primaryGroupId = null;
-
-        if (ownerUserId.HasValue)
-        {
-            primaryGroupId = await userLookupService
-                .FindPrimaryGroupIdByUserIdAsync(ownerUserId.Value, cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        var namespaces = await handler
-            .HandleAsync(ownerUserId, primaryGroupId, scope, includeAll ?? false, cancellationToken)
-            .ConfigureAwait(false);
-
-        var response = namespaces
-            .Select(ns => new TagNamespaceResponse(
-                ns.Id,
-                ns.Scope,
-                ns.OwnerUserId,
-                ns.OwnerGroupId,
-                ns.DisplayName,
-                ns.IsSystem,
-                ns.CreatedAtUtc))
+            .Select(tag => TagEndpointMapping.ToResponse(tag, TagEndpointMapping.UserDefaultIconKey))
             .ToArray();
 
         return TypedResults.Ok(response);
@@ -293,14 +184,14 @@ public static class TagEndpoints
         }
 
         var command = new CreateTagLabelCommand(
-            request.NamespaceId,
+            null,
             request.ParentId,
             request.Name,
             request.SortOrder,
-            request.Color,
-            request.IconKey,
+            TagEndpointMapping.NormalizeColor(request.Color),
+            TagEndpointMapping.NormalizeIcon(request.IconKey, TagEndpointMapping.UserDefaultIconKey),
             createdBy,
-            request.IsSystem
+            isSystem: false
         );
         var result = await handler.HandleAsync(command, cancellationToken);
 
@@ -321,79 +212,9 @@ public static class TagEndpoints
             );
         }
 
-        var response = new TagLabelResponse(
-            result.Value.Id,
-            result.Value.NamespaceId,
-            result.Value.NamespaceScope,
-            result.Value.NamespaceDisplayName,
-            result.Value.ParentId,
-            result.Value.Name,
-            result.Value.PathIds,
-            result.Value.SortOrder,
-            result.Value.Color,
-            result.Value.IconKey,
-            result.Value.IsActive,
-            result.Value.IsSystem,
-            result.Value.CreatedBy,
-            result.Value.CreatedAtUtc
-        );
+        var response = TagEndpointMapping.ToResponse(result.Value, TagEndpointMapping.UserDefaultIconKey);
 
         return TypedResults.Created($"/api/ecm/tags/{response.Id}", response);
-    }
-
-    private static async Task<Results<Created<TagNamespaceResponse>, ValidationProblem>> CreateNamespaceAsync(
-        ClaimsPrincipal principal,
-        CreateTagNamespaceRequest request,
-        CreateTagNamespaceCommandHandler handler,
-        IUserLookupService userLookupService,
-        CancellationToken cancellationToken)
-    {
-        var claimedUserId = await principal
-            .GetUserObjectIdAsync(userLookupService, cancellationToken)
-            .ConfigureAwait(false);
-        var createdBy = NormalizeGuid(request.CreatedBy) ?? claimedUserId;
-
-        var command = new CreateTagNamespaceCommand(
-            request.Scope,
-            request.OwnerUserId,
-            request.OwnerGroupId,
-            request.DisplayName,
-            createdBy);
-
-        var result = await handler.HandleAsync(command, cancellationToken).ConfigureAwait(false);
-
-        if (result.IsFailure)
-        {
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["namespace"] = [.. result.Errors] });
-        }
-
-        var response = new TagNamespaceResponse(
-            result.Value.Id,
-            result.Value.Scope,
-            result.Value.OwnerUserId,
-            result.Value.OwnerGroupId,
-            result.Value.DisplayName,
-            result.Value.IsSystem,
-            result.Value.CreatedAtUtc);
-
-        return TypedResults.Created($"/api/ecm/tags/namespaces/{response.Id}", response);
-    }
-
-    private static async Task<Results<NoContent, ValidationProblem>> DeleteNamespaceAsync(
-        Guid namespaceId,
-        DeleteTagNamespaceCommandHandler handler,
-        CancellationToken cancellationToken)
-    {
-        var result = await handler
-            .HandleAsync(new DeleteTagNamespaceCommand(namespaceId), cancellationToken)
-            .ConfigureAwait(false);
-
-        if (result.IsFailure)
-        {
-            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["namespace"] = [.. result.Errors] });
-        }
-
-        return TypedResults.NoContent();
     }
 
     private static Guid? NormalizeGuid(Guid? value)
