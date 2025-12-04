@@ -1090,20 +1090,6 @@ internal sealed class EcmApiClient(
             }
         }
 
-        if (profile.Roles?.Count > 0)
-        {
-            var roleNames = profile.Roles
-                .Select(role => role?.Name)
-                .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            if (roleNames.Length > 0)
-            {
-                request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.Roles, roleNames);
-            }
-        }
-
         if (principal?.HasClaim(PasswordLoginClaims.OnBehalfClaimType, "true") == true)
         {
             request.Headers.TryAddWithoutValidation(PasswordLoginForwardingHeaders.OnBehalf, "true");

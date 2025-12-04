@@ -12,5 +12,4 @@ public static class PasswordLoginForwardingHeaders
     public const string PrimaryGroupId = "X-Password-Login-Primary-GroupId";
     public const string PrimaryGroupName = "X-Password-Login-Primary-Group-Name";
     public const string OnBehalf = "X-Password-Login-On-Behalf";
-    public const string Roles = "X-Password-Login-Roles";
 }

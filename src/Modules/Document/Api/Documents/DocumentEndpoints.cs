@@ -30,6 +30,7 @@ public static class DocumentEndpoints
 {
 
     private const string ShareDurationValidationKey = "expiresInMinutes";
+    private static readonly string[] DocumentManagementRoles = ["admin", "document.manager"];
 
     public static RouteGroupBuilder MapDocumentEndpoints(this IEndpointRouteBuilder builder)
     {
@@ -276,13 +277,16 @@ public static class DocumentEndpoints
         IUserLookupService userLookupService,
         CancellationToken cancellationToken)
     {
-        var hasDocumentManagementOverride = principal.HasDocumentManagementOverride();
-
         var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
-        if (userId is null && !hasDocumentManagementOverride)
+        if (userId is null)
         {
             return TypedResults.Forbid();
         }
+
+        var hasDocumentManagementOverride = await HasDocumentManagementOverrideAsync(
+            userId.Value,
+            userLookupService,
+            cancellationToken);
 
         var documentIdValue = DocumentId.FromGuid(documentId);
 
@@ -332,9 +336,8 @@ public static class DocumentEndpoints
         var pageSize = request.PageSize <= 0 ? 24 : request.PageSize;
         pageSize = pageSize > 200 ? 200 : pageSize;
 
-        var hasDocumentManagementOverride = principal.HasDocumentManagementOverride();
         var userId = await principal.GetUserObjectIdAsync(userLookupService, cancellationToken);
-        if (userId is null && !hasDocumentManagementOverride)
+        if (userId is null)
         {
             var emptyResponse = new DocumentListResponse(
                 page,
@@ -345,6 +348,11 @@ public static class DocumentEndpoints
             );
             return TypedResults.Ok(emptyResponse);
         }
+
+        var hasDocumentManagementOverride = await HasDocumentManagementOverrideAsync(
+            userId.Value,
+            userLookupService,
+            cancellationToken);
 
         var query = context.Documents.AsNoTracking();
 
@@ -458,6 +466,14 @@ public static class DocumentEndpoints
 
         var response = new DocumentListResponse(page, pageSize, totalItems, totalPages, items);
         return TypedResults.Ok(response);
+    }
+
+    private static Task<bool> HasDocumentManagementOverrideAsync(
+        Guid userId,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        return userLookupService.UserHasAnyRoleAsync(userId, DocumentManagementRoles, cancellationToken);
     }
 
     private static string ResolveValue(string? value, string? defaultValue, string fallback)

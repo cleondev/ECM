@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -77,26 +76,5 @@ internal static class ClaimsPrincipalExtensions
         return Guid.TryParse(claimValue, out var parsed) && parsed != Guid.Empty
             ? parsed
             : null;
-    }
-
-    public static bool HasDocumentManagementOverride(this ClaimsPrincipal? principal)
-    {
-        if (principal is null)
-        {
-            return false;
-        }
-
-        var acceptedRoleClaimTypes = new[]
-        {
-            ClaimTypes.Role,
-            "role",
-            "roles",
-        };
-
-        return principal.Claims.Any(claim =>
-            acceptedRoleClaimTypes.Contains(claim.Type, StringComparer.OrdinalIgnoreCase)
-            && (string.Equals(claim.Value, "admin", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(claim.Value, "document.manager", StringComparison.OrdinalIgnoreCase))
-        );
     }
 }
