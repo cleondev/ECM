@@ -35,13 +35,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import { CurrentUserIdentity } from "@/components/user/current-user-identity"
 
 const DEFAULT_TAG_ICON = "📁"
 
@@ -598,36 +598,36 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
             <Button
               variant="ghost"
               size="lg"
-              className="w-full justify-start gap-4 px-4 py-3 h-auto min-h-[4.5rem] rounded-xl border leftbar-section-surface text-left transition-colors hover:bg-sidebar-accent/50"
+              className="w-full justify-start px-3 py-2 h-auto min-h-[4.5rem] rounded-xl border leftbar-section-surface text-left transition-colors hover:bg-sidebar-accent/50"
             >
-              <Avatar className="h-12 w-12 border border-sidebar-border/70 bg-background/80">
-                <AvatarImage src={user?.avatar || "/default-user-icon.svg"} alt={user?.displayName} />
-                <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start text-left gap-0.5">
-                <span className="text-sm font-semibold truncate w-full">{user?.displayName || "Loading..."}</span>
-                <span className="text-xs text-muted-foreground truncate w-full">
-                  {primaryGroupName || primaryRole || ""}
-                </span>
+              <div className="flex w-full items-center gap-3">
+                <CurrentUserIdentity
+                  size="sm"
+                  profileHref="/me"
+                  lazy
+                  interactive={false}
+                  hint={primaryGroupName || primaryRole || "Xem hồ sơ cá nhân"}
+                  className="flex-1 justify-start px-0 py-0 hover:bg-transparent"
+                />
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={8} className="w-60">
             <DropdownMenuLabel>
-              <div className="flex flex-col gap-1">
-                <span className="font-medium">{user?.displayName || ""}</span>
-                <span className="text-xs text-muted-foreground font-normal">{user?.email || ""}</span>
-                {primaryGroupName && (
-                  <span className="text-xs text-muted-foreground font-normal">Primary group: {primaryGroupName}</span>
-                )}
-                {secondaryGroupNames.length > 0 && (
-                  <span className="text-xs text-muted-foreground font-normal">
-                    Also in: {secondaryGroupNames.join(", ")}
-                  </span>
-                )}
-                {primaryRole && (
-                  <span className="text-xs text-muted-foreground font-normal">Role: {primaryRole}</span>
-                )}
+              <div className="flex flex-col gap-2">
+                <CurrentUserIdentity
+                  size="md"
+                  profileHref="/me"
+                  lazy
+                  interactive={false}
+                  hint={primaryGroupName || primaryRole || "Xem hồ sơ cá nhân"}
+                  className="px-0 py-0 hover:bg-transparent"
+                />
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  {primaryGroupName ? <p>Primary group: {primaryGroupName}</p> : null}
+                  {secondaryGroupNames.length > 0 ? <p>Also in: {secondaryGroupNames.join(", ")}</p> : null}
+                  {primaryRole ? <p>Role: {primaryRole}</p> : null}
+                </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

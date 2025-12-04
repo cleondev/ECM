@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { DownloadCloud, Eye, Lock } from "lucide-react"
+import { DownloadCloud, Eye, Fingerprint, Lock, Mail } from "lucide-react"
 
 import {
   checkLogin,
@@ -27,6 +27,7 @@ import {
 import type { ShareInterstitial, User } from "@/lib/types"
 import { attemptSilentLogin, resolveGatewayUrl } from "@/lib/auth"
 import { createSignInRedirectPath } from "@/lib/utils"
+import { CurrentUserIdentity } from "@/components/user/current-user-identity"
 
 export type ShareDownloadPageProps = {
   initialCode?: string
@@ -389,31 +390,39 @@ function ShareDownloadPageContent({
       <div className="mx-auto flex max-w-5xl flex-col gap-8">
         {currentUser ? (
           <Card className="border-primary/30 bg-primary/5 shadow-sm shadow-primary/10 dark:border-primary/40 dark:bg-primary/10">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-lg font-semibold text-primary dark:text-primary-200">
-                Signed in
-              </CardTitle>
-              <CardDescription>
-                You are using the account {currentUser.displayName} to view this shared content.
-              </CardDescription>
+            <CardHeader className="space-y-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-primary dark:text-primary-200">Signed in</CardTitle>
+                  <CardDescription>
+                    You are using the account {currentUser.displayName} to view this shared content.
+                  </CardDescription>
+                </div>
+                <CurrentUserIdentity
+                  size="sm"
+                  profileHref="/me"
+                  lazy
+                  className="px-0 py-0 hover:bg-transparent"
+                />
+              </div>
             </CardHeader>
-            <CardContent>
-              <dl className="space-y-2 text-sm">
-                <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
-                  <dt className="text-muted-foreground">Email</dt>
-                  <dd className="font-medium text-foreground break-all">{currentUser.email}</dd>
+            <CardContent className="space-y-3">
+              <div className="flex flex-col gap-3 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground break-all">{currentUser.email}</span>
                 </div>
-                <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
-                  <dt className="text-muted-foreground">User ID</dt>
-                  <dd className="font-mono text-sm text-foreground">{currentUser.id}</dd>
+                <div className="flex items-center gap-3">
+                  <Fingerprint className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-mono text-xs text-foreground break-all">{currentUser.id}</span>
                 </div>
-                {currentUser.roles?.length ? (
-                  <div className="flex flex-col gap-1 rounded-md border border-primary/10 bg-background/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-950/40">
-                    <dt className="text-muted-foreground">Roles</dt>
-                    <dd className="text-foreground">{currentUser.roles.join(", ")}</dd>
-                  </div>
-                ) : null}
-              </dl>
+              </div>
+              {currentUser.roles?.length ? (
+                <div className="flex flex-col gap-2 rounded-md border border-primary/10 bg-background/80 p-3 text-sm text-foreground dark:bg-slate-950/40">
+                  <span className="text-muted-foreground">Roles</span>
+                  <span>{currentUser.roles.join(", ")}</span>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}

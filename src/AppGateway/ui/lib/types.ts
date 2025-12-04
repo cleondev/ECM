@@ -178,6 +178,14 @@ export type User = {
   hasPassword?: boolean
 }
 
+export type UserIdentity = {
+  id: string
+  displayName: string
+  email?: string | null
+  avatarUrl?: string | null
+  isAuthenticated: boolean
+}
+
 export type Group = {
   id: string
   name: string
