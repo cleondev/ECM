@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -63,7 +65,8 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
             || headers.ContainsKey(PasswordLoginForwardingHeaders.PreferredUsername)
             || headers.ContainsKey(PasswordLoginForwardingHeaders.PrimaryGroupId)
             || headers.ContainsKey(PasswordLoginForwardingHeaders.PrimaryGroupName)
-            || headers.ContainsKey(PasswordLoginForwardingHeaders.OnBehalf);
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.OnBehalf)
+            || headers.ContainsKey(PasswordLoginForwardingHeaders.Roles);
     }
 
     private void ApplyForwardedClaims(ClaimsIdentity identity, IHeaderDictionary headers)
@@ -104,6 +107,11 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
             AddClaimIfMissing(identity, "primary_group_name", primaryGroupName);
         }
 
+        foreach (var roleName in GetHeaderValues(headers, PasswordLoginForwardingHeaders.Roles))
+        {
+            AddClaimIfMissing(identity, ClaimTypes.Role, roleName, matchValue: true);
+        }
+
         var onBehalf = GetHeaderValue(headers, PasswordLoginForwardingHeaders.OnBehalf);
         if (!string.IsNullOrWhiteSpace(onBehalf))
         {
@@ -122,9 +130,24 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    private void AddClaimIfMissing(ClaimsIdentity identity, string claimType, string value)
+    private static IEnumerable<string> GetHeaderValues(IHeaderDictionary headers, string headerName)
     {
-        if (identity.HasClaim(claim => claim.Type == claimType))
+        if (!headers.TryGetValue(headerName, out var values))
+        {
+            return Enumerable.Empty<string>();
+        }
+
+        return values
+            .SelectMany(value => value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                               ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value));
+    }
+
+    private void AddClaimIfMissing(ClaimsIdentity identity, string claimType, string value, bool matchValue = false)
+    {
+        if (identity.HasClaim(claim => claim.Type == claimType
+            && (!matchValue
+                || string.Equals(claim.Value, value, StringComparison.OrdinalIgnoreCase))))
         {
             return;
         }
