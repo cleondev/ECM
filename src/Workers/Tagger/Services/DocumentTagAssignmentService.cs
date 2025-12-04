@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
 using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Clients;
+using Ecm.Sdk.Models.Documents;
 using Ecm.Sdk.Models.Tags;
 
 using Microsoft.Extensions.Options;
@@ -25,6 +27,8 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     private readonly IOptionsMonitor<TaggingRulesOptions> _options;
     private readonly IOptionsMonitor<EcmUserOptions> _userOptions;
     private readonly SemaphoreSlim _userIdLock = new(1, 1);
+
+    private static readonly string[] TagPathSegments = ["LOS", "CreditApplication"];
 
     private Guid? _cachedUserId;
     private bool _userIdResolved;
@@ -56,9 +60,29 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
 
         var appliedBy = await ResolveAppliedByAsync(cancellationToken).ConfigureAwait(false);
         var appliedCount = 0;
-        var seen = await GetExistingTagIdsAsync(documentId, cancellationToken).ConfigureAwait(false);
 
-        var tagLookup = await BuildTagLookupAsync(tagNames, cancellationToken).ConfigureAwait(false);
+        var document = await _client.GetDocumentAsync(documentId, cancellationToken).ConfigureAwait(false);
+        if (document is null)
+        {
+            _logger.LogWarning("Không tìm thấy document {DocumentId} khi áp dụng tag.", documentId);
+            return 0;
+        }
+
+        var seen = document.Tags is null
+            ? new HashSet<Guid>()
+            : document.Tags.Select(tag => tag.Id).ToHashSet();
+
+        var targetNamespace = await GetOrCreateTargetNamespaceAsync(document, appliedBy, cancellationToken)
+            .ConfigureAwait(false);
+
+        var namespaceTags = targetNamespace is not null
+            ? await LoadNamespaceTagsAsync(targetNamespace.Id, cancellationToken).ConfigureAwait(false)
+            : new List<TagLabelDto>();
+
+        var tagParentId = targetNamespace is null
+            ? null
+            : await EnsureTagPathAsync(targetNamespace.Id, namespaceTags, appliedBy, cancellationToken)
+                .ConfigureAwait(false);
 
         foreach (var tagId in tagIds.Where(tagId => tagId != Guid.Empty))
         {
@@ -84,59 +108,160 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
 
         if (tagNames is not null && tagNames.Count > 0)
         {
-            foreach (var tagName in tagNames)
+            if (targetNamespace is null || tagParentId is null)
             {
-                var tagId = await ResolveTagIdAsync(tagName, tagLookup, cancellationToken).ConfigureAwait(false);
-
-                if (tagId is null || tagId == Guid.Empty || !seen.Add(tagId.Value))
+                _logger.LogWarning(
+                    "Unable to create tags for document {DocumentId} because no target namespace or parent path was resolved.",
+                    documentId);
+            }
+            else
+            {
+                foreach (var tagName in tagNames)
                 {
-                    continue;
+                    var tagId = await ResolveTagIdAsync(
+                            tagName,
+                            targetNamespace.Id,
+                            tagParentId.Value,
+                            namespaceTags,
+                            appliedBy,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (tagId is null || tagId == Guid.Empty || !seen.Add(tagId.Value))
+                    {
+                        continue;
+                    }
+
+                    var assigned = await _client.AssignTagToDocumentAsync(documentId, tagId.Value, appliedBy, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!assigned)
+                    {
+                        _logger.LogWarning(
+                            "Skipping tag {TagName} for document {DocumentId}: assignment failed.",
+                            tagName,
+                            documentId);
+                        continue;
+                    }
+
+                    appliedCount++;
                 }
-
-                var assigned = await _client.AssignTagToDocumentAsync(documentId, tagId.Value, appliedBy, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (!assigned)
-                {
-                    _logger.LogWarning(
-                        "Skipping tag {TagName} for document {DocumentId}: assignment failed.",
-                        tagName,
-                        documentId);
-                    continue;
-                }
-
-                appliedCount++;
             }
         }
 
         return appliedCount;
     }
 
-    private async Task<HashSet<Guid>> GetExistingTagIdsAsync(Guid documentId, CancellationToken cancellationToken)
-    {
-        var document = await _client.GetDocumentAsync(documentId, cancellationToken).ConfigureAwait(false);
-
-        return document?.Tags is null
-            ? new HashSet<Guid>()
-            : document.Tags.Select(tag => tag.Id).ToHashSet();
-    }
-
-    private async Task<Dictionary<string, TagLabelDto>> BuildTagLookupAsync(
-        IReadOnlyCollection<string>? tagNames,
+    private async Task<TagNamespaceDto?> GetOrCreateTargetNamespaceAsync(
+        DocumentDto document,
+        Guid? createdBy,
         CancellationToken cancellationToken)
     {
-        if (tagNames is null || tagNames.Count == 0)
+        var targetGroupId = document.GroupId;
+
+        if (targetGroupId is null || targetGroupId == Guid.Empty)
         {
-            return new Dictionary<string, TagLabelDto>(StringComparer.OrdinalIgnoreCase);
+            var firstGroup = document.GroupIds.FirstOrDefault();
+            if (firstGroup != Guid.Empty)
+            {
+                targetGroupId = firstGroup;
+            }
         }
 
-        var existing = await _client.ListTagsAsync(cancellationToken).ConfigureAwait(false);
-        return existing.ToDictionary(tag => tag.Name, StringComparer.OrdinalIgnoreCase);
+        if (targetGroupId is null || targetGroupId == Guid.Empty)
+        {
+            _logger.LogWarning(
+                "Không thể xác định group cho document {DocumentId}; bỏ qua việc tạo tag.",
+                document.Id);
+            return null;
+        }
+
+        var namespaces = await _client.ListTagNamespacesAsync("group", cancellationToken).ConfigureAwait(false);
+        var existing = namespaces.FirstOrDefault(ns => ns.OwnerGroupId == targetGroupId);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var created = await _client.CreateTagNamespaceAsync(
+                new TagNamespaceCreateRequest(
+                    Scope: "group",
+                    DisplayName: "LOS",
+                    OwnerGroupId: targetGroupId,
+                    OwnerUserId: null,
+                    CreatedBy: createdBy),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (created is null)
+        {
+            _logger.LogWarning(
+                "Không thể tạo namespace cho group {GroupId} khi gắn tag cho document {DocumentId}.",
+                targetGroupId,
+                document.Id);
+        }
+
+        return created;
+    }
+
+    private async Task<List<TagLabelDto>> LoadNamespaceTagsAsync(Guid namespaceId, CancellationToken cancellationToken)
+    {
+        var tags = await _client.ListManagedTagsAsync("group", cancellationToken).ConfigureAwait(false);
+        return tags.Where(tag => tag.NamespaceId == namespaceId).ToList();
+    }
+
+    private async Task<Guid?> EnsureTagPathAsync(
+        Guid namespaceId,
+        List<TagLabelDto> namespaceTags,
+        Guid? createdBy,
+        CancellationToken cancellationToken)
+    {
+        Guid? parentId = null;
+
+        foreach (var segment in TagPathSegments)
+        {
+            var existing = FindTag(namespaceTags, segment, parentId);
+            if (existing is not null)
+            {
+                parentId = existing.Id;
+                continue;
+            }
+
+            var created = await _client.CreateManagedTagAsync(
+                    new TagCreateRequest(
+                        NamespaceId: namespaceId,
+                        ParentId: parentId,
+                        Name: segment,
+                        SortOrder: null,
+                        Color: null,
+                        IconKey: null,
+                        CreatedBy: createdBy,
+                        IsSystem: true),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (created is null)
+            {
+                _logger.LogWarning(
+                    "Không thể tạo tag đường dẫn {Segment} trong namespace {NamespaceId}.",
+                    segment,
+                    namespaceId);
+                return null;
+            }
+
+            namespaceTags.Add(created);
+            parentId = created.Id;
+        }
+
+        return parentId;
     }
 
     private async Task<Guid?> ResolveTagIdAsync(
         string? tagName,
-        IDictionary<string, TagLabelDto> tagLookup,
+        Guid namespaceId,
+        Guid parentId,
+        List<TagLabelDto> namespaceTags,
+        Guid? createdBy,
         CancellationToken cancellationToken)
     {
         var normalized = tagName?.Trim();
@@ -145,34 +270,39 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
             return null;
         }
 
-        if (tagLookup.TryGetValue(normalized, out var existing))
+        var existing = FindTag(namespaceTags, normalized!, parentId);
+        if (existing is not null)
         {
             return existing.Id;
         }
 
-        var createdBy = await ResolveAppliedByAsync(cancellationToken).ConfigureAwait(false);
-        var created = await _client.CreateTagAsync(
-            new TagCreateRequest(
-                NamespaceId: null,
-                ParentId: null,
-                Name: normalized,
-                SortOrder: null,
-                Color: null,
-                IconKey: null,
-                CreatedBy: createdBy,
-                IsSystem: true),
-            cancellationToken)
+        var created = await _client.CreateManagedTagAsync(
+                new TagCreateRequest(
+                    NamespaceId: namespaceId,
+                    ParentId: parentId,
+                    Name: normalized!,
+                    SortOrder: null,
+                    Color: null,
+                    IconKey: null,
+                    CreatedBy: createdBy,
+                    IsSystem: true),
+                cancellationToken)
             .ConfigureAwait(false);
 
         if (created is null)
         {
-            _logger.LogWarning("Failed to create tag {TagName}.", normalized);
+            _logger.LogWarning("Failed to create managed tag {TagName}.", normalized);
             return null;
         }
 
-        tagLookup[created.Name] = created;
+        namespaceTags.Add(created);
         return created.Id;
     }
+
+    private static TagLabelDto? FindTag(IEnumerable<TagLabelDto> tags, string name, Guid? parentId)
+        => tags.FirstOrDefault(tag =>
+            string.Equals(tag.Name, name, StringComparison.OrdinalIgnoreCase)
+            && tag.ParentId == parentId);
 
     private async Task<Guid?> ResolveAppliedByAsync(CancellationToken cancellationToken)
     {

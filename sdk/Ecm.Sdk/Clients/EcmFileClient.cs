@@ -297,12 +297,54 @@ public sealed class EcmFileClient
     /// <param name="cancellationToken">Token used to cancel the request.</param>
     /// <returns>A collection of tag labels.</returns>
     public async Task<IReadOnlyCollection<TagLabelDto>> ListTagsAsync(CancellationToken cancellationToken)
-    {   
+    {
         using var response = await _httpClient.GetAsync(GetTagsEndpoint, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var tags = await response.Content.ReadFromJsonAsync<TagLabelDto[]>(cancellationToken: cancellationToken);
         return tags ?? [];
+    }
+
+    /// <summary>
+    /// Retrieves all managed tags across namespaces.
+    /// </summary>
+    /// <param name="scope">Optional scope to filter namespaces.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>A collection of tag labels.</returns>
+    public async Task<IReadOnlyCollection<TagLabelDto>> ListManagedTagsAsync(
+        string? scope,
+        CancellationToken cancellationToken)
+    {
+        var endpoint = string.IsNullOrWhiteSpace(scope)
+            ? TagManagementTagsEndpoint
+            : $"{TagManagementTagsEndpoint}?scope={Uri.EscapeDataString(scope)}";
+
+        using var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var tags = await response.Content.ReadFromJsonAsync<TagLabelDto[]>(cancellationToken: cancellationToken);
+        return tags ?? [];
+    }
+
+    /// <summary>
+    /// Retrieves all tag namespaces.
+    /// </summary>
+    /// <param name="scope">Optional scope to filter namespaces.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>Collection of tag namespaces.</returns>
+    public async Task<IReadOnlyCollection<TagNamespaceDto>> ListTagNamespacesAsync(
+        string? scope,
+        CancellationToken cancellationToken)
+    {
+        var endpoint = string.IsNullOrWhiteSpace(scope)
+            ? TagManagementNamespacesEndpoint
+            : $"{TagManagementNamespacesEndpoint}?scope={Uri.EscapeDataString(scope)}";
+
+        using var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var namespaces = await response.Content.ReadFromJsonAsync<TagNamespaceDto[]>(cancellationToken: cancellationToken);
+        return namespaces ?? [];
     }
 
     /// <summary>
@@ -314,6 +356,26 @@ public sealed class EcmFileClient
     public async Task<TagLabelDto?> CreateTagAsync(TagCreateRequest request, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.PostAsJsonAsync(GetTagsEndpoint, request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a new managed tag within a namespace.
+    /// </summary>
+    /// <param name="request">Details describing the tag to create.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The created tag information when successful.</returns>
+    /// <exception cref="ArgumentException">Thrown when the namespace identifier is missing.</exception>
+    public async Task<TagLabelDto?> CreateManagedTagAsync(TagCreateRequest request, CancellationToken cancellationToken)
+    {
+        if (request.NamespaceId is not { } namespaceId || namespaceId == Guid.Empty)
+        {
+            throw new ArgumentException("NamespaceId is required for managed tag creation.", nameof(request));
+        }
+
+        using var response = await _httpClient.PostAsJsonAsync(TagManagementTagsEndpoint, request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
@@ -342,6 +404,34 @@ public sealed class EcmFileClient
     }
 
     /// <summary>
+    /// Updates an existing managed tag.
+    /// </summary>
+    /// <param name="tagId">Identifier of the tag to update.</param>
+    /// <param name="request">Updated tag values.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The updated tag when successful; otherwise, <c>null</c> when missing.</returns>
+    public async Task<TagLabelDto?> UpdateManagedTagAsync(
+        Guid tagId,
+        TagUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"{TagManagementTagsEndpoint}/{tagId}",
+            request,
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Không tìm thấy tag {TagId} khi cập nhật (management API).", tagId);
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<TagLabelDto>(cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Deletes an existing tag.
     /// </summary>
     /// <param name="tagId">Identifier of the tag to delete.</param>
@@ -354,6 +444,96 @@ public sealed class EcmFileClient
         if (response.StatusCode is HttpStatusCode.NotFound)
         {
             _logger.LogWarning("Không tìm thấy tag {TagId} khi xoá.", tagId);
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    /// <summary>
+    /// Deletes an existing managed tag.
+    /// </summary>
+    /// <param name="tagId">Identifier of the tag to delete.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when deleted; otherwise, <c>false</c> when not found.</returns>
+    public async Task<bool> DeleteManagedTagAsync(Guid tagId, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.DeleteAsync(
+            $"{TagManagementTagsEndpoint}/{tagId}",
+            cancellationToken);
+
+        if (response.StatusCode is HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Không tìm thấy tag {TagId} khi xoá (management API).", tagId);
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    /// <summary>
+    /// Creates a new tag namespace.
+    /// </summary>
+    /// <param name="request">Namespace creation payload.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The created namespace details.</returns>
+    public async Task<TagNamespaceDto?> CreateTagNamespaceAsync(
+        TagNamespaceCreateRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            TagManagementNamespacesEndpoint,
+            request,
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<TagNamespaceDto>(cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Updates a tag namespace.
+    /// </summary>
+    /// <param name="namespaceId">Identifier of the namespace to update.</param>
+    /// <param name="request">Updated namespace values.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when the namespace was updated; otherwise, <c>false</c> when missing.</returns>
+    public async Task<bool> UpdateTagNamespaceAsync(
+        Guid namespaceId,
+        TagNamespaceUpdateRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"{TagManagementNamespacesEndpoint}/{namespaceId}",
+            request,
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Không tìm thấy namespace {NamespaceId} khi cập nhật.", namespaceId);
+            return false;
+        }
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    /// <summary>
+    /// Deletes a tag namespace.
+    /// </summary>
+    /// <param name="namespaceId">Identifier of the namespace to delete.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns><c>true</c> when the namespace was deleted; otherwise, <c>false</c> when not found.</returns>
+    public async Task<bool> DeleteTagNamespaceAsync(Guid namespaceId, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.DeleteAsync(
+            $"{TagManagementNamespacesEndpoint}/{namespaceId}",
+            cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("Không tìm thấy namespace {NamespaceId} khi xoá.", namespaceId);
             return false;
         }
 
@@ -522,6 +702,12 @@ public sealed class EcmFileClient
     private const string GetFileManagementEndpoint = "api/documents/files";
 
     private const string GetTagsEndpoint = "api/tags";
+
+    private const string TagManagementBaseEndpoint = "api/ecm/tag-management";
+
+    private const string TagManagementTagsEndpoint = $"{TagManagementBaseEndpoint}/tags";
+
+    private const string TagManagementNamespacesEndpoint = $"{TagManagementBaseEndpoint}/namespaces";
 
     private static string GetDocumentTagsEndpoint(Guid documentId) => $"api/documents/{documentId}/tags";
 
