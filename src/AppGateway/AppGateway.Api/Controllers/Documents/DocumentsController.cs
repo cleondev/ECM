@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using AppGateway.Api.Auth;
+using AppGateway.Api.Fake;
 using AppGateway.Contracts.Documents;
 using AppGateway.Contracts.Tags;
 using AppGateway.Contracts.Workflows;
@@ -71,6 +72,21 @@ public sealed class DocumentsController(
         }
 
         return Ok(document);
+    }
+
+    [HttpGet("{documentId:guid}/flows")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyCollection<FakeFlowResponse>), StatusCodes.Status200OK)]
+    public IActionResult GetFlows(Guid documentId)
+    {
+        if (documentId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(documentId), "A valid document identifier is required.");
+            return ValidationProblem(ModelState);
+        }
+
+        var flows = FakeEcmData.GetFlows(documentId);
+        return Ok(flows);
     }
 
     [HttpPost]
