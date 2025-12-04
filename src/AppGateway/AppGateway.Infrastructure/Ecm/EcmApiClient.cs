@@ -38,8 +38,8 @@ internal sealed class EcmApiClient(
     private const string HomeAccountIdClaimType = "homeAccountId";
     private const string ApiKeyHeaderName = "X-Api-Key";
     private const string subjectTypePublic = "public";
-    private const string TagManagementTagsEndpoint = "api/tag-management/tags";
-    private const string TagManagementNamespacesEndpoint = "api/tag-management/namespaces";
+    private const string TagManagementTagsEndpoint = "api/ecm/tag-management/tags";
+    private const string TagManagementNamespacesEndpoint = "api/ecm/tag-management/namespaces";
     private readonly HttpClient _httpClient = httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly ITokenAcquisition _tokenAcquisition = tokenAcquisition;

@@ -40,7 +40,8 @@ import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapsho
 
 const SIMULATED_DELAY = 800 // milliseconds
 
-const TAG_MANAGEMENT_BASE = "/api/tag-management"
+const TAGS_ENDPOINT = "/api/ecm/tags"
+const TAG_MANAGEMENT_BASE = "/api/ecm/tag-management"
 const TAG_MANAGEMENT_TAGS_ENDPOINT = `${TAG_MANAGEMENT_BASE}/tags`
 const TAG_MANAGEMENT_NAMESPACES_ENDPOINT = `${TAG_MANAGEMENT_BASE}/namespaces`
 
@@ -1504,7 +1505,17 @@ function resolveSortField(sortBy: NonNullable<FileQueryParams["sortBy"]>): strin
   }
 }
 
-export async function fetchTags(options?: {
+export async function fetchTags(options?: { namespaces?: TagNamespace[] }): Promise<TagNode[]> {
+  try {
+    const response = await gatewayRequest<TagLabelResponse[]>(TAGS_ENDPOINT)
+    return buildTagTree(response, options?.namespaces ?? [])
+  } catch (error) {
+    console.warn("[ui] Failed to fetch tags from gateway, using mock data:", error)
+    return normalizeMockTagTree(mockTagTree)
+  }
+}
+
+export async function fetchManagedTags(options?: {
   scope?: "all" | "user" | "group" | "global"
   includeAll?: boolean
   namespaces?: TagNamespace[]
@@ -1536,7 +1547,7 @@ function mapNamespaceResponse(response: TagNamespaceResponse): TagNamespace {
   }
 }
 
-export async function fetchTagNamespaces(options?: {
+export async function fetchManagedTagNamespaces(options?: {
   scope?: "all" | "user" | "group" | "global"
   includeAll?: boolean
 }): Promise<TagNamespace[]> {
@@ -1947,7 +1958,7 @@ export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<
       IsSystem: false,
     }
 
-    const response = await gatewayRequest<TagLabelResponse>(TAG_MANAGEMENT_TAGS_ENDPOINT, {
+    const response = await gatewayRequest<TagLabelResponse>(TAGS_ENDPOINT, {
       method: "POST",
       body: JSON.stringify(payload),
     })
@@ -1989,6 +2000,42 @@ export async function createTag(data: TagUpdateData, parent?: TagNode): Promise<
   }
 }
 
+export async function createManagedTag(data: TagUpdateData, parent?: TagNode): Promise<TagNode> {
+  const parentId = parent?.kind === "label" ? parent.id : null
+
+  const payload = {
+    NamespaceId: parent?.namespaceId ?? null,
+    ParentId: parentId,
+    Name: data.name.trim(),
+    SortOrder: null as number | null,
+    Color: data.color ?? null,
+    IconKey: data.iconKey?.trim() ? data.iconKey.trim() : null,
+    CreatedBy: null as string | null,
+    IsSystem: false,
+  }
+
+  const response = await gatewayRequest<TagLabelResponse>(TAG_MANAGEMENT_TAGS_ENDPOINT, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+
+  return {
+    id: response.id,
+    namespaceId: response.namespaceId,
+    parentId: response.parentId ?? null,
+    name: response.name,
+    color: response.color ?? colorForKey(response.id),
+    iconKey: response.iconKey ?? null,
+    sortOrder: response.sortOrder,
+    pathIds: response.pathIds ?? [],
+    isActive: response.isActive,
+    isSystem: response.isSystem,
+    kind: "label",
+    namespaceScope: normalizeScope(response.namespaceScope ?? response.scope),
+    children: [],
+  }
+}
+
 export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagNode> {
   try {
     const normalizedName = data.name.trim()
@@ -2007,7 +2054,7 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
       UpdatedBy: null as string | null,
     }
 
-    const response = await gatewayRequest<TagLabelResponse>(`${TAG_MANAGEMENT_TAGS_ENDPOINT}/${tag.id}`, {
+    const response = await gatewayRequest<TagLabelResponse>(`${TAGS_ENDPOINT}/${tag.id}`, {
       method: "PUT",
       body: JSON.stringify(payload),
     })
@@ -2038,14 +2085,54 @@ export async function updateTag(tag: TagNode, data: TagUpdateData): Promise<TagN
   }
 }
 
+export async function updateManagedTag(tag: TagNode, data: TagUpdateData): Promise<TagNode> {
+  const payload = {
+    NamespaceId: tag.namespaceId,
+    ParentId: tag.parentId ?? null,
+    Name: data.name.trim(),
+    SortOrder: tag.sortOrder ?? null,
+    Color: data.color ?? null,
+    IconKey: data.iconKey?.trim() ? data.iconKey.trim() : null,
+    IsActive: tag.isActive ?? true,
+    UpdatedBy: null as string | null,
+  }
+
+  const response = await gatewayRequest<TagLabelResponse>(`${TAG_MANAGEMENT_TAGS_ENDPOINT}/${tag.id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+
+  return {
+    id: response.id,
+    namespaceId: response.namespaceId,
+    parentId: response.parentId ?? null,
+    name: response.name,
+    color: response.color ?? colorForKey(response.id),
+    iconKey: response.iconKey ?? null,
+    sortOrder: response.sortOrder,
+    pathIds: response.pathIds ?? [],
+    isActive: response.isActive,
+    isSystem: response.isSystem,
+    kind: "label",
+    namespaceScope: normalizeScope(response.namespaceScope ?? response.scope),
+    children: tag.children,
+  }
+}
+
 export async function deleteTag(tagId: string): Promise<void> {
   try {
-    await gatewayRequest(`${TAG_MANAGEMENT_TAGS_ENDPOINT}/${tagId}`, {
+    await gatewayRequest(`${TAGS_ENDPOINT}/${tagId}`, {
       method: "DELETE",
     })
   } catch (error) {
     console.warn("[ui] Failed to delete tag via gateway, ignoring:", error)
   }
+}
+
+export async function deleteManagedTag(tagId: string): Promise<void> {
+  await gatewayRequest(`${TAG_MANAGEMENT_TAGS_ENDPOINT}/${tagId}`, {
+    method: "DELETE",
+  })
 }
 
 export type UpdateFileRequest = {
