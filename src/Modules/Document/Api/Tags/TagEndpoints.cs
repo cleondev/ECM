@@ -190,8 +190,7 @@ public static class TagEndpoints
             request.SortOrder,
             TagEndpointMapping.NormalizeColor(request.Color),
             TagEndpointMapping.NormalizeIcon(request.IconKey, TagEndpointMapping.UserDefaultIconKey),
-            createdBy,
-            isSystem: false
+            createdBy
         );
         var result = await handler.HandleAsync(command, cancellationToken);
 
