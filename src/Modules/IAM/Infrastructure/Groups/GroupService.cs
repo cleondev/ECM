@@ -38,288 +38,53 @@ public sealed class GroupService(
             .Select(assignment => assignment.Normalize())
             .ToList();
 
-        var normalizedPrimaryGroupId = primaryGroupId.HasValue && primaryGroupId.Value != Guid.Empty
-            ? primaryGroupId.Value
-            : (Guid?)null;
-
         var systemGroup = await EnsureSystemGroupExistsAsync(cancellationToken);
-        var guessGroup = await EnsureGuessGroupExistsAsync(systemGroup.Id, cancellationToken);
+        var guestGroup = await EnsureGuessGroupExistsAsync(systemGroup.Id, cancellationToken);
 
-        if (!normalizedPrimaryGroupId.HasValue && !user.PrimaryGroupId.HasValue)
+        if (normalizedAssignments.Count == 0)
         {
-            normalizedPrimaryGroupId = guessGroup.Id;
+            normalizedAssignments.Add(GroupAssignment.ForExistingGroup(systemGroup.Id, systemGroup.Kind));
+            normalizedAssignments.Add(GroupAssignment.ForExistingGroup(guestGroup.Id, guestGroup.Kind));
         }
 
-        if (normalizedPrimaryGroupId.HasValue
-            && normalizedAssignments.All(assignment => assignment.GroupId != normalizedPrimaryGroupId))
-        {
-            var primaryAssignment = normalizedAssignments
-                .FirstOrDefault(assignment => assignment.GroupId == normalizedPrimaryGroupId);
-            var primaryKind = primaryAssignment?.Kind
-                ?? (normalizedPrimaryGroupId == guessGroup.Id ? guessGroup.Kind : GroupKind.System);
-
-            normalizedAssignments.Add(
-                GroupAssignment.ForExistingGroup(normalizedPrimaryGroupId.Value, primaryKind).Normalize());
-        }
-
-        if (normalizedAssignments.All(assignment => assignment.GroupId != systemGroup.Id))
-        {
-            normalizedAssignments.Add(
-                GroupAssignment.ForExistingGroup(systemGroup.Id, systemGroup.Kind).Normalize());
-        }
-
-        if (normalizedAssignments.All(assignment => assignment.GroupId != guessGroup.Id))
-        {
-            normalizedAssignments.Add(
-                GroupAssignment.ForExistingGroup(guessGroup.Id, guessGroup.Kind).Normalize());
-        }
-
-        var dedupedAssignments = new List<GroupAssignment>();
-        var seenGroupIds = new HashSet<Guid>();
-        var seenIdentifiers = new HashSet<string>(Comparer);
-
-        foreach (var assignment in normalizedAssignments)
-        {
-            if (assignment.GroupId.HasValue)
-            {
-                if (seenGroupIds.Add(assignment.GroupId.Value))
-                {
-                    dedupedAssignments.Add(assignment);
-                }
-
-                continue;
-            }
-
-            var identifierKey = BuildIdentifierKey(assignment.Identifier, assignment.ParentGroupId);
-            if (identifierKey is not null)
-            {
-                if (seenIdentifiers.Add(identifierKey))
-                {
-                    dedupedAssignments.Add(assignment);
-                }
-
-                continue;
-            }
-
-            dedupedAssignments.Add(assignment);
-        }
-
-        normalizedAssignments = dedupedAssignments;
-
-        var targetGroupIds = normalizedAssignments
-            .Where(assignment => assignment.GroupId.HasValue)
-            .Select(assignment => assignment.GroupId!.Value)
-            .Distinct()
-            .ToArray();
-
-        var existingMembershipsByGroupId = await _context.GroupMembers
-            .Where(member => member.UserId == user.Id)
-            .ToDictionaryAsync(member => member.GroupId, cancellationToken);
-
-        var identifierTargets = normalizedAssignments
-            .Where(assignment => !string.IsNullOrWhiteSpace(assignment.Identifier))
-            .Select(assignment => assignment.Identifier!.Trim())
-            .Distinct(Comparer)
-            .ToArray();
-
-        var existingGroupsById = targetGroupIds.Length == 0
-            ? []
-            : await _context.Groups
-                .Where(group => targetGroupIds.Contains(group.Id))
-                .ToDictionaryAsync(group => group.Id, cancellationToken);
-
-        var existingGroupsByIdentifier = identifierTargets.Length == 0
-            ? new Dictionary<string, Group>(Comparer)
-            : (await _context.Groups
-                    .Where(group => identifierTargets.Contains(group.Name))
-                    .ToListAsync(cancellationToken))
-                .ToDictionary(group => group.Name, Comparer);
-
-        if (!existingGroupsById.ContainsKey(systemGroup.Id))
-        {
-            existingGroupsById[systemGroup.Id] = systemGroup;
-        }
-
-        if (!existingGroupsByIdentifier.ContainsKey(systemGroup.Name))
-        {
-            existingGroupsByIdentifier[systemGroup.Name] = systemGroup;
-        }
-
-        if (!existingGroupsById.ContainsKey(guessGroup.Id))
-        {
-            existingGroupsById[guessGroup.Id] = guessGroup;
-        }
-
-        if (!existingGroupsByIdentifier.ContainsKey(guessGroup.Name))
-        {
-            existingGroupsByIdentifier[guessGroup.Name] = guessGroup;
-        }
-
-        var unitTargetIds = new HashSet<Guid>();
-
-        foreach (var assignment in normalizedAssignments)
-        {
-            var desiredParentGroupId = assignment.ParentGroupId;
-            Group? group = null;
-
-            if (assignment.GroupId.HasValue && existingGroupsById.TryGetValue(assignment.GroupId.Value, out group))
-            {
-                var identifier = assignment.Identifier?.Trim();
-                if (!string.IsNullOrWhiteSpace(identifier) && !existingGroupsByIdentifier.ContainsKey(identifier))
-                {
-                    existingGroupsByIdentifier[identifier] = group;
-                }
-            }
-            else if (assignment.GroupId.HasValue)
-            {
-                var desiredGroupId = assignment.GroupId.Value;
-                var identifier = assignment.Identifier?.Trim();
-                var createdNewGroup = false;
-
-                if (!string.IsNullOrWhiteSpace(identifier)
-                    && existingGroupsByIdentifier.TryGetValue(identifier, out group))
-                {
-                    existingGroupsById[group.Id] = group;
-
-                    if (group.Id != desiredGroupId)
-                    {
-                        _logger.LogInformation(
-                            "Mapped requested group id {RequestedGroupId} to existing group {GroupId} via identifier {Identifier} for user {UserId}.",
-                            desiredGroupId,
-                            group.Id,
-                            identifier,
-                            user.Id);
-                    }
-                }
-                else if (desiredGroupId == GroupDefaults.SystemId)
-                {
-                    group = Group.CreateSystemGroup(GroupDefaults.SystemName, _clock.UtcNow);
-                    createdNewGroup = true;
-                }
-                else if (desiredGroupId == GroupDefaults.GuestId)
-                {
-                    group = Group.CreateSystemGroup(GroupDefaults.GuestName, _clock.UtcNow);
-                    createdNewGroup = true;
-                }
-                else if (!string.IsNullOrWhiteSpace(identifier))
-                {
-                    group = Group.Create(identifier, assignment.Kind, createdBy: null, _clock.UtcNow, desiredParentGroupId);
-                    createdNewGroup = true;
-                }
-                else
-                {
-                    _logger.LogWarning(
-                        "Skipping group assignment for user {UserId} because group id {GroupId} could not be resolved.",
-                        user.Id,
-                        desiredGroupId);
-                    continue;
-                }
-
-                if (group is null)
-                {
-                    continue;
-                }
-
-                if (createdNewGroup)
-                {
-                    await _context.Groups.AddAsync(group, cancellationToken);
-                    existingGroupsById[group.Id] = group;
-                    existingGroupsByIdentifier[group.Name] = group;
-                    _logger.LogInformation(
-                        "Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.",
-                        group.Name,
-                        group.Kind.ToNormalizedString(),
-                        user.Id);
-                }
-                else
-                {
-                    existingGroupsById[group.Id] = group;
-                    if (!existingGroupsByIdentifier.ContainsKey(group.Name))
-                    {
-                        existingGroupsByIdentifier[group.Name] = group;
-                    }
-                }
-            }
-            else
-            {
-                var identifier = assignment.Identifier?.Trim();
-                if (string.IsNullOrWhiteSpace(identifier))
-                {
-                    _logger.LogWarning(
-                        "Skipping group assignment without identifier for user {UserId} while provisioning.",
-                        user.Id);
-                    continue;
-                }
-
-                if (!existingGroupsByIdentifier.TryGetValue(identifier, out group))
-                {
-                    group = Group.Create(identifier, assignment.Kind, createdBy: null, _clock.UtcNow, desiredParentGroupId);
-                    await _context.Groups.AddAsync(group, cancellationToken);
-                    existingGroupsByIdentifier[identifier] = group;
-                    existingGroupsById[group.Id] = group;
-                    _logger.LogInformation(
-                        "Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.",
-                        group.Name,
-                        group.Kind.ToNormalizedString(),
-                        user.Id);
-                }
-            }
-
-            if (group.ParentGroupId != desiredParentGroupId)
-            {
-                group.SetParent(desiredParentGroupId);
-            }
-
-            if (existingMembershipsByGroupId.TryGetValue(group.Id, out var existingMembership))
-            {
-                if (existingMembership.ValidToUtc.HasValue)
-                {
-                    existingMembership.Reopen(_clock.UtcNow, assignment.Role);
-                    _logger.LogInformation(
-                        "Reactivated membership of user {UserId} in group {GroupName}.",
-                        user.Id,
-                        group.Name);
-                }
-
-                if (assignment.Kind is GroupKind.Unit or GroupKind.Team)
-                {
-                    unitTargetIds.Add(group.Id);
-                }
-
-                continue;
-            }
-
-            var membership = GroupMember.Create(group.Id, user.Id, _clock.UtcNow, assignment.Role);
-            await _context.GroupMembers.AddAsync(membership, cancellationToken);
-            existingMembershipsByGroupId[group.Id] = membership;
-            _logger.LogInformation(
-                "Added user {UserId} to group {GroupName}.",
-                user.Id,
-                group.Name);
-
-            if (assignment.Kind is GroupKind.Unit or GroupKind.Team)
-            {
-                unitTargetIds.Add(group.Id);
-            }
-        }
-
-        var activeMemberships = await _context.GroupMembers
+        var memberships = await _context.GroupMembers
             .Include(member => member.Group)
-            .Where(member => member.UserId == user.Id && member.ValidToUtc == null)
+            .Where(member => member.UserId == user.Id)
             .ToListAsync(cancellationToken);
 
-        foreach (var membership in activeMemberships.Where(
-                     member => member.Group is not null
-                         && member.Group.Kind is GroupKind.Unit or GroupKind.Team))
+        var resolvedGroups = new Dictionary<Guid, Group>();
+
+        foreach (var assignment in normalizedAssignments)
         {
-            if (!unitTargetIds.Contains(membership.GroupId))
+            var group = await ResolveGroupAsync(assignment, user.Id, systemGroup, guestGroup, cancellationToken);
+            if (group is null)
             {
-                membership.Close(_clock.UtcNow);
-                _logger.LogInformation(
-                    "Marked membership of user {UserId} in unit group {GroupName} as inactive.",
-                    user.Id,
-                    membership.Group!.Name);
+                continue;
             }
+
+            resolvedGroups[group.Id] = group;
+
+            var existingMembership = memberships.FirstOrDefault(member => member.GroupId == group.Id);
+            if (existingMembership is null)
+            {
+                var membership = GroupMember.Create(group.Id, user.Id, _clock.UtcNow, assignment.Role);
+                await _context.GroupMembers.AddAsync(membership, cancellationToken);
+                memberships.Add(membership);
+                _logger.LogInformation("Added user {UserId} to group {GroupName}.", user.Id, group.Name);
+                continue;
+            }
+
+            if (existingMembership.ValidToUtc.HasValue)
+            {
+                existingMembership.Reopen(_clock.UtcNow, assignment.Role);
+                _logger.LogInformation("Reactivated membership of user {UserId} in group {GroupName}.", user.Id, group.Name);
+            }
+        }
+
+        if (resolvedGroups.Count == 0)
+        {
+            resolvedGroups[systemGroup.Id] = systemGroup;
+            resolvedGroups[guestGroup.Id] = guestGroup;
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -331,31 +96,12 @@ public sealed class GroupService(
 
         user.SyncGroups(refreshedMemberships);
 
-        Guid? resolvedPrimaryGroupId = null;
-
-        if (normalizedPrimaryGroupId.HasValue
-            && refreshedMemberships.Any(member => member.GroupId == normalizedPrimaryGroupId.Value))
-        {
-            resolvedPrimaryGroupId = normalizedPrimaryGroupId.Value;
-        }
-        else if (user.PrimaryGroupId.HasValue
-            && refreshedMemberships.Any(member => member.GroupId == user.PrimaryGroupId.Value))
-        {
-            resolvedPrimaryGroupId = user.PrimaryGroupId;
-        }
-        else
-        {
-            resolvedPrimaryGroupId = refreshedMemberships
-                .Where(member => member.Group is not null && member.Group.Kind == GroupKind.Guess)
-                .Select(member => (Guid?)member.GroupId)
-                .FirstOrDefault()
-                ?? refreshedMemberships
-                    .Where(
-                        member => member.Group is not null
-                            && member.Group.Kind is GroupKind.Unit or GroupKind.Team)
-                    .Select(member => (Guid?)member.GroupId)
-                    .FirstOrDefault();
-        }
+        var resolvedPrimaryGroupId = DeterminePrimaryGroupId(
+            primaryGroupId,
+            user,
+            refreshedMemberships,
+            guestGroup.Id,
+            resolvedGroups.Keys);
 
         var existingPrimaryGroupId = user.PrimaryGroupId;
         user.SetPrimaryGroup(resolvedPrimaryGroupId);
@@ -364,6 +110,105 @@ public sealed class GroupService(
         {
             await _context.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private Guid? DeterminePrimaryGroupId(
+        Guid? requestedPrimaryGroupId,
+        User user,
+        IReadOnlyCollection<GroupMember> memberships,
+        Guid guestGroupId,
+        IEnumerable<Guid> resolvedGroupIds)
+    {
+        if (requestedPrimaryGroupId.HasValue
+            && memberships.Any(member => member.GroupId == requestedPrimaryGroupId))
+        {
+            return requestedPrimaryGroupId;
+        }
+
+        if (user.PrimaryGroupId.HasValue
+            && memberships.Any(member => member.GroupId == user.PrimaryGroupId))
+        {
+            return user.PrimaryGroupId;
+        }
+
+        if (resolvedGroupIds.Contains(guestGroupId))
+        {
+            return guestGroupId;
+        }
+
+        return memberships.FirstOrDefault()?.GroupId;
+    }
+
+    private async Task<Group?> ResolveGroupAsync(
+        GroupAssignment assignment,
+        Guid userId,
+        Group systemGroup,
+        Group guestGroup,
+        CancellationToken cancellationToken)
+    {
+        if (assignment.GroupId == systemGroup.Id
+            || string.Equals(assignment.Identifier, systemGroup.Name, Comparer))
+        {
+            return systemGroup;
+        }
+
+        if (assignment.GroupId == guestGroup.Id
+            || string.Equals(assignment.Identifier, guestGroup.Name, Comparer))
+        {
+            return guestGroup;
+        }
+
+        Group? group = null;
+
+        if (assignment.GroupId.HasValue)
+        {
+            group = await _context.Groups
+                .FirstOrDefaultAsync(existing => existing.Id == assignment.GroupId.Value, cancellationToken);
+        }
+
+        var identifier = assignment.Identifier?.Trim();
+
+        if (group is null && !string.IsNullOrWhiteSpace(identifier))
+        {
+            group = await _context.Groups
+                .FirstOrDefaultAsync(existing => existing.Name == identifier, cancellationToken);
+        }
+
+        if (group is null)
+        {
+            if (assignment.GroupId == GroupDefaults.SystemId)
+            {
+                return systemGroup;
+            }
+
+            if (assignment.GroupId == GroupDefaults.GuestId)
+            {
+                return guestGroup;
+            }
+
+            if (string.IsNullOrWhiteSpace(identifier))
+            {
+                _logger.LogWarning(
+                    "Skipping group assignment for user {UserId} because no identifier or known group id was provided.",
+                    userId);
+                return null;
+            }
+
+            group = Group.Create(identifier, assignment.Kind, createdBy: null, _clock.UtcNow, assignment.ParentGroupId);
+            await _context.Groups.AddAsync(group, cancellationToken);
+            _logger.LogInformation(
+                "Created IAM group {GroupName} of kind {Kind} while provisioning user {UserId}.",
+                group.Name,
+                group.Kind.ToNormalizedString(),
+                userId);
+        }
+
+        if (assignment.ParentGroupId.HasValue && group.ParentGroupId != assignment.ParentGroupId)
+        {
+            group.SetParent(assignment.ParentGroupId);
+        }
+
+        return group;
     }
 
     private async Task<Group> EnsureSystemGroupExistsAsync(CancellationToken cancellationToken)
@@ -420,15 +265,5 @@ public sealed class GroupService(
         }
 
         return group;
-    }
-
-    private static string? BuildIdentifierKey(string? identifier, Guid? parentGroupId)
-    {
-        if (string.IsNullOrWhiteSpace(identifier))
-        {
-            return null;
-        }
-
-        return $"{identifier.Trim()}::{parentGroupId?.ToString() ?? string.Empty}";
     }
 }
