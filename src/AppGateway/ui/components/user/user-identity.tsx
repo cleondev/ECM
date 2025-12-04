@@ -19,6 +19,7 @@ type UserIdentityProps = {
   lazy?: boolean
   hint?: string
   interactive?: boolean
+  density?: "regular" | "compact"
 }
 
 const sizeStyles: Record<
@@ -65,6 +66,7 @@ export function UserIdentity({
   lazy = true,
   hint,
   interactive = true,
+  density = "regular",
 }: UserIdentityProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [user, setUser] = useState<UserIdentity | null>(null)
@@ -141,6 +143,7 @@ export function UserIdentity({
     [user?.displayName, user?.email],
   )
 
+  const isCompact = density === "compact"
   const shapeClassName = shapeStyles[shape]
   const { avatar: avatarClassName, label: labelClassName, hint: hintClassName, nameWidth, hintWidth } =
     sizeStyles[size]
@@ -151,7 +154,10 @@ export function UserIdentity({
   const resolvedProfileHref = profileHref ?? (userId ? `/users/${userId}` : "/me")
 
   const skeleton = (
-    <div ref={containerRef} className={cn("inline-flex items-center gap-3", className)}>
+    <div
+      ref={containerRef}
+      className={cn("inline-flex items-center gap-3", isCompact && "gap-2", className)}
+    >
       <Skeleton className={cn(avatarClassName, shape === "square" ? "rounded-md" : "rounded-full")} />
       <div className="space-y-1">
         <Skeleton className={cn("h-3", nameWidth)} />
@@ -170,6 +176,7 @@ export function UserIdentity({
         ref={containerRef}
         className={cn(
           "inline-flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground",
+          isCompact && "gap-1.5 px-2.5 py-1.5",
           className,
         )}
       >
@@ -193,6 +200,7 @@ export function UserIdentity({
 
   const triggerClassName = cn(
     "group inline-flex items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-muted/60",
+    isCompact && "gap-2 px-1.5 py-0.5 text-xs",
     className,
   )
 
