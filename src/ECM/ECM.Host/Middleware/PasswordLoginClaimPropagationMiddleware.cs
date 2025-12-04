@@ -122,9 +122,11 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    private void AddClaimIfMissing(ClaimsIdentity identity, string claimType, string value)
+    private void AddClaimIfMissing(ClaimsIdentity identity, string claimType, string value, bool matchValue = false)
     {
-        if (identity.HasClaim(claim => claim.Type == claimType))
+        if (identity.HasClaim(claim => claim.Type == claimType
+            && (!matchValue
+                || string.Equals(claim.Value, value, StringComparison.OrdinalIgnoreCase))))
         {
             return;
         }
