@@ -74,8 +74,8 @@ public sealed class Group
         }
 
         return new Group(
-            GroupDefaults.GuessUserId,
-            GroupDefaults.GuessUserName,
+            GroupDefaults.GuestId,
+            GroupDefaults.GuestName,
             GroupKind.Guess,
             parentGroupId,
             createdBy: null,

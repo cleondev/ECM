@@ -279,6 +279,5 @@ public sealed class AzureAdUserProvisioningService(
     private static bool IsLikelyEmail(string? value)
         => !string.IsNullOrWhiteSpace(value)
            && value.Contains('@')
-           && value.IndexOf('@') > 0
            && value.IndexOf('@') < value.Length - 1;
 }

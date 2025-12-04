@@ -32,7 +32,6 @@ public sealed class DefaultGroupAssignmentService(
         {
             GroupDefaults.SystemName,
             GroupDefaults.GuestName,
-            GroupDefaults.GuessUserName,
         };
 
         var existingGroups = await _context.Groups
@@ -122,7 +121,7 @@ public sealed class DefaultGroupAssignmentService(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
-        if (existingGroups.TryGetValue(GroupDefaults.GuessUserName, out var group))
+        if (existingGroups.TryGetValue(GroupDefaults.GuestName, out var group))
         {
             if (group.ParentGroupId != systemGroup.Id)
             {
@@ -134,7 +133,7 @@ public sealed class DefaultGroupAssignmentService(
 
         group = Group.CreateGuessGroup(systemGroup.Id, now);
         await _context.Groups.AddAsync(group, cancellationToken);
-        existingGroups[GroupDefaults.GuessUserName] = group;
+        existingGroups[GroupDefaults.GuestName] = group;
         _logger.LogInformation("Created default IAM group {GroupName}.", group.Name);
 
         return group;

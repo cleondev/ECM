@@ -392,7 +392,7 @@ public sealed class GroupService(
     private async Task<Group> EnsureGuessGroupExistsAsync(Guid systemGroupId, CancellationToken cancellationToken)
     {
         var group = await _context.Groups
-            .FirstOrDefaultAsync(existing => existing.Id == GroupDefaults.GuessUserId, cancellationToken);
+            .FirstOrDefaultAsync(existing => existing.Id == GroupDefaults.GuestId, cancellationToken);
 
         group ??= await _context.Groups
             .FirstOrDefaultAsync(existing => existing.Kind == GroupKind.Guess, cancellationToken);
@@ -414,9 +414,9 @@ public sealed class GroupService(
             group.SetParent(systemGroupId);
         }
 
-        if (!string.Equals(group.Name, GroupDefaults.GuessUserName, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(group.Name, GroupDefaults.GuestName, StringComparison.OrdinalIgnoreCase))
         {
-            group.Rename(GroupDefaults.GuessUserName);
+            group.Rename(GroupDefaults.GuestName);
         }
 
         return group;

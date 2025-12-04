@@ -142,7 +142,7 @@ public class GroupServiceTests
         var guessGroup = await context.Groups.SingleAsync(group => group.Kind == GroupKind.Guess);
 
         Assert.Equal(systemGroup.Id, guessGroup.ParentGroupId);
-        Assert.Equal(GroupDefaults.GuessUserName, guessGroup.Name);
+        Assert.Equal(GroupDefaults.GuestName, guessGroup.Name);
         Assert.Equal(guessGroup.Id, user.PrimaryGroupId);
 
         var membership = await context.GroupMembers.SingleAsync(member => member.GroupId == guessGroup.Id && member.UserId == user.Id);
