@@ -854,6 +854,7 @@ public static class DocumentEndpoints
                 var tag = documentTag.Tag;
                 var pathIds = tag?.PathIds ?? [];
                 var namespaceDisplayName = NormalizeNamespaceDisplayName(tag?.Namespace?.DisplayName);
+                var appliedBy = documentTag.AppliedBy ?? document.CreatedBy;
 
                 return new DocumentTagResponse(
                     documentTag.TagId,
@@ -867,7 +868,7 @@ public static class DocumentEndpoints
                     tag?.IconKey,
                     tag?.IsActive ?? false,
                     tag?.IsSystem ?? false,
-                    documentTag.AppliedBy,
+                    appliedBy,
                     documentTag.AppliedAtUtc
                 );
             })

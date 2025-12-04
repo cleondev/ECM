@@ -652,6 +652,8 @@ function mapDocumentToFileItem(document: DocumentResponse): FileItem {
       pathIds: tag.pathIds ?? [],
       isActive: tag.isActive,
       isSystem: tag.isSystem,
+      appliedBy: tag.appliedBy ?? null,
+      appliedAtUtc: tag.appliedAtUtc ?? null,
     })) ?? []
   const updatedAtUtc = document.updatedAtUtc ?? document.createdAtUtc
   const displayModified = document.updatedAtFormatted || formatDocumentTimestamp(updatedAtUtc)

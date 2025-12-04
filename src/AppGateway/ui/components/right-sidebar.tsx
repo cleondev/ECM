@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import type { DocumentType, FileItem, TagNode, User } from "@/lib/types"
+import type { DocumentTag, DocumentType, FileItem, TagNode, User } from "@/lib/types"
 import {
   AtSign,
   ChevronDown,
@@ -33,14 +33,13 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import {
   fetchDocumentTypes,
   fetchFlows,
-  fetchSystemTags,
   fetchTags,
   fetchUserById,
   searchUsers,
   updateFile,
   type UpdateFileRequest,
 } from "@/lib/api"
-import type { Flow, SystemTag } from "@/lib/types"
+import type { Flow } from "@/lib/types"
 import { FileTypeIcon } from "./file-type-icon"
 import {
   SidebarChatTab,
@@ -117,7 +116,6 @@ export function RightSidebar({
 
   const [flows, setFlows] = useState<Flow[]>([])
   const [flowsLoading, setFlowsLoading] = useState(false)
-  const [systemTags, setSystemTags] = useState<SystemTag[]>([])
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [collapsedFlows, setCollapsedFlows] = useState<Set<string>>(new Set())
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
@@ -250,7 +248,6 @@ export function RightSidebar({
   useEffect(() => {
     if (!selectedFile?.id) {
       setFlows([])
-      setSystemTags([])
       return
     }
 
@@ -266,7 +263,6 @@ export function RightSidebar({
         setCollapsedFlows(new Set(sortedFlows.map((flow) => flow.id)))
       })
       .finally(() => setFlowsLoading(false))
-    fetchSystemTags(selectedFile.id).then(setSystemTags)
   }, [selectedFile?.id])
 
   useEffect(() => {
@@ -302,6 +298,31 @@ export function RightSidebar({
     const currentId = editValues.documentTypeId ?? selectedFile?.documentTypeId ?? null
     return currentId ? documentTypes.find((type) => type.id === currentId) : undefined
   }, [documentTypes, editValues.documentTypeId, selectedFile?.documentTypeId])
+
+  const appliedUserTags = useMemo(() => {
+    if (!selectedFile?.tags?.length) {
+      return []
+    }
+
+    const groups = selectedFile.tags
+      .filter((tag) => !tag.isSystem)
+      .reduce<Record<string, DocumentTag[]>>((accumulator, tag) => {
+        const appliedByValues = (tag.appliedBy ?? "")
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean)
+
+        const appliers = appliedByValues.length > 0 ? appliedByValues : ["Unknown"]
+
+        for (const applier of appliers) {
+          accumulator[applier] = accumulator[applier] ? [...accumulator[applier], tag] : [tag]
+        }
+
+        return accumulator
+      }, {})
+
+    return Object.entries(groups)
+  }, [selectedFile?.tags])
 
   const appendToken = (token: string) => {
     setChatInput((previous) => `${previous}${previous && !previous.endsWith(" ") ? " " : ""}${token} `)
@@ -821,59 +842,45 @@ export function RightSidebar({
                     </button>
                     {!collapsedSections.has("tags") && (
                       <div className="space-y-3">
-                        {systemTags.length > 0 ? (
-                          <>
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
-                                System
-                              </p>
-                              <div className="flex flex-wrap gap-1.5 px-1">
-                                {systemTags.map((tag) => (
-                                  <Badge key={tag.name} variant="outline" className="text-xs">
-                                    {tag.name}: {tag.value}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="relative py-2">
-                              <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-dashed border-border" />
-                              </div>
-                            </div>
-                          </>
-                        ) : null}
-
                         <div className="space-y-2">
                           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-1">
                             User Defined
                           </p>
-                          <div className="flex flex-wrap gap-1.5 px-1">
-                            {selectedFile.tags.length ? (
-                              selectedFile.tags.map((tag) => {
-                                const color = tag.color ?? getTagColor(tag.name)
-                                const style = color
-                                  ? {
-                                      backgroundColor: color,
-                                      borderColor: color,
-                                    }
-                                  : undefined
+                          {appliedUserTags.length ? (
+                            <div className="space-y-3">
+                              {appliedUserTags.map(([applier, tags]) => (
+                                <div key={applier} className="space-y-1 px-1">
+                                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                    Applied by {applier}
+                                  </p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {tags.map((tag) => {
+                                      const color = tag.color ?? getTagColor(tag.name)
+                                      const style = color
+                                        ? {
+                                            backgroundColor: color,
+                                            borderColor: color,
+                                          }
+                                        : undefined
 
-                                return (
-                                  <Badge
-                                    key={tag.id}
-                                    className="text-xs"
-                                    style={style}
-                                    variant={color ? "secondary" : "outline"}
-                                  >
-                                    {tag.name}
-                                  </Badge>
-                                )
-                              })
-                            ) : (
-                              <p className="text-xs text-muted-foreground">No user-defined tags</p>
-                            )}
-                          </div>
+                                      return (
+                                        <Badge
+                                          key={`${applier}-${tag.id}`}
+                                          className="text-xs"
+                                          style={style}
+                                          variant={color ? "secondary" : "outline"}
+                                        >
+                                          {tag.name}
+                                        </Badge>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground px-1">No user-defined tags</p>
+                          )}
                         </div>
                       </div>
                     )}

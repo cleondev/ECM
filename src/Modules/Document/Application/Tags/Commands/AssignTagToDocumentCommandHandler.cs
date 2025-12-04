@@ -50,7 +50,8 @@ public sealed class AssignTagToDocumentCommandHandler(
 
         try
         {
-            document.AssignTag(command.TagId, command.AppliedBy, _clock.UtcNow);
+            var appliedBy = command.AppliedBy ?? document.CreatedBy;
+            document.AssignTag(command.TagId, appliedBy, _clock.UtcNow);
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
         {
