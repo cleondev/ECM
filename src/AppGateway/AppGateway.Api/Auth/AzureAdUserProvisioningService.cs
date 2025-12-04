@@ -7,7 +7,6 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using AppGateway.Contracts.IAM.Groups;
 using AppGateway.Contracts.IAM.Roles;
 using AppGateway.Contracts.IAM.Users;
 using AppGateway.Infrastructure.IAM;
@@ -190,21 +189,21 @@ public sealed class AzureAdUserProvisioningService(
         IReadOnlyCollection<Guid> claimedGroupIds,
         Guid? primaryGroupId)
     {
-        var groupIds = new List<Guid>
-        {
-            GroupDefaultIds.System,
-            GroupDefaultIds.Guest
-        };
+        var groupIds = new List<Guid>();
 
         foreach (var groupId in claimedGroupIds)
         {
-            if (!groupIds.Contains(groupId))
+            if (groupId == Guid.Empty || groupIds.Contains(groupId))
             {
-                groupIds.Add(groupId);
+                continue;
             }
+
+            groupIds.Add(groupId);
         }
 
-        if (primaryGroupId.HasValue && !groupIds.Contains(primaryGroupId.Value))
+        if (primaryGroupId.HasValue
+            && primaryGroupId.Value != Guid.Empty
+            && !groupIds.Contains(primaryGroupId.Value))
         {
             groupIds.Add(primaryGroupId.Value);
         }

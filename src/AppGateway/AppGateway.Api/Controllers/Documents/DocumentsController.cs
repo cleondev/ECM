@@ -21,8 +21,6 @@ using Microsoft.Extensions.Primitives;
 using Shared.Extensions.Http;
 using Shared.Extensions.Primitives;
 
-using static AppGateway.Api.Controllers.Documents.DocumentRequestNormalization;
-
 namespace AppGateway.Api.Controllers.Documents;
 
 [ApiController]
@@ -217,14 +215,18 @@ public sealed class DocumentsController(
             return ValidationProblem(ModelState);
         }
 
-        var createdBy = NormalizeGuid(request.CreatedBy);
-        var ownerId = NormalizeGuid(request.OwnerId);
+        var createdBy = request.CreatedBy;
+        var ownerId = request.OwnerId;
 
-        var normalizedDocType = NormalizeString(request.DocType, "General");
-        var normalizedStatus = NormalizeString(request.Status, "Draft");
-        var normalizedSensitivity = NormalizeString(request.Sensitivity, "Internal");
+        var docType = request.DocType?.Trim() ?? string.Empty;
+        var status = request.Status?.Trim() ?? string.Empty;
+        var sensitivity = string.IsNullOrWhiteSpace(request.Sensitivity)
+            ? null
+            : request.Sensitivity.Trim();
         var documentTypeId = request.DocumentTypeId;
-        var flowDefinition = NormalizeOptional(request.FlowDefinition);
+        var flowDefinition = string.IsNullOrWhiteSpace(request.FlowDefinition)
+            ? null
+            : request.FlowDefinition.Trim();
         var primaryGroupId = await ResolvePrimaryGroupIdAsync(cancellationToken);
         var tagIds = request.TagIds.Count == 0
             ? []
@@ -256,13 +258,13 @@ public sealed class DocumentsController(
 
             var upload = new CreateDocumentUpload
             {
-                Title = NormalizeTitle(requestedTitle, file.FileName),
-                DocType = normalizedDocType,
-                Status = normalizedStatus,
+                Title = requestedTitle ?? string.Empty,
+                DocType = docType,
+                Status = status,
                 OwnerId = ownerId,
                 CreatedBy = createdBy,
                 GroupId = primaryGroupId,
-                Sensitivity = normalizedSensitivity,
+                Sensitivity = sensitivity,
                 DocumentTypeId = documentTypeId,
                 FileName = string.IsNullOrWhiteSpace(file.FileName) ? "upload.bin" : file.FileName,
                 ContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
