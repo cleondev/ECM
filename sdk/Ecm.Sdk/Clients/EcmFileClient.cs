@@ -703,7 +703,7 @@ public sealed class EcmFileClient
 
     private const string GetTagsEndpoint = "api/tags";
 
-    private const string TagManagementBaseEndpoint = "api/ecm/tag-management";
+    private const string TagManagementBaseEndpoint = "api/tag-management";
 
     private const string TagManagementTagsEndpoint = $"{TagManagementBaseEndpoint}/tags";
 

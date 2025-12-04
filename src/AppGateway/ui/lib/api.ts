@@ -40,8 +40,8 @@ import { clearCachedAuthSnapshot, getCachedAuthSnapshot, updateCachedAuthSnapsho
 
 const SIMULATED_DELAY = 800 // milliseconds
 
-const TAGS_ENDPOINT = "/api/ecm/tags"
-const TAG_MANAGEMENT_BASE = "/api/ecm/tag-management"
+const TAGS_ENDPOINT = "/api/tags"
+const TAG_MANAGEMENT_BASE = "/api/tag-management"
 const TAG_MANAGEMENT_TAGS_ENDPOINT = `${TAG_MANAGEMENT_BASE}/tags`
 const TAG_MANAGEMENT_NAMESPACES_ENDPOINT = `${TAG_MANAGEMENT_BASE}/namespaces`
 

@@ -24,7 +24,7 @@ public static class TagEndpoints
 {
     public static void MapTagEndpoints(this IEndpointRouteBuilder builder)
     {
-        var tagGroup = builder.MapGroup("/api/ecm/tags");
+        var tagGroup = builder.MapGroup("/api/tags");
         tagGroup.WithTags("Tags");
         tagGroup.WithGroupName(DocumentSwagger.DocumentName);
 
@@ -213,7 +213,7 @@ public static class TagEndpoints
 
         var response = TagEndpointMapping.ToResponse(result.Value, TagEndpointMapping.UserDefaultIconKey);
 
-        return TypedResults.Created($"/api/ecm/tags/{response.Id}", response);
+        return TypedResults.Created($"/api/tags/{response.Id}", response);
     }
 
     private static Guid? NormalizeGuid(Guid? value)
