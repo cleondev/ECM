@@ -314,19 +314,6 @@ internal sealed class EcmApiClient(
             form.Add(new StringContent(requestDto.GroupId.Value.ToString()), nameof(requestDto.GroupId));
         }
 
-        if (requestDto.GroupIds is { Count: > 0 })
-        {
-            var normalizedGroupIds = requestDto.GroupIds
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToArray();
-
-            foreach (var groupId in normalizedGroupIds)
-            {
-                form.Add(new StringContent(groupId.ToString()), $"{nameof(requestDto.GroupIds)}[]");
-            }
-        }
-
         if (!string.IsNullOrWhiteSpace(requestDto.Sensitivity))
         {
             form.Add(new StringContent(requestDto.Sensitivity), nameof(requestDto.Sensitivity));

@@ -20,8 +20,6 @@ public sealed class CreateDocumentUpload
 
     public Guid? GroupId { get; init; }
 
-    public IReadOnlyCollection<Guid> GroupIds { get; init; } = [];
-
     public string? Sensitivity { get; init; }
 
     public Guid? DocumentTypeId { get; init; }
