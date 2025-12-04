@@ -699,7 +699,7 @@ export function RightSidebar({
   )
 
   return (
-    <div className="w-full h-full border-l border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col relative z-20">
+    <div className="w-full h-full min-h-0 border-l border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col relative z-20">
       <div className="p-4 border-b border-sidebar-border/80 flex items-center justify-between flex-shrink-0">
         <div className="space-y-1">
           <h2 className="font-semibold text-sidebar-foreground">File Details</h2>
@@ -745,13 +745,14 @@ export function RightSidebar({
         </div>
       ) : null}
 
-      <SidebarShell
-        tabs={{ info: true, flow: true, form: true, chat: true }}
-        activeTab={activeTab}
-        onTabChange={(value) => onTabChange((value as ActiveTab) || "info")}
-        headerBadge={`Version ${selectedFile?.latestVersionNumber ?? selectedFile?.latestVersionId ?? "N/A"}`}
-        showTabsList={false}
-      >
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <SidebarShell
+          tabs={{ info: true, flow: true, form: true, chat: true }}
+          activeTab={activeTab}
+          onTabChange={(value) => onTabChange((value as ActiveTab) || "info")}
+          headerBadge={`Version ${selectedFile?.latestVersionNumber ?? selectedFile?.latestVersionId ?? "N/A"}`}
+          showTabsList={false}
+        >
         <TabsContent value="info" className="mt-0 h-full">
           <div className="space-y-4">
             {selectedFile ? (
@@ -808,6 +809,7 @@ export function RightSidebar({
                               <UserIdentity
                                 userId={ownerLookup}
                                 size="sm"
+                                density="compact"
                                 hint="Chủ sở hữu"
                                 className="px-0 py-0"
                               />
@@ -869,6 +871,7 @@ export function RightSidebar({
                                       <UserIdentity
                                         userId={applier}
                                         size="sm"
+                                        density="compact"
                                         interactive={false}
                                         className="px-0 py-0"
                                         hint="Người áp dụng"
@@ -1146,17 +1149,19 @@ export function RightSidebar({
 
         <TabsContent value="chat" className="mt-0 h-full">
           <div className="space-y-4">
-              <SidebarChatTab
-                comments={sidebarComments}
-                draftMessage={chatInput}
-                onDraftChange={handleChatInputChange}
-                onSubmit={handleSendMessage}
-                composerExtras={composerExtras}
-                canSubmit={chatInput.trim().length > 0 || chatAttachments.length > 0}
+            <SidebarChatTab
+              comments={sidebarComments}
+              draftMessage={chatInput}
+              onDraftChange={handleChatInputChange}
+              onSubmit={handleSendMessage}
+              composerExtras={composerExtras}
+              canSubmit={chatInput.trim().length > 0 || chatAttachments.length > 0}
             />
           </div>
         </TabsContent>
       </SidebarShell>
+
+      </div>
 
     </div>
   )
