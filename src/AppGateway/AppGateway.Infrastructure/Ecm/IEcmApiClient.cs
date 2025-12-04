@@ -110,11 +110,43 @@ public interface ITagsApiClient
 {
     Task<IReadOnlyCollection<TagLabelDto>> GetTagsAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyCollection<TagLabelDto>> GetManagedTagsAsync(
+        string? scope = null,
+        bool includeAllNamespaces = true,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<TagNamespaceDto>> GetTagNamespacesAsync(
+        string? scope = null,
+        bool includeAllNamespaces = true,
+        CancellationToken cancellationToken = default);
+
     Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto requestDto, CancellationToken cancellationToken = default);
+
+    Task<TagLabelDto?> CreateManagedTagAsync(
+        ManagementCreateTagRequestDto requestDto,
+        CancellationToken cancellationToken = default);
 
     Task<TagLabelDto?> UpdateTagAsync(Guid tagId, UpdateTagRequestDto requestDto, CancellationToken cancellationToken = default);
 
+    Task<TagLabelDto?> UpdateManagedTagAsync(
+        Guid tagId,
+        ManagementUpdateTagRequestDto requestDto,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteManagedTagAsync(Guid tagId, CancellationToken cancellationToken = default);
+
+    Task<TagNamespaceDto?> CreateTagNamespaceAsync(
+        CreateTagNamespaceRequestDto requestDto,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> UpdateTagNamespaceAsync(
+        Guid namespaceId,
+        UpdateTagNamespaceRequestDto requestDto,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteTagNamespaceAsync(Guid namespaceId, CancellationToken cancellationToken = default);
 
     Task<bool> AssignTagToDocumentAsync(Guid documentId, AssignTagRequestDto requestDto, CancellationToken cancellationToken = default);
 

@@ -38,6 +38,8 @@ internal sealed class EcmApiClient(
     private const string HomeAccountIdClaimType = "homeAccountId";
     private const string ApiKeyHeaderName = "X-Api-Key";
     private const string subjectTypePublic = "public";
+    private const string TagManagementTagsEndpoint = "api/ecm/tag-management/tags";
+    private const string TagManagementNamespacesEndpoint = "api/ecm/tag-management/namespaces";
     private readonly HttpClient _httpClient = httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
     private readonly ITokenAcquisition _tokenAcquisition = tokenAcquisition;
@@ -747,10 +749,46 @@ internal sealed class EcmApiClient(
         return response ?? [];
     }
 
+    public async Task<IReadOnlyCollection<TagLabelDto>> GetManagedTagsAsync(
+        string? scope = null,
+        bool includeAllNamespaces = true,
+        CancellationToken cancellationToken = default)
+    {
+        var uri = BuildTagManagementListUri(TagManagementTagsEndpoint, scope, includeAllNamespaces);
+
+        using var request = await CreateRequestAsync(HttpMethod.Get, uri, cancellationToken);
+        var response = await SendAsync<IReadOnlyCollection<TagLabelDto>>(request, cancellationToken);
+
+        return response ?? [];
+    }
+
+    public async Task<IReadOnlyCollection<TagNamespaceDto>> GetTagNamespacesAsync(
+        string? scope = null,
+        bool includeAllNamespaces = true,
+        CancellationToken cancellationToken = default)
+    {
+        var uri = BuildTagManagementListUri(TagManagementNamespacesEndpoint, scope, includeAllNamespaces);
+
+        using var request = await CreateRequestAsync(HttpMethod.Get, uri, cancellationToken);
+        var response = await SendAsync<IReadOnlyCollection<TagNamespaceDto>>(request, cancellationToken);
+
+        return response ?? [];
+    }
+
     public async Task<TagLabelDto?> CreateTagAsync(CreateTagRequestDto requestDto, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/tags", cancellationToken);
         request.Content = JsonContent.Create(requestDto);
+        return await SendAsync<TagLabelDto>(request, cancellationToken);
+    }
+
+    public async Task<TagLabelDto?> CreateManagedTagAsync(
+        ManagementCreateTagRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, TagManagementTagsEndpoint, cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+
         return await SendAsync<TagLabelDto>(request, cancellationToken);
     }
 
@@ -761,9 +799,53 @@ internal sealed class EcmApiClient(
         return await SendAsync<TagLabelDto>(request, cancellationToken);
     }
 
+    public async Task<TagLabelDto?> UpdateManagedTagAsync(
+        Guid tagId,
+        ManagementUpdateTagRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Put, $"{TagManagementTagsEndpoint}/{tagId}", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+
+        return await SendAsync<TagLabelDto>(request, cancellationToken);
+    }
+
     public async Task<bool> DeleteTagAsync(Guid tagId, CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Delete, $"api/ecm/tags/{tagId}", cancellationToken);
+        return await SendAsync(request, cancellationToken);
+    }
+
+    public async Task<bool> DeleteManagedTagAsync(Guid tagId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"{TagManagementTagsEndpoint}/{tagId}", cancellationToken);
+        return await SendAsync(request, cancellationToken);
+    }
+
+    public async Task<TagNamespaceDto?> CreateTagNamespaceAsync(
+        CreateTagNamespaceRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Post, TagManagementNamespacesEndpoint, cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+
+        return await SendAsync<TagNamespaceDto>(request, cancellationToken);
+    }
+
+    public async Task<bool> UpdateTagNamespaceAsync(
+        Guid namespaceId,
+        UpdateTagNamespaceRequestDto requestDto,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Put, $"{TagManagementNamespacesEndpoint}/{namespaceId}", cancellationToken);
+        request.Content = JsonContent.Create(requestDto);
+
+        return await SendAsync(request, cancellationToken);
+    }
+
+    public async Task<bool> DeleteTagNamespaceAsync(Guid namespaceId, CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Delete, $"{TagManagementNamespacesEndpoint}/{namespaceId}", cancellationToken);
         return await SendAsync(request, cancellationToken);
     }
 
@@ -792,6 +874,23 @@ internal sealed class EcmApiClient(
         using var request = await CreateRequestAsync(HttpMethod.Post, "api/ecm/signatures", cancellationToken);
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<SignatureReceiptDto>(request, cancellationToken);
+    }
+
+    private static string BuildTagManagementListUri(string endpoint, string? scope, bool includeAllNamespaces)
+    {
+        var query = new Dictionary<string, string?>();
+
+        if (!string.IsNullOrWhiteSpace(scope))
+        {
+            query["scope"] = scope;
+        }
+
+        if (includeAllNamespaces)
+        {
+            query["includeAll"] = "true";
+        }
+
+        return QueryHelpers.AddQueryString(endpoint, query);
     }
 
     private static string BuildDocumentListUri(ListDocumentsRequestDto request)
