@@ -1059,7 +1059,7 @@ export function RightSidebar({
                 }
                 disabled={!selectedFile || isUpdatingDocumentType}
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9 w-full">
                   <SelectValue
                     placeholder={
                       selectedDocumentType?.typeName ??
