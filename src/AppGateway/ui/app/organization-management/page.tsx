@@ -51,14 +51,15 @@ import { TagManagementDialog } from "@/components/tag-management-dialog"
 import { useAuthGuard } from "@/hooks/use-auth-guard"
 import {
   createTag,
+  createManagedTag,
   createTagNamespace,
-  deleteTag,
+  deleteManagedTag,
   deleteTagNamespace,
   fetchCurrentUserProfile,
   fetchDocumentTypes,
   fetchGroups,
-  fetchTags,
-  fetchTagNamespaces,
+  fetchManagedTags,
+  fetchManagedTagNamespaces,
   fetchUsers,
   fetchRoles,
   renameRole,
@@ -66,7 +67,7 @@ import {
   createDocumentType,
   updateDocumentType,
   updateTagNamespace,
-  updateTag,
+  updateManagedTag,
 } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import type { DocumentType, Group, Role, TagNamespace, TagNode, TagUpdateData, User } from "@/lib/types"
@@ -500,10 +501,10 @@ export default function OrganizationManagementPage() {
   }, [isAuthenticated, isAdmin])
 
   const loadCompleteTagTree = async (): Promise<TagNode[]> => {
-    const namespaceList = await fetchTagNamespaces({ scope: "all", includeAll: true })
+    const namespaceList = await fetchManagedTagNamespaces({ scope: "all", includeAll: true })
     setNamespaces(namespaceList)
 
-    const tagTree = await fetchTags({ scope: "all", includeAll: true, namespaces: namespaceList })
+    const tagTree = await fetchManagedTags({ scope: "all", includeAll: true, namespaces: namespaceList })
     return tagTree
   }
 
@@ -554,7 +555,7 @@ export default function OrganizationManagementPage() {
 
   const handleDeleteTag = async (tagId: string) => {
     const target = tags.find((tag) => tag.id === tagId)
-    await deleteTag(tagId)
+    await deleteManagedTag(tagId)
     await reloadTags()
   }
 
@@ -644,7 +645,7 @@ export default function OrganizationManagementPage() {
       return existing
     }
 
-    const refreshed = await fetchTags({ scope: "all" })
+    const refreshed = await fetchManagedTags({ scope: "all" })
     setTags(refreshed)
 
     return findCreatableNamespace(refreshed)
@@ -652,15 +653,15 @@ export default function OrganizationManagementPage() {
 
   const handleSaveTag = async (data: TagUpdateData) => {
     if (tagDialogMode === "edit" && editingTag) {
-      await updateTag(editingTag, data)
+      await updateManagedTag(editingTag, data)
     } else if (tagDialogMode === "add-child" && parentTag) {
-      await createTag(data, parentTag)
+      await createManagedTag(data, parentTag)
     } else {
       const namespaceNode = await resolveNamespaceNode()
       if (!namespaceNode) {
         console.warn("[org-settings] Unable to determine namespace for new tag creation")
       }
-      await createTag(data, namespaceNode ?? undefined)
+      await createManagedTag(data, namespaceNode ?? undefined)
     }
     await reloadTags()
   }
