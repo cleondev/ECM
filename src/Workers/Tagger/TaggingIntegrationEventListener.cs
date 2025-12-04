@@ -17,6 +17,7 @@ internal sealed class TaggingIntegrationEventListener(
     ILogger<TaggingIntegrationEventListener> logger) : BackgroundService
 {
     private const string DocumentUploadedTopic = EventTopics.Document.Events;
+    private const string DocumentCreatedEventType = EventNames.Document.Created;
     private const string OcrCompletedTopic = EventTopics.Ocr.Events;
 
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
@@ -34,7 +35,7 @@ internal sealed class TaggingIntegrationEventListener(
 
     internal Task HandleDocumentUploadedAsync(KafkaMessage message, CancellationToken cancellationToken)
     {
-        return KafkaIntegrationEventHandler.HandleMessageAsync<KafkaMessage, IntegrationEventEnvelope<DocumentIntegrationEventPayload>, TaggingEventProcessor>(
+        return KafkaIntegrationEventHandler.HandleMessageAsync<KafkaMessage, DocumentIntegrationEventEnvelope, TaggingEventProcessor>(
             message,
             static message => message.Topic,
             static message => message.Value,
@@ -42,9 +43,19 @@ internal sealed class TaggingIntegrationEventListener(
             _logger,
             SerializerOptions,
             static envelope => envelope.EventId,
-            static (envelope, processor, token) =>
+            (envelope, processor, token) =>
             {
-                var data = envelope.Data ?? throw new InvalidOperationException("Document uploaded event payload is missing data.");
+                if (!string.Equals(envelope.Type, DocumentCreatedEventType, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug(
+                        "Ignoring document event {EventType} on topic {Topic} for tagger.",
+                        envelope.Type,
+                        DocumentUploadedTopic);
+
+                    return Task.CompletedTask;
+                }
+
+                var data = envelope.Data ?? throw new InvalidOperationException("Document created event payload is missing data.");
 
                 var integrationEvent = new DocumentUploadedIntegrationEvent(
                     envelope.EventId,
