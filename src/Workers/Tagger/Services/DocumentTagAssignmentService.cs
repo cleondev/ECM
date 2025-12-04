@@ -64,7 +64,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         var document = await _client.GetDocumentAsync(documentId, cancellationToken).ConfigureAwait(false);
         if (document is null)
         {
-            _logger.LogWarning("Không tìm thấy document {DocumentId} khi áp dụng tag.", documentId);
+            _logger.LogWarning("Document {DocumentId} was not found when applying the tag.", documentId);
             return 0;
         }
 
