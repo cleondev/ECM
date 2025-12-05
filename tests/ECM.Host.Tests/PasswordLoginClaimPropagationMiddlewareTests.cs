@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Claims;
 using ECM.Host.Middleware;
 using Microsoft.AspNetCore.Http;
@@ -48,6 +49,32 @@ public class PasswordLoginClaimPropagationMiddlewareTests
         await middleware.InvokeAsync(context);
 
         Assert.Same(identity, context.User.Identity);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_AddsSeparateIdentity_WhenForwardedHeadersPresentWithExistingPrincipal()
+    {
+        var existingIdentity = new ClaimsIdentity("JwtAuth");
+        existingIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "existing"));
+        var context = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(existingIdentity)
+        };
+
+        var forwardedUserId = Guid.NewGuid();
+        context.Request.Headers[PasswordLoginForwardingHeaders.UserId] = forwardedUserId.ToString();
+        context.Request.Headers[PasswordLoginForwardingHeaders.Email] = "user@example.com";
+
+        var middleware = new PasswordLoginClaimPropagationMiddleware(_ => Task.CompletedTask, NullLogger<PasswordLoginClaimPropagationMiddleware>.Instance);
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(2, context.User.Identities.Count());
+        Assert.Equal("existing", existingIdentity.FindFirstValue(ClaimTypes.NameIdentifier));
+
+        var forwardedIdentity = context.User.Identities.Single(identity => identity.AuthenticationType == "PasswordLoginForwarding");
+        Assert.Equal(forwardedUserId.ToString(), forwardedIdentity.FindFirstValue(ClaimTypes.NameIdentifier));
+        Assert.Equal("user@example.com", forwardedIdentity.FindFirstValue(ClaimTypes.Email));
     }
 
     [Fact]
