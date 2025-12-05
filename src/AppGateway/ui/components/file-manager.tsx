@@ -73,6 +73,7 @@ export function FileManager() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false)
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false)
+  const [refreshVersion, setRefreshVersion] = useState(0)
 
   const isMobile = useIsMobile()
   const isMobileDevice = isMobile ?? false
@@ -84,8 +85,8 @@ export function FileManager() {
   const disableDetailsPanels = !isSingleSelection
 
   useEffect(() => {
-    loadFiles(true)
-  }, [selectedFolder, selectedTag, searchQuery, sortBy, sortOrder])
+    loadFiles(true, refreshVersion > 0)
+  }, [selectedFolder, selectedTag, searchQuery, sortBy, sortOrder, refreshVersion])
 
   const loadFiles = async (reset = false, force = false) => {
     if (isLoading && !force) return
@@ -134,6 +135,19 @@ export function FileManager() {
   const handleFileUpdated = (updatedFile: FileItem) => {
     setFiles((prev) => prev.map((file) => (file.id === updatedFile.id ? { ...file, ...updatedFile } : file)))
     setSelectedFile(updatedFile)
+  }
+
+  const handlePrimaryGroupChange = () => {
+    setSelectedTag(null)
+    setSelectedFile(null)
+    setSelectedFiles(new Set())
+    setSelectedFolder("All Files")
+    setSearchQuery("")
+    setPage(1)
+    setHasMore(true)
+    setIsRightSidebarOpen(false)
+    setIsRightDrawerOpen(false)
+    setRefreshVersion((value) => value + 1)
   }
 
   useEffect(() => {
@@ -543,6 +557,7 @@ export function FileManager() {
                 onFolderSelect={setSelectedFolder}
                 selectedTag={selectedTag}
                 onTagClick={handleTagClick}
+                onPrimaryGroupChange={handlePrimaryGroupChange}
               />
             </div>
 
@@ -723,6 +738,7 @@ export function FileManager() {
                     handleTagClick(tag)
                     setIsLeftDrawerOpen(false)
                   }}
+                  onPrimaryGroupChange={handlePrimaryGroupChange}
                 />
               </div>
             </DrawerContent>

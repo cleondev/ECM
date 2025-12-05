@@ -1,11 +1,15 @@
 using System;
 using System.Linq;
+using System.Security.Claims;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.IAM.Users;
+using AppGateway.Infrastructure.Auth;
 using AppGateway.Infrastructure.Ecm;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -86,6 +90,28 @@ public sealed class IamUserProfileController(
                 }
 
                 return Problem(title: "Failed to update profile", statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            if (PasswordLoginClaims.IsPasswordLoginPrincipal(User))
+            {
+                var identity = User.Identities.FirstOrDefault();
+                if (identity is not null)
+                {
+                    var updatedIdentity = new ClaimsIdentity(identity);
+                    var existingProfileClaim = updatedIdentity.FindFirst(PasswordLoginClaims.ProfileClaimType);
+                    if (existingProfileClaim is not null)
+                    {
+                        updatedIdentity.TryRemoveClaim(existingProfileClaim);
+                    }
+
+                    updatedIdentity.AddClaim(new Claim(
+                        PasswordLoginClaims.ProfileClaimType,
+                        JsonSerializer.Serialize(profile)));
+
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new ClaimsPrincipal(updatedIdentity));
+                }
             }
 
             return Ok(profile);
