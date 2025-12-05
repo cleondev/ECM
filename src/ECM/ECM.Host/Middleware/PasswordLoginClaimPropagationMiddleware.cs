@@ -73,7 +73,7 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
             && Guid.TryParse(userIdHeader, out var userId)
             && userId != Guid.Empty)
         {
-            AddClaimIfMissing(identity, ClaimTypes.NameIdentifier, userId.ToString());
+            EnsureClaimValue(identity, ClaimTypes.NameIdentifier, userId.ToString());
         }
 
         var email = GetHeaderValue(headers, PasswordLoginForwardingHeaders.Email);
@@ -95,13 +95,13 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
             && Guid.TryParse(primaryGroupIdHeader, out var primaryGroupId)
             && primaryGroupId != Guid.Empty)
         {
-            AddClaimIfMissing(identity, "primary_group_id", primaryGroupId.ToString());
+            EnsureClaimValue(identity, "primary_group_id", primaryGroupId.ToString());
         }
 
         var primaryGroupName = GetHeaderValue(headers, PasswordLoginForwardingHeaders.PrimaryGroupName);
         if (!string.IsNullOrWhiteSpace(primaryGroupName))
         {
-            AddClaimIfMissing(identity, "primary_group_name", primaryGroupName);
+            EnsureClaimValue(identity, "primary_group_name", primaryGroupName);
         }
 
         var onBehalf = GetHeaderValue(headers, PasswordLoginForwardingHeaders.OnBehalf);
@@ -133,5 +133,23 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
 
         identity.AddClaim(new Claim(claimType, value));
         _logger.LogDebug("Propagated password-login claim {ClaimType} for downstream request.", claimType);
+    }
+
+    private void EnsureClaimValue(ClaimsIdentity identity, string claimType, string value)
+    {
+        foreach (var claim in identity.FindAll(claimType).ToArray())
+        {
+            if (string.Equals(claim.Value, value, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            identity.TryRemoveClaim(claim);
+        }
+
+        identity.AddClaim(new Claim(claimType, value));
+        _logger.LogDebug(
+            "Propagated password-login claim {ClaimType} with enforced value for downstream request.",
+            claimType);
     }
 }
