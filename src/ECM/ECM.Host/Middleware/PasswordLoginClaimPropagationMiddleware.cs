@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -34,14 +35,22 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
 
     private ClaimsIdentity? ResolveTargetIdentity(HttpContext context)
     {
-        if (context.User.Identity is ClaimsIdentity existingIdentity)
-        {
-            return existingIdentity;
-        }
-
         if (!HasPasswordLoginForwardedHeaders(context.Request.Headers))
         {
             return null;
+        }
+
+        var forwardedIdentity = context.User.Identities
+            .OfType<ClaimsIdentity>()
+            .FirstOrDefault(identity =>
+                string.Equals(
+                    identity.AuthenticationType,
+                    "PasswordLoginForwarding",
+                    StringComparison.OrdinalIgnoreCase));
+
+        if (forwardedIdentity is not null)
+        {
+            return forwardedIdentity;
         }
 
         var identity = new ClaimsIdentity(
@@ -49,7 +58,15 @@ internal sealed class PasswordLoginClaimPropagationMiddleware
             nameType: ClaimTypes.Name,
             roleType: ClaimTypes.Role);
 
-        context.User = new ClaimsPrincipal(identity);
+        if (context.User.Identity is null)
+        {
+            context.User = new ClaimsPrincipal(identity);
+        }
+        else
+        {
+            context.User.AddIdentity(identity);
+        }
+
         _logger.LogDebug("Created password-login identity from forwarded headers for downstream request.");
 
         return identity;
