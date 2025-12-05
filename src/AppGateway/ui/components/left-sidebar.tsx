@@ -16,6 +16,7 @@ import {
   Settings,
   LogOut,
   User,
+  Loader2,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -24,7 +25,16 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { TagManagementDialog } from "./tag-management-dialog"
 import type { SelectedTag, TagNode, TagUpdateData, User as UserType, Group } from "@/lib/types"
-import { fetchTags, createTag, updateTag, deleteTag, fetchUser, signOut, fetchGroups } from "@/lib/api"
+import {
+  fetchTags,
+  createTag,
+  updateTag,
+  deleteTag,
+  fetchUser,
+  signOut,
+  fetchGroups,
+  updateCurrentUserProfile,
+} from "@/lib/api"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ThemeSwitcher } from "./theme-switcher"
 import {
@@ -42,6 +52,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
 import { UserIdentity } from "@/components/user/user-identity"
+import { useToast } from "@/hooks/use-toast"
 
 const DEFAULT_TAG_ICON = "📁"
 
@@ -58,6 +69,7 @@ type LeftSidebarProps = {
   onFolderSelect: (folder: string) => void
   selectedTag: SelectedTag | null
   onTagClick: (tag: SelectedTag) => void
+  onPrimaryGroupChange?: (groupId: string | null) => void
 }
 
 const folders = [
@@ -291,7 +303,8 @@ function TagTreeItem({
   )
 }
 
-export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTagClick }: LeftSidebarProps) {
+export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTagClick, onPrimaryGroupChange }: LeftSidebarProps) {
+  const { toast } = useToast()
   const [tagTree, setTagTree] = useState<TagNode[]>([])
   const [isTagDialogOpen, setIsTagDialogOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagNode | null>(null)
@@ -300,6 +313,7 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
   const [user, setUser] = useState<UserType | null>(null)
   const [groups, setGroups] = useState<Group[]>([])
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [isUpdatingPrimaryGroup, setIsUpdatingPrimaryGroup] = useState(false)
   const [sectionsExpanded, setSectionsExpanded] = useState({
     tags: true,
     folders: false,
@@ -419,6 +433,50 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
     }
   }
 
+  const handlePrimaryGroupUpdate = async (groupId: string | null) => {
+    if (!user || user.primaryGroupId === groupId) {
+      return
+    }
+
+    setIsUpdatingPrimaryGroup(true)
+    try {
+      const updated = await updateCurrentUserProfile({
+        displayName: user.displayName,
+        primaryGroupId: groupId,
+        groupIds: user.groupIds ?? [],
+      })
+
+      setUser(updated)
+
+      try {
+        const updatedTags = await fetchTags()
+        setTagTree(updatedTags)
+      } catch (error) {
+        console.error("[sidebar] Failed to refresh tags after primary group change:", error)
+      }
+
+      const nextGroupName = groupId
+        ? availablePrimaryGroups.find((group) => group.id === groupId)?.name ?? "Selected group"
+        : "No primary group"
+
+      toast({
+        title: "Primary group updated",
+        description: groupId ? `Switched to ${nextGroupName}` : "Primary group cleared",
+      })
+
+      onPrimaryGroupChange?.(groupId)
+    } catch (error) {
+      console.error("[ui] Failed to update primary group:", error)
+      toast({
+        title: "Unable to update primary group",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdatingPrimaryGroup(false)
+    }
+  }
+
   const primaryRole = useMemo(() => user?.roles?.[0] ?? "", [user?.roles])
   const primaryGroupName = useMemo(() => {
     if (!user?.primaryGroupId) {
@@ -438,6 +496,16 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
       .map((groupId) => groups.find((group) => group.id === groupId)?.name)
       .filter((name): name is string => Boolean(name))
   }, [groups, user?.groupIds, user?.primaryGroupId])
+
+  const availablePrimaryGroups = useMemo(() => {
+    const membership = new Set(user?.groupIds ?? [])
+    if (membership.size === 0) {
+      return groups
+    }
+
+    return groups.filter((group) => membership.has(group.id))
+  }, [groups, user?.groupIds])
+
   const toggleSection = (section: "tags" | "folders" | "system") => {
     setSectionsExpanded((prev) => ({ ...prev, [section]: !prev[section] }))
   }
@@ -592,6 +660,60 @@ export function LeftSidebar({ selectedFolder, onFolderSelect, selectedTag, onTag
 
       <div className="border-t border-sidebar-border p-3 space-y-3">
         <ThemeSwitcher className="w-full" />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full justify-between px-3 py-2 h-auto min-h-[3rem] rounded-xl border leftbar-section-surface text-left"
+              disabled={availablePrimaryGroups.length === 0 || !user || isUpdatingPrimaryGroup}
+            >
+              <div className="flex flex-col items-start gap-0.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Primary group</span>
+                <span className="text-sm font-medium leading-tight line-clamp-1">
+                  {primaryGroupName || "Select primary group"}
+                </span>
+              </div>
+              {isUpdatingPrimaryGroup ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[260px]">
+            {availablePrimaryGroups.length === 0 ? (
+              <DropdownMenuItem disabled>No groups available</DropdownMenuItem>
+            ) : (
+              availablePrimaryGroups.map((group) => (
+                <DropdownMenuItem
+                  key={group.id}
+                  onSelect={(event) => {
+                    event.preventDefault()
+                    handlePrimaryGroupUpdate(group.id)
+                  }}
+                  className="flex items-center justify-between gap-2"
+                  disabled={isUpdatingPrimaryGroup}
+                >
+                  <span className="truncate">{group.name}</span>
+                  {user?.primaryGroupId === group.id ? (
+                    <span className="text-[11px] text-muted-foreground">Current</span>
+                  ) : null}
+                </DropdownMenuItem>
+              ))
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                handlePrimaryGroupUpdate(null)
+              }}
+              disabled={isUpdatingPrimaryGroup || !user?.primaryGroupId}
+            >
+              Clear primary group
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
