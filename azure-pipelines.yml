@@ -86,6 +86,7 @@ stages:
         docker build -f src/Workers/OutboxDispatcher/Dockerfile -t "$REGISTRY/outbox-worker:$TAG" .
         docker build -f src/Workers/SearchIndexer/Dockerfile -t "$REGISTRY/searchindexer-worker:$TAG" .
         docker build -f src/Workers/WebhookDispatcher/Dockerfile -t "$REGISTRY/webhook-worker:$TAG" .
+        docker build -f src/Workers/Tagger/Dockerfile -t "$REGISTRY/tagger-worker:$TAG" .
 
         echo "= Push all images"
         docker push "$REGISTRY/appgateway-api:$TAG"
@@ -94,6 +95,7 @@ stages:
         docker push "$REGISTRY/outbox-worker:$TAG"
         docker push "$REGISTRY/searchindexer-worker:$TAG"
         docker push "$REGISTRY/webhook-worker:$TAG"
+        docker push "$REGISTRY/tagger-worker:$TAG"
       displayName: 'Build & Push Docker Images'
       env:
         HARBOR_USER: $(HARBOR_USER)
@@ -267,6 +269,32 @@ stages:
             "Services__Ecm" \
             '$(Services__Ecm)'
 
+          # ---------- Webhook endpoints ----------
+
+          require_env Webhook__Endpoints__0__Key \
+            "Webhook__Endpoints__0__Key" \
+            '$(Webhook__Endpoints__0__Key)'
+
+          require_env Webhook__Endpoints__0__Url \
+            "Webhook__Endpoints__0__Url" \
+            '$(Webhook__Endpoints__0__Url)'
+
+          require_env Webhook__Endpoints__0__HttpMethod \
+            "Webhook__Endpoints__0__HttpMethod" \
+            '$(Webhook__Endpoints__0__HttpMethod)'
+
+          optional_env Webhook__Endpoints__1__Key \
+            "Webhook__Endpoints__2__Key" \
+            '$(Webhook__Endpoints__1__Key)'
+
+          optional_env Webhook__Endpoints__1__Url \
+            "Webhook__Endpoints__1__Url" \
+            '$(Webhook__Endpoints__1__Url)'
+
+          optional_env Webhook__Endpoints__1__HttpMethod \
+            "Webhook__Endpoints__1__HttpMethod" \
+            '$(Webhook__Endpoints__1__HttpMethod)'
+
           require_env AzureAd__ClientSecret \
             "AzureAd__ClientSecret / ECM_AzureAd__ClientSecret" \
             '$(AzureAd__ClientSecret)' \
@@ -275,7 +303,17 @@ stages:
             "ECM_AzureAd__ClientSecret / AzureAd__ClientSecret" \
             '$(ECM_AzureAd__ClientSecret)' \
             "${AzureAd__ClientSecret:-}"
-
+            
+          require_env Ecm__BaseUrl \
+            "Ecm__BaseUrl" \
+            '$(Ecm__BaseUrl)'
+          require_env Ecm__ApiKey__ApiKey \
+            "Ecm__ApiKey__ApiKey" \
+            '$(Ecm__ApiKey__ApiKey)'
+          require_env Ecm__ApiKey__Enabled \
+            "Ecm__ApiKey__Enabled" \
+            '$(Ecm__ApiKey__Enabled)'
+            
           require_env HARBOR_USER \
             "HARBOR_USER" \
             '$(HARBOR_USER)'
@@ -408,6 +446,16 @@ stages:
           log_var REDPANDA_BROKERS
           log_var Kafka__BootstrapServers
 
+          # Webhook endpoints
+          log_var Webhook__Endpoints__0__Key
+          log_var Webhook__Endpoints__0__Url
+          log_var Webhook__Endpoints__0__HttpMethod
+
+          log_var Webhook__Endpoints__1__Key
+          log_var Webhook__Endpoints__1__Url
+          log_var Webhook__Endpoints__1__HttpMethod
+
+
           # Services / Auth
           log_var Services__Ecm
           log_var ECM_Workflow__Camunda__BaseUrl
@@ -421,6 +469,10 @@ stages:
           if [[ -n "$HARBOR_USER_VAL" ]]; then echo "[OK] HARBOR_USER=$(mask_value "$HARBOR_USER_VAL")"; else echo "[MISSING] HARBOR_USER"; fi
           if [[ -n "$HARBOR_PASS_VAL" ]]; then echo "[OK] HARBOR_PASS=$(mask_value "$HARBOR_PASS_VAL")"; else echo "[MISSING] HARBOR_PASS"; fi
 
+          log_var Ecm__BaseUrl
+          log_var Ecm__ApiKey__Enabled
+          log_var Ecm__ApiKey__ApiKey
+          
           log_var Kestrel__Endpoints__Https__Certificate__Password
 
           echo "---- End diagnostics ----"

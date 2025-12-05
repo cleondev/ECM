@@ -70,11 +70,11 @@ public class PasswordLoginClaimPropagationMiddlewareTests
         await middleware.InvokeAsync(context);
 
         Assert.Equal(2, context.User.Identities.Count());
-        Assert.Equal("existing", existingIdentity.FindFirstValue(ClaimTypes.NameIdentifier));
+        Assert.Equal("existing", existingIdentity.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
         var forwardedIdentity = context.User.Identities.Single(identity => identity.AuthenticationType == "PasswordLoginForwarding");
-        Assert.Equal(forwardedUserId.ToString(), forwardedIdentity.FindFirstValue(ClaimTypes.NameIdentifier));
-        Assert.Equal("user@example.com", forwardedIdentity.FindFirstValue(ClaimTypes.Email));
+        Assert.Equal(forwardedUserId.ToString(), forwardedIdentity.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        Assert.Equal("user@example.com", forwardedIdentity.FindFirst(ClaimTypes.Email)?.Value);
     }
 
     [Fact]
