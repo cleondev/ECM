@@ -167,7 +167,7 @@ internal sealed class EcmApiClient(
             HttpMethod.Put,
             "api/iam/profile",
             cancellationToken,
-            allowAppTokenFallback: false);
+            allowAppTokenFallback: ShouldAllowPasswordLoginFallback());
         request.Content = JsonContent.Create(requestDto);
         return await SendAsync<UserSummaryDto>(request, cancellationToken);
     }
@@ -178,7 +178,7 @@ internal sealed class EcmApiClient(
             HttpMethod.Put,
             "api/iam/profile/password",
             cancellationToken,
-            allowAppTokenFallback: false);
+            allowAppTokenFallback: ShouldAllowPasswordLoginFallback());
         request.Content = JsonContent.Create(requestDto);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -202,6 +202,12 @@ internal sealed class EcmApiClient(
         }
 
         return new PasswordUpdateResult(response.StatusCode, content, contentType);
+    }
+
+    private bool ShouldAllowPasswordLoginFallback()
+    {
+        var principal = _httpContextAccessor.HttpContext?.User;
+        return PasswordLoginClaims.IsPasswordLoginPrincipal(principal);
     }
 
     public async Task<UserSummaryDto?> AssignRoleToUserAsync(Guid userId, AssignRoleRequestDto requestDto, CancellationToken cancellationToken = default)
