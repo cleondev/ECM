@@ -91,6 +91,8 @@ public interface IDocumentsApiClient
 
     Task<DocumentFileContent?> DownloadDocumentVersionAsync(Guid versionId, CancellationToken cancellationToken = default);
 
+    Task<EcmResponse<DocumentVersionDto>> GetDocumentVersionAsync(Guid versionId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken = default);
 
     Task<DocumentTypeDto?> CreateDocumentTypeAsync(DocumentTypeRequestDto requestDto, CancellationToken cancellationToken = default);
@@ -102,6 +104,14 @@ public interface IDocumentsApiClient
     Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default);
 
     Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(Guid versionId, int width, int height, string? fit, CancellationToken cancellationToken = default);
+
+    Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionWordViewerAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default);
+
+    Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionExcelViewerAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default);
 
     Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(CreateShareLinkRequestDto requestDto, CancellationToken cancellationToken = default);
 }
