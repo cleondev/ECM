@@ -1,16 +1,14 @@
-import type { FileDetail, FileItem, FilePreview } from "@/lib/types"
+import type { FileDetail, FileItem, FilePreview, ViewerDescriptor, ViewerType } from "@/lib/types"
 
-export type ViewerCategory = "video" | "image" | "code" | "pdf" | "unsupported"
-export type OfficeViewerKind = "word" | "excel" | "powerpoint"
+export type ViewerCategory = ViewerType | "code"
 
 export type ViewerPreference = {
   category?: ViewerCategory
-  officeKind?: OfficeViewerKind
 }
 
 export type ViewerConfig = {
   category: ViewerCategory
-  officeKind?: OfficeViewerKind
+  viewerType: ViewerType
 }
 
 const CODE_EXTENSIONS = new Set([
@@ -35,33 +33,20 @@ const CODE_EXTENSIONS = new Set([
   "md",
 ])
 
-const OFFICE_EXTENSION_MAP: Record<string, OfficeViewerKind> = {
-  doc: "word",
-  docx: "word",
-  dot: "word",
-  dotx: "word",
-  rtf: "word",
-  xls: "excel",
-  xlsx: "excel",
-  xlsm: "excel",
-  xltx: "excel",
-  csv: "excel",
-  ppt: "powerpoint",
-  pptx: "powerpoint",
-  pps: "powerpoint",
-  potx: "powerpoint",
-}
+const WORD_MIME_TYPES = new Set([
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/rtf",
+])
 
-const OFFICE_MIME_MAP: Record<string, OfficeViewerKind> = {
-  "application/msword": "word",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "word",
-  "application/rtf": "word",
-  "application/vnd.ms-excel": "excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "excel",
-  "text/csv": "excel",
-  "application/vnd.ms-powerpoint": "powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "powerpoint",
-}
+const EXCEL_MIME_TYPES = new Set([
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+])
+
+const WORD_EXTENSIONS = new Set(["doc", "docx", "dot", "dotx", "rtf"])
+const EXCEL_EXTENSIONS = new Set(["xls", "xlsx", "xlsm", "xltx", "csv"])
 
 function getExtension(name?: string): string | undefined {
   if (!name) {
@@ -76,21 +61,53 @@ function getExtension(name?: string): string | undefined {
   return name.slice(lastDot + 1).toLowerCase()
 }
 
-function detectOfficeViewerKind(meta: {
-  latestVersionMimeType?: string
-  name?: string
-}): OfficeViewerKind | undefined {
-  const mime = meta.latestVersionMimeType?.toLowerCase()
-  if (mime && OFFICE_MIME_MAP[mime]) {
-    return OFFICE_MIME_MAP[mime]
+function normalizeViewerType(input?: string | ViewerType | null): ViewerType | undefined {
+  if (!input) {
+    return undefined
   }
 
-  const ext = getExtension(meta.name)
-  if (ext && OFFICE_EXTENSION_MAP[ext]) {
-    return OFFICE_EXTENSION_MAP[ext]
+  const normalized = typeof input === "string" ? input.trim().toLowerCase() : input
+
+  switch (normalized) {
+    case "video":
+    case "image":
+    case "pdf":
+    case "word":
+    case "excel":
+    case "unsupported":
+      return normalized
+    default:
+      return undefined
+  }
+}
+
+function normalizeViewerCategory(input?: string | ViewerCategory | null): ViewerCategory | undefined {
+  if (!input) {
+    return undefined
   }
 
-  return undefined
+  const normalized = typeof input === "string" ? input.trim().toLowerCase() : input
+
+  switch (normalized) {
+    case "video":
+    case "image":
+    case "pdf":
+    case "word":
+    case "excel":
+    case "unsupported":
+    case "code":
+      return normalized as ViewerCategory
+    default:
+      return undefined
+  }
+}
+
+function viewerTypeToCategory(viewerType?: ViewerType): ViewerCategory | undefined {
+  if (!viewerType) {
+    return undefined
+  }
+
+  return viewerType
 }
 
 function detectCategoryFromPreview(preview?: FilePreview): ViewerCategory | undefined {
@@ -118,19 +135,29 @@ function detectCategoryFromMime(mime?: string): ViewerCategory | undefined {
     return undefined
   }
 
-  if (mime.startsWith("video/")) {
+  const normalized = mime.toLowerCase()
+
+  if (normalized.startsWith("video/")) {
     return "video"
   }
 
-  if (mime.startsWith("image/")) {
+  if (normalized.startsWith("image/")) {
     return "image"
   }
 
-  if (mime === "application/pdf") {
+  if (normalized === "application/pdf") {
     return "pdf"
   }
 
-  if (mime.includes("json") || mime.includes("javascript")) {
+  if (WORD_MIME_TYPES.has(normalized)) {
+    return "word"
+  }
+
+  if (EXCEL_MIME_TYPES.has(normalized)) {
+    return "excel"
+  }
+
+  if (normalized.includes("json") || normalized.includes("javascript")) {
     return "code"
   }
 
@@ -152,6 +179,14 @@ function detectCategoryFromExtension(name?: string): ViewerCategory | undefined 
     return "pdf"
   }
 
+  if (WORD_EXTENSIONS.has(ext)) {
+    return "word"
+  }
+
+  if (EXCEL_EXTENSIONS.has(ext)) {
+    return "excel"
+  }
+
   return undefined
 }
 
@@ -171,84 +206,54 @@ function detectCategoryFromType(type?: FileItem["type"]): ViewerCategory | undef
   }
 }
 
-function normalizeViewerCategory(input?: string | null): ViewerCategory | undefined {
-  if (!input) {
-    return undefined
-  }
-
-  switch (input) {
-    case "video":
-    case "image":
-    case "code":
-    case "pdf":
-    case "unsupported":
-      return input
-    default:
-      return undefined
-  }
-}
-
-function normalizeOfficeKind(input?: string | null): OfficeViewerKind | undefined {
-  if (!input) {
-    return undefined
-  }
-
-  switch (input) {
-    case "word":
-    case "excel":
-    case "powerpoint":
-      return input
-    default:
-      return undefined
-  }
-}
-
 export function parseViewerPreference(
   categoryParam?: string | null,
-  officeParam?: string | null,
+  _officeParam?: string | null,
 ): ViewerPreference {
   const category = normalizeViewerCategory(categoryParam)
-  const officeKind = normalizeOfficeKind(officeParam)
 
-  return category || officeKind ? { category, officeKind } : {}
+  return category ? { category } : {}
 }
 
-function buildDetectionResult(
-  category?: ViewerCategory,
-  officeKind?: OfficeViewerKind,
-): ViewerConfig {
-  const safeCategory: ViewerCategory = category ?? "unsupported"
-
-  if (officeKind && safeCategory !== "pdf") {
-    return { category: safeCategory }
+function buildDetectionResult(category?: ViewerCategory, viewerType?: ViewerType): ViewerConfig {
+  if (viewerType === "unsupported") {
+    return { category: "unsupported", viewerType }
   }
 
-  return officeKind ? { category: "pdf", officeKind } : { category: safeCategory }
+  const resolvedCategory = category ?? viewerTypeToCategory(viewerType) ?? "unsupported"
+  const resolvedViewerType: ViewerType =
+    viewerType ?? (resolvedCategory !== "code" ? (resolvedCategory as ViewerType) : "unsupported")
+
+  return { category: resolvedCategory, viewerType: resolvedViewerType }
 }
 
-export function inferViewerConfigFromFileItem(file: Pick<FileItem, "type" | "name" | "latestVersionMimeType">): ViewerConfig {
-  const officeKind = detectOfficeViewerKind(file)
+export function inferViewerConfigFromFileItem(
+  file: Pick<FileItem, "type" | "name" | "latestVersionMimeType">,
+): ViewerConfig {
   const category =
     detectCategoryFromMime(file.latestVersionMimeType) ??
     detectCategoryFromExtension(file.name) ??
     detectCategoryFromType(file.type)
 
-  return buildDetectionResult(category, officeKind)
+  return buildDetectionResult(category)
 }
 
 export function resolveViewerConfig(
   file: FileDetail,
+  descriptor?: ViewerDescriptor,
   preference?: ViewerPreference,
 ): ViewerConfig {
-  const officeKind = preference?.officeKind ?? detectOfficeViewerKind(file)
-  const previewCategory = detectCategoryFromPreview(file.preview)
+  const descriptorViewerType = normalizeViewerType(descriptor?.viewerType)
+  const descriptorCategory = viewerTypeToCategory(descriptorViewerType)
+  const preferredCategory = normalizeViewerCategory(preference?.category)
 
   const detectedCategory =
-    preference?.category ??
-    previewCategory ??
+    preferredCategory ??
+    descriptorCategory ??
+    detectCategoryFromPreview(file.preview) ??
     detectCategoryFromMime(file.latestVersionMimeType) ??
     detectCategoryFromExtension(file.name) ??
     detectCategoryFromType(file.type)
 
-  return buildDetectionResult(detectedCategory, officeKind)
+  return buildDetectionResult(detectedCategory, descriptorViewerType)
 }

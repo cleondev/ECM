@@ -24,6 +24,9 @@ import type {
   WorkflowDefinition,
   WorkflowInstance,
   WorkflowInstanceStep,
+  DocumentVersion,
+  ViewerDescriptor,
+  ViewerType,
 } from "./types"
 import {
   mockFiles,
@@ -85,17 +88,6 @@ type CheckLoginResponse = {
   }) | null
 }
 
-export type DocumentVersionResponse = {
-  id: string
-  versionNo: number
-  storageKey: string
-  bytes: number
-  mimeType: string
-  sha256: string
-  createdBy: string
-  createdAtUtc: string
-}
-
 export type DocumentTagResponse = {
   id: string
   namespaceId: string
@@ -127,7 +119,7 @@ export type DocumentResponse = {
   createdAtFormatted?: string
   updatedAtFormatted?: string
   documentTypeId?: string | null
-  latestVersion?: DocumentVersionResponse | null
+  latestVersion?: DocumentVersion | null
   tags: DocumentTagResponse[]
 }
 
@@ -147,6 +139,16 @@ export type DocumentUploadFailure = {
 export type DocumentBatchResponse = {
   documents: DocumentResponse[]
   failures: DocumentUploadFailure[]
+}
+
+type ViewerResponseDto = {
+  version: DocumentVersion
+  viewerType: string
+  previewUrl: string
+  downloadUrl: string
+  thumbnailUrl: string
+  wordViewerUrl?: string | null
+  excelViewerUrl?: string | null
 }
 
 export type DeleteFilesResult = {
@@ -650,6 +652,26 @@ function formatDocumentTimestamp(value?: string | null): string {
   const datePart = displayDateFormatter.format(date)
   const timePart = displayTimeFormatter.format(date)
   return `${datePart} ${timePart}`
+}
+
+function normalizeViewerType(value?: string | null): ViewerType | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const normalized = value.trim().toLowerCase()
+
+  switch (normalized) {
+    case "word":
+    case "excel":
+    case "image":
+    case "video":
+    case "pdf":
+    case "unsupported":
+      return normalized as ViewerType
+    default:
+      return undefined
+  }
 }
 
 function mapDocumentToFileItem(document: DocumentResponse): FileItem {
@@ -1490,6 +1512,25 @@ export async function fetchFileDetails(fileId: string): Promise<FileDetail> {
     return placeholder
 
     throw (error instanceof Error ? error : new Error("Không thể tải chi tiết tệp."))
+  }
+}
+
+export async function fetchViewerDescriptor(versionId: string): Promise<ViewerDescriptor> {
+  if (!versionId) {
+    throw new Error("Version identifier is required")
+  }
+
+  const response = await gatewayRequest<ViewerResponseDto>(`/api/viewer/${versionId}`)
+  const viewerType = normalizeViewerType(response.viewerType) ?? "unsupported"
+
+  return {
+    version: response.version,
+    viewerType,
+    previewUrl: response.previewUrl,
+    downloadUrl: response.downloadUrl,
+    thumbnailUrl: response.thumbnailUrl,
+    wordViewerUrl: response.wordViewerUrl ?? null,
+    excelViewerUrl: response.excelViewerUrl ?? null,
   }
 }
 

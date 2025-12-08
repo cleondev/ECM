@@ -228,10 +228,10 @@ type FileViewerProps = {
 }
 
 export function FileViewer({ file, viewerConfig, viewerUrl }: FileViewerProps): JSX.Element {
-  const { category, officeKind } = viewerConfig
+  const { category, viewerType } = viewerConfig
   const preview = file.preview
 
-  if (!preview && category !== "pdf") {
+  if (!preview && ["video", "image", "code"].includes(category)) {
     return <ViewerFallback message="No preview data available for this file." />
   }
 
@@ -242,17 +242,13 @@ export function FileViewer({ file, viewerConfig, viewerUrl }: FileViewerProps): 
       return <ImagePreview preview={preview} alt={file.name} />
     case "code":
       return <CodePreview preview={preview} />
+    case "word":
+      return <WordPreview file={file} />
+    case "excel":
+      return <ExcelPreview />
     case "pdf":
-      if (officeKind === "word") {
-        return <WordPreview file={file} />
-      }
-
-      if (officeKind === "excel") {
-        return <ExcelPreview />
-      }
-
-      if (officeKind === "powerpoint") {
-        return <PowerPointPreview />
+      if (viewerType === "unsupported") {
+        return <ViewerFallback message="Không thể hiển thị tệp này." />
       }
 
       return <PdfPreview preview={preview} viewerUrl={viewerUrl} fileName={file.name} />
