@@ -431,6 +431,16 @@ internal sealed class EcmApiClient(
         return await CreateDocumentFileContentAsync(response, enableRangeProcessing: true, cancellationToken);
     }
 
+    public async Task<EcmResponse<DocumentVersionDto>> GetDocumentVersionAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/versions/{versionId}", cancellationToken);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        return await CreateResponseAsync<DocumentVersionDto>(response, cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<DocumentTypeDto>> GetDocumentTypesAsync(
         CancellationToken cancellationToken = default)
     {
@@ -519,6 +529,40 @@ internal sealed class EcmApiClient(
         }
 
         return await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken);
+    }
+
+    public async Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionWordViewerAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(
+            HttpMethod.Get,
+            $"api/ecm/files/viewer/word/{versionId}",
+            cancellationToken);
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        var content = response.IsSuccessStatusCode
+            ? await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken)
+            : null;
+
+        return new EcmResponse<DocumentFileContent?>(response.StatusCode, content);
+    }
+
+    public async Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionExcelViewerAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default)
+    {
+        using var request = await CreateRequestAsync(
+            HttpMethod.Get,
+            $"api/ecm/files/viewer/excel/{versionId}",
+            cancellationToken);
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        var content = response.IsSuccessStatusCode
+            ? await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken)
+            : null;
+
+        return new EcmResponse<DocumentFileContent?>(response.StatusCode, content);
     }
 
     public async Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(
@@ -1308,6 +1352,19 @@ internal sealed class EcmApiClient(
         }
 
         return principal;
+    }
+
+    private static async Task<EcmResponse<T>> CreateResponseAsync<T>(
+        HttpResponseMessage response,
+        CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.NoContent)
+        {
+            var payload = await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
+            return new EcmResponse<T>(response.StatusCode, payload);
+        }
+
+        return new EcmResponse<T>(response.StatusCode, default);
     }
 
     private async Task<T?> SendAsync<T>(HttpRequestMessage request, CancellationToken cancellationToken)
