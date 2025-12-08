@@ -15,6 +15,17 @@ export type DocumentTag = {
   appliedAtUtc?: string | null
 }
 
+export type DocumentVersion = {
+  id: string
+  versionNo: number
+  storageKey: string
+  bytes: number
+  mimeType: string
+  sha256: string
+  createdBy: string
+  createdAtUtc: string
+}
+
 export type DocumentType = {
   id: string
   typeKey: string
@@ -96,6 +107,18 @@ export type FileDetail = FileItem & {
   versions: FileVersion[]
   activity: FileActivity[]
   comments: FileComment[]
+}
+
+export type ViewerType = "word" | "excel" | "image" | "video" | "pdf" | "unsupported"
+
+export type ViewerDescriptor = {
+  version: DocumentVersion
+  viewerType: ViewerType
+  previewUrl: string
+  downloadUrl: string
+  thumbnailUrl: string
+  wordViewerUrl?: string | null
+  excelViewerUrl?: string | null
 }
 
 export type TagScope = "user" | "group" | "global"
