@@ -141,11 +141,29 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `DELETE /versions/{versionId}` | Xóa phiên bản (theo policy). | `versionId` |
 | `POST /versions/{versionId}/promote` | Đặt phiên bản làm hiện hành. | `versionId` |
 | `GET /files/download/{versionId}` | Tải file (redirect signed URL). | `versionId` |
-| `POST /files/share/{versionId}` | Tạo link chia sẻ tạm thời. | `versionId`, body `{isPublic, expiresInMinutes}` |
 | `GET /files/preview/{versionId}` | Stream preview (PDF/image/video). | `versionId` |
+| `GET /files/viewer/word/{versionId}` | Mở tài liệu Word ở chế độ xem (trả về SFDT). | `versionId` |
+| `GET /files/viewer/excel/{versionId}` | Mở bảng tính Excel ở chế độ xem (trả về JSON Spreadsheet). | `versionId` |
 | `GET /files/thumbnails/{versionId}` | Lấy thumbnail. | `versionId`, `w`, `h`, `fit=cover|contain` |
 
-## 7. Workflow
+## 7. Share Links
+
+| Method & Path | Mô tả | Tham số chính |
+| --- | --- | --- |
+| `POST /shares` | Tạo short-link chia sẻ cho tài liệu hoặc phiên bản cụ thể. | Body `{documentId, versionId?, subjectType=public|user|group, subjectId?, permissions[]=view|download, validFrom?, validTo?, maxViews?, maxDownloads?, password?, fileName, fileExtension?, fileContentType, fileSizeBytes, fileCreatedAt?, watermark?, allowedIps[]?}` |
+| `GET /shares/{id}` | Lấy chi tiết link chia sẻ (gồm trạng thái, quota). | `id` |
+| `PATCH /shares/{id}` | Cập nhật cửa sổ hiệu lực, quota, mật khẩu, watermark, danh sách IP, hoặc metadata file. | `id`, body giống trường tạo mới (các trường null sẽ giữ nguyên) |
+| `DELETE /shares/{id}` | Xóa link chia sẻ. | `id` |
+| `POST /shares/{id}/revoke` | Thu hồi link trước hạn (đặt `revoked_at`). | `id` |
+| `GET /shares/{id}/stats` | Thống kê lượt xem/tải thành công. | `id` |
+| `GET /s/{code}` | Trang interstitial hiển thị thông tin link. | `code` |
+| `POST /s/{code}/password` | Xác thực mật khẩu (nếu có). | `code`, body `{password}` |
+| `POST /s/{code}/presign` | Lấy presigned URL để tải file trực tiếp từ MinIO sau khi qua interstitial. | `code` |
+| `GET /s/{code}/download` | Redirect sang presigned URL. | `code` |
+
+> Chức năng share hiện thuộc Document module, lưu trạng thái tại `doc.share_link`/`doc.share_access_event`. Endpoint tạm `POST /files/share/{versionId}` đã được thay thế bởi `/shares` để thống nhất cấp chia sẻ trên tài liệu hoặc phiên bản.
+
+## 8. Workflow
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
@@ -164,7 +182,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `POST /wf/tasks/{id}/complete` | Hoàn tất nhiệm vụ với hành động. | `id`, body `{action, comment, outputs?}` |
 | `POST /wf/tasks/{id}/reassign` | Chuyển giao nhiệm vụ. | `id`, body `{assignee_id}` |
 
-## 8. Dynamic Forms
+## 9. Dynamic Forms
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
@@ -177,7 +195,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `POST /forms/data` | Upsert dữ liệu form. | Body `{form_id, instance_id?, document_id?, data}` |
 | `DELETE /forms/data/{id}` | Xóa dữ liệu form. | `id` |
 
-## 9. Search (FTS / Vector / Hybrid)
+## 10. Search (FTS / Vector / Hybrid)
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
@@ -187,7 +205,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 
 > **Ví dụ:** `GET /search?q=contract&group_ids[]=11111111-1111-1111-1111-111111111111&group_ids[]=33333333-3333-3333-3333-333333333333`
 
-## 10. OCR
+## 11. OCR
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
@@ -199,7 +217,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `DELETE /ocr/annotations/{id}` | Xóa annotation. | `id` |
 | `GET /ocr/extractions` | Xem dữ liệu trường đã trích xuất. | `document_id`, `version_id` |
 
-## 11. Audit, Activity & Retention
+## 12. Audit, Activity & Retention
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
@@ -211,7 +229,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `GET /retention/candidates` | Danh sách đối tượng sắp hết hạn. | `due_before`, `page`, `pageSize` |
 | `POST /retention/execute` | Thực thi policy (hủy hoặc đóng hồ sơ). | Body `{policy_id?, document_ids?}` |
 
-## 12. Notifications, Operations & Webhooks
+## 13. Notifications, Operations & Webhooks
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
@@ -222,7 +240,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `DELETE /webhooks/{id}` | Gỡ webhook. | `id` |
 | `GET /outbox/events` | Tra cứu sự kiện đẩy đi (debug/admin). | `type?`, `since?`, `page`, `pageSize` |
 
-## 13. System
+## 14. System
 
 | Method & Path | Mô tả | Tham số chính |
 | --- | --- | --- |
