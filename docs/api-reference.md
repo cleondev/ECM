@@ -146,6 +146,30 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `GET /files/viewer/excel/{versionId}` | Mở bảng tính Excel ở chế độ xem (trả về JSON Spreadsheet). | `versionId` |
 | `GET /files/thumbnails/{versionId}` | Lấy thumbnail. | `versionId`, `w`, `h`, `fit=cover|contain` |
 
+### App Gateway viewer BFF
+
+Gateway cung cấp thêm lớp BFF để tổng hợp thông tin viewer và proxy tới ECM (giữ nguyên context xác thực):
+
+| Method & Path | Mô tả | Ghi chú |
+| --- | --- | --- |
+| `GET /api/viewer/{versionId}` | Trả về metadata phiên bản, `viewerType` (pdf/word/excel/image/video/unsupported) và các URL xem/tải sẵn có. | `viewerType` được suy luận từ `mimeType` hoặc đuôi file; trả về `wordViewerUrl`/`excelViewerUrl` khi phù hợp. |
+| `GET /api/viewer/word/{versionId}` | Proxy stream payload viewer Word (SFDT) từ ECM. | Yêu cầu quyền xem tương tự API preview/download. |
+| `GET /api/viewer/excel/{versionId}` | Proxy stream payload viewer Excel (JSON Spreadsheet) từ ECM. | Yêu cầu quyền xem tương tự API preview/download. |
+
+Phản hồi `GET /api/viewer/{versionId}`:
+
+```json
+{
+  "version": { "id": "<uuid>", "name": "...", "mimeType": "..." },
+  "viewerType": "word",
+  "previewUrl": "/api/documents/files/preview/<versionId>",
+  "downloadUrl": "/api/documents/files/download/<versionId>",
+  "thumbnailUrl": "/api/documents/files/thumbnails/<versionId>?w=400&h=400&fit=contain",
+  "wordViewerUrl": "/api/viewer/word/<versionId>",
+  "excelViewerUrl": null
+}
+```
+
 ## 7. Share Links
 
 | Method & Path | Mô tả | Tham số chính |

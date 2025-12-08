@@ -14,6 +14,8 @@ Tài liệu này mô tả cách App Gateway giao tiếp với monolith ECM trong
 - App Gateway chạy trên ASP.NET Core và chịu trách nhiệm xác thực, tổng hợp API (BFF) và reverse proxy tới ECM.
 - Các request từ trình duyệt được gửi tới Gateway, sau đó Gateway sử dụng `IEcmApiClient` để gọi tới monolith (`Services:Ecm`).
 - UI (SPA) được build sẵn trong `src/AppGateway/ui/dist` và được Gateway phục vụ trực tiếp.
+- Các API viewer mới (`GET /api/viewer/{versionId}` và proxy `word`/`excel`) vẫn forward token người dùng để tải metadata/stream từ ECM,
+  giúp frontend chỉ cần gọi Gateway.
 
 ## Cấu hình kết nối
 
