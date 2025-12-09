@@ -258,6 +258,52 @@ public sealed class Document : IHasDomainEvents
         return version;
     }
 
+    public bool RemoveVersion(Guid versionId, DateTimeOffset removedAtUtc)
+    {
+        if (versionId == Guid.Empty)
+        {
+            throw new ArgumentException("Version identifier is required.", nameof(versionId));
+        }
+
+        var existingVersion = _versions.FirstOrDefault(version => version.Id == versionId);
+        if (existingVersion is null)
+        {
+            return false;
+        }
+
+        if (_versions.Count == 1)
+        {
+            throw new InvalidOperationException("Cannot delete the only remaining version of a document.");
+        }
+
+        _versions.Remove(existingVersion);
+        UpdatedAtUtc = removedAtUtc;
+        return true;
+    }
+
+    public DocumentVersion? PromoteVersion(Guid versionId, DateTimeOffset promotedAtUtc)
+    {
+        if (versionId == Guid.Empty)
+        {
+            throw new ArgumentException("Version identifier is required.", nameof(versionId));
+        }
+
+        var version = _versions.FirstOrDefault(candidate => candidate.Id == versionId);
+        if (version is null)
+        {
+            return null;
+        }
+
+        var highestVersion = _versions.Max(candidate => candidate.VersionNo);
+        if (version.VersionNo < highestVersion)
+        {
+            version.PromoteTo(highestVersion + 1);
+        }
+
+        UpdatedAtUtc = promotedAtUtc;
+        return version;
+    }
+
     internal void AddVersion(DocumentVersion version)
     {
         _versions.Add(version);
