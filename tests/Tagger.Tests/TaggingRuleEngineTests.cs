@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Engine;
+using Ecm.Rules.Providers.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using Tagger;
 using Xunit;
 
@@ -14,35 +17,30 @@ public class TaggingRuleEngineTests
     public void Evaluate_ReturnsTagWhenConditionsMatch()
     {
         var tagId = Guid.NewGuid();
-        var options = new TaggingRulesOptions
+        var options = new TaggerRulesOptions
         {
-            Rules =
+            RuleSets =
             {
-                new TaggingRuleOptions
+                new JsonRuleSetDefinition
                 {
-                    Name = "PDF Uploads",
-                    TagId = tagId,
-                    Trigger = TaggingRuleTrigger.DocumentUploaded,
-                    Conditions =
+                    Name = TaggingRuleSetNames.DocumentUploaded,
+                    Rules =
                     {
-                        new TaggingRuleConditionOptions
+                        new JsonRuleDefinition
                         {
-                            Field = "extension",
-                            Operator = TaggingRuleOperator.Equals,
-                            Value = ".pdf"
-                        },
-                        new TaggingRuleConditionOptions
-                        {
-                            Field = "uploadedBy",
-                            Operator = TaggingRuleOperator.Equals,
-                            Value = "alice"
+                            Name = "PDF Uploads",
+                            Condition = "extension == \".pdf\" && uploadedBy == \"alice\"",
+                            Set = new Dictionary<string, object>
+                            {
+                                ["TagIds"] = new[] { tagId }
+                            }
                         }
                     }
                 }
             }
         };
 
-        var engine = CreateEngine(options.Rules);
+        var engine = CreateEngine(options, Directory.GetCurrentDirectory());
         var context = CreateContext(new Dictionary<string, string>
         {
             ["extension"] = ".PDF",
@@ -55,31 +53,32 @@ public class TaggingRuleEngineTests
     }
 
     [Fact]
-    public void Evaluate_SkipsRulesWhenTriggerDoesNotMatch()
+    public void Evaluate_SkipsRulesWhenRuleSetDoesNotMatch()
     {
-        var options = new TaggingRulesOptions
+        var options = new TaggerRulesOptions
         {
-            Rules =
+            RuleSets =
             {
-                new TaggingRuleOptions
+                new JsonRuleSetDefinition
                 {
-                    Name = "OCR Only",
-                    TagId = Guid.NewGuid(),
-                    Trigger = TaggingRuleTrigger.OcrCompleted,
-                    Conditions =
+                    Name = TaggingRuleSetNames.OcrCompleted,
+                    Rules =
                     {
-                        new TaggingRuleConditionOptions
+                        new JsonRuleDefinition
                         {
-                            Field = "classification",
-                            Operator = TaggingRuleOperator.Equals,
-                            Value = "invoice"
+                            Name = "OCR Only",
+                            Condition = "classification == \"invoice\"",
+                            Set = new Dictionary<string, object>
+                            {
+                                ["TagIds"] = new[] { Guid.NewGuid() }
+                            }
                         }
                     }
                 }
             }
         };
 
-        var engine = CreateEngine(options.Rules);
+        var engine = CreateEngine(options, Directory.GetCurrentDirectory());
         var context = CreateContext(new Dictionary<string, string>
         {
             ["classification"] = "invoice"
@@ -91,42 +90,37 @@ public class TaggingRuleEngineTests
     }
 
     [Fact]
-    public void Evaluate_HonorsAnyMatchMode()
+    public void Evaluate_SupportsCompositeConditions()
     {
         var tagId = Guid.NewGuid();
-        var options = new TaggingRulesOptions
+        var options = new TaggerRulesOptions
         {
-            Rules =
+            RuleSets =
             {
-                new TaggingRuleOptions
+                new JsonRuleSetDefinition
                 {
-                    Name = "High Value",
-                    TagId = tagId,
-                    Match = TaggingRuleMatchMode.Any,
-                    Conditions =
+                    Name = TaggingRuleSetNames.DocumentUploaded,
+                    Rules =
                     {
-                        new TaggingRuleConditionOptions
+                        new JsonRuleDefinition
                         {
-                            Field = "ownerId",
-                            Operator = TaggingRuleOperator.Equals,
-                            Value = Guid.NewGuid().ToString()
-                        },
-                        new TaggingRuleConditionOptions
-                        {
-                            Field = "content",
-                            Operator = TaggingRuleOperator.Contains,
-                            Value = "confidential"
+                            Name = "High Value",
+                            Condition = "ownerId == \"123\" || content == \"confidential\"",
+                            Set = new Dictionary<string, object>
+                            {
+                                ["TagIds"] = new[] { tagId }
+                            }
                         }
                     }
                 }
             }
         };
 
-        var engine = CreateEngine(options.Rules);
+        var engine = CreateEngine(options, Directory.GetCurrentDirectory());
         var context = CreateContext(new Dictionary<string, string>
         {
-            ["content"] = "Highly confidential document."
-        }, content: "Highly confidential document.");
+            ["content"] = "confidential"
+        }, content: "confidential");
 
         var result = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
 
@@ -134,76 +128,72 @@ public class TaggingRuleEngineTests
     }
 
     [Fact]
-    public void Evaluate_SupportsRegexConditions()
+    public void Evaluate_MergesRulesFromInlineAndFile()
     {
-        var tagId = Guid.NewGuid();
-        var options = new TaggingRulesOptions
+        var inlineTag = Guid.NewGuid();
+        var fileTag = Guid.NewGuid();
+        var tempDirectory = Directory.CreateTempSubdirectory();
+        var ruleFile = Path.Combine(tempDirectory.FullName, "rules.json");
+
+        File.WriteAllText(
+            ruleFile,
+            $$"""
+            [
+              {
+                "name": "{TaggingRuleSetNames.OcrCompleted}",
+                "rules": [
+                  {
+                    "name": "From File",
+                    "condition": "title == \"Report\"",
+                    "set": { "TagIds": ["{fileTag}"] }
+                  }
+                ]
+              }
+            ]
+            """
+        );
+
+        var options = new TaggerRulesOptions
         {
-            Rules =
+            Files = { ruleFile },
+            RuleSets =
             {
-                new TaggingRuleOptions
+                new JsonRuleSetDefinition
                 {
-                    Name = "Region",
-                    TagId = tagId,
-                    Conditions =
+                    Name = TaggingRuleSetNames.DocumentUploaded,
+                    Rules =
                     {
-                        new TaggingRuleConditionOptions
+                        new JsonRuleDefinition
                         {
-                            Field = "groupIds",
-                            Operator = TaggingRuleOperator.Regex,
-                            Value = "(?i)^[0-9a-f-]+,.*"
+                            Name = "Inline",
+                            Condition = "title == \"Report\"",
+                            Set = new Dictionary<string, object>
+                            {
+                                ["TagIds"] = new[] { inlineTag }
+                            }
                         }
                     }
                 }
             }
         };
 
-        var engine = CreateEngine(options.Rules);
-        var context = CreateContext(new Dictionary<string, string>
-        {
-            ["groupIds"] = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa,bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
-        });
-
-        var result = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
-
-        Assert.Single(GetTagIds(result));
-        Assert.Contains(tagId, GetTagIds(result));
-    }
-
-    [Fact]
-    public void Evaluate_MergesRulesFromMultipleSources()
-    {
-        var uploadTag = Guid.NewGuid();
-        var ocrTag = Guid.NewGuid();
-
-        var engine = CreateEngine(new[]
-        {
-            new TaggingRuleOptions
-            {
-                Name = "Uploads",
-                TagId = uploadTag,
-                Trigger = TaggingRuleTrigger.DocumentUploaded
-            },
-            new TaggingRuleOptions
-            {
-                Name = "OCR",
-                TagId = ocrTag,
-                Trigger = TaggingRuleTrigger.OcrCompleted
-            }
-        });
-
+        var engine = CreateEngine(options, tempDirectory.FullName);
         var context = CreateContext(new Dictionary<string, string>());
 
         var uploadResults = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
         var ocrResults = engine.Execute(TaggingRuleSetNames.OcrCompleted, context);
 
-        Assert.Contains(uploadTag, GetTagIds(uploadResults));
-        Assert.Contains(ocrTag, GetTagIds(ocrResults));
+        Assert.Contains(inlineTag, GetTagIds(uploadResults));
+        Assert.Contains(fileTag, GetTagIds(ocrResults));
     }
 
-    private static RuleEngine CreateEngine(IReadOnlyCollection<TaggingRuleOptions> rules)
+    private static RuleEngine CreateEngine(TaggerRulesOptions options, string contentRoot)
     {
-        var provider = new TaggingRuleProvider(new[] { new TestTaggingRuleSource(rules) });
+        var provider = new TaggerRuleProvider(
+            new TestHostEnvironment(contentRoot),
+            NullLogger<TaggerRuleProvider>.Instance,
+            new TestOptionsMonitor<TaggerRulesOptions>(options));
+
         return new RuleEngine(new IRuleProvider[] { provider }, new RuleEngineOptions { ThrowIfRuleSetNotFound = false });
     }
 

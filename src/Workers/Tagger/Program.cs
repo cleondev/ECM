@@ -36,16 +36,10 @@ public static class Program
 
             builder.Services.AddSingleton<IEcmUserContext, ManualEcmUserContext>();
 
-            builder.Services.AddSingleton<IValidateOptions<TaggingRulesOptions>, TaggingRulesOptionsValidator>();
+            builder.Services.AddSingleton<IValidateOptions<TaggerRulesOptions>, TaggerRulesOptionsValidator>();
             builder.Services
-                .AddOptions<TaggingRulesOptions>()
-                .Bind(builder.Configuration.GetSection(TaggingRulesOptions.SectionName))
-                .ValidateOnStart();
-
-            builder.Services.AddSingleton<IValidateOptions<TaggingRuleFilesOptions>, TaggingRuleFilesOptionsValidator>();
-            builder.Services
-                .AddOptions<TaggingRuleFilesOptions>()
-                .Bind(builder.Configuration.GetSection(TaggingRuleFilesOptions.SectionName))
+                .AddOptions<TaggerRulesOptions>()
+                .Bind(builder.Configuration.GetSection(TaggerRulesOptions.SectionName))
                 .ValidateOnStart();
 
             builder.Services.AddRuleEngine(options =>
@@ -53,9 +47,7 @@ public static class Program
                 options.ThrowIfRuleSetNotFound = false;
             });
 
-            builder.Services.AddSingleton<ITaggingRuleSource, OptionsTaggingRuleSource>();
-            builder.Services.AddSingleton<ITaggingRuleSource, FileSystemTaggingRuleSource>();
-            builder.Services.AddSingleton<IRuleProvider, TaggingRuleProvider>();
+            builder.Services.AddSingleton<IRuleProvider, TaggerRuleProvider>();
 
             builder.Services.AddSingleton<ITaggingRuleContextFactory, TaggingRuleContextFactory>();
             builder.Services.AddScoped<IDocumentTagAssignmentService, DocumentTagAssignmentService>();

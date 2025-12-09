@@ -1,7 +1,7 @@
 using System;
 using System.IO;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
+using System.Linq;
+using Ecm.Rules.Providers.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tagger;
 using Xunit;
@@ -11,40 +11,95 @@ namespace Tagger.Tests;
 public class TaggingRuleProviderTests
 {
     [Fact]
-    public void FileSystemSource_LoadsRulesFromJsonFiles()
+    public void FileSource_LoadsRulesFromJsonFiles()
     {
-        var tagId = Guid.NewGuid();
         var tempDirectory = Directory.CreateTempSubdirectory();
-        var tempFile = Path.Combine(tempDirectory.FullName, "rules.json");
+        var ruleFile = Path.Combine(tempDirectory.FullName, "rules.json");
+        var tagId = Guid.NewGuid();
 
-        File.WriteAllText(tempFile, $$"{{\"rules\":[{{\"name\":\"from file\",\"tagId\":\"{tagId}\"}}]}}\n");
+        File.WriteAllText(
+            ruleFile,
+            $$"""
+            [
+              {
+                "name": "{TaggingRuleSetNames.DocumentUploaded}",
+                "rules": [
+                  {
+                    "name": "From File",
+                    "condition": "extension == \".pdf\"",
+                    "set": { "TagIds": ["{tagId}"] }
+                  }
+                ]
+              }
+            ]
+            """
+        );
 
-        var filesOptions = new TaggingRuleFilesOptions();
-        filesOptions.Paths.Add(tempFile);
+        var options = new TaggerRulesOptions
+        {
+            Files = { ruleFile }
+        };
 
-        var source = new FileSystemTaggingRuleSource(
+        var provider = new TaggerRuleProvider(
             new TestHostEnvironment(tempDirectory.FullName),
-            NullLogger<FileSystemTaggingRuleSource>.Instance,
-            new TestOptionsMonitor<TaggingRuleFilesOptions>(filesOptions));
+            NullLogger<TaggerRuleProvider>.Instance,
+            new TestOptionsMonitor<TaggerRulesOptions>(options));
 
-        var rules = source.GetRules();
+        var ruleSets = provider.GetRuleSets().ToArray();
 
-        Assert.Contains(rules, rule => rule.TagId == tagId);
+        Assert.Contains(ruleSets, set => set.Name == TaggingRuleSetNames.DocumentUploaded);
+        Assert.Single(ruleSets.Single(set => set.Name == TaggingRuleSetNames.DocumentUploaded).Rules);
     }
 
-    private sealed class TestHostEnvironment : IHostEnvironment
+    [Fact]
+    public void InlineAndFileDefinitionsAreMerged()
     {
-        public TestHostEnvironment(string contentRoot)
+        var tempDirectory = Directory.CreateTempSubdirectory();
+        var ruleFile = Path.Combine(tempDirectory.FullName, "rules.json");
+
+        File.WriteAllText(
+            ruleFile,
+            $$"""
+            [
+              {
+                "name": "{TaggingRuleSetNames.DocumentUploaded}",
+                "rules": [
+                  { "name": "From File", "condition": "title == \"Report\"", "set": { "TagIds": ["{Guid.NewGuid()}"] } }
+                ]
+              }
+            ]
+            """
+        );
+
+        var options = new TaggerRulesOptions
         {
-            ContentRootPath = contentRoot;
-        }
+            Files = { ruleFile },
+            RuleSets =
+            {
+                new JsonRuleSetDefinition
+                {
+                    Name = TaggingRuleSetNames.DocumentUploaded,
+                    Rules =
+                    {
+                        new JsonRuleDefinition
+                        {
+                            Name = "Inline",
+                            Condition = "summary == \"draft\"",
+                            Set = new() { ["TagIds"] = new[] { Guid.NewGuid() } }
+                        }
+                    }
+                }
+            }
+        };
 
-        public string ApplicationName { get; set; } = "Tagger.Tests";
+        var provider = new TaggerRuleProvider(
+            new TestHostEnvironment(tempDirectory.FullName),
+            NullLogger<TaggerRuleProvider>.Instance,
+            new TestOptionsMonitor<TaggerRulesOptions>(options));
 
-        public IFileProvider ContentRootFileProvider { get; set; } = null!;
+        var ruleSets = provider.GetRuleSets().ToArray();
+        var documentRules = ruleSets.Single(set => set.Name == TaggingRuleSetNames.DocumentUploaded);
 
-        public string ContentRootPath { get; set; }
-
-        public string EnvironmentName { get; set; } = Environments.Production;
+        Assert.Equal(2, documentRules.Rules.Count);
     }
 }

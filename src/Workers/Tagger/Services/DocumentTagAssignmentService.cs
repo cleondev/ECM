@@ -20,7 +20,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
 {
     private readonly EcmFileClient _client;
     private readonly ILogger<DocumentTagAssignmentService> _logger;
-    private readonly IOptionsMonitor<TaggingRulesOptions> _options;
+    private readonly IOptionsMonitor<TaggerRulesOptions> _options;
     private readonly IOptionsMonitor<EcmUserOptions> _userOptions;
     private readonly SemaphoreSlim _userIdLock = new(1, 1);
 
@@ -32,7 +32,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     public DocumentTagAssignmentService(
         EcmFileClient client,
         ILogger<DocumentTagAssignmentService> logger,
-        IOptionsMonitor<TaggingRulesOptions> options,
+        IOptionsMonitor<TaggerRulesOptions> options,
         IOptionsMonitor<EcmUserOptions> userOptions)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
