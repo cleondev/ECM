@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecm.Rules.Abstractions;
+using Ecm.Rules.Engine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Contracts.Messaging;
@@ -61,13 +63,13 @@ public class TaggingIntegrationEventListenerTests
 
         Assert.Equal(documentId, assignmentService.LastDocumentId);
         Assert.NotNull(ruleEngine.LastContext);
-        Assert.True(ruleEngine.LastContext!.Fields.ContainsKey("groupIds"));
-        Assert.False(ruleEngine.LastContext.Fields.ContainsKey("department"));
-        Assert.Equal(TaggingRuleTrigger.DocumentUploaded, ruleEngine.LastTrigger);
+        Assert.True(ruleEngine.LastContext!.Has("groupIds"));
+        Assert.False(ruleEngine.LastContext.Has("department"));
+        Assert.Equal(TaggingRuleSetNames.DocumentUploaded, ruleEngine.LastRuleSet);
     }
 
     [Fact]
-    public async Task HandleOcrCompletedAsync_UsesOcrTrigger()
+    public async Task HandleOcrCompletedAsync_UsesOcrRuleSet()
     {
         var documentId = Guid.NewGuid();
         var ruleEngine = new RecordingRuleEngine(new[] { Guid.NewGuid() });
@@ -107,7 +109,7 @@ public class TaggingIntegrationEventListenerTests
 
         await listener.HandleOcrCompletedAsync(message, CancellationToken.None);
 
-        Assert.Equal(TaggingRuleTrigger.OcrCompleted, ruleEngine.LastTrigger);
+        Assert.Equal(TaggingRuleSetNames.OcrCompleted, ruleEngine.LastRuleSet);
         Assert.Equal(1, assignmentService.InvocationCount);
     }
 
@@ -118,10 +120,10 @@ public class TaggingIntegrationEventListenerTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddScoped<TaggingEventProcessor>();
-        services.AddSingleton(ruleEngine);
-        services.AddSingleton(assignmentService);
-        services.AddScoped<ITaggingRuleEngine>(_ => ruleEngine);
-        services.AddScoped<IDocumentTagAssignmentService>(_ => assignmentService);
+        services.AddSingleton<IRuleEngine>(_ => ruleEngine);
+        services.AddSingleton<IDocumentTagAssignmentService>(_ => assignmentService);
+        services.AddSingleton<IRuleContextFactory, RuleContextFactory>();
+        services.AddSingleton<ITaggingRuleContextFactory, TaggingRuleContextFactory>();
         return services.BuildServiceProvider();
     }
 }

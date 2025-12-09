@@ -1,12 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Linq;
+using Ecm.Rules.Abstractions;
 
 namespace Tagger;
 
 internal interface ITaggingRuleContextFactory
 {
-    TaggingRuleContext Create(ITaggingIntegrationEvent integrationEvent);
+    IRuleContext Create(ITaggingIntegrationEvent integrationEvent);
 }
 
 internal interface ITaggingRuleContextEnricher
@@ -17,13 +16,17 @@ internal interface ITaggingRuleContextEnricher
 internal sealed class TaggingRuleContextFactory : ITaggingRuleContextFactory
 {
     private readonly IReadOnlyCollection<ITaggingRuleContextEnricher> _enrichers;
+    private readonly IRuleContextFactory _ruleContextFactory;
 
-    public TaggingRuleContextFactory(IEnumerable<ITaggingRuleContextEnricher> enrichers)
+    public TaggingRuleContextFactory(
+        IRuleContextFactory ruleContextFactory,
+        IEnumerable<ITaggingRuleContextEnricher> enrichers)
     {
+        _ruleContextFactory = ruleContextFactory ?? throw new ArgumentNullException(nameof(ruleContextFactory));
         _enrichers = enrichers?.ToArray() ?? throw new ArgumentNullException(nameof(enrichers));
     }
 
-    public TaggingRuleContext Create(ITaggingIntegrationEvent integrationEvent)
+    public IRuleContext Create(ITaggingIntegrationEvent integrationEvent)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
 
@@ -34,6 +37,7 @@ internal sealed class TaggingRuleContextFactory : ITaggingRuleContextFactory
             enricher.Enrich(builder, integrationEvent);
         }
 
-        return builder.Build();
+        var items = builder.Build();
+        return _ruleContextFactory.FromDictionary(items);
     }
 }

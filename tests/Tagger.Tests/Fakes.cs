@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Ecm.Rules.Abstractions;
 using Microsoft.Extensions.Options;
 using Tagger;
 
@@ -37,7 +38,7 @@ internal sealed class TestOptionsMonitor<TOptions> : IOptionsMonitor<TOptions> w
     }
 }
 
-internal sealed class RecordingRuleEngine : ITaggingRuleEngine
+internal sealed class RecordingRuleEngine : IRuleEngine
 {
     private readonly IReadOnlyCollection<Guid> _result;
 
@@ -46,28 +47,36 @@ internal sealed class RecordingRuleEngine : ITaggingRuleEngine
         _result = result ?? Array.Empty<Guid>();
     }
 
-    public TaggingRuleContext? LastContext { get; private set; }
+    public IRuleContext? LastContext { get; private set; }
 
-    public TaggingRuleTrigger? LastTrigger { get; private set; }
+    public string? LastRuleSet { get; private set; }
 
-    public IReadOnlyCollection<Guid> Evaluate(TaggingRuleContext context, TaggingRuleTrigger trigger)
+    public RuleExecutionResult Execute(string ruleSetName, IRuleContext context)
     {
         LastContext = context ?? throw new ArgumentNullException(nameof(context));
-        LastTrigger = trigger;
-        return _result;
+        LastRuleSet = ruleSetName;
+
+        return new RuleExecutionResult
+        {
+            RuleSetName = ruleSetName,
+            Output = new Dictionary<string, object>
+            {
+                ["TagIds"] = _result
+            }
+        };
     }
 }
 
-internal sealed class TestTaggingRuleProvider : ITaggingRuleProvider
+internal sealed class TestTaggingRuleSource : ITaggingRuleSource
 {
     private readonly IReadOnlyCollection<TaggingRuleOptions>? _rules;
 
-    public TestTaggingRuleProvider(IReadOnlyCollection<TaggingRuleOptions>? rules)
+    public TestTaggingRuleSource(IReadOnlyCollection<TaggingRuleOptions>? rules)
     {
         _rules = rules;
     }
 
-    public IReadOnlyCollection<TaggingRuleOptions>? GetRules() => _rules;
+    public IReadOnlyCollection<TaggingRuleOptions> GetRules() => _rules ?? Array.Empty<TaggingRuleOptions>();
 }
 
 internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
@@ -76,20 +85,22 @@ internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
 
     public IReadOnlyCollection<Guid>? LastTagIds { get; private set; }
 
+    public IReadOnlyCollection<string>? LastTagNames { get; private set; }
+
     public int InvocationCount { get; private set; }
 
     public int AssignTagsResult { get; set; } = 1;
 
-    public Task<int> AssignTagsAsync(Guid documentId, IReadOnlyCollection<Guid> tagIds, CancellationToken cancellationToken = default)
+    public Task<int> AssignTagsAsync(
+        Guid documentId,
+        IReadOnlyCollection<Guid> tagIds,
+        IReadOnlyCollection<string> tagNames,
+        CancellationToken cancellationToken = default)
     {
         InvocationCount++;
         LastDocumentId = documentId;
         LastTagIds = tagIds;
+        LastTagNames = tagNames;
         return Task.FromResult(AssignTagsResult);
-    }
-
-    public Task<int> AssignTagsAsync(Guid documentId, IReadOnlyCollection<Guid> tagIds, IReadOnlyCollection<string> tagNames, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
     }
 }

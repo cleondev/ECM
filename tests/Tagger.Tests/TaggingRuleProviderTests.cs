@@ -11,7 +11,7 @@ namespace Tagger.Tests;
 public class TaggingRuleProviderTests
 {
     [Fact]
-    public void FileSystemProvider_LoadsRulesFromJsonFiles()
+    public void FileSystemSource_LoadsRulesFromJsonFiles()
     {
         var tagId = Guid.NewGuid();
         var tempDirectory = Directory.CreateTempSubdirectory();
@@ -22,12 +22,12 @@ public class TaggingRuleProviderTests
         var filesOptions = new TaggingRuleFilesOptions();
         filesOptions.Paths.Add(tempFile);
 
-        var provider = new FileSystemTaggingRuleProvider(
+        var source = new FileSystemTaggingRuleSource(
             new TestHostEnvironment(tempDirectory.FullName),
-            NullLogger<FileSystemTaggingRuleProvider>.Instance,
+            NullLogger<FileSystemTaggingRuleSource>.Instance,
             new TestOptionsMonitor<TaggingRuleFilesOptions>(filesOptions));
 
-        var rules = provider.GetRules();
+        var rules = source.GetRules();
 
         Assert.Contains(rules, rule => rule.TagId == tagId);
     }

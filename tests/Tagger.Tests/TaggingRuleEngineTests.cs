@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Ecm.Rules.Abstractions;
+using Ecm.Rules.Engine;
 using Tagger;
 using Xunit;
 
@@ -39,21 +42,16 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
-        var context = TaggingRuleContext.Create(
-            Guid.NewGuid(),
-            "Benefits Package",
-            "Summary",
-            null,
-            new Dictionary<string, string>
-            {
-                ["extension"] = ".PDF",
-                ["uploadedBy"] = "Alice"
-            });
+        var engine = CreateEngine(options.Rules);
+        var context = CreateContext(new Dictionary<string, string>
+        {
+            ["extension"] = ".PDF",
+            ["uploadedBy"] = "Alice"
+        });
 
-        var result = engine.Evaluate(context, TaggingRuleTrigger.DocumentUploaded);
+        var result = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
 
-        Assert.Contains(tagId, result);
+        Assert.Contains(tagId, GetTagIds(result));
     }
 
     [Fact]
@@ -81,15 +79,15 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
-        var context = TaggingRuleContext.Create(Guid.NewGuid(), "Invoice", null, null, new Dictionary<string, string>
+        var engine = CreateEngine(options.Rules);
+        var context = CreateContext(new Dictionary<string, string>
         {
             ["classification"] = "invoice"
         });
 
-        var result = engine.Evaluate(context, TaggingRuleTrigger.DocumentUploaded);
+        var result = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
 
-        Assert.Empty(result);
+        Assert.Empty(GetTagIds(result));
     }
 
     [Fact]
@@ -124,12 +122,15 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
-        var context = TaggingRuleContext.Create(Guid.NewGuid(), "Report", null, "Highly confidential document.", new Dictionary<string, string>());
+        var engine = CreateEngine(options.Rules);
+        var context = CreateContext(new Dictionary<string, string>
+        {
+            ["content"] = "Highly confidential document."
+        }, content: "Highly confidential document.");
 
-        var result = engine.Evaluate(context, TaggingRuleTrigger.DocumentUploaded);
+        var result = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
 
-        Assert.Contains(tagId, result);
+        Assert.Contains(tagId, GetTagIds(result));
     }
 
     [Fact]
@@ -157,36 +158,32 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
-        var context = TaggingRuleContext.Create(Guid.NewGuid(), "Ops Doc", null, null, new Dictionary<string, string>
+        var engine = CreateEngine(options.Rules);
+        var context = CreateContext(new Dictionary<string, string>
         {
             ["groupIds"] = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa,bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
         });
 
-        var result = engine.Evaluate(context, TaggingRuleTrigger.DocumentUploaded);
+        var result = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
 
-        Assert.Single(result);
-        Assert.Contains(tagId, result);
+        Assert.Single(GetTagIds(result));
+        Assert.Contains(tagId, GetTagIds(result));
     }
 
     [Fact]
-    public void Evaluate_MergesRulesFromMultipleProviders()
+    public void Evaluate_MergesRulesFromMultipleSources()
     {
         var uploadTag = Guid.NewGuid();
         var ocrTag = Guid.NewGuid();
 
-        var uploadProvider = new TestTaggingRuleProvider(new[]
+        var engine = CreateEngine(new[]
         {
             new TaggingRuleOptions
             {
                 Name = "Uploads",
                 TagId = uploadTag,
                 Trigger = TaggingRuleTrigger.DocumentUploaded
-            }
-        });
-
-        var ocrProvider = new TestTaggingRuleProvider(new[]
-        {
+            },
             new TaggingRuleOptions
             {
                 Name = "OCR",
@@ -195,14 +192,35 @@ public class TaggingRuleEngineTests
             }
         });
 
-        var engine = new TaggingRuleEngine(new[] { uploadProvider, ocrProvider });
+        var context = CreateContext(new Dictionary<string, string>());
 
-        var context = TaggingRuleContext.Create(Guid.NewGuid(), "Ops Doc", null, null, new Dictionary<string, string>());
+        var uploadResults = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
+        var ocrResults = engine.Execute(TaggingRuleSetNames.OcrCompleted, context);
 
-        var uploadResults = engine.Evaluate(context, TaggingRuleTrigger.DocumentUploaded);
-        var ocrResults = engine.Evaluate(context, TaggingRuleTrigger.OcrCompleted);
+        Assert.Contains(uploadTag, GetTagIds(uploadResults));
+        Assert.Contains(ocrTag, GetTagIds(ocrResults));
+    }
 
-        Assert.Contains(uploadTag, uploadResults);
-        Assert.Contains(ocrTag, ocrResults);
+    private static RuleEngine CreateEngine(IReadOnlyCollection<TaggingRuleOptions> rules)
+    {
+        var provider = new TaggingRuleProvider(new[] { new TestTaggingRuleSource(rules) });
+        return new RuleEngine(new IRuleProvider[] { provider }, new RuleEngineOptions { ThrowIfRuleSetNotFound = false });
+    }
+
+    private static IRuleContext CreateContext(IDictionary<string, string> metadata, string title = "Report", string? summary = null, string? content = null)
+    {
+        var builder = TaggingRuleContextBuilder.FromMetadata(Guid.NewGuid(), title, summary, content, metadata);
+        var factory = new RuleContextFactory();
+        return factory.FromDictionary(builder.Build());
+    }
+
+    private static IReadOnlyCollection<Guid> GetTagIds(RuleExecutionResult result)
+    {
+        if (result.Output.TryGetValue("TagIds", out var value) && value is IEnumerable<Guid> guidList)
+        {
+            return guidList.ToArray();
+        }
+
+        return Array.Empty<Guid>();
     }
 }

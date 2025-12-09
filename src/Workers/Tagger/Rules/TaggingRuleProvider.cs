@@ -1,84 +1,90 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
+using Ecm.Rules.Abstractions;
+using Ecm.Rules.Engine;
+using Ecm.Rules.Providers.Lambda;
 
 namespace Tagger;
 
-internal sealed class TaggingRuleEngine : ITaggingRuleEngine
+internal sealed class TaggingRuleProvider : IRuleProvider
 {
     private static readonly StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
-    private readonly IReadOnlyCollection<ITaggingRuleProvider> _ruleProviders;
+    private readonly IEnumerable<ITaggingRuleSource> _sources;
 
-    public TaggingRuleEngine(IEnumerable<ITaggingRuleProvider> ruleProviders)
+    public TaggingRuleProvider(IEnumerable<ITaggingRuleSource> sources)
     {
-        _ruleProviders = ruleProviders?.ToArray()
-            ?? throw new ArgumentNullException(nameof(ruleProviders));
+        _sources = sources ?? throw new ArgumentNullException(nameof(sources));
     }
 
-    public IReadOnlyCollection<Guid> Evaluate(TaggingRuleContext context, TaggingRuleTrigger trigger)
-    {
-        ArgumentNullException.ThrowIfNull(context);
+    public string Source => "Tagger.Configuration";
 
-        var rules = _ruleProviders
-            .SelectMany(provider => provider.GetRules() ?? Array.Empty<TaggingRuleOptions>())
+    public IEnumerable<IRuleSet> GetRuleSets()
+    {
+        var rules = _sources
+            .SelectMany(source => source.GetRules() ?? Array.Empty<TaggingRuleOptions>())
+            .Where(IsRuleEligible)
             .ToArray();
 
         if (rules.Length == 0)
         {
-            return Array.Empty<Guid>();
+            return Array.Empty<IRuleSet>();
         }
 
-        var matches = new HashSet<Guid>();
+        var ruleSets = new List<IRuleSet>();
+
+        var uploadRules = rules
+            .Where(rule => rule.Trigger is TaggingRuleTrigger.All or TaggingRuleTrigger.DocumentUploaded)
+            .ToArray();
+        if (uploadRules.Length > 0)
+        {
+            ruleSets.Add(BuildRuleSet(TaggingRuleSetNames.DocumentUploaded, uploadRules));
+        }
+
+        var ocrRules = rules
+            .Where(rule => rule.Trigger is TaggingRuleTrigger.All or TaggingRuleTrigger.OcrCompleted)
+            .ToArray();
+        if (ocrRules.Length > 0)
+        {
+            ruleSets.Add(BuildRuleSet(TaggingRuleSetNames.OcrCompleted, ocrRules));
+        }
+
+        return ruleSets;
+    }
+
+    private static bool IsRuleEligible(TaggingRuleOptions? rule)
+    {
+        return rule is not null && rule.Enabled && rule.TagId != Guid.Empty;
+    }
+
+    private static IRuleSet BuildRuleSet(string name, IEnumerable<TaggingRuleOptions> rules)
+    {
+        var builder = new LambdaRuleSetBuilder();
 
         foreach (var rule in rules)
         {
-            if (!IsRuleEligible(rule, trigger))
-            {
-                continue;
-            }
-
-            if (!DoesRuleMatch(rule, context.Fields))
-            {
-                continue;
-            }
-
-            matches.Add(rule.TagId);
+            var label = string.IsNullOrWhiteSpace(rule.Name) ? rule.TagId.ToString() : rule.Name;
+            builder.Add(label, ctx => DoesRuleMatch(rule, ctx), (_, output) => Apply(rule.TagId, output));
         }
 
-        return matches.Count == 0 ? Array.Empty<Guid>() : matches.ToArray();
+        return builder.Build(name);
     }
 
-    private static bool IsRuleEligible(TaggingRuleOptions? rule, TaggingRuleTrigger trigger)
-    {
-        if (rule is null || !rule.Enabled || rule.TagId == Guid.Empty)
-        {
-            return false;
-        }
-
-        if (rule.Trigger == TaggingRuleTrigger.All || rule.Trigger == trigger)
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool DoesRuleMatch(TaggingRuleOptions rule, IReadOnlyDictionary<string, string> fields)
+    private static bool DoesRuleMatch(TaggingRuleOptions rule, IRuleContext context)
     {
         if (rule.Conditions is null || rule.Conditions.Count == 0)
         {
             return true;
         }
 
+        var fields = context.Get<IReadOnlyDictionary<string, string>>("Fields", new Dictionary<string, string>());
+
         var predicates = rule.Conditions
-            .Select(condition => (condition, result: EvaluateCondition(condition, fields)))
+            .Select(condition => EvaluateCondition(condition, fields))
             .ToArray();
 
         return rule.Match switch
         {
-            TaggingRuleMatchMode.Any => predicates.Any(tuple => tuple.result),
-            _ => predicates.All(tuple => tuple.result)
+            TaggingRuleMatchMode.Any => predicates.Any(result => result),
+            _ => predicates.All(result => result)
         };
     }
 
@@ -155,5 +161,20 @@ internal sealed class TaggingRuleEngine : ITaggingRuleEngine
         {
             return false;
         }
+    }
+
+    private static void Apply(Guid tagId, IRuleOutput output)
+    {
+        if (!output.TryGet("TagIds", out List<Guid>? tags) || tags is null)
+        {
+            tags = new List<Guid>();
+        }
+
+        if (!tags.Contains(tagId))
+        {
+            tags.Add(tagId);
+        }
+
+        output.Set("TagIds", tags);
     }
 }

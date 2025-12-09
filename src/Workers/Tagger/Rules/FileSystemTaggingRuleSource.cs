@@ -9,15 +9,15 @@ using Microsoft.Extensions.Options;
 
 namespace Tagger;
 
-internal sealed class FileSystemTaggingRuleProvider : ITaggingRuleProvider
+internal sealed class FileSystemTaggingRuleSource : ITaggingRuleSource
 {
     private readonly IHostEnvironment _environment;
-    private readonly ILogger<FileSystemTaggingRuleProvider> _logger;
+    private readonly ILogger<FileSystemTaggingRuleSource> _logger;
     private readonly IOptionsMonitor<TaggingRuleFilesOptions> _options;
 
-    public FileSystemTaggingRuleProvider(
+    public FileSystemTaggingRuleSource(
         IHostEnvironment environment,
-        ILogger<FileSystemTaggingRuleProvider> logger,
+        ILogger<FileSystemTaggingRuleSource> logger,
         IOptionsMonitor<TaggingRuleFilesOptions> options)
     {
         _environment = environment ?? throw new ArgumentNullException(nameof(environment));
