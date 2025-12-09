@@ -187,6 +187,25 @@ public class TaggingRuleEngineTests
         Assert.Contains(fileTag, GetTagIds(ocrResults));
     }
 
+    [Fact]
+    public void BuiltInRules_CreateTagNames()
+    {
+        var engine = new RuleEngine(new IRuleProvider[] { new BuiltInRuleProvider() }, new RuleEngineOptions
+        {
+            ThrowIfRuleSetNotFound = false
+        });
+
+        var context = CreateContext(
+            new Dictionary<string, string> { ["extension"] = ".pdf" },
+            occurredAt: new DateTimeOffset(2024, 3, 1, 0, 0, 0, TimeSpan.Zero));
+
+        var result = engine.Execute(TaggingRuleSetNames.DocumentUploaded, context);
+        var tagNames = GetTagNames(result);
+
+        Assert.Contains("Uploaded 2024-03-01", tagNames);
+        Assert.Contains("Document", tagNames);
+    }
+
     private static RuleEngine CreateEngine(TaggerRulesOptions options, string contentRoot)
     {
         var provider = new TaggerRuleProvider(
@@ -197,9 +216,20 @@ public class TaggingRuleEngineTests
         return new RuleEngine(new IRuleProvider[] { provider }, new RuleEngineOptions { ThrowIfRuleSetNotFound = false });
     }
 
-    private static IRuleContext CreateContext(IDictionary<string, string> metadata, string title = "Report", string? summary = null, string? content = null)
+    private static IRuleContext CreateContext(
+        IDictionary<string, string> metadata,
+        string title = "Report",
+        string? summary = null,
+        string? content = null,
+        DateTimeOffset? occurredAt = null)
     {
-        var builder = TaggingRuleContextBuilder.FromMetadata(Guid.NewGuid(), title, summary, content, metadata);
+        var builder = TaggingRuleContextBuilder.FromMetadata(
+            Guid.NewGuid(),
+            title,
+            occurredAt ?? DateTimeOffset.UtcNow,
+            summary,
+            content,
+            metadata);
         var factory = new RuleContextFactory();
         return factory.FromDictionary(builder.Build());
     }
@@ -212,5 +242,15 @@ public class TaggingRuleEngineTests
         }
 
         return Array.Empty<Guid>();
+    }
+
+    private static IReadOnlyCollection<string> GetTagNames(RuleExecutionResult result)
+    {
+        if (result.Output.TryGetValue("TagNames", out var value) && value is IEnumerable<string> names)
+        {
+            return names.ToArray();
+        }
+
+        return Array.Empty<string>();
     }
 }

@@ -3,8 +3,6 @@ using Ecm.Rules.Engine;
 using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Extensions;
 
-using Microsoft.Extensions.Options;
-
 using Serilog;
 
 using ServiceDefaults;
@@ -36,18 +34,12 @@ public static class Program
 
             builder.Services.AddSingleton<IEcmUserContext, ManualEcmUserContext>();
 
-            builder.Services.AddSingleton<IValidateOptions<TaggerRulesOptions>, TaggerRulesOptionsValidator>();
-            builder.Services
-                .AddOptions<TaggerRulesOptions>()
-                .Bind(builder.Configuration.GetSection(TaggerRulesOptions.SectionName))
-                .ValidateOnStart();
+            builder.Services.AddTaggerRules(builder.Configuration);
 
             builder.Services.AddRuleEngine(options =>
             {
                 options.ThrowIfRuleSetNotFound = false;
             });
-
-            builder.Services.AddSingleton<IRuleProvider, TaggerRuleProvider>();
 
             builder.Services.AddSingleton<ITaggingRuleContextFactory, TaggingRuleContextFactory>();
             builder.Services.AddScoped<IDocumentTagAssignmentService, DocumentTagAssignmentService>();
