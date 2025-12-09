@@ -7,22 +7,22 @@ using Tagger;
 
 namespace Tagger.Tests;
 
-internal sealed class TestOptionsMonitor : IOptionsMonitor<TaggingRulesOptions>
+internal sealed class TestOptionsMonitor<TOptions> : IOptionsMonitor<TOptions> where TOptions : class
 {
-    private TaggingRulesOptions _value;
+    private TOptions _value;
 
-    public TestOptionsMonitor(TaggingRulesOptions value)
+    public TestOptionsMonitor(TOptions value)
     {
         _value = value ?? throw new ArgumentNullException(nameof(value));
     }
 
-    public TaggingRulesOptions CurrentValue => _value;
+    public TOptions CurrentValue => _value;
 
-    public TaggingRulesOptions Get(string? name) => _value;
+    public TOptions Get(string? name) => _value;
 
-    public IDisposable OnChange(Action<TaggingRulesOptions, string?> listener) => NullDisposable.Instance;
+    public IDisposable OnChange(Action<TOptions, string?> listener) => NullDisposable.Instance;
 
-    public void Set(TaggingRulesOptions value)
+    public void Set(TOptions value)
     {
         _value = value ?? throw new ArgumentNullException(nameof(value));
     }
@@ -56,6 +56,18 @@ internal sealed class RecordingRuleEngine : ITaggingRuleEngine
         LastTrigger = trigger;
         return _result;
     }
+}
+
+internal sealed class TestTaggingRuleProvider : ITaggingRuleProvider
+{
+    private readonly IReadOnlyCollection<TaggingRuleOptions>? _rules;
+
+    public TestTaggingRuleProvider(IReadOnlyCollection<TaggingRuleOptions>? rules)
+    {
+        _rules = rules;
+    }
+
+    public IReadOnlyCollection<TaggingRuleOptions>? GetRules() => _rules;
 }
 
 internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService

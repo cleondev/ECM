@@ -8,10 +8,13 @@ namespace Tagger;
 internal sealed class TaggingEventProcessor(
     ITaggingRuleEngine ruleEngine,
     IDocumentTagAssignmentService assignmentService,
+    ITaggingRuleContextFactory contextFactory,
     ILogger<TaggingEventProcessor> logger)
 {
     private readonly IDocumentTagAssignmentService _assignmentService = assignmentService
         ?? throw new ArgumentNullException(nameof(assignmentService));
+    private readonly ITaggingRuleContextFactory _contextFactory = contextFactory
+        ?? throw new ArgumentNullException(nameof(contextFactory));
     private readonly ILogger<TaggingEventProcessor> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly ITaggingRuleEngine _ruleEngine = ruleEngine ?? throw new ArgumentNullException(nameof(ruleEngine));
 
@@ -29,12 +32,7 @@ internal sealed class TaggingEventProcessor(
 
     private async Task EvaluateAsync(ITaggingIntegrationEvent integrationEvent, TaggingRuleTrigger trigger, CancellationToken cancellationToken)
     {
-        var context = TaggingRuleContext.Create(
-            integrationEvent.DocumentId,
-            integrationEvent.Title,
-            integrationEvent.Summary,
-            integrationEvent.Content,
-            integrationEvent.Metadata);
+        var context = _contextFactory.Create(integrationEvent);
 
         var matchingTags = _ruleEngine.Evaluate(context, trigger);
         var automaticTags = AutomaticTagProvider.GetAutomaticTags(integrationEvent);
