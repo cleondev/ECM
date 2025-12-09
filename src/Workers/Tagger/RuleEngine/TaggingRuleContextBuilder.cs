@@ -155,6 +155,7 @@ internal sealed class TaggingRuleContextBuilder
         return FromMetadata(
             integrationEvent.DocumentId,
             integrationEvent.Title,
+            integrationEvent.OccurredAtUtc,
             integrationEvent.Summary,
             integrationEvent.Content,
             integrationEvent.Metadata);

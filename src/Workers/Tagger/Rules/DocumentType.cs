@@ -98,7 +98,7 @@ internal static class DocumentType
     }
 
     private static bool TryResolveFromMetadata(
-        IReadOnlyDictionary<string, string>? metadata,
+        IDictionary<string, string>? metadata,
         [NotNullWhen(true)] out string? extension)
     {
         extension = null;

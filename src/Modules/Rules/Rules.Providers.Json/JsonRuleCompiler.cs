@@ -15,7 +15,7 @@ public static class JsonRuleCompiler
     {
         ArgumentNullException.ThrowIfNull(def);
 
-        object matchFunc;
+        Func<IRuleContext, bool> matchFunc;
         if (string.IsNullOrWhiteSpace(def.Condition))
         {
             matchFunc = _ => true;
