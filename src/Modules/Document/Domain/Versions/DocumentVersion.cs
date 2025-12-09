@@ -80,6 +80,21 @@ public sealed class DocumentVersion
 
     public IReadOnlyCollection<SignatureRequest> SignatureRequests => _signatureRequests.AsReadOnly();
 
+    internal void PromoteTo(int versionNo)
+    {
+        if (versionNo <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(versionNo), versionNo, "Version number must be positive.");
+        }
+
+        if (versionNo == VersionNo)
+        {
+            return;
+        }
+
+        VersionNo = versionNo;
+    }
+
     internal void AddSignatureRequest(SignatureRequest request)
     {
         _signatureRequests.Add(request);
