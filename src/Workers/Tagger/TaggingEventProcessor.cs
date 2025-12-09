@@ -11,6 +11,7 @@ namespace Tagger;
 internal sealed class TaggingEventProcessor(
     IRuleEngine ruleEngine,
     IDocumentTagAssignmentService assignmentService,
+    ITaggingRuleSetSelector ruleSetSelector,
     ITaggingRuleContextFactory contextFactory,
     ILogger<TaggingEventProcessor> logger)
 {
@@ -19,39 +20,68 @@ internal sealed class TaggingEventProcessor(
     private readonly ITaggingRuleContextFactory _contextFactory = contextFactory
         ?? throw new ArgumentNullException(nameof(contextFactory));
     private readonly ILogger<TaggingEventProcessor> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ITaggingRuleSetSelector _ruleSetSelector = ruleSetSelector
+        ?? throw new ArgumentNullException(nameof(ruleSetSelector));
     private readonly IRuleEngine _ruleEngine = ruleEngine ?? throw new ArgumentNullException(nameof(ruleEngine));
 
     public Task HandleDocumentUploadedAsync(DocumentUploadedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
-        return EvaluateAsync(integrationEvent, TaggingRuleSetNames.DocumentUploaded, cancellationToken);
+        return EvaluateAsync(integrationEvent, cancellationToken);
     }
 
     public Task HandleOcrCompletedAsync(OcrCompletedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
-        return EvaluateAsync(integrationEvent, TaggingRuleSetNames.OcrCompleted, cancellationToken);
+        return EvaluateAsync(integrationEvent, cancellationToken);
     }
 
-    private async Task EvaluateAsync(ITaggingIntegrationEvent integrationEvent, string ruleSetName, CancellationToken cancellationToken)
+    private async Task EvaluateAsync(ITaggingIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
         var context = _contextFactory.Create(integrationEvent);
+        var ruleSetNames = _ruleSetSelector.GetRuleSets(integrationEvent);
+
+        if (ruleSetNames.Count == 0)
+        {
+            _logger.LogDebug(
+                "No tagging rulesets mapped for event {EventName}; skipping evaluation for document {DocumentId}.",
+                TaggingIntegrationEventNames.FromEvent(integrationEvent),
+                integrationEvent.DocumentId);
+            return;
+        }
+
+        foreach (var ruleSetName in ruleSetNames)
+        {
+            await EvaluateRuleSetAsync(integrationEvent, ruleSetName, context, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task EvaluateRuleSetAsync(
+        ITaggingIntegrationEvent integrationEvent,
+        string ruleSetName,
+        IRuleContext context,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(ruleSetName))
+        {
+            return;
+        }
 
         var result = _ruleEngine.Execute(ruleSetName, context);
         var matchingTags = ExtractTagIds(result.Output);
-        var automaticTags = AutomaticTagProvider.GetAutomaticTags(integrationEvent);
+        var derivedTagNames = ExtractTagNames(result.Output);
 
-        if (matchingTags.Count == 0 && automaticTags.Count == 0)
+        if (matchingTags.Count == 0 && derivedTagNames.Count == 0)
         {
             _logger.LogDebug(
-                "No tagging rules matched document {DocumentId} for ruleset {RuleSet} and no automatic tags derived.",
+                "No tagging rules matched document {DocumentId} for ruleset {RuleSet} and no tag names were derived.",
                 integrationEvent.DocumentId,
                 ruleSetName);
             return;
         }
 
         var appliedCount = await _assignmentService
-            .AssignTagsAsync(integrationEvent.DocumentId, matchingTags, automaticTags, cancellationToken)
+            .AssignTagsAsync(integrationEvent.DocumentId, matchingTags, derivedTagNames, cancellationToken)
             .ConfigureAwait(false);
 
         if (appliedCount == 0)
@@ -91,5 +121,34 @@ internal sealed class TaggingEventProcessor(
         }
 
         return Array.Empty<Guid>();
+    }
+
+    private static IReadOnlyCollection<string> ExtractTagNames(IReadOnlyDictionary<string, object> output)
+    {
+        if (!output.TryGetValue("TagNames", out var value) || value is null)
+        {
+            return Array.Empty<string>();
+        }
+
+        if (value is IEnumerable<string> names)
+        {
+            return names
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        if (value is IEnumerable<object> objects)
+        {
+            return objects
+                .Select(obj => obj?.ToString())
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        return Array.Empty<string>();
     }
 }

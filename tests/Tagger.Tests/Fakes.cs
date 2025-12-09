@@ -43,10 +43,14 @@ internal sealed class TestOptionsMonitor<TOptions> : IOptionsMonitor<TOptions> w
 internal sealed class RecordingRuleEngine : IRuleEngine
 {
     private readonly IReadOnlyCollection<Guid> _result;
+    private readonly IReadOnlyCollection<string> _tagNames;
 
-    public RecordingRuleEngine(IReadOnlyCollection<Guid>? result = null)
+    public RecordingRuleEngine(
+        IReadOnlyCollection<Guid>? result = null,
+        IReadOnlyCollection<string>? tagNames = null)
     {
         _result = result ?? Array.Empty<Guid>();
+        _tagNames = tagNames ?? Array.Empty<string>();
     }
 
     public IRuleContext? LastContext { get; private set; }
@@ -63,9 +67,23 @@ internal sealed class RecordingRuleEngine : IRuleEngine
             RuleSetName = ruleSetName,
             Output = new Dictionary<string, object>
             {
-                ["TagIds"] = _result
+                ["TagIds"] = _result,
+                ["TagNames"] = _tagNames
             }
         };
+    }
+}
+
+internal sealed class RecordingRuleSetSelector : ITaggingRuleSetSelector
+{
+    public ITaggingIntegrationEvent? LastEvent { get; private set; }
+
+    public IReadOnlyCollection<string> RuleSets { get; set; } = Array.Empty<string>();
+
+    public IReadOnlyCollection<string> GetRuleSets(ITaggingIntegrationEvent integrationEvent)
+    {
+        LastEvent = integrationEvent;
+        return RuleSets;
     }
 }
 
