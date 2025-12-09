@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "Tagger": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "Kafka__BootstrapServers": "172.20.1.22:9092",
+        "Ecm__BaseUrl": "http://localhost:5090",
+        "Ecm__ApiKey__Enabled": "true",
+        "Ecm__ApiKey__ApiKey": "admin123"
+      },
+      "dotnetRunMessages": true
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
