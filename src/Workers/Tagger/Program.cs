@@ -7,6 +7,8 @@ using Serilog;
 
 using ServiceDefaults;
 
+using Tagger.RulesConfiguration;
+
 using Workers.Shared.Messaging;
 
 namespace Tagger;

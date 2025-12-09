@@ -235,7 +235,7 @@ public class TaggingRuleEngineTests
             content,
             metadata);
         var factory = new RuleContextFactory();
-        return factory.FromDictionary(builder.Build());
+        return factory.FromDictionary((IDictionary<string, object>)builder.Build());
     }
 
     private static IReadOnlyCollection<Guid> GetTagIds(RuleExecutionResult result)

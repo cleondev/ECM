@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Ecm.Rules.Abstractions;
 using Microsoft.Extensions.Logging;
 
+using Tagger.RulesConfiguration;
+
 namespace Tagger;
 
 internal sealed class TaggingEventProcessor(

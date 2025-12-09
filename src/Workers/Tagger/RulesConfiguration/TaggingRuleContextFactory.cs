@@ -1,7 +1,8 @@
 using System.Linq;
+
 using Ecm.Rules.Abstractions;
 
-namespace Tagger;
+namespace Tagger.RulesConfiguration;
 
 internal interface ITaggingRuleContextFactory
 {

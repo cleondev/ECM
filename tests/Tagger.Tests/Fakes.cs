@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Ecm.Rules.Abstractions;
+
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Tagger;
+
+using Tagger.RulesConfiguration;
 
 namespace Tagger.Tests;
 

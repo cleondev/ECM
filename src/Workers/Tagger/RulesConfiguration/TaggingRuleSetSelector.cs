@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Ecm.Rules.Abstractions;
+
 using Microsoft.Extensions.Options;
 
-namespace Tagger;
+namespace Tagger.RulesConfiguration;
 
 internal interface ITaggingRuleSetSelector
 {

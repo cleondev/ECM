@@ -1,6 +1,6 @@
 using Ecm.Rules.Abstractions;
 
-namespace Tagger;
+namespace Tagger.RulesConfiguration;
 
 internal static class RuleOutputExtensions
 {

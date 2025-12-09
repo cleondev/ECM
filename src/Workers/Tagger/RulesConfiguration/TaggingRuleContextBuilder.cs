@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 
-namespace Tagger;
+namespace Tagger.RulesConfiguration;
 
 internal sealed class TaggingRuleContextBuilder
 {
