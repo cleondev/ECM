@@ -25,8 +25,6 @@ import type {
   WorkflowInstance,
   WorkflowInstanceStep,
   DocumentVersion,
-  ViewerDescriptor,
-  ViewerType,
 } from "./types"
 import {
   mockFiles,
@@ -139,16 +137,6 @@ export type DocumentUploadFailure = {
 export type DocumentBatchResponse = {
   documents: DocumentResponse[]
   failures: DocumentUploadFailure[]
-}
-
-type ViewerResponseDto = {
-  version: DocumentVersion
-  viewerType: string
-  previewUrl: string
-  downloadUrl: string
-  thumbnailUrl: string
-  wordViewerUrl?: string | null
-  excelViewerUrl?: string | null
 }
 
 export type DeleteFilesResult = {
@@ -277,7 +265,7 @@ type WorkflowInstanceResponse = {
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_GATEWAY_API_URL ?? "").replace(/\/$/, "")
 
-function createGatewayUrl(path: string): string {
+export function createGatewayUrl(path: string): string {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`
 
   if (!API_BASE_URL) {
@@ -572,7 +560,7 @@ async function gatewayFetch(path: string, init?: RequestInit) {
   })
 }
 
-async function gatewayRequest<T>(path: string, init?: RequestInit): Promise<T> {
+export async function gatewayRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await gatewayFetch(path, init)
 
   if (!response.ok) {
@@ -652,26 +640,6 @@ function formatDocumentTimestamp(value?: string | null): string {
   const datePart = displayDateFormatter.format(date)
   const timePart = displayTimeFormatter.format(date)
   return `${datePart} ${timePart}`
-}
-
-function normalizeViewerType(value?: string | null): ViewerType | undefined {
-  if (!value) {
-    return undefined
-  }
-
-  const normalized = value.trim().toLowerCase()
-
-  switch (normalized) {
-    case "word":
-    case "excel":
-    case "image":
-    case "video":
-    case "pdf":
-    case "unsupported":
-      return normalized as ViewerType
-    default:
-      return undefined
-  }
 }
 
 function mapDocumentToFileItem(document: DocumentResponse): FileItem {
@@ -1512,25 +1480,6 @@ export async function fetchFileDetails(fileId: string): Promise<FileDetail> {
     return placeholder
 
     throw (error instanceof Error ? error : new Error("Không thể tải chi tiết tệp."))
-  }
-}
-
-export async function fetchViewerDescriptor(versionId: string): Promise<ViewerDescriptor> {
-  if (!versionId) {
-    throw new Error("Version identifier is required")
-  }
-
-  const response = await gatewayRequest<ViewerResponseDto>(`/api/viewer/${versionId}`)
-  const viewerType = normalizeViewerType(response.viewerType) ?? "unsupported"
-
-  return {
-    version: response.version,
-    viewerType,
-    previewUrl: response.previewUrl,
-    downloadUrl: response.downloadUrl,
-    thumbnailUrl: response.thumbnailUrl,
-    wordViewerUrl: response.wordViewerUrl ?? null,
-    excelViewerUrl: response.excelViewerUrl ?? null,
   }
 }
 

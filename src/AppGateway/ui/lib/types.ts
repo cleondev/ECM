@@ -109,18 +109,6 @@ export type FileDetail = FileItem & {
   comments: FileComment[]
 }
 
-export type ViewerType = "word" | "excel" | "image" | "video" | "pdf" | "unsupported"
-
-export type ViewerDescriptor = {
-  version: DocumentVersion
-  viewerType: ViewerType
-  previewUrl: string
-  downloadUrl: string
-  thumbnailUrl: string
-  wordViewerUrl?: string | null
-  excelViewerUrl?: string | null
-}
-
 export type TagScope = "user" | "group" | "global"
 
 export type Role = {

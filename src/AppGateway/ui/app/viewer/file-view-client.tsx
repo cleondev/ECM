@@ -1,295 +1,30 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Download, FileText, FileWarning, PanelRight, Share2 } from "lucide-react"
+import { ArrowLeft, BadgeCheck, Download, FileText, PanelRight, Share2 } from "lucide-react"
 
-import {
-  DocumentEditorContainerComponent,
-  Inject as DocumentEditorInject,
-  Toolbar as DocumentEditorToolbar,
-} from "@syncfusion/ej2-react-documenteditor"
-import { SpreadsheetComponent } from "@syncfusion/ej2-react-spreadsheet"
-import "@syncfusion/ej2-base/styles/material.css"
-import "@syncfusion/ej2-buttons/styles/material.css"
-import "@syncfusion/ej2-dropdowns/styles/material.css"
-import "@syncfusion/ej2-grids/styles/material.css"
-import "@syncfusion/ej2-inputs/styles/material.css"
-import "@syncfusion/ej2-lists/styles/material.css"
-import "@syncfusion/ej2-navigations/styles/material.css"
-import "@syncfusion/ej2-popups/styles/material.css"
-import "@syncfusion/ej2-react-documenteditor/styles/material.css"
-import "@syncfusion/ej2-react-pdfviewer/styles/material.css"
-import "@syncfusion/ej2-react-spreadsheet/styles/material.css"
-import "@syncfusion/ej2-splitbuttons/styles/material.css"
-
-import { buildDocumentDownloadUrl, fetchFileDetails, fetchFlows, fetchViewerDescriptor } from "@/lib/api"
-import { ensureSyncfusionLicense } from "@/lib/syncfusion"
-import type { FileDetail, Flow, ViewerDescriptor } from "@/lib/types"
+import { buildDocumentDownloadUrl, fetchFileDetails, fetchFlows } from "@/lib/api"
+import type { FileDetail, Flow } from "@/lib/types"
+import type { ViewerDescriptor } from "@/lib/viewer-types"
 import { resolveViewerConfig, type ViewerCategory } from "@/lib/viewer-utils"
+import { fetchViewerDescriptor } from "@/lib/viewer-api"
 import { RightSidebar } from "@/components/right-sidebar"
 import { ResizableHandle } from "@/components/resizable-handle"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatBytes, formatDate, getExtension } from "@/components/shared/sidebar-tabs"
-
-import { PdfViewer } from "./pdf-viewer"
 import { Separator } from "@/components/ui/separator"
+import { ViewerPanel } from "@/components/viewers/ViewerPanel"
 
 const MAIN_APP_ROUTE = "/app/"
-
-ensureSyncfusionLicense()
 
 export type FileViewClientProps = {
   fileId: string
   targetPath: string
   isAuthenticated: boolean
   isChecking: boolean
-}
-
-type ViewerPanelProps = {
-  file: FileDetail
-  viewerCategory: ViewerCategory
-  previewUrl?: string
-  thumbnailUrl?: string
-  wordViewerUrl?: string | null
-  excelViewerUrl?: string | null
-}
-
-function PdfViewerPanel({ previewUrl, file }: { previewUrl?: string; file: FileDetail }) {
-  if (!previewUrl) {
-    return (
-      <div className="flex h-[75vh] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 text-center">
-        <FileWarning className="h-10 w-10 text-muted-foreground" />
-        <div className="space-y-1">
-          <p className="text-base font-semibold text-foreground">Không tìm thấy file PDF</p>
-          <p className="text-sm text-muted-foreground">Không có đường dẫn hợp lệ để hiển thị tài liệu {file.name}.</p>
-        </div>
-      </div>
-    )
-  }
-
-  return <PdfViewer documentUrl={previewUrl} />
-}
-
-function ImageViewerPanel({ file, previewUrl, thumbnailUrl }: { file: FileDetail; previewUrl?: string; thumbnailUrl?: string }) {
-  const source =
-    previewUrl ||
-    (file.preview.kind === "image" || file.preview.kind === "design"
-      ? file.preview.url
-      : undefined)
-
-  const fallback = thumbnailUrl
-
-  if (!source && !fallback) {
-    return <UnsupportedViewerPanel file={file} message="Không có nội dung hình ảnh để hiển thị." />
-  }
-
-  return (
-    <div className="flex items-center justify-center rounded-lg border border-border bg-background p-4">
-      <img src={source ?? fallback} alt={file.name} className="max-h-[70vh] w-auto max-w-full rounded-md shadow" />
-    </div>
-  )
-}
-
-function VideoViewerPanel({ file, previewUrl, thumbnailUrl }: { file: FileDetail; previewUrl?: string; thumbnailUrl?: string }) {
-  const source = file.preview.kind === "video" ? file.preview.url : previewUrl
-  const poster = file.preview.kind === "video" ? file.preview.poster : thumbnailUrl
-
-  if (!source) {
-    return <UnsupportedViewerPanel file={file} message="Không có nội dung video để hiển thị." />
-  }
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-border bg-background">
-      <video controls className="h-[75vh] w-full bg-black" poster={poster} src={source} />
-    </div>
-  )
-}
-
-function CodeViewerPanel({ file }: { file: FileDetail }) {
-  if (file.preview.kind !== "code") {
-    return <UnsupportedViewerPanel file={file} message="Không có nội dung mã nguồn để hiển thị." />
-  }
-
-  return (
-    <pre className="h-[75vh] overflow-auto rounded-lg border border-border bg-slate-900 p-4 text-sm text-slate-100">
-      {file.preview.content}
-    </pre>
-  )
-}
-
-function DocumentEditorPanel({ file, sfdtUrl }: { file: FileDetail; sfdtUrl?: string | null }) {
-  const editorRef = useRef<DocumentEditorContainerComponent>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!sfdtUrl) {
-      setError("Không có nội dung Word để hiển thị.")
-      return
-    }
-
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-
-    fetch(sfdtUrl, { credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Viewer endpoint returned status ${response.status}`)
-        }
-
-        const content = await response.text()
-
-        if (!cancelled) {
-          editorRef.current?.documentEditor?.open(content, "Sfdt")
-        }
-      })
-      .catch((err) => {
-        console.error("[viewer] Failed to load Word viewer content", err)
-        if (!cancelled) {
-          setError("Không thể tải nội dung Word từ máy chủ.")
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [sfdtUrl])
-
-  if (error) {
-    return <UnsupportedViewerPanel file={file} message={error} />
-  }
-
-  if (!sfdtUrl) {
-    return <UnsupportedViewerPanel file={file} />
-  }
-
-  return (
-    <div className="space-y-3">
-      {loading ? (
-        <div className="rounded-lg border border-border bg-muted/60 p-3 text-sm text-muted-foreground">
-          Đang tải nội dung tài liệu…
-        </div>
-      ) : null}
-      <DocumentEditorContainerComponent
-        ref={editorRef}
-        enableToolbar
-        height="75vh"
-        serviceUrl="https://services.syncfusion.com/react/production/api/documenteditor/"
-        style={{ border: "1px solid hsl(var(--border))" }}
-      >
-        <DocumentEditorInject services={[DocumentEditorToolbar]} />
-      </DocumentEditorContainerComponent>
-    </div>
-  )
-}
-
-function SpreadsheetViewerPanel({ file, spreadsheetUrl }: { file: FileDetail; spreadsheetUrl?: string | null }) {
-  const spreadsheetRef = useRef<SpreadsheetComponent>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!spreadsheetUrl) {
-      setError("Không có nội dung bảng tính để hiển thị.")
-      return
-    }
-
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-
-    fetch(spreadsheetUrl, { credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Viewer endpoint returned status ${response.status}`)
-        }
-
-        const payload = await response.json()
-
-        if (!cancelled) {
-          spreadsheetRef.current?.openFromJson({ file: payload })
-        }
-      })
-      .catch((err) => {
-        console.error("[viewer] Failed to load spreadsheet viewer content", err)
-        if (!cancelled) {
-          setError("Không thể tải dữ liệu bảng tính từ máy chủ.")
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [spreadsheetUrl])
-
-  if (error) {
-    return <UnsupportedViewerPanel file={file} message={error} />
-  }
-
-  if (!spreadsheetUrl) {
-    return <UnsupportedViewerPanel file={file} />
-  }
-
-  return (
-    <div className="space-y-3">
-      {loading ? (
-        <div className="rounded-lg border border-border bg-muted/60 p-3 text-sm text-muted-foreground">
-          Đang tải nội dung bảng tính…
-        </div>
-      ) : null}
-      <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <SpreadsheetComponent ref={spreadsheetRef} height={"75vh"} allowOpen allowSave />
-      </div>
-    </div>
-  )
-}
-
-function UnsupportedViewerPanel({ file, message }: { file: FileDetail; message?: string }) {
-  const ext = getExtension(file.name)
-  return (
-    <div className="flex h-[60vh] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 text-center">
-      <FileWarning className="h-10 w-10 text-muted-foreground" />
-      <div className="space-y-1">
-        <p className="text-base font-semibold text-foreground">Định dạng chưa được hỗ trợ</p>
-        <p className="text-sm text-muted-foreground">
-          {message ?? `Không có trình xem phù hợp cho tệp${ext ? ` .${ext}` : ""}. Vui lòng tải xuống để xem chi tiết.`}
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function ViewerPanel({ file, viewerCategory, previewUrl, thumbnailUrl, wordViewerUrl, excelViewerUrl }: ViewerPanelProps) {
-  switch (viewerCategory) {
-    case "pdf":
-      return <PdfViewerPanel file={file} previewUrl={previewUrl} />
-    case "image":
-      return <ImageViewerPanel file={file} previewUrl={previewUrl} thumbnailUrl={thumbnailUrl} />
-    case "video":
-      return <VideoViewerPanel file={file} previewUrl={previewUrl} thumbnailUrl={thumbnailUrl} />
-    case "word":
-      return <DocumentEditorPanel file={file} sfdtUrl={wordViewerUrl ?? previewUrl} />
-    case "excel":
-      return <SpreadsheetViewerPanel file={file} spreadsheetUrl={excelViewerUrl ?? previewUrl} />
-    case "code":
-      return <CodeViewerPanel file={file} />
-    default:
-      return <UnsupportedViewerPanel file={file} />
-  }
 }
 
 export default function FileViewClient({ fileId, targetPath, isAuthenticated, isChecking }: FileViewClientProps) {
@@ -308,10 +43,13 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   const [viewerDescriptorError, setViewerDescriptorError] = useState<string | null>(null)
   const [viewerDescriptorLoading, setViewerDescriptorLoading] = useState(false)
 
-  const previewUrl = viewerDescriptor?.previewUrl ?? (file?.latestVersionId ? buildDocumentDownloadUrl(file.latestVersionId) : undefined)
+  const previewUrl =
+    viewerDescriptor?.view?.url ??
+    viewerDescriptor?.previewUrl ??
+    (file?.latestVersionId ? buildDocumentDownloadUrl(file.latestVersionId) : undefined)
   const thumbnailUrl = viewerDescriptor?.thumbnailUrl ?? file?.thumbnail
-  const wordViewerUrl = viewerDescriptor?.wordViewerUrl
-  const excelViewerUrl = viewerDescriptor?.excelViewerUrl
+  const wordViewerUrl = viewerDescriptor?.sfdtUrl ?? viewerDescriptor?.view?.url ?? viewerDescriptor?.previewUrl
+  const excelViewerUrl = viewerDescriptor?.excelJsonUrl ?? viewerDescriptor?.view?.url ?? viewerDescriptor?.previewUrl
   const downloadUrl = useMemo(
     () => viewerDescriptor?.downloadUrl ?? (file?.latestVersionId ? buildDocumentDownloadUrl(file.latestVersionId) : undefined),
     [file?.latestVersionId, viewerDescriptor?.downloadUrl],
@@ -554,6 +292,8 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
               <ViewerPanel
                 file={file}
                 viewerCategory={viewerConfig.category}
+                viewerType={viewerConfig.viewerType}
+                descriptor={viewerDescriptor}
                 previewUrl={previewUrl}
                 thumbnailUrl={thumbnailUrl ?? undefined}
                 wordViewerUrl={wordViewerUrl}
