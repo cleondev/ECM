@@ -15,9 +15,15 @@ public static class JsonRuleCompiler
     {
         ArgumentNullException.ThrowIfNull(def);
 
-        var matchFunc = string.IsNullOrWhiteSpace(def.Condition)
-            ? _ => true
-            : ctx => EvaluateCondition(def.Condition, ctx);
+        object matchFunc;
+        if (string.IsNullOrWhiteSpace(def.Condition))
+        {
+            matchFunc = _ => true;
+        }
+        else
+        {
+            matchFunc = ctx => EvaluateCondition(def.Condition, ctx);
+        }
 
         var applyFunc = (IRuleContext _, IRuleOutput output) =>
         {

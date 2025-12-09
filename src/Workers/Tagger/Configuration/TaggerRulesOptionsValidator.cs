@@ -19,9 +19,39 @@ internal sealed class TaggerRulesOptionsValidator : IValidateOptions<TaggerRules
             errors.AddRange(ValidateRuleSets(options.RuleSets));
         }
 
+        if (options.Triggers is not null)
+        {
+            errors.AddRange(ValidateTriggers(options.Triggers));
+        }
+
         return errors.Count > 0
             ? ValidateOptionsResult.Fail(errors)
             : ValidateOptionsResult.Success;
+    }
+
+    private static IEnumerable<string> ValidateTriggers(IEnumerable<TaggerRuleTriggerOptions> triggers)
+    {
+        var index = 0;
+
+        foreach (var trigger in triggers)
+        {
+            index++;
+
+            if (trigger is null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(trigger.Event))
+            {
+                yield return $"Trigger #{index} must specify an event name.";
+            }
+
+            if (trigger.RuleSets is null || trigger.RuleSets.Count == 0)
+            {
+                yield return $"Trigger '{trigger.Event ?? "<unknown>"}' must specify at least one ruleset.";
+            }
+        }
     }
 
     private static IEnumerable<string> ValidateRuleSets(IEnumerable<JsonRuleSetDefinition> definitions)

@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
+using Tagger.RulesConfiguration;
+
 namespace Tagger;
 
 internal static class RulesServiceCollectionExtensions
@@ -14,6 +16,7 @@ internal static class RulesServiceCollectionExtensions
 
         services.AddSingleton<IValidateOptions<TaggerRulesOptions>, TaggerRulesOptionsValidator>();
         services.AddSingleton<IConfigureOptions<TaggerRulesOptions>, TaggerRulesOptionsSetup>();
+        services.AddSingleton<IConfigureOptions<TaggerRulesOptions>, TaggerRuleTriggersSetup>();
 
         services
             .AddOptions<TaggerRulesOptions>()
@@ -22,6 +25,8 @@ internal static class RulesServiceCollectionExtensions
 
         services.AddSingleton<IRuleProvider, TaggerRuleProvider>();
         services.AddSingleton<IRuleProvider, BuiltInRuleProvider>();
+
+        services.AddSingleton<ITaggingRuleSetSelector, TaggingRuleSetSelector>();
 
         services.AddSingleton<ITaggingRuleContextEnricher, DocumentTypeContextEnricher>();
 

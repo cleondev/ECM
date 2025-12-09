@@ -1,5 +1,7 @@
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Providers.Lambda;
 
@@ -142,7 +144,7 @@ internal static class DocumentType
             trimmed = trimmed[..trimmed.IndexOf(',', StringComparison.Ordinal)];
         }
 
-        return trimmed.StartsWith('.', StringComparison.Ordinal) ? trimmed : $".{trimmed}";
+        return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed : $".{trimmed}";
     }
 }
 

@@ -3,13 +3,19 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Engine;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+
 using Shared.Contracts.Messaging;
-using Tagger;
+
+using Tagger.RulesConfiguration;
+
 using Workers.Shared.Messaging;
+
 using Xunit;
 
 namespace Tagger.Tests;

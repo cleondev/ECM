@@ -39,6 +39,8 @@ internal sealed class TaggingRuleContextBuilder
 
     public string? Content { get; private set; }
 
+    public string? EventName { get; private set; }
+
     public TaggingRuleContextBuilder WithSummary(string? summary)
     {
         if (!string.IsNullOrWhiteSpace(summary))
@@ -94,6 +96,18 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
+    public TaggingRuleContextBuilder WithEvent(string eventName)
+    {
+        if (!string.IsNullOrWhiteSpace(eventName))
+        {
+            EventName = eventName.Trim();
+            _items["EventName"] = EventName;
+            AddField("eventName", EventName);
+        }
+
+        return this;
+    }
+
     public TaggingRuleContextBuilder AddField(string? key, string? value)
     {
         if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
@@ -141,7 +155,6 @@ internal sealed class TaggingRuleContextBuilder
         return FromMetadata(
             integrationEvent.DocumentId,
             integrationEvent.Title,
-            integrationEvent.OccurredAtUtc,
             integrationEvent.Summary,
             integrationEvent.Content,
             integrationEvent.Metadata);

@@ -2,11 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Engine;
 using Ecm.Rules.Providers.Json;
+
 using Microsoft.Extensions.Logging.Abstractions;
-using Tagger;
+
+using Tagger.RulesConfiguration;
+
 using Xunit;
 
 namespace Tagger.Tests;

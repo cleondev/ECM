@@ -1,5 +1,7 @@
 using Ecm.Rules.Abstractions;
 
+using Tagger.RulesConfiguration;
+
 namespace Tagger;
 
 internal sealed class BuiltInRuleProvider : IRuleProvider

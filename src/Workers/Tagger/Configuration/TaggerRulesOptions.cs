@@ -12,5 +12,7 @@ public sealed class TaggerRulesOptions
 
     public IList<string> Files { get; init; } = new List<string>();
 
+    public IList<TaggerRuleTriggerOptions> Triggers { get; init; } = new List<TaggerRuleTriggerOptions>();
+
     public IList<JsonRuleSetDefinition> RuleSets { get; init; } = new List<JsonRuleSetDefinition>();
 }

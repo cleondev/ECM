@@ -2,13 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Providers.Json;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Tagger;
+namespace Tagger.RulesConfiguration;
 
 internal sealed class TaggerRuleProvider : IRuleProvider
 {

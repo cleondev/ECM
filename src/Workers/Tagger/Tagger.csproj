@@ -21,9 +21,4 @@
     <ProjectReference Include="..\..\Modules\Rules\Rules.Providers.Json\Rules.Providers.Json.csproj" />
     <ProjectReference Include="..\..\Modules\Rules\Rules.Providers.Lambda\Rules.Providers.Lambda.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="RulesConfiguration/JsonRules/CustomerTag.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
 </Project>

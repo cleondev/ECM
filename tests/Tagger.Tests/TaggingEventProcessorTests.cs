@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Ecm.Rules.Engine;
 using Microsoft.Extensions.Logging.Abstractions;
-using Tagger;
 using Xunit;
+using Tagger.RulesConfiguration;
 
 namespace Tagger.Tests;
 
@@ -17,10 +17,12 @@ public class TaggingEventProcessorTests
         var tagIds = new[] { Guid.NewGuid(), Guid.NewGuid() };
         var ruleEngine = new RecordingRuleEngine(tagIds);
         var assignmentService = new RecordingAssignmentService();
+        var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.DocumentUploaded } };
         var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
+            selector,
             contextFactory,
             NullLogger<TaggingEventProcessor>.Instance);
 
@@ -48,10 +50,12 @@ public class TaggingEventProcessorTests
     {
         var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>());
         var assignmentService = new RecordingAssignmentService();
+        var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.DocumentUploaded } };
         var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
+            selector,
             contextFactory,
             NullLogger<TaggingEventProcessor>.Instance);
 
@@ -77,10 +81,12 @@ public class TaggingEventProcessorTests
         var tags = new[] { Guid.NewGuid() };
         var ruleEngine = new RecordingRuleEngine(tags);
         var assignmentService = new RecordingAssignmentService();
+        var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.OcrCompleted } };
         var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
+            selector,
             contextFactory,
             NullLogger<TaggingEventProcessor>.Instance);
 
@@ -106,10 +112,12 @@ public class TaggingEventProcessorTests
         var ruleEngine = new RecordingRuleEngine(new[] { Guid.NewGuid() });
         var assignmentService = new RecordingAssignmentService();
         var enricher = new RecordingContextEnricher();
+        var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.DocumentUploaded } };
         var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), new[] { enricher });
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
+            selector,
             contextFactory,
             NullLogger<TaggingEventProcessor>.Instance);
 
@@ -134,10 +142,12 @@ public class TaggingEventProcessorTests
         var tagNames = new[] { "Uploaded 2024-01-01", "Images" };
         var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>(), tagNames);
         var assignmentService = new RecordingAssignmentService();
+        var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.DocumentUploaded } };
         var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
+            selector,
             contextFactory,
             NullLogger<TaggingEventProcessor>.Instance);
 
@@ -155,6 +165,36 @@ public class TaggingEventProcessorTests
 
         Assert.Equal(tagNames, assignmentService.LastTagNames);
         Assert.Equal(1, assignmentService.InvocationCount);
+    }
+
+    [Fact]
+    public async Task HandleDocumentUploadedAsync_ExposesEventNameInContext()
+    {
+        var ruleEngine = new RecordingRuleEngine(new[] { Guid.NewGuid() });
+        var assignmentService = new RecordingAssignmentService();
+        var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.DocumentUploaded } };
+        var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
+        var processor = new TaggingEventProcessor(
+            ruleEngine,
+            assignmentService,
+            selector,
+            contextFactory,
+            NullLogger<TaggingEventProcessor>.Instance);
+
+        var @event = new DocumentUploadedIntegrationEvent(
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow,
+            Guid.NewGuid(),
+            "invoice.pdf",
+            null,
+            null,
+            null,
+            null);
+
+        await processor.HandleDocumentUploadedAsync(@event);
+
+        Assert.NotNull(ruleEngine.LastContext);
+        Assert.Equal(TaggingIntegrationEventNames.DocumentUploaded, ruleEngine.LastContext!.Get<string>("EventName"));
     }
 
     private sealed class RecordingContextEnricher : ITaggingRuleContextEnricher

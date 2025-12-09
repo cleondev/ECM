@@ -74,6 +74,19 @@ internal sealed class RecordingRuleEngine : IRuleEngine
     }
 }
 
+internal sealed class RecordingRuleSetSelector : ITaggingRuleSetSelector
+{
+    public ITaggingIntegrationEvent? LastEvent { get; private set; }
+
+    public IReadOnlyCollection<string> RuleSets { get; set; } = Array.Empty<string>();
+
+    public IReadOnlyCollection<string> GetRuleSets(ITaggingIntegrationEvent integrationEvent)
+    {
+        LastEvent = integrationEvent;
+        return RuleSets;
+    }
+}
+
 internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
 {
     public Guid? LastDocumentId { get; private set; }

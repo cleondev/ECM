@@ -11,6 +11,12 @@ Rules are supplied through the worker configuration under the `TaggerRules` sect
   "TaggerRules": {
     "appliedBy": "optional GUID recorded as the actor",
     "files": ["optional absolute or relative paths to rule files"],
+    "triggers": [
+      {
+        "event": "DocumentUploaded | OcrCompleted",
+        "ruleSets": ["rulesets evaluated when the event fires"]
+      }
+    ],
     "ruleSets": [
       {
         "name": "Tagging.DocumentUploaded | Tagging.OcrCompleted",
@@ -29,7 +35,7 @@ Rules are supplied through the worker configuration under the `TaggerRules` sect
 }
 ```
 
-Rule sets map directly to tagger events. Use `Tagging.DocumentUploaded` to react to uploads and `Tagging.OcrCompleted` for OCR events. A rule definition sets output values; to apply tags, populate `TagIds` with the GUIDs of labels to assign. Conditions support `&&`/`||` composition with equality and comparison operators.
+Rule sets are mapped to integration events through the `triggers` collection. Use `DocumentUploaded` to react to uploads and `OcrCompleted` for OCR events; each trigger lists the rulesets that should be executed for that event. A rule definition sets output values; to apply tags, populate `TagIds` with the GUIDs of labels to assign. Conditions support `&&`/`||` composition with equality and comparison operators. The rule context includes the event name under `EventName` so rules can include it as part of their conditions when needed.
 
 ### Example
 
@@ -68,13 +74,3 @@ Rule sets map directly to tagger events. Use `Tagging.DocumentUploaded` to react
 ```
 
 When a rule evaluates to `true`, the worker calls the internal document tagging command so that tags are persisted in the Document module.
-
-## Rule layout inside Tagger
-
-The Tagger worker now ships with a set of default rule assets to make it easier to manage and extend automatic tagging:
-
-- `src/Workers/Tagger/RulesConfiguration/JsonRules/CustomerTag.json`: sample JSON rules that can be overridden or extended per deployment.
-- `src/Workers/Tagger/Rules/AutoDate.cs`: a built-in rule that emits a tag for the document upload date.
-- `src/Workers/Tagger/Rules/DocumentType.cs`: built-in rules that map file extensions to friendly tag names such as `Document` or `Images`.
-
-The default JSON file is copied to the worker output, and the rule providers automatically merge it with any additional paths configured through `TaggerRules:files`. Custom rules remain alongside these folders so that they are easy to locate and update.
