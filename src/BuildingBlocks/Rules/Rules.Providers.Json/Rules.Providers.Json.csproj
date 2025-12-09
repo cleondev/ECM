@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Rules.Abstractions/Rules.Abstractions.csproj" />
+    <ProjectReference Include="../Rules.Engine/Rules.Engine.csproj" />
+    <ProjectReference Include="../Rules.Providers.Lambda/Rules.Providers.Lambda.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+</Project>

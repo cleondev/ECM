@@ -1,7 +1,8 @@
-using System;
+using System.Collections.Generic;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Ecm.Rules.Engine;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tagger;
 using Xunit;
@@ -16,7 +17,7 @@ public class TaggingEventProcessorTests
         var tagIds = new[] { Guid.NewGuid(), Guid.NewGuid() };
         var ruleEngine = new RecordingRuleEngine(tagIds);
         var assignmentService = new RecordingAssignmentService();
-        var contextFactory = new TaggingRuleContextFactory(Array.Empty<ITaggingRuleContextEnricher>());
+        var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
@@ -37,9 +38,9 @@ public class TaggingEventProcessorTests
 
         Assert.Equal(@event.DocumentId, assignmentService.LastDocumentId);
         Assert.Equal(tagIds, assignmentService.LastTagIds);
-        Assert.Equal(TaggingRuleTrigger.DocumentUploaded, ruleEngine.LastTrigger);
+        Assert.Equal(TaggingRuleSetNames.DocumentUploaded, ruleEngine.LastRuleSet);
         Assert.NotNull(ruleEngine.LastContext);
-        Assert.Equal("Quarterly Plan", ruleEngine.LastContext!.Title);
+        Assert.Equal("Quarterly Plan", ruleEngine.LastContext!.Get<string>("Title"));
     }
 
     [Fact]
@@ -47,7 +48,7 @@ public class TaggingEventProcessorTests
     {
         var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>());
         var assignmentService = new RecordingAssignmentService();
-        var contextFactory = new TaggingRuleContextFactory(Array.Empty<ITaggingRuleContextEnricher>());
+        var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
@@ -76,7 +77,7 @@ public class TaggingEventProcessorTests
         var tags = new[] { Guid.NewGuid() };
         var ruleEngine = new RecordingRuleEngine(tags);
         var assignmentService = new RecordingAssignmentService();
-        var contextFactory = new TaggingRuleContextFactory(Array.Empty<ITaggingRuleContextEnricher>());
+        var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,
@@ -95,7 +96,7 @@ public class TaggingEventProcessorTests
 
         await processor.HandleOcrCompletedAsync(@event);
 
-        Assert.Equal(TaggingRuleTrigger.OcrCompleted, ruleEngine.LastTrigger);
+        Assert.Equal(TaggingRuleSetNames.OcrCompleted, ruleEngine.LastRuleSet);
         Assert.Equal(1, assignmentService.InvocationCount);
     }
 
@@ -105,7 +106,7 @@ public class TaggingEventProcessorTests
         var ruleEngine = new RecordingRuleEngine(new[] { Guid.NewGuid() });
         var assignmentService = new RecordingAssignmentService();
         var enricher = new RecordingContextEnricher();
-        var contextFactory = new TaggingRuleContextFactory(new[] { enricher });
+        var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), new[] { enricher });
         var processor = new TaggingEventProcessor(
             ruleEngine,
             assignmentService,

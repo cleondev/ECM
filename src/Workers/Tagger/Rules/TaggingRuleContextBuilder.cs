@@ -1,21 +1,26 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace Tagger;
 
 internal sealed class TaggingRuleContextBuilder
 {
-    private readonly Dictionary<string, string> _fields;
+    private readonly Dictionary<string, object> _items;
     private readonly Dictionary<string, string> _metadata;
+    private readonly Dictionary<string, string> _fields;
 
     private TaggingRuleContextBuilder(Guid documentId, string title)
     {
         DocumentId = documentId;
         Title = title;
 
+        _items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["DocumentId"] = documentId,
+            ["Title"] = title
+        };
+
         _metadata = new(StringComparer.OrdinalIgnoreCase);
-        _fields = new(_metadata, StringComparer.OrdinalIgnoreCase);
+        _fields = new Dictionary<string, string>(_metadata, StringComparer.OrdinalIgnoreCase);
 
         AddField("title", title);
     }
@@ -33,6 +38,7 @@ internal sealed class TaggingRuleContextBuilder
         if (!string.IsNullOrWhiteSpace(summary))
         {
             Summary = summary;
+            _items["Summary"] = summary;
             AddField("summary", summary);
         }
 
@@ -44,6 +50,7 @@ internal sealed class TaggingRuleContextBuilder
         if (!string.IsNullOrWhiteSpace(content))
         {
             Content = content;
+            _items["Content"] = content;
             AddField("content", content);
         }
 
@@ -92,15 +99,17 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
-    public TaggingRuleContext Build()
+    public IReadOnlyDictionary<string, object> Build()
     {
-        return new TaggingRuleContext(
-            DocumentId,
-            Title,
-            Summary,
-            Content,
-            new ReadOnlyDictionary<string, string>(_metadata),
-            new ReadOnlyDictionary<string, string>(_fields));
+        _items["Metadata"] = new ReadOnlyDictionary<string, string>(_metadata);
+        _items["Fields"] = new ReadOnlyDictionary<string, string>(_fields);
+
+        foreach (var field in _fields)
+        {
+            _items[field.Key] = field.Value;
+        }
+
+        return new ReadOnlyDictionary<string, object>(_items);
     }
 
     public static TaggingRuleContextBuilder FromMetadata(

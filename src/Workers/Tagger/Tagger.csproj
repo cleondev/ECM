@@ -11,6 +11,9 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../BuildingBlocks/Rules/Rules.Abstractions/Rules.Abstractions.csproj" />
+    <ProjectReference Include="../../BuildingBlocks/Rules/Rules.Engine/Rules.Engine.csproj" />
+    <ProjectReference Include="../../BuildingBlocks/Rules/Rules.Providers.Lambda/Rules.Providers.Lambda.csproj" />
     <ProjectReference Include="../../Shared/ServiceDefaults/ServiceDefaults.csproj" />
     <ProjectReference Include="../../Shared/Contracts/Shared.Contracts.csproj" />
     <ProjectReference Include="../Shared/Workers.Shared.csproj" />

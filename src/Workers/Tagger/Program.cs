@@ -1,3 +1,5 @@
+using Ecm.Rules.Abstractions;
+using Ecm.Rules.Engine;
 using Ecm.Sdk.Authentication;
 using Ecm.Sdk.Extensions;
 
@@ -46,11 +48,16 @@ public static class Program
                 .Bind(builder.Configuration.GetSection(TaggingRuleFilesOptions.SectionName))
                 .ValidateOnStart();
 
-            builder.Services.AddSingleton<ITaggingRuleProvider, OptionsTaggingRuleProvider>();
-            builder.Services.AddSingleton<ITaggingRuleProvider, FileSystemTaggingRuleProvider>();
+            builder.Services.AddRuleEngine(options =>
+            {
+                options.ThrowIfRuleSetNotFound = false;
+            });
+
+            builder.Services.AddSingleton<ITaggingRuleSource, OptionsTaggingRuleSource>();
+            builder.Services.AddSingleton<ITaggingRuleSource, FileSystemTaggingRuleSource>();
+            builder.Services.AddSingleton<IRuleProvider, TaggingRuleProvider>();
 
             builder.Services.AddSingleton<ITaggingRuleContextFactory, TaggingRuleContextFactory>();
-            builder.Services.AddSingleton<ITaggingRuleEngine, TaggingRuleEngine>();
             builder.Services.AddScoped<IDocumentTagAssignmentService, DocumentTagAssignmentService>();
             builder.Services.AddScoped<TaggingEventProcessor>();
 
