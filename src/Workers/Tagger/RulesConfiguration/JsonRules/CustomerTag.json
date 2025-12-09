@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Tagging.DocumentUploaded",
+    "rules": [
+      {
+        "name": "Customer ABC uploads",
+        "condition": "customer == \"ABC\" || uploader == \"ABC\"",
+        "set": { "TagNames": ["Customer/ABC"] }
+      }
+    ]
+  },
+  {
+    "name": "Tagging.OcrCompleted",
+    "rules": [
+      {
+        "name": "Invoice classifications",
+        "condition": "classification == \"invoice\"",
+        "set": { "TagNames": ["Document/Invoice"] }
+      }
+    ]
+  }
+]

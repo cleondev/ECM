@@ -68,3 +68,13 @@ Rule sets map directly to tagger events. Use `Tagging.DocumentUploaded` to react
 ```
 
 When a rule evaluates to `true`, the worker calls the internal document tagging command so that tags are persisted in the Document module.
+
+## Rule layout inside Tagger
+
+The Tagger worker now ships with a set of default rule assets to make it easier to manage and extend automatic tagging:
+
+- `src/Workers/Tagger/RulesConfiguration/JsonRules/CustomerTag.json`: sample JSON rules that can be overridden or extended per deployment.
+- `src/Workers/Tagger/Rules/AutoDate.cs`: a built-in rule that emits a tag for the document upload date.
+- `src/Workers/Tagger/Rules/DocumentType.cs`: built-in rules that map file extensions to friendly tag names such as `Document` or `Images`.
+
+The default JSON file is copied to the worker output, and the rule providers automatically merge it with any additional paths configured through `TaggerRules:files`. Custom rules remain alongside these folders so that they are easy to locate and update.

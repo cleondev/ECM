@@ -128,6 +128,35 @@ public class TaggingEventProcessorTests
         Assert.Equal(@event.DocumentId, enricher.LastDocumentId);
     }
 
+    [Fact]
+    public async Task HandleDocumentUploadedAsync_AssignsTagNamesFromRuleOutput()
+    {
+        var tagNames = new[] { "Uploaded 2024-01-01", "Images" };
+        var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>(), tagNames);
+        var assignmentService = new RecordingAssignmentService();
+        var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
+        var processor = new TaggingEventProcessor(
+            ruleEngine,
+            assignmentService,
+            contextFactory,
+            NullLogger<TaggingEventProcessor>.Instance);
+
+        var @event = new DocumentUploadedIntegrationEvent(
+            Guid.NewGuid(),
+            new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            Guid.NewGuid(),
+            "photo.png",
+            null,
+            null,
+            new Dictionary<string, string> { ["extension"] = ".png" },
+            null);
+
+        await processor.HandleDocumentUploadedAsync(@event);
+
+        Assert.Equal(tagNames, assignmentService.LastTagNames);
+        Assert.Equal(1, assignmentService.InvocationCount);
+    }
+
     private sealed class RecordingContextEnricher : ITaggingRuleContextEnricher
     {
         public Guid? LastDocumentId { get; private set; }

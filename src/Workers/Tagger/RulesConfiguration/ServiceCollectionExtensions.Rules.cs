@@ -1,0 +1,30 @@
+using Ecm.Rules.Abstractions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
+namespace Tagger;
+
+internal static class RulesServiceCollectionExtensions
+{
+    public static IServiceCollection AddTaggerRules(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        services.AddSingleton<IValidateOptions<TaggerRulesOptions>, TaggerRulesOptionsValidator>();
+        services.AddSingleton<IConfigureOptions<TaggerRulesOptions>, TaggerRulesOptionsSetup>();
+
+        services
+            .AddOptions<TaggerRulesOptions>()
+            .Bind(configuration.GetSection(TaggerRulesOptions.SectionName))
+            .ValidateOnStart();
+
+        services.AddSingleton<IRuleProvider, TaggerRuleProvider>();
+        services.AddSingleton<IRuleProvider, BuiltInRuleProvider>();
+
+        services.AddSingleton<ITaggingRuleContextEnricher, DocumentTypeContextEnricher>();
+
+        return services;
+    }
+}

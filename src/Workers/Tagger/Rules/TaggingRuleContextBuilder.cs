@@ -8,26 +8,32 @@ internal sealed class TaggingRuleContextBuilder
     private readonly Dictionary<string, string> _metadata;
     private readonly Dictionary<string, string> _fields;
 
-    private TaggingRuleContextBuilder(Guid documentId, string title)
+    private TaggingRuleContextBuilder(Guid documentId, string title, DateTimeOffset occurredAtUtc)
     {
         DocumentId = documentId;
         Title = title;
+        OccurredAtUtc = occurredAtUtc;
 
         _items = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase)
         {
             ["DocumentId"] = documentId,
-            ["Title"] = title
+            ["Title"] = title,
+            ["OccurredAtUtc"] = occurredAtUtc
         };
 
         _metadata = new(StringComparer.OrdinalIgnoreCase);
         _fields = new Dictionary<string, string>(_metadata, StringComparer.OrdinalIgnoreCase);
 
         AddField("title", title);
+        AddField("occurredAtUtc", occurredAtUtc.ToString("O"));
+        AddField("occurredAtDate", occurredAtUtc.ToString("yyyy-MM-dd"));
     }
 
     public Guid DocumentId { get; }
 
     public string Title { get; }
+
+    public DateTimeOffset OccurredAtUtc { get; }
 
     public string? Summary { get; private set; }
 
@@ -115,11 +121,12 @@ internal sealed class TaggingRuleContextBuilder
     public static TaggingRuleContextBuilder FromMetadata(
         Guid documentId,
         string title,
+        DateTimeOffset occurredAtUtc,
         string? summary,
         string? content,
         IDictionary<string, string>? metadata)
     {
-        var builder = new TaggingRuleContextBuilder(documentId, title)
+        var builder = new TaggingRuleContextBuilder(documentId, title, occurredAtUtc)
             .WithSummary(summary)
             .WithContent(content)
             .AddMetadata(metadata);
@@ -134,6 +141,7 @@ internal sealed class TaggingRuleContextBuilder
         return FromMetadata(
             integrationEvent.DocumentId,
             integrationEvent.Title,
+            integrationEvent.OccurredAtUtc,
             integrationEvent.Summary,
             integrationEvent.Content,
             integrationEvent.Metadata);
