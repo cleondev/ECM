@@ -38,6 +38,8 @@ internal sealed class TaggingRuleContextFactory : ITaggingRuleContextFactory
         }
 
         var items = builder.Build();
-        return _ruleContextFactory.FromDictionary(items);
+        var dictionary = new Dictionary<string, object>(items, StringComparer.OrdinalIgnoreCase);
+
+        return _ruleContextFactory.FromDictionary(dictionary);
     }
 }
