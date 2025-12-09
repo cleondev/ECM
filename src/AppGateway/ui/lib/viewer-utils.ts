@@ -1,4 +1,5 @@
-import type { FileDetail, FileItem, FilePreview, ViewerDescriptor, ViewerType } from "@/lib/types"
+import type { FileDetail, FileItem, FilePreview } from "@/lib/types"
+import type { ViewerDescriptor, ViewerType } from "@/lib/viewer-types"
 
 export type ViewerCategory = ViewerType | "code"
 
@@ -72,6 +73,7 @@ function normalizeViewerType(input?: string | ViewerType | null): ViewerType | u
     case "video":
     case "image":
     case "pdf":
+    case "code":
     case "word":
     case "excel":
     case "unsupported":
@@ -221,8 +223,7 @@ function buildDetectionResult(category?: ViewerCategory, viewerType?: ViewerType
   }
 
   const resolvedCategory = category ?? viewerTypeToCategory(viewerType) ?? "unsupported"
-  const resolvedViewerType: ViewerType =
-    viewerType ?? (resolvedCategory !== "code" ? (resolvedCategory as ViewerType) : "unsupported")
+  const resolvedViewerType: ViewerType = viewerType ?? (resolvedCategory as ViewerType)
 
   return { category: resolvedCategory, viewerType: resolvedViewerType }
 }
