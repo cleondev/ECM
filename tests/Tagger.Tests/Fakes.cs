@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ecm.Rules.Abstractions;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Tagger;
 
@@ -67,18 +69,6 @@ internal sealed class RecordingRuleEngine : IRuleEngine
     }
 }
 
-internal sealed class TestTaggingRuleSource : ITaggingRuleSource
-{
-    private readonly IReadOnlyCollection<TaggingRuleOptions>? _rules;
-
-    public TestTaggingRuleSource(IReadOnlyCollection<TaggingRuleOptions>? rules)
-    {
-        _rules = rules;
-    }
-
-    public IReadOnlyCollection<TaggingRuleOptions> GetRules() => _rules ?? Array.Empty<TaggingRuleOptions>();
-}
-
 internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
 {
     public Guid? LastDocumentId { get; private set; }
@@ -103,4 +93,20 @@ internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
         LastTagNames = tagNames;
         return Task.FromResult(AssignTagsResult);
     }
+}
+
+internal sealed class TestHostEnvironment : IHostEnvironment
+{
+    public TestHostEnvironment(string contentRoot)
+    {
+        ContentRootPath = contentRoot;
+    }
+
+    public string ApplicationName { get; set; } = "Tagger.Tests";
+
+    public IFileProvider ContentRootFileProvider { get; set; } = null!;
+
+    public string ContentRootPath { get; set; }
+
+    public string EnvironmentName { get; set; } = Environments.Production;
 }

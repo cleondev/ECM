@@ -4,26 +4,23 @@ The **Tagger.Worker** service listens to document pipeline events (upload comple
 
 ## Configuration
 
-Rules are supplied through the worker configuration under the `TaggingRules` section. The schema is:
+Rules are supplied through the worker configuration under the `TaggerRules` section. The schema is:
 
 ```json
 {
-  "TaggingRules": {
+  "TaggerRules": {
     "appliedBy": "optional GUID recorded as the actor",
-    "rules": [
+    "files": ["optional absolute or relative paths to rule files"],
+    "ruleSets": [
       {
-        "name": "display name",
-        "description": "optional notes",
-        "enabled": true,
-        "tagId": "GUID of the tag label to apply",
-        "trigger": "All | DocumentUploaded | OcrCompleted",
-        "match": "All | Any",
-        "conditions": [
+        "name": "Tagging.DocumentUploaded | Tagging.OcrCompleted",
+        "rules": [
           {
-            "field": "metadata key (e.g. extension, uploadedBy, classification)",
-            "operator": "Equals | NotEquals | Contains | NotContains | StartsWith | EndsWith | In | NotIn | Regex",
-            "value": "single comparison value",
-            "values": ["optional array of comparison values for In/NotIn"]
+            "name": "display name",
+            "condition": "rule expression using context fields (case-insensitive)",
+            "set": {
+              "TagIds": ["list of tag IDs to apply"]
+            }
           }
         ]
       }
@@ -32,31 +29,37 @@ Rules are supplied through the worker configuration under the `TaggingRules` sec
 }
 ```
 
+Rule sets map directly to tagger events. Use `Tagging.DocumentUploaded` to react to uploads and `Tagging.OcrCompleted` for OCR events. A rule definition sets output values; to apply tags, populate `TagIds` with the GUIDs of labels to assign. Conditions support `&&`/`||` composition with equality and comparison operators.
+
 ### Example
 
 ```json
 {
-  "TaggingRules": {
+  "TaggerRules": {
     "appliedBy": "00000000-0000-0000-0000-000000000001",
-    "rules": [
+    "ruleSets": [
       {
-        "name": "HR PDFs",
-        "tagId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-        "trigger": "DocumentUploaded",
-        "match": "All",
-        "conditions": [
-          { "field": "extension", "operator": "Equals", "value": ".pdf" },
-          { "field": "uploadedBy", "operator": "Equals", "value": "hr-team" }
+        "name": "Tagging.DocumentUploaded",
+        "rules": [
+          {
+            "name": "HR PDFs",
+            "condition": "extension == \".pdf\" && uploadedBy == \"hr-team\"",
+            "set": {
+              "TagIds": ["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"]
+            }
+          }
         ]
       },
       {
-        "name": "Invoices via OCR",
-        "tagId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-        "trigger": "OcrCompleted",
-        "match": "Any",
-        "conditions": [
-          { "field": "classification", "operator": "Equals", "values": ["invoice", "receipt"] },
-          { "field": "content", "operator": "Contains", "value": "amount due" }
+        "name": "Tagging.OcrCompleted",
+        "rules": [
+          {
+            "name": "Invoices via OCR",
+            "condition": "classification == \"invoice\" || classification == \"receipt\"",
+            "set": {
+              "TagIds": ["bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"]
+            }
+          }
         ]
       }
     ]
