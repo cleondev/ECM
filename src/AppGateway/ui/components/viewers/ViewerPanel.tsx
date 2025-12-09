@@ -4,7 +4,6 @@ import { PdfViewer } from "@/app/viewer/pdf-viewer"
 import type { FileDetail } from "@/lib/types"
 import type { ViewerCategory } from "@/lib/viewer-utils"
 import type { ViewerDescriptor, ViewerType } from "@/lib/viewer-types"
-import { CodeViewer } from "./CodeViewer"
 import { ExcelViewer } from "./ExcelViewer"
 import { ImageViewer } from "./ImageViewer"
 import { UnsupportedViewer } from "./UnsupportedViewer"
@@ -58,8 +57,6 @@ export function ViewerPanel({
       const poster = file.preview.kind === "video" ? file.preview.poster : resolvedThumbnail
       return <VideoViewer file={file} src={source} poster={poster ?? undefined} />
     }
-    case "code":
-      return <CodeViewer file={file} />
     case "word":
       return <WordViewer file={file} sfdtUrl={resolvedWordUrl} />
     case "excel":
