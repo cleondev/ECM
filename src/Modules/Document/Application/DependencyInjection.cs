@@ -15,6 +15,7 @@ public static class DocumentApplicationModuleExtensions
         services.AddScoped<IDocumentUserContextResolver, DocumentUserContextResolver>();
         services.AddScoped<CreateDocumentCommandHandler>();
         services.AddScoped<UploadDocumentCommandHandler>();
+        services.AddScoped<UploadDocumentVersionCommandHandler>();
         services.AddScoped<DeleteDocumentCommandHandler>();
         services.AddScoped<UpdateDocumentCommandHandler>();
         services.AddScoped<CreateTagLabelCommandHandler>();

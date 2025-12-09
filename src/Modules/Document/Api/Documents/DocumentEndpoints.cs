@@ -4,13 +4,17 @@ using System.Security.Cryptography;
 
 using ECM.Abstractions.Files;
 using ECM.Abstractions.Users;
+using ECM.BuildingBlocks.Application.Abstractions.Time;
 using ECM.Document.Api.Documents.Extensions;
 using ECM.Document.Api.Documents.Options;
 using ECM.Document.Api.Documents.Requests;
 using ECM.Document.Api.Documents.Responses;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Queries;
+using ECM.Document.Application.Documents.Repositories;
+using ECM.Document.Application.Documents.Summaries;
 using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.Versions;
 using ECM.Document.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Builder;
@@ -23,6 +27,8 @@ using Microsoft.Extensions.Options;
 using Shared.Extensions.Http;
 
 using DomainDocument = ECM.Document.Domain.Documents.Document;
+using DomainVersion = ECM.Document.Domain.Versions.DocumentVersion;
+using DocumentVersionSummary = ECM.Document.Application.Documents.Summaries.DocumentVersionResult;
 
 namespace ECM.Document.Api.Documents;
 
@@ -77,6 +83,36 @@ public static class DocumentEndpoints
             .WithDescription("Deletes a document using one of its version identifiers.");
 
         group
+            .MapGet("/documents/{documentId:guid}/versions", ListDocumentVersionsAsync)
+            .WithName("ListDocumentVersions")
+            .WithDescription("Lists all versions for a document.");
+
+        group
+            .MapPost("/documents/{documentId:guid}/versions:init", InitiateVersionUploadAsync)
+            .WithName("InitiateDocumentVersionUpload")
+            .WithDescription("Uploads a new version for an existing document.");
+
+        group
+            .MapPost("/documents/{documentId:guid}/versions/{versionId:guid}/complete", CompleteVersionUploadAsync)
+            .WithName("CompleteDocumentVersionUpload")
+            .WithDescription("Acknowledges completion for a version upload.");
+
+        group
+            .MapGet("/versions/{versionId:guid}", GetDocumentVersionAsync)
+            .WithName("GetDocumentVersion")
+            .WithDescription("Retrieves a single document version by identifier.");
+
+        group
+            .MapDelete("/versions/{versionId:guid}", DeleteDocumentVersionAsync)
+            .WithName("DeleteDocumentVersion")
+            .WithDescription("Deletes a specific version from a document.");
+
+        group
+            .MapPost("/versions/{versionId:guid}/promote", PromoteDocumentVersionAsync)
+            .WithName("PromoteDocumentVersion")
+            .WithDescription("Promotes a version to be the most recent.");
+
+        group
             .MapGet("/files/download/{versionId:guid}", DownloadFileAsync)
             .WithName("DownloadDocumentVersion")
             .WithDescription("Redirects to a signed URL for downloading a document version.");
@@ -85,6 +121,16 @@ public static class DocumentEndpoints
             .MapGet("/files/preview/{versionId:guid}", PreviewFileAsync)
             .WithName("PreviewDocumentVersion")
             .WithDescription("Streams the original file content for preview purposes.");
+
+        group
+            .MapGet("/files/viewer/word/{versionId:guid}", GetWordViewerAsync)
+            .WithName("GetWordViewerPayload")
+            .WithDescription("Returns the payload used by the Word viewer.");
+
+        group
+            .MapGet("/files/viewer/excel/{versionId:guid}", GetExcelViewerAsync)
+            .WithName("GetExcelViewerPayload")
+            .WithDescription("Returns the payload used by the Excel viewer.");
 
         group
             .MapGet("/files/thumbnails/{versionId:guid}", GetThumbnailAsync)
@@ -182,6 +228,196 @@ public static class DocumentEndpoints
         }
 
         return TypedResults.NoContent();
+    }
+
+    private static async Task<Results<Ok<DocumentVersionResponse[]>, NotFound>> ListDocumentVersionsAsync(
+        Guid documentId,
+        DocumentDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var documentIdValue = DocumentId.FromGuid(documentId);
+        var documentExists = await context.Documents
+            .AsNoTracking()
+            .AnyAsync(document => document.Id == documentIdValue, cancellationToken);
+
+        if (!documentExists)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var versions = await context.DocumentVersions
+            .AsNoTracking()
+            .Where(version => version.DocumentId == documentIdValue)
+            .OrderByDescending(version => version.VersionNo)
+            .Select(MapVersion)
+            .ToArrayAsync(cancellationToken);
+
+        return TypedResults.Ok(versions);
+    }
+
+    private static async Task<Results<Created<DocumentVersionResponse>, ValidationProblem, NotFound>> InitiateVersionUploadAsync(
+        Guid documentId,
+        UploadDocumentVersionRequest request,
+        UploadDocumentVersionCommandHandler handler,
+        CancellationToken cancellationToken)
+    {
+        if (request.File is null || request.File.Length <= 0)
+        {
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]> { ["file"] = ["A non-empty file is required."] }
+            );
+        }
+
+        var contentType = string.IsNullOrWhiteSpace(request.File.ContentType)
+            ? "application/octet-stream"
+            : request.File.ContentType;
+
+        var sha256 = await ComputeSha256Async(request.File, cancellationToken);
+
+        await using var uploadStream = request.File.OpenReadStream();
+        var command = new UploadDocumentVersionCommand(
+            documentId,
+            NormalizeGuid(request.CreatedBy),
+            request.File.FileName,
+            contentType,
+            request.File.Length,
+            sha256,
+            uploadStream);
+
+        var result = await handler.HandleAsync(command, cancellationToken);
+        if (result.IsFailure || result.Value is null)
+        {
+            if (result.Errors.Any(error =>
+                    string.Equals(error, UploadDocumentVersionCommandHandler.DocumentNotFoundError, StringComparison.Ordinal)))
+            {
+                return TypedResults.NotFound();
+            }
+
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["version"] = [.. result.Errors] });
+        }
+
+        var response = MapVersion(result.Value);
+        return TypedResults.Created($"/api/ecm/versions/{response.Id}", response);
+    }
+
+    private static async Task<Results<Ok<DocumentVersionResponse>, NotFound>> CompleteVersionUploadAsync(
+        Guid documentId,
+        Guid versionId,
+        DocumentDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var documentIdValue = DocumentId.FromGuid(documentId);
+        var version = await context.DocumentVersions
+            .AsNoTracking()
+            .Where(candidate => candidate.Id == versionId && candidate.DocumentId == documentIdValue)
+            .Select(MapVersion)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return version is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(version);
+    }
+
+    private static async Task<Results<Ok<DocumentVersionResponse>, NotFound>> GetDocumentVersionAsync(
+        Guid versionId,
+        DocumentDbContext context,
+        CancellationToken cancellationToken)
+    {
+        var version = await context.DocumentVersions
+            .AsNoTracking()
+            .Where(candidate => candidate.Id == versionId)
+            .Select(MapVersion)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return version is null
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(version);
+    }
+
+    private static async Task<Results<NoContent, NotFound, ValidationProblem>> DeleteDocumentVersionAsync(
+        Guid versionId,
+        DocumentDbContext context,
+        IDocumentRepository repository,
+        ISystemClock clock,
+        CancellationToken cancellationToken)
+    {
+        var documentRef = await context.DocumentVersions
+            .AsNoTracking()
+            .Where(version => version.Id == versionId)
+            .Select(version => new { version.Id, version.DocumentId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (documentRef is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var document = await repository.GetAsync(documentRef.DocumentId, cancellationToken);
+        if (document is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        try
+        {
+            var removed = document.RemoveVersion(versionId, clock.UtcNow);
+            if (!removed)
+            {
+                return TypedResults.NotFound();
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["version"] = [exception.Message] });
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<Results<Ok<DocumentVersionResponse>, NotFound, ValidationProblem>> PromoteDocumentVersionAsync(
+        Guid versionId,
+        DocumentDbContext context,
+        IDocumentRepository repository,
+        ISystemClock clock,
+        CancellationToken cancellationToken)
+    {
+        var documentRef = await context.DocumentVersions
+            .AsNoTracking()
+            .Where(version => version.Id == versionId)
+            .Select(version => new { version.Id, version.DocumentId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (documentRef is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var document = await repository.GetAsync(documentRef.DocumentId, cancellationToken);
+        if (document is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        DomainVersion? promotedVersion;
+        try
+        {
+            promotedVersion = document.PromoteVersion(versionId, clock.UtcNow);
+        }
+        catch (ArgumentException exception)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["version"] = [exception.Message] });
+        }
+
+        if (promotedVersion is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.Ok(MapVersion(promotedVersion));
     }
 
     private static async Task<
@@ -669,6 +905,20 @@ public static class DocumentEndpoints
         );
     }
 
+    private static Task<IResult> GetWordViewerAsync(
+        Guid versionId,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
+        CancellationToken cancellationToken
+    ) => PreviewFileAsync(versionId, versionReadService, fileAccess, cancellationToken);
+
+    private static Task<IResult> GetExcelViewerAsync(
+        Guid versionId,
+        IDocumentVersionReadService versionReadService,
+        IFileAccessGateway fileAccess,
+        CancellationToken cancellationToken
+    ) => PreviewFileAsync(versionId, versionReadService, fileAccess, cancellationToken);
+
     private static async Task<IResult> ShareFileAsync(
         Guid versionId,
         ShareDocumentVersionRequest request,
@@ -846,6 +1096,34 @@ public static class DocumentEndpoints
         using var sha256 = SHA256.Create();
         var hash = await sha256.ComputeHashAsync(stream, cancellationToken);
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static DocumentVersionResponse MapVersion(DocumentVersionSummary version)
+    {
+        return new DocumentVersionResponse(
+            version.Id,
+            version.VersionNo,
+            version.StorageKey,
+            version.Bytes,
+            version.MimeType,
+            version.Sha256,
+            version.CreatedBy,
+            version.CreatedAtUtc
+        );
+    }
+
+    private static DocumentVersionResponse MapVersion(DomainVersion version)
+    {
+        return new DocumentVersionResponse(
+            version.Id,
+            version.VersionNo,
+            version.StorageKey,
+            version.Bytes,
+            version.MimeType,
+            version.Sha256,
+            version.CreatedBy,
+            version.CreatedAtUtc
+        );
     }
 
     private static DocumentResponse MapDocument(DomainDocument document)
