@@ -16,7 +16,12 @@ public class TaggingEventProcessorTests
         var tagIds = new[] { Guid.NewGuid(), Guid.NewGuid() };
         var ruleEngine = new RecordingRuleEngine(tagIds);
         var assignmentService = new RecordingAssignmentService();
-        var processor = new TaggingEventProcessor(ruleEngine, assignmentService, NullLogger<TaggingEventProcessor>.Instance);
+        var contextFactory = new TaggingRuleContextFactory(Array.Empty<ITaggingRuleContextEnricher>());
+        var processor = new TaggingEventProcessor(
+            ruleEngine,
+            assignmentService,
+            contextFactory,
+            NullLogger<TaggingEventProcessor>.Instance);
 
         var @event = new DocumentUploadedIntegrationEvent(
             Guid.NewGuid(),
@@ -42,7 +47,12 @@ public class TaggingEventProcessorTests
     {
         var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>());
         var assignmentService = new RecordingAssignmentService();
-        var processor = new TaggingEventProcessor(ruleEngine, assignmentService, NullLogger<TaggingEventProcessor>.Instance);
+        var contextFactory = new TaggingRuleContextFactory(Array.Empty<ITaggingRuleContextEnricher>());
+        var processor = new TaggingEventProcessor(
+            ruleEngine,
+            assignmentService,
+            contextFactory,
+            NullLogger<TaggingEventProcessor>.Instance);
 
         var @event = new DocumentUploadedIntegrationEvent(
             Guid.NewGuid(),
@@ -66,7 +76,12 @@ public class TaggingEventProcessorTests
         var tags = new[] { Guid.NewGuid() };
         var ruleEngine = new RecordingRuleEngine(tags);
         var assignmentService = new RecordingAssignmentService();
-        var processor = new TaggingEventProcessor(ruleEngine, assignmentService, NullLogger<TaggingEventProcessor>.Instance);
+        var contextFactory = new TaggingRuleContextFactory(Array.Empty<ITaggingRuleContextEnricher>());
+        var processor = new TaggingEventProcessor(
+            ruleEngine,
+            assignmentService,
+            contextFactory,
+            NullLogger<TaggingEventProcessor>.Instance);
 
         var @event = new OcrCompletedIntegrationEvent(
             Guid.NewGuid(),
@@ -82,5 +97,44 @@ public class TaggingEventProcessorTests
 
         Assert.Equal(TaggingRuleTrigger.OcrCompleted, ruleEngine.LastTrigger);
         Assert.Equal(1, assignmentService.InvocationCount);
+    }
+
+    [Fact]
+    public async Task HandleDocumentUploadedAsync_EnrichesContext()
+    {
+        var ruleEngine = new RecordingRuleEngine(new[] { Guid.NewGuid() });
+        var assignmentService = new RecordingAssignmentService();
+        var enricher = new RecordingContextEnricher();
+        var contextFactory = new TaggingRuleContextFactory(new[] { enricher });
+        var processor = new TaggingEventProcessor(
+            ruleEngine,
+            assignmentService,
+            contextFactory,
+            NullLogger<TaggingEventProcessor>.Instance);
+
+        var @event = new DocumentUploadedIntegrationEvent(
+            Guid.NewGuid(),
+            DateTimeOffset.UtcNow,
+            Guid.NewGuid(),
+            "Quarterly Plan",
+            "Q1 plan",
+            "Detailed content",
+            new Dictionary<string, string>(),
+            null);
+
+        await processor.HandleDocumentUploadedAsync(@event);
+
+        Assert.Equal(@event.DocumentId, enricher.LastDocumentId);
+    }
+
+    private sealed class RecordingContextEnricher : ITaggingRuleContextEnricher
+    {
+        public Guid? LastDocumentId { get; private set; }
+
+        public void Enrich(TaggingRuleContextBuilder builder, ITaggingIntegrationEvent integrationEvent)
+        {
+            LastDocumentId = integrationEvent.DocumentId;
+            builder.AddField("custom", integrationEvent.DocumentId.ToString());
+        }
     }
 }

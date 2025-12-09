@@ -6,7 +6,7 @@ namespace Tagger;
 
 public sealed class TaggingRuleContext
 {
-    private TaggingRuleContext(
+    internal TaggingRuleContext(
         Guid documentId,
         string title,
         string? summary,
@@ -41,53 +41,9 @@ public sealed class TaggingRuleContext
         string? content,
         IDictionary<string, string>? metadata)
     {
-        var normalizedMetadata = metadata is null
-            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            : Normalize(metadata);
+        var builder = TaggingRuleContextBuilder
+            .FromMetadata(documentId, title, summary, content, metadata);
 
-        var fieldBag = new Dictionary<string, string>(normalizedMetadata, StringComparer.OrdinalIgnoreCase);
-
-        if (!string.IsNullOrWhiteSpace(title))
-        {
-            fieldBag["title"] = title;
-        }
-
-        if (!string.IsNullOrWhiteSpace(summary))
-        {
-            fieldBag["summary"] = summary!;
-        }
-
-        if (!string.IsNullOrWhiteSpace(content))
-        {
-            fieldBag["content"] = content!;
-        }
-
-        return new TaggingRuleContext(
-            documentId,
-            title,
-            summary,
-            content,
-            new ReadOnlyDictionary<string, string>(normalizedMetadata),
-            new ReadOnlyDictionary<string, string>(fieldBag));
-    }
-
-    private static Dictionary<string, string> Normalize(IDictionary<string, string> metadata)
-    {
-        var buffer = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var entry in metadata)
-        {
-            var key = entry.Key?.Trim();
-            var value = entry.Value?.Trim();
-
-            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(value))
-            {
-                continue;
-            }
-
-            buffer[key] = value;
-        }
-
-        return buffer;
+        return builder.Build();
     }
 }

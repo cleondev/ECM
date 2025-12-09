@@ -2,26 +2,29 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Options;
 
 namespace Tagger;
 
 internal sealed class TaggingRuleEngine : ITaggingRuleEngine
 {
     private static readonly StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
-    private readonly IOptionsMonitor<TaggingRulesOptions> _options;
+    private readonly IReadOnlyCollection<ITaggingRuleProvider> _ruleProviders;
 
-    public TaggingRuleEngine(IOptionsMonitor<TaggingRulesOptions> options)
+    public TaggingRuleEngine(IEnumerable<ITaggingRuleProvider> ruleProviders)
     {
-        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _ruleProviders = ruleProviders?.ToArray()
+            ?? throw new ArgumentNullException(nameof(ruleProviders));
     }
 
     public IReadOnlyCollection<Guid> Evaluate(TaggingRuleContext context, TaggingRuleTrigger trigger)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var rules = _options.CurrentValue?.Rules;
-        if (rules is null || rules.Count == 0)
+        var rules = _ruleProviders
+            .SelectMany(provider => provider.GetRules() ?? Array.Empty<TaggingRuleOptions>())
+            .ToArray();
+
+        if (rules.Length == 0)
         {
             return Array.Empty<Guid>();
         }

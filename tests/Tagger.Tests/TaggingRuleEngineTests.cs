@@ -39,7 +39,7 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new TestOptionsMonitor(options));
+        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
         var context = TaggingRuleContext.Create(
             Guid.NewGuid(),
             "Benefits Package",
@@ -81,7 +81,7 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new TestOptionsMonitor(options));
+        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
         var context = TaggingRuleContext.Create(Guid.NewGuid(), "Invoice", null, null, new Dictionary<string, string>
         {
             ["classification"] = "invoice"
@@ -124,7 +124,7 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new TestOptionsMonitor(options));
+        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
         var context = TaggingRuleContext.Create(Guid.NewGuid(), "Report", null, "Highly confidential document.", new Dictionary<string, string>());
 
         var result = engine.Evaluate(context, TaggingRuleTrigger.DocumentUploaded);
@@ -157,7 +157,7 @@ public class TaggingRuleEngineTests
             }
         };
 
-        var engine = new TaggingRuleEngine(new TestOptionsMonitor(options));
+        var engine = new TaggingRuleEngine(new[] { new TestTaggingRuleProvider(options.Rules) });
         var context = TaggingRuleContext.Create(Guid.NewGuid(), "Ops Doc", null, null, new Dictionary<string, string>
         {
             ["groupIds"] = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa,bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
@@ -167,5 +167,42 @@ public class TaggingRuleEngineTests
 
         Assert.Single(result);
         Assert.Contains(tagId, result);
+    }
+
+    [Fact]
+    public void Evaluate_MergesRulesFromMultipleProviders()
+    {
+        var uploadTag = Guid.NewGuid();
+        var ocrTag = Guid.NewGuid();
+
+        var uploadProvider = new TestTaggingRuleProvider(new[]
+        {
+            new TaggingRuleOptions
+            {
+                Name = "Uploads",
+                TagId = uploadTag,
+                Trigger = TaggingRuleTrigger.DocumentUploaded
+            }
+        });
+
+        var ocrProvider = new TestTaggingRuleProvider(new[]
+        {
+            new TaggingRuleOptions
+            {
+                Name = "OCR",
+                TagId = ocrTag,
+                Trigger = TaggingRuleTrigger.OcrCompleted
+            }
+        });
+
+        var engine = new TaggingRuleEngine(new[] { uploadProvider, ocrProvider });
+
+        var context = TaggingRuleContext.Create(Guid.NewGuid(), "Ops Doc", null, null, new Dictionary<string, string>());
+
+        var uploadResults = engine.Evaluate(context, TaggingRuleTrigger.DocumentUploaded);
+        var ocrResults = engine.Evaluate(context, TaggingRuleTrigger.OcrCompleted);
+
+        Assert.Contains(uploadTag, uploadResults);
+        Assert.Contains(ocrTag, ocrResults);
     }
 }

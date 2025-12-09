@@ -40,6 +40,16 @@ public static class Program
                 .Bind(builder.Configuration.GetSection(TaggingRulesOptions.SectionName))
                 .ValidateOnStart();
 
+            builder.Services.AddSingleton<IValidateOptions<TaggingRuleFilesOptions>, TaggingRuleFilesOptionsValidator>();
+            builder.Services
+                .AddOptions<TaggingRuleFilesOptions>()
+                .Bind(builder.Configuration.GetSection(TaggingRuleFilesOptions.SectionName))
+                .ValidateOnStart();
+
+            builder.Services.AddSingleton<ITaggingRuleProvider, OptionsTaggingRuleProvider>();
+            builder.Services.AddSingleton<ITaggingRuleProvider, FileSystemTaggingRuleProvider>();
+
+            builder.Services.AddSingleton<ITaggingRuleContextFactory, TaggingRuleContextFactory>();
             builder.Services.AddSingleton<ITaggingRuleEngine, TaggingRuleEngine>();
             builder.Services.AddScoped<IDocumentTagAssignmentService, DocumentTagAssignmentService>();
             builder.Services.AddScoped<TaggingEventProcessor>();
