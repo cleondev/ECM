@@ -35,7 +35,7 @@ public sealed class EcmFileClient
     public EcmFileClient(
         HttpClient httpClient,
         ILogger<EcmFileClient> logger,
-        IOptionsSnapshot<EcmIntegrationOptions> options)
+        IOptions<EcmIntegrationOptions> options)
     {
         _httpClient = httpClient;
         _logger = logger;

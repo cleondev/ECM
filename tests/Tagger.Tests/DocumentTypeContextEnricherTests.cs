@@ -8,6 +8,7 @@ using Ecm.Sdk.Configuration;
 using Ecm.Sdk.Models.Documents;
 
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 using Tagger.Events;
 using Tagger.Rules.Configuration;
@@ -65,7 +66,7 @@ public sealed class DocumentTypeContextEnricherTests
         });
 
         var httpClient = new HttpClient(handler);
-        var options = new TestOptionsSnapshot<EcmIntegrationOptions>(new EcmIntegrationOptions { BaseUrl = "http://localhost" });
+        var options = Options.Create(new EcmIntegrationOptions { BaseUrl = "http://localhost" });
         var ecmClient = new EcmFileClient(httpClient, NullLogger<EcmFileClient>.Instance, options);
         var enricher = new DocumentTypeContextEnricher(ecmClient, NullLogger<DocumentTypeContextEnricher>.Instance);
 
