@@ -12,6 +12,9 @@ using Tagger.Services;
 
 namespace Tagger.Processing;
 
+/// <summary>
+/// Orchestrates rule evaluation for tagging events and applies any tags produced by matching rules.
+/// </summary>
 internal sealed class TaggingEventProcessor(
     IRuleEngine ruleEngine,
     IDocumentTagAssignmentService assignmentService,
@@ -28,18 +31,27 @@ internal sealed class TaggingEventProcessor(
         ?? throw new ArgumentNullException(nameof(ruleSetSelector));
     private readonly IRuleEngine _ruleEngine = ruleEngine ?? throw new ArgumentNullException(nameof(ruleEngine));
 
+    /// <summary>
+    /// Handles a document uploaded event by evaluating the configured rulesets for uploads.
+    /// </summary>
     public Task HandleDocumentUploadedAsync(DocumentUploadedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
         return EvaluateAsync(integrationEvent, cancellationToken);
     }
 
+    /// <summary>
+    /// Handles an OCR completed event by evaluating the configured rulesets for OCR results.
+    /// </summary>
     public Task HandleOcrCompletedAsync(OcrCompletedIntegrationEvent integrationEvent, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
         return EvaluateAsync(integrationEvent, cancellationToken);
     }
 
+    /// <summary>
+    /// Builds the rule context, resolves active rulesets for the event, and evaluates them sequentially.
+    /// </summary>
     private async Task EvaluateAsync(ITaggingIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
         var context = _contextFactory.Create(integrationEvent);
@@ -60,6 +72,9 @@ internal sealed class TaggingEventProcessor(
         }
     }
 
+    /// <summary>
+    /// Executes a single ruleset against the rule context and applies resulting tag IDs or tag names.
+    /// </summary>
     private async Task EvaluateRuleSetAsync(
         ITaggingIntegrationEvent integrationEvent,
         string ruleSetName,

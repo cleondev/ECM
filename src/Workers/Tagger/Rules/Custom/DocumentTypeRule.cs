@@ -8,6 +8,9 @@ using Tagger.Rules.Configuration;
 
 namespace Tagger.Rules.Custom;
 
+/// <summary>
+/// Assigns tag names based on document file extensions, falling back to metadata when needed.
+/// </summary>
 internal sealed class DocumentTypeRule : IRule
 {
     private static readonly IReadOnlyDictionary<string, string> ExtensionMappings = new Dictionary<string, string>(
@@ -41,6 +44,9 @@ internal sealed class DocumentTypeRule : IRule
 
     public string Name => "Document Type";
 
+    /// <summary>
+    /// Resolves an extension from integration event metadata or title for use in rule context enrichment.
+    /// </summary>
     public static string? ResolveExtension(ITaggingIntegrationEvent integrationEvent)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
@@ -62,8 +68,14 @@ internal sealed class DocumentTypeRule : IRule
         return null;
     }
 
+    /// <summary>
+    /// Matches when an extension can be derived from the rule context.
+    /// </summary>
     public bool Match(IRuleContext ctx) => TryResolveExtension(ctx, out _);
 
+    /// <summary>
+    /// Emits a tag name mapped from the resolved extension when available.
+    /// </summary>
     public void Apply(IRuleContext ctx, IRuleOutput output)
     {
         if (!TryResolveExtension(ctx, out var extension))

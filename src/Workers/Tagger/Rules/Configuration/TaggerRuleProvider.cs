@@ -12,6 +12,9 @@ using Microsoft.Extensions.Options;
 
 namespace Tagger.Rules.Configuration;
 
+/// <summary>
+/// Loads tagging rule definitions from configuration objects and optional JSON files.
+/// </summary>
 internal sealed class TaggerRuleProvider : IRuleProvider
 {
     private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
@@ -29,6 +32,9 @@ internal sealed class TaggerRuleProvider : IRuleProvider
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
+    /// <summary>
+    /// Identifies the configuration-based provider when combining rule sets.
+    /// </summary>
     public string Source => "Tagger.Configuration";
 
     public IEnumerable<IRuleSet> GetRuleSets()
