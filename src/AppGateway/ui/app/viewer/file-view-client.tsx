@@ -261,18 +261,6 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
         <main className="flex-1 overflow-auto p-6">
           <div className="mx-auto max-w-6xl space-y-4">
             <div className="rounded-2xl border border-border bg-background shadow-sm">
-              <div className="flex items-center justify-between border-b border-border/70 px-5 py-3 text-xs text-muted-foreground">
-                <div className="flex flex-wrap items-center gap-2">
-                  <BadgeCheck className="h-4 w-4 text-emerald-500" />
-                  <span>Trình xem được chọn tự động dựa trên định dạng tệp.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                    <FileText className="h-3 w-3" />
-                    {extension ? `.${extension}` : "Không rõ"}
-                  </Badge>
-              </div>
-            </div>
             <div className="p-5">
               {viewerDescriptorError ? (
                 <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
