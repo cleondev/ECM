@@ -257,9 +257,9 @@ public class TaggingRuleEngineTests
                 case IEnumerable<object> objects:
                     foreach (var entry in objects)
                     {
-                        if (TagDefinition.TryCreate(entry, out var definition) && definition is not null)
+                        if (TagDefinition.TryCreate(entry, out var def) && def is not null)
                         {
-                            names.Add(definition.Name);
+                            names.Add(def.Name);
                         }
                     }
 

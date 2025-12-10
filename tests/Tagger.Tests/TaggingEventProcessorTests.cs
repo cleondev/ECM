@@ -141,7 +141,9 @@ public class TaggingEventProcessorTests
     public async Task HandleDocumentUploadedAsync_AssignsTagNamesFromRuleOutput()
     {
         var tagNames = new[] { "Uploaded 2024-01-01", "Images" };
-        var tagDefinitions = tagNames.Select(TagDefinition.Create).ToArray();
+        var tagDefinitions = tagNames
+            .Select(x => TagDefinition.Create(x))
+            .ToArray();
         var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>(), tagDefinitions);
         var assignmentService = new RecordingAssignmentService();
         var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.DocumentUploaded } };

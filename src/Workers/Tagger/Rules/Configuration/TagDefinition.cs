@@ -16,7 +16,6 @@ internal static class TagDefaults
 {
     public const string DefaultNamespaceDisplayName = "LOS";
     public const string DefaultScope = TagScope.Group;
-
     public static readonly IReadOnlyList<string> DefaultPathSegments = new[] { "LOS", "CreditApplication" };
 }
 

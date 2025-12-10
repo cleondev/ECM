@@ -16,9 +16,7 @@ internal sealed class DocumentTypeRule : IRule
 {
     private static readonly IReadOnlyList<string> DocumentTypePathSegments = new[]
     {
-        "LOS",
-        "CreditApplication",
-        "Document Types",
+        "LOS"
     };
 
     private static readonly TagDefinition DocumentTagDefinition = TagDefinition.Create(

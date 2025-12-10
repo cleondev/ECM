@@ -13,6 +13,8 @@ using Tagger.Events;
 using Tagger.Rules.Configuration;
 using Tagger.Rules.Enrichers;
 
+using Xunit;
+
 namespace Tagger.Tests;
 
 public sealed class DocumentTypeContextEnricherTests

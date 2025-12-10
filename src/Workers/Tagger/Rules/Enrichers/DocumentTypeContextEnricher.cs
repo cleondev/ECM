@@ -106,6 +106,6 @@ internal sealed class DocumentTypeContextEnricher : ITaggingRuleContextEnricher
         }
 
         var trimmed = extension.Trim();
-        return trimmed.StartsWith('.', StringComparison.Ordinal) ? trimmed : $".{trimmed}";
+        return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed : $".{trimmed}";
     }
 }
