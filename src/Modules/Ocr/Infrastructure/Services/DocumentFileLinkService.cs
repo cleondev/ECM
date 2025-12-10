@@ -49,7 +49,7 @@ internal sealed class DocumentFileLinkService(
         }
 
         var downloadLink = await _fileAccessGateway
-            .GetDownloadLinkAsync(storageKey, LinkLifetime, cancellationToken)
+            .GetDownloadLinkAsync(storageKey, LinkLifetime, downloadFileName: null, cancellationToken)
             .ConfigureAwait(false);
 
         if (downloadLink.IsFailure || downloadLink.Value is null)

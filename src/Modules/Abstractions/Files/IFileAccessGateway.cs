@@ -10,6 +10,7 @@ public interface IFileAccessGateway
     Task<OperationResult<FileDownloadLink>> GetDownloadLinkAsync(
         string storageKey,
         TimeSpan lifetime,
+        string? downloadFileName = null,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<FileContent>> GetContentAsync(

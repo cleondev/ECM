@@ -14,7 +14,11 @@ public interface IFileStorage
         string? originalFileName,
         CancellationToken cancellationToken = default);
 
-    Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default);
+    Task<Uri?> GetDownloadLinkAsync(
+        string storageKey,
+        TimeSpan lifetime,
+        string? downloadFileName = null,
+        CancellationToken cancellationToken = default);
 
     Task<FileDownload?> DownloadAsync(string storageKey, CancellationToken cancellationToken = default);
 

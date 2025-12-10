@@ -119,7 +119,11 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         }
     }
 
-    public async Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default)
+    public async Task<Uri?> GetDownloadLinkAsync(
+        string storageKey,
+        TimeSpan lifetime,
+        string? downloadFileName = null,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(storageKey))
         {
@@ -133,6 +137,16 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
             .WithBucket(_options.BucketName)
             .WithObject(storageKey)
             .WithExpiry(expirySeconds);
+
+        var normalizedFileName = NormalizeFileName(downloadFileName);
+        if (!string.IsNullOrEmpty(normalizedFileName))
+        {
+            var contentDisposition = BuildContentDisposition(normalizedFileName);
+            args = args.WithExtraQueryParams(new Dictionary<string, string>
+            {
+                ["response-content-disposition"] = contentDisposition,
+            });
+        }
 
         var url = await _client.PresignedGetObjectAsync(args);
         return Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null;
@@ -213,6 +227,12 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         var normalized = Path.GetFileName(trimmed);
 
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
+
+    private static string BuildContentDisposition(string fileName)
+    {
+        var encoded = Uri.EscapeDataString(fileName);
+        return $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{encoded}";
     }
 
     private static string EncodeMetadataValue(string value)
