@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-using AppGateway.Api.Auth;
+﻿using AppGateway.Api.Auth;
 using AppGateway.Infrastructure.Ecm;
 
 using Microsoft.AspNetCore.Authorization;
@@ -25,202 +23,113 @@ public sealed class PdfViewerController(
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PdfViewerController> _logger = logger;
 
-    /// <summary>
-    /// Load PDF từ ECM vào PdfRenderer.
-    /// </summary>
+    private PdfRenderer CreateRenderer()
+        => new PdfRenderer(_cache);
+
+
     [HttpPost("Load")]
     public async Task<IActionResult> LoadAsync(
         Guid versionId,
-        [FromBody] JsonElement jsonObject,
+        [FromBody] Dictionary<string, object> jsonObject,
         CancellationToken cancellationToken)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var preview = await _ecmApiClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
-        if (preview.IsForbidden)
-        {
-            return Forbid(authenticationSchemes: [GatewayAuthenticationSchemes.Default]);
-        }
-
-        if (preview.Payload is null)
-        {
-            return NotFound();
-        }
-
         try
         {
-            await using var stream = new MemoryStream(preview.Payload.Content);
+            var preview = await _ecmApiClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
 
-            // PdfRenderer cần IMemoryCache
-            var pdfViewer = new PdfRenderer(_cache);
+            if (preview.IsForbidden)
+                return Forbid(authenticationSchemes: [GatewayAuthenticationSchemes.Default]);
 
-            // Load trả về object → phải serialize
-            var result = pdfViewer.Load(stream, ConvertJsonObject(jsonObject));
+            if (preview.Payload is null)
+                return NotFound();
+
+            // ❗ DO NOT DISPOSE STREAM
+            var stream = new MemoryStream(preview.Payload.Content);
+
+            var viewer = CreateRenderer();
+            var result = viewer.Load(stream, ConvertJson(jsonObject));
 
             return Content(JsonConvert.SerializeObject(result), "application/json");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load PDF for version {VersionId}", versionId);
+            _logger.LogError(ex, "Failed to load PDF");
             return StatusCode(500);
         }
     }
 
-    /// <summary>
-    /// Render trang PDF.
-    /// </summary>
     [HttpPost("RenderPdfPages")]
-    public IActionResult RenderPdfPages([FromBody] JsonElement jsonObject)
+    public IActionResult RenderPdfPages([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        var result = pdfViewer.GetPage(ConvertJsonObject(jsonObject));
+        var viewer = CreateRenderer();
+        var result = viewer.GetPage(ConvertJson(jsonObject));
         return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
-    /// <summary>
-    /// Render text trong PDF.
-    /// LƯU Ý: API đúng là GetDocumentText, không phải GetText.
-    /// </summary>
     [HttpPost("RenderPdfTexts")]
-    public IActionResult RenderPdfTexts([FromBody] JsonElement jsonObject)
+    public IActionResult RenderPdfTexts([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        var result = pdfViewer.GetDocumentText(ConvertJsonObject(jsonObject));
+        var viewer = CreateRenderer();
+        var result = viewer.GetDocumentText(ConvertJson(jsonObject));
         return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
-    /// <summary>
-    /// Render thumbnail.
-    /// </summary>
     [HttpPost("RenderThumbnailImages")]
-    public IActionResult RenderThumbnails([FromBody] JsonElement jsonObject)
+    public IActionResult RenderThumbnails([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        var result = pdfViewer.GetThumbnailImages(ConvertJsonObject(jsonObject));
+        var viewer = CreateRenderer();
+        var result = viewer.GetThumbnailImages(ConvertJson(jsonObject));
         return Content(JsonConvert.SerializeObject(result), "application/json");
     }
-
-    /// <summary>
-    /// Lấy bookmarks.
-    /// </summary>
     [HttpPost("Bookmarks")]
-    public IActionResult Bookmarks([FromBody] JsonElement jsonObject)
+    public IActionResult Bookmarks([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        var result = pdfViewer.GetBookmarks(ConvertJsonObject(jsonObject));
+        var viewer = CreateRenderer();
+        var result = viewer.GetBookmarks(ConvertJson(jsonObject));
         return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
-    /// <summary>
-    /// Lấy annotation comments.
-    /// </summary>
     [HttpPost("RenderAnnotationComments")]
-    public IActionResult RenderAnnotations([FromBody] JsonElement jsonObject)
+    public IActionResult RenderAnnotations([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        var result = pdfViewer.GetAnnotationComments(ConvertJsonObject(jsonObject));
+        var viewer = CreateRenderer();
+        var result = viewer.GetAnnotationComments(ConvertJson(jsonObject));
         return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
-    /// <summary>
-    /// In: PdfViewer dùng GetPrintImage, không có Print().
-    /// </summary>
     [HttpPost("PrintImages")]
-    public IActionResult Print([FromBody] JsonElement jsonObject)
+    public IActionResult Print([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        var result = pdfViewer.GetPrintImage(ConvertJsonObject(jsonObject));
+        var viewer = CreateRenderer();
+        var result = viewer.GetPrintImage(ConvertJson(jsonObject));
         return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
-    /// <summary>
-    /// Download: dùng GetDocumentAsBase64, không có GetDocument().
-    /// FE sẽ decode base64 để tải file.
-    /// </summary>
     [HttpPost("Download")]
-    public IActionResult Download([FromBody] JsonElement jsonObject)
+    public IActionResult Download([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        var documentBase64 = pdfViewer.GetDocumentAsBase64(ConvertJsonObject(jsonObject));
-
-        // Syncfusion sample trả luôn base64 string (content-type mặc định text/plain).
-        // Nếu muốn rõ ràng:
-        return Content(documentBase64, "text/plain");
+        var viewer = CreateRenderer();
+        var base64 = viewer.GetDocumentAsBase64(ConvertJson(jsonObject));
+        return Content(base64, "text/plain");
     }
 
-    /// <summary>
-    /// Giải phóng cache trên server.
-    /// </summary>
     [HttpPost("Unload")]
-    public IActionResult Unload([FromBody] JsonElement jsonObject)
+    public IActionResult Unload([FromBody] Dictionary<string, object> jsonObject)
     {
-        if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
-        {
-            return BadRequest();
-        }
-
-        var pdfViewer = new PdfRenderer(_cache);
-        pdfViewer.ClearCache(ConvertJsonObject(jsonObject));
+        var viewer = CreateRenderer();
+        viewer.ClearCache(ConvertJson(jsonObject));
         return Ok();
     }
 
-    private static Dictionary<string, string> ConvertJsonObject(JsonElement jsonObject)
+    private static Dictionary<string, string> ConvertJson(Dictionary<string, object> dict)
     {
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var output = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        foreach (var property in jsonObject.EnumerateObject())
+        foreach (var kv in dict)
         {
-            var value = property.Value.ValueKind switch
-            {
-                JsonValueKind.String => property.Value.GetString() ?? string.Empty,
-                JsonValueKind.Number => property.Value.GetRawText(),
-                JsonValueKind.True => bool.TrueString.ToLowerInvariant(),
-                JsonValueKind.False => bool.FalseString.ToLowerInvariant(),
-                JsonValueKind.Null or JsonValueKind.Undefined => string.Empty,
-                _ => property.Value.GetRawText(),
-            };
-
-            result[property.Name] = value;
+            output[kv.Key] = kv.Value?.ToString() ?? string.Empty;
         }
 
-        return result;
+        return output;
     }
 }

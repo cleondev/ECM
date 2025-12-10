@@ -36,10 +36,12 @@ type PdfViewerProps = {
 }
 
 export function PdfViewer({ documentUrl, serviceUrl, documentPath }: PdfViewerProps) {
-  // Đặt path tới thư mục ej2-pdfviewer-lib trong public hoặc CDN
+  const origin = typeof window !== "undefined" ? window.location.origin : ""
+
+  // nếu có env thì lấy env, không thì ghép origin + path public
   const resourceUrl =
     process.env.NEXT_PUBLIC_PDFVIEWER_RESOURCE_URL ??
-    "https://cdn.syncfusion.com/ej2/31.2.15/dist/ej2-pdfviewer-lib"
+    `${origin}/ej2-pdfviewer-lib`
 
   const pdfServiceUrl = serviceUrl ?? process.env.NEXT_PUBLIC_PDFVIEWER_SERVICE_URL
   const documentPathValue = documentPath ?? documentUrl
@@ -53,6 +55,17 @@ export function PdfViewer({ documentUrl, serviceUrl, documentPath }: PdfViewerPr
         resourceUrl={resourceUrl}
         height="100%"
         width="100%"
+        toolbarSettings={{
+          showTooltip: true,
+          toolbarItems: [
+            "PageNavigationTool",
+            "MagnificationTool",
+            "PanTool",
+            "SelectionTool",
+            "SearchOption",
+            "DownloadOption",
+          ],
+        }}
       >
         <Inject
           services={[
@@ -61,9 +74,6 @@ export function PdfViewer({ documentUrl, serviceUrl, documentPath }: PdfViewerPr
             Navigation,
             TextSelection,
             TextSearch,
-            Print,
-            Annotation,
-            LinkAnnotation,
             BookmarkView,
             ThumbnailView,
           ]}
