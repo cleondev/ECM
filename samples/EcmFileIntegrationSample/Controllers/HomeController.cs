@@ -11,14 +11,14 @@ namespace EcmFileIntegrationSample.Controllers;
 
 public class HomeController(
     IEcmIntegrationService ecmService,
-    IOptionsSnapshot<EcmIntegrationOptions> options,
+    IOptions<EcmIntegrationOptions> options,
     ILogger<HomeController> logger,
     EcmUserSelection userSelection) : Controller
 {
     private const string TagMessageKey = "TagMessage";
     private const string DocumentMessageKey = "DocumentMessage";
     private readonly IEcmIntegrationService _ecmService = ecmService;
-    private readonly IOptionsSnapshot<EcmIntegrationOptions> _optionsSnapshot = options;
+    private readonly IOptions<EcmIntegrationOptions> _optionsSnapshot = options;
     private readonly ILogger<HomeController> _logger = logger;
     private readonly EcmUserSelection _userSelection = userSelection;
 
