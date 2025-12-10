@@ -69,7 +69,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddMemoryCache();
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        services.AddScoped<EcmAuthenticator>();
+        services.AddTransient<EcmAuthenticator>();
         services.AddTransient<EcmAccessTokenHandler>();
 
         services.AddHttpClient<EcmAuthenticator>();
