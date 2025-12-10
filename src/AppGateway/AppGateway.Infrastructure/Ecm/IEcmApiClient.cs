@@ -101,17 +101,11 @@ public interface IDocumentsApiClient
 
     Task<bool> DeleteDocumentTypeAsync(Guid documentTypeId, CancellationToken cancellationToken = default);
 
-    Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default);
+    Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionPreviewAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default);
 
     Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(Guid versionId, int width, int height, string? fit, CancellationToken cancellationToken = default);
-
-    Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionWordViewerAsync(
-        Guid versionId,
-        CancellationToken cancellationToken = default);
-
-    Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionExcelViewerAsync(
-        Guid versionId,
-        CancellationToken cancellationToken = default);
 
     Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(CreateShareLinkRequestDto requestDto, CancellationToken cancellationToken = default);
 }

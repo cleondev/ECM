@@ -15,6 +15,7 @@ export type ViewerDescriptorDto = {
   thumbnailUrl?: string | null
   sfdtUrl?: string | null
   excelJsonUrl?: string | null
+  pdfServiceUrl?: string | null
 }
 
 export type ViewerDescriptor = {
@@ -26,6 +27,7 @@ export type ViewerDescriptor = {
   thumbnailUrl?: string | null
   sfdtUrl?: string | null
   excelJsonUrl?: string | null
+  pdfServiceUrl?: string | null
 }
 
 export function normalizeViewerType(value?: string | null): ViewerType | undefined {
@@ -63,5 +65,6 @@ export function toViewerDescriptor(dto: ViewerDescriptorDto): ViewerDescriptor {
     thumbnailUrl: dto.thumbnailUrl ?? undefined,
     sfdtUrl: dto.sfdtUrl ?? null,
     excelJsonUrl: dto.excelJsonUrl ?? null,
+    pdfServiceUrl: dto.pdfServiceUrl ?? dto.view?.url ?? null,
   }
 }

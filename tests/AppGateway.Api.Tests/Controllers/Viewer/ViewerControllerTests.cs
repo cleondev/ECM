@@ -8,6 +8,7 @@ using FluentAssertions;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 
 using NSubstitute;
@@ -19,16 +20,20 @@ namespace AppGateway.Api.Tests.Controllers.Viewer;
 public sealed class ViewerControllerTests
 {
     private readonly IEcmApiClient _ecmClient;
+    private readonly ViewerConversionService _conversionService;
     private readonly ViewerController _controller;
 
     public ViewerControllerTests()
     {
         _ecmClient = Substitute.For<IEcmApiClient>();
-        _controller = new ViewerController(_ecmClient, NullLogger<ViewerController>.Instance)
+        _conversionService = new ViewerConversionService(
+            new MemoryCache(new MemoryCacheOptions()),
+            NullLogger<ViewerConversionService>.Instance);
+        _controller = new ViewerController(_ecmClient, _conversionService, NullLogger<ViewerController>.Instance)
         {
             ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext()
+                HttpContext = new DefaultHttpContext(),
             }
         };
     }
@@ -85,15 +90,16 @@ public sealed class ViewerControllerTests
         response.PreviewUrl.Should().Be($"/gateway/api/documents/files/preview/{versionId}");
         response.DownloadUrl.Should().Be($"/gateway/api/documents/files/download/{versionId}");
         response.ThumbnailUrl.Should().Be($"/gateway/api/documents/files/thumbnails/{versionId}?w=400&h=400&fit=contain");
-        response.WordViewerUrl.Should().Be($"/gateway/api/viewer/word/{versionId}");
-        response.ExcelViewerUrl.Should().BeNull();
+        response.SfdtUrl.Should().Be($"/gateway/api/viewer/word/{versionId}");
+        response.ExcelJsonUrl.Should().BeNull();
+        response.PdfServiceUrl.Should().BeNull();
     }
 
     [Fact]
     public async Task GetWordViewerAsync_Forbidden_Forbids()
     {
         _ecmClient
-            .GetDocumentVersionWordViewerAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .GetDocumentVersionPreviewAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(new EcmResponse<DocumentFileContent?>(HttpStatusCode.Forbidden, null));
 
         var result = await _controller.GetWordViewerAsync(Guid.NewGuid(), CancellationToken.None);
@@ -105,7 +111,7 @@ public sealed class ViewerControllerTests
     public async Task GetExcelViewerAsync_NotFound_ReturnsNotFound()
     {
         _ecmClient
-            .GetDocumentVersionExcelViewerAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .GetDocumentVersionPreviewAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(new EcmResponse<DocumentFileContent?>(HttpStatusCode.NotFound, null));
 
         var result = await _controller.GetExcelViewerAsync(Guid.NewGuid(), CancellationToken.None);

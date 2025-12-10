@@ -297,10 +297,17 @@ public sealed class DocumentsController(
     [HttpGet("files/preview/{versionId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> PreviewVersionAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        var file = await _documentsClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
-        return file is null ? NotFound() : DocumentFileResultFactory.Create(file);
+        var result = await _documentsClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
+
+        if (result.IsForbidden)
+        {
+            return Forbid(authenticationSchemes: [GatewayAuthenticationSchemes.Default]);
+        }
+
+        return result.Payload is null ? NotFound() : DocumentFileResultFactory.Create(result.Payload);
     }
 
     [HttpPost("files/share/{versionId:guid}")]

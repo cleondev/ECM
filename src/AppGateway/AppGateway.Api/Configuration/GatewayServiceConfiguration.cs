@@ -28,10 +28,12 @@ public static class GatewayServiceConfiguration
         ConfigureAuthentication(builder);
 
         builder.Services.AddProblemDetails();
+        builder.Services.AddMemoryCache();
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddGatewayInfrastructure(builder.Configuration);
+        builder.Services.AddScoped<AppGateway.Api.Controllers.Viewer.ViewerConversionService>();
         builder.Services.AddSingleton<INotificationProvider, MockNotificationProvider>();
         builder.Services.Configure<ApiKeyOptions>(builder.Configuration.GetSection(ApiKeyOptions.SectionName));
         builder.Services.AddScoped<IUserProvisioningService, AzureAdUserProvisioningService>();

@@ -13,9 +13,13 @@ namespace AppGateway.Api.Controllers.Viewer;
 [ApiController]
 [Route("api/viewer")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class ViewerController(IEcmApiClient ecmApiClient, ILogger<ViewerController> logger) : ControllerBase
+public sealed class ViewerController(
+    IEcmApiClient ecmApiClient,
+    ViewerConversionService conversionService,
+    ILogger<ViewerController> logger) : ControllerBase
 {
     private readonly IEcmApiClient _ecmApiClient = ecmApiClient;
+    private readonly ViewerConversionService _conversionService = conversionService;
     private readonly ILogger<ViewerController> _logger = logger;
 
     [HttpGet("{versionId:guid}")]
@@ -48,15 +52,19 @@ public sealed class ViewerController(IEcmApiClient ecmApiClient, ILogger<ViewerC
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetWordViewerAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        var result = await _ecmApiClient.GetDocumentVersionWordViewerAsync(versionId, cancellationToken);
-        if (result.IsForbidden)
+        var preview = await _ecmApiClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
+        if (preview.IsForbidden)
         {
             return Forbid(authenticationSchemes: [GatewayAuthenticationSchemes.Default]);
         }
 
-        return result.Payload is null
-            ? NotFound()
-            : DocumentFileResultFactory.Create(result.Payload);
+        if (preview.Payload is null)
+        {
+            return NotFound();
+        }
+
+        var sfdt = await _conversionService.ConvertWordToSfdtAsync(versionId, preview.Payload);
+        return sfdt is null ? Problem("Không thể chuyển đổi tài liệu Word." ) : DocumentFileResultFactory.Create(sfdt);
     }
 
     [HttpGet("excel/{versionId:guid}")]
@@ -65,15 +73,21 @@ public sealed class ViewerController(IEcmApiClient ecmApiClient, ILogger<ViewerC
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetExcelViewerAsync(Guid versionId, CancellationToken cancellationToken)
     {
-        var result = await _ecmApiClient.GetDocumentVersionExcelViewerAsync(versionId, cancellationToken);
-        if (result.IsForbidden)
+        var preview = await _ecmApiClient.GetDocumentVersionPreviewAsync(versionId, cancellationToken);
+        if (preview.IsForbidden)
         {
             return Forbid(authenticationSchemes: [GatewayAuthenticationSchemes.Default]);
         }
 
-        return result.Payload is null
-            ? NotFound()
-            : DocumentFileResultFactory.Create(result.Payload);
+        if (preview.Payload is null)
+        {
+            return NotFound();
+        }
+
+        var workbookJson = await _conversionService.ConvertExcelToJsonAsync(versionId, preview.Payload);
+        return workbookJson is null
+            ? Problem("Không thể chuyển đổi bảng tính.")
+            : DocumentFileResultFactory.Create(workbookJson);
     }
 
     private ViewerResponse CreateViewerResponse(DocumentVersionDto version, string viewerType)
@@ -85,6 +99,7 @@ public sealed class ViewerController(IEcmApiClient ecmApiClient, ILogger<ViewerC
         var downloadUrl = BuildUrl($"/api/documents/files/download/{version.Id}");
         var thumbnailUrl = BuildUrl($"/api/documents/files/thumbnails/{version.Id}?w=400&h=400&fit=contain");
 
+        var serviceUrl = viewerType == ViewerTypes.Pdf ? BuildUrl($"/api/viewer/pdf/{version.Id}") : null;
         var wordUrl = viewerType == ViewerTypes.Word ? BuildUrl($"/api/viewer/word/{version.Id}") : null;
         var excelUrl = viewerType == ViewerTypes.Excel ? BuildUrl($"/api/viewer/excel/{version.Id}") : null;
 
@@ -94,7 +109,9 @@ public sealed class ViewerController(IEcmApiClient ecmApiClient, ILogger<ViewerC
             previewUrl,
             downloadUrl,
             thumbnailUrl,
+            serviceUrl is not null ? new ViewerView(serviceUrl) : null,
             wordUrl,
-            excelUrl);
+            excelUrl,
+            serviceUrl);
     }
 }
