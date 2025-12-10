@@ -13,6 +13,7 @@ using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Repositories;
 using ECM.Document.Domain.Documents;
+using ECM.Document.Domain.Tags;
 using ECM.Document.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Builder;
@@ -440,6 +441,12 @@ public static class DocumentEndpoints
             return TypedResults.Forbid();
         }
 
+        var primaryGroupId = await ResolvePrimaryGroupIdAsync(
+            principal,
+            userId,
+            userLookupService,
+            cancellationToken);
+
         request ??= new UpdateDocumentRequest();
 
         if (request.DocumentTypeId != null && request.DocumentTypeId == Guid.Empty)
@@ -489,7 +496,7 @@ public static class DocumentEndpoints
             });
         }
 
-        var response = MapDocument(result.Value!);
+        var response = MapDocument(result.Value!, userId, primaryGroupId);
 
         return TypedResults.Ok(response);
     }
@@ -509,6 +516,12 @@ public static class DocumentEndpoints
 
         var hasDocumentManagementOverride = await HasDocumentManagementOverrideAsync(
             userId.Value,
+            userLookupService,
+            cancellationToken);
+
+        var primaryGroupId = await ResolvePrimaryGroupIdAsync(
+            principal,
+            userId,
             userLookupService,
             cancellationToken);
 
@@ -544,7 +557,7 @@ public static class DocumentEndpoints
             return TypedResults.NotFound();
         }
 
-        var response = MapDocument(document);
+        var response = MapDocument(document, userId, primaryGroupId);
         return TypedResults.Ok(response);
     }
 
@@ -578,6 +591,12 @@ public static class DocumentEndpoints
             userLookupService,
             cancellationToken);
 
+        var primaryGroupId = await ResolvePrimaryGroupIdAsync(
+            principal,
+            userId,
+            userLookupService,
+            cancellationToken);
+
         var query = context.Documents.AsNoTracking();
 
         if (!hasDocumentManagementOverride)
@@ -606,6 +625,7 @@ public static class DocumentEndpoints
             .Include(document => document.Versions)
             .Include(document => document.Tags)
                 .ThenInclude(documentTag => documentTag.Tag)
+                    .ThenInclude(tag => tag!.Namespace)
             .Include(document => document.Metadata)
             .AsQueryable();
 
@@ -684,7 +704,9 @@ public static class DocumentEndpoints
         var skip = (page - 1) * pageSize;
         var documents = await orderedQuery.Skip(skip).Take(pageSize).ToListAsync(cancellationToken);
 
-        var items = documents.Select(MapDocument).ToArray();
+        var items = documents
+            .Select(document => MapDocument(document, userId, primaryGroupId))
+            .ToArray();
 
         var totalPages = totalItems == 0 ? 0 : (int)Math.Ceiling(totalItems / (double)pageSize);
 
@@ -698,6 +720,26 @@ public static class DocumentEndpoints
         CancellationToken cancellationToken)
     {
         return userLookupService.UserHasAnyRoleAsync(userId, DocumentManagementRoles, cancellationToken);
+    }
+
+    private static async Task<Guid?> ResolvePrimaryGroupIdAsync(
+        ClaimsPrincipal principal,
+        Guid? userId,
+        IUserLookupService userLookupService,
+        CancellationToken cancellationToken)
+    {
+        var claimGroupId = principal.GetPrimaryGroupId();
+        if (claimGroupId.HasValue)
+        {
+            return claimGroupId;
+        }
+
+        if (!userId.HasValue)
+        {
+            return null;
+        }
+
+        return await userLookupService.FindPrimaryGroupIdByUserIdAsync(userId.Value, cancellationToken);
     }
 
     private static string ResolveValue(string? value, string? defaultValue, string fallback)
@@ -1101,7 +1143,10 @@ public static class DocumentEndpoints
         );
     }
 
-    private static DocumentResponse MapDocument(DomainDocument document)
+    private static DocumentResponse MapDocument(
+        DomainDocument document,
+        Guid? ownerUserId,
+        Guid? primaryGroupId)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -1123,7 +1168,9 @@ public static class DocumentEndpoints
             );
 
         var tags = document
-            .Tags.Select(documentTag =>
+            .Tags
+            .Where(documentTag => IsTagVisibleToUser(documentTag.Tag?.Namespace, ownerUserId, primaryGroupId))
+            .Select(documentTag =>
             {
                 var tag = documentTag.Tag;
                 var pathIds = tag?.PathIds ?? [];
@@ -1171,6 +1218,22 @@ public static class DocumentEndpoints
             versionResponse,
             tags
         );
+    }
+
+    private static bool IsTagVisibleToUser(TagNamespace? tagNamespace, Guid? ownerUserId, Guid? primaryGroupId)
+    {
+        if (tagNamespace is null)
+        {
+            return false;
+        }
+
+        return tagNamespace.Scope switch
+        {
+            "global" => true,
+            "user" => ownerUserId.HasValue && tagNamespace.OwnerUserId == ownerUserId.Value,
+            "group" => primaryGroupId.HasValue && tagNamespace.OwnerGroupId == primaryGroupId.Value,
+            _ => false,
+        };
     }
 
     private static Guid[] BuildGroupIds(Guid? primaryGroupId)
