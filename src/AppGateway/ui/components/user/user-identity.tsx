@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,6 +20,12 @@ type UserIdentityProps = {
   hint?: string
   interactive?: boolean
   density?: "regular" | "compact"
+  /**
+   * none   – luôn hiển thị đầy đủ (hành vi cũ)
+   * once   – click lần đầu để expand, lần sau click mới navigate
+   * toggle – click để mở/đóng, không navigate
+   */
+  expandMode?: "none" | "once" | "toggle"
 }
 
 const sizeStyles: Record<
@@ -37,20 +43,13 @@ const shapeStyles: Record<Required<UserIdentityProps>["shape"], string> = {
 }
 
 function getInitials(name?: string): string {
-  if (!name) {
-    return "?"
-  }
-
+  if (!name) return "?"
   const trimmed = name.trim()
-  if (!trimmed) {
-    return "?"
-  }
-
+  if (!trimmed) return "?"
   const parts = trimmed.split(/\s+/).filter(Boolean)
   if (parts.length === 1) {
     return parts[0]!.slice(0, 2).toUpperCase()
   }
-
   const [first, ...rest] = parts
   const last = rest.pop()
   const initials = `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase()
@@ -67,6 +66,7 @@ export function UserIdentity({
   hint,
   interactive = true,
   density = "regular",
+  expandMode = "none",
 }: UserIdentityProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [user, setUser] = useState<UserIdentity | null>(null)
@@ -74,12 +74,21 @@ export function UserIdentity({
   const [shouldLoad, setShouldLoad] = useState(!lazy)
   const [error, setError] = useState<string | null>(null)
 
+  // none  -> luôn expanded
+  // once  -> ban đầu collapsed, click lần đầu sẽ mở
+  // toggle -> ban đầu collapsed, click để mở/đóng
+  const [isExpanded, setIsExpanded] = useState(() => expandMode === "none")
+
   useEffect(() => {
     setUser(null)
     setError(null)
     setIsLoading(false)
     setShouldLoad(!lazy)
   }, [userId, lazy])
+
+  useEffect(() => {
+    setIsExpanded(expandMode === "none")
+  }, [expandMode])
 
   useEffect(() => {
     if (!lazy) {
@@ -106,9 +115,7 @@ export function UserIdentity({
   }, [lazy])
 
   useEffect(() => {
-    if (!shouldLoad) {
-      return
-    }
+    if (!shouldLoad) return
 
     let isMounted = true
     setIsLoading(true)
@@ -150,7 +157,6 @@ export function UserIdentity({
 
   const hasEmail = Boolean(user?.email)
   const hintText = hint ?? (user?.isAuthenticated ? user?.email : "")
-
   const resolvedProfileHref = profileHref ?? (userId ? `/users/${userId}` : "/me")
 
   const skeleton = (
@@ -191,32 +197,67 @@ export function UserIdentity({
         <AvatarImage src={user.avatarUrl ?? undefined} alt={user.displayName} loading="lazy" />
         <AvatarFallback className={shapeClassName}>{fallbackText}</AvatarFallback>
       </Avatar>
-      <div className="flex flex-col">
-        <span className={cn("font-semibold leading-tight", labelClassName)}>{user.displayName}</span>
-        <span className={cn("text-muted-foreground leading-tight", hintClassName)}>{hintText}</span>
-      </div>
+      {isExpanded && (
+        <div className="flex flex-col">
+          <span className={cn("font-semibold leading-tight", labelClassName)}>{user.displayName}</span>
+          <span className={cn("text-muted-foreground leading-tight", hintClassName)}>{hintText}</span>
+        </div>
+      )}
     </>
   )
 
   const triggerClassName = cn(
     "group inline-flex items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-muted/60",
     isCompact && "gap-2 px-1.5 py-0.5 text-xs",
+    !isExpanded && "px-1.5 py-0.5", // avatar-only thì nhỏ gọn hơn
     className,
   )
+
+  const handleClick = (event: MouseEvent<HTMLElement>) => {
+    if (expandMode === "none") {
+      // Hành vi cũ: để Link hoạt động, không can thiệp
+      return
+    }
+
+    if (expandMode === "once") {
+      if (!isExpanded) {
+        // Lần đầu: chỉ expand, không navigate
+        event.preventDefault()
+        event.stopPropagation()
+        setIsExpanded(true)
+      }
+      // Đã expanded rồi → cho phép navigate
+      return
+    }
+
+    if (expandMode === "toggle") {
+      // Toggle mở/đóng, không navigate
+      event.preventDefault()
+      event.stopPropagation()
+      setIsExpanded((prev) => !prev)
+    }
+  }
+
+  const TriggerComponent = interactive ? Link : "div"
+  const triggerProps = interactive
+    ? {
+        href: resolvedProfileHref,
+        prefetch: false,
+      }
+    : {}
 
   return (
     <TooltipProvider delayDuration={100}>
       <Tooltip>
         <TooltipTrigger asChild>
-          {interactive ? (
-            <Link href={resolvedProfileHref} prefetch={false} className={triggerClassName} ref={containerRef}>
-              {sharedContent}
-            </Link>
-          ) : (
-            <div className={triggerClassName} ref={containerRef}>
-              {sharedContent}
-            </div>
-          )}
+          <TriggerComponent
+            {...(triggerProps as any)}
+            className={triggerClassName}
+            ref={containerRef as any}
+            onClick={handleClick as any}
+          >
+            {sharedContent}
+          </TriggerComponent>
         </TooltipTrigger>
         {hasEmail ? (
           <TooltipContent side="bottom" align="start">

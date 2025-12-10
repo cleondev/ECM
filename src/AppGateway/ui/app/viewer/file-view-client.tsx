@@ -252,23 +252,6 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
           ) : null}
         </div>
         <div className="hidden items-center gap-2 md:flex">
-          <Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="Chọn phiên bản" />
-            </SelectTrigger>
-            <SelectContent align="end">
-              {file.versions.map((version) => (
-                <SelectItem key={version.id} value={version.id}>
-                  <div className="flex flex-col text-left">
-                    <span className="font-medium">{version.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(version.createdAt)} • {version.size}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Button variant="ghost" size="icon" disabled={!downloadUrl} onClick={handleDownload} aria-label="Tải xuống">
             <Download className="h-4 w-4" />
           </Button>
@@ -290,6 +273,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
             shape="circle"
             interactive={false}
             className="ml-2"
+            expandMode="toggle"
           />
         </div>
         <DropdownMenu>
@@ -299,21 +283,6 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
-            <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Phiên bản</div>
-            <div className="px-2 pb-2">
-              <Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn phiên bản" />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  {file.versions.map((version) => (
-                    <SelectItem key={version.id} value={version.id}>
-                      {version.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <DropdownMenuItem onSelect={handleDownload} disabled={!downloadUrl}>
               <Download className="mr-2 h-4 w-4" /> Tải xuống
             </DropdownMenuItem>
