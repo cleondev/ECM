@@ -44,13 +44,16 @@ internal sealed class RecordingRuleEngine : IRuleEngine
 {
     private readonly IReadOnlyCollection<Guid> _result;
     private readonly IReadOnlyCollection<string> _tagNames;
+    private readonly IReadOnlyCollection<TagDefinition> _tagDefinitions;
 
     public RecordingRuleEngine(
         IReadOnlyCollection<Guid>? result = null,
+        IReadOnlyCollection<TagDefinition>? tagDefinitions = null,
         IReadOnlyCollection<string>? tagNames = null)
     {
         _result = result ?? Array.Empty<Guid>();
         _tagNames = tagNames ?? Array.Empty<string>();
+        _tagDefinitions = tagDefinitions ?? Array.Empty<TagDefinition>();
     }
 
     public IRuleContext? LastContext { get; private set; }
@@ -68,6 +71,7 @@ internal sealed class RecordingRuleEngine : IRuleEngine
             Output = new Dictionary<string, object>
             {
                 ["TagIds"] = _result,
+                ["Tags"] = _tagDefinitions,
                 ["TagNames"] = _tagNames
             }
         };
@@ -93,7 +97,7 @@ internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
 
     public IReadOnlyCollection<Guid>? LastTagIds { get; private set; }
 
-    public IReadOnlyCollection<string>? LastTagNames { get; private set; }
+    public IReadOnlyCollection<TagDefinition>? LastTagDefinitions { get; private set; }
 
     public int InvocationCount { get; private set; }
 
@@ -102,13 +106,13 @@ internal sealed class RecordingAssignmentService : IDocumentTagAssignmentService
     public Task<int> AssignTagsAsync(
         Guid documentId,
         IReadOnlyCollection<Guid> tagIds,
-        IReadOnlyCollection<string> tagNames,
+        IReadOnlyCollection<TagDefinition> tagDefinitions,
         CancellationToken cancellationToken = default)
     {
         InvocationCount++;
         LastDocumentId = documentId;
         LastTagIds = tagIds;
-        LastTagNames = tagNames;
+        LastTagDefinitions = tagDefinitions;
         return Task.FromResult(AssignTagsResult);
     }
 }

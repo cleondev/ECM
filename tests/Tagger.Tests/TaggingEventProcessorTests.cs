@@ -141,7 +141,8 @@ public class TaggingEventProcessorTests
     public async Task HandleDocumentUploadedAsync_AssignsTagNamesFromRuleOutput()
     {
         var tagNames = new[] { "Uploaded 2024-01-01", "Images" };
-        var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>(), tagNames);
+        var tagDefinitions = tagNames.Select(TagDefinition.Create).ToArray();
+        var ruleEngine = new RecordingRuleEngine(Array.Empty<Guid>(), tagDefinitions);
         var assignmentService = new RecordingAssignmentService();
         var selector = new RecordingRuleSetSelector { RuleSets = new[] { TaggingRuleSetNames.DocumentUploaded } };
         var contextFactory = new TaggingRuleContextFactory(new RuleContextFactory(), Array.Empty<ITaggingRuleContextEnricher>());
@@ -164,7 +165,8 @@ public class TaggingEventProcessorTests
 
         await processor.HandleDocumentUploadedAsync(@event);
 
-        Assert.Equal(tagNames, assignmentService.LastTagNames);
+        Assert.NotNull(assignmentService.LastTagDefinitions);
+        Assert.Equal(tagNames, assignmentService.LastTagDefinitions!.Select(definition => definition.Name));
         Assert.Equal(1, assignmentService.InvocationCount);
     }
 

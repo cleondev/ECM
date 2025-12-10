@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
@@ -13,27 +14,50 @@ namespace Tagger.Rules.Custom;
 /// </summary>
 internal sealed class DocumentTypeRule : IRule
 {
-    private static readonly IReadOnlyDictionary<string, string> ExtensionMappings = new Dictionary<string, string>(
-        StringComparer.OrdinalIgnoreCase)
+    private static readonly IReadOnlyList<string> DocumentTypePathSegments = new[]
     {
-        [".doc"] = "Document",
-        [".docx"] = "Document",
-        [".pdf"] = "Document",
-        [".xls"] = "Document",
-        [".xlsx"] = "Document",
-        [".ppt"] = "Document",
-        [".pptx"] = "Document",
-        [".txt"] = "Document",
-        [".csv"] = "Document",
-        [".jpg"] = "Images",
-        [".jpeg"] = "Images",
-        [".png"] = "Images",
-        [".gif"] = "Images",
-        [".bmp"] = "Images",
-        [".tiff"] = "Images",
-        [".svg"] = "Images",
-        [".heic"] = "Images",
+        "LOS",
+        "CreditApplication",
+        "Document Types",
     };
+
+    private static readonly TagDefinition DocumentTagDefinition = TagDefinition.Create(
+        "Document",
+        DocumentTypePathSegments,
+        scope: TagScope.Group,
+        namespaceDisplayName: TagDefaults.DefaultNamespaceDisplayName,
+        color: "#4A5568",
+        iconKey: "file");
+
+    private static readonly TagDefinition ImageTagDefinition = TagDefinition.Create(
+        "Images",
+        DocumentTypePathSegments,
+        scope: TagScope.Group,
+        namespaceDisplayName: TagDefaults.DefaultNamespaceDisplayName,
+        color: "#3182CE",
+        iconKey: "image");
+
+    private static readonly IReadOnlyDictionary<string, TagDefinition> ExtensionMappings =
+        new Dictionary<string, TagDefinition>(StringComparer.OrdinalIgnoreCase)
+        {
+            [".doc"] = DocumentTagDefinition,
+            [".docx"] = DocumentTagDefinition,
+            [".pdf"] = DocumentTagDefinition,
+            [".xls"] = DocumentTagDefinition,
+            [".xlsx"] = DocumentTagDefinition,
+            [".ppt"] = DocumentTagDefinition,
+            [".pptx"] = DocumentTagDefinition,
+            [".txt"] = DocumentTagDefinition,
+            [".csv"] = DocumentTagDefinition,
+            [".jpg"] = ImageTagDefinition,
+            [".jpeg"] = ImageTagDefinition,
+            [".png"] = ImageTagDefinition,
+            [".gif"] = ImageTagDefinition,
+            [".bmp"] = ImageTagDefinition,
+            [".tiff"] = ImageTagDefinition,
+            [".svg"] = ImageTagDefinition,
+            [".heic"] = ImageTagDefinition,
+        };
 
     private static readonly string[] MetadataExtensionKeys =
     {
@@ -74,7 +98,7 @@ internal sealed class DocumentTypeRule : IRule
     public bool Match(IRuleContext ctx) => TryResolveExtension(ctx, out _);
 
     /// <summary>
-    /// Emits a tag name mapped from the resolved extension when available.
+    /// Emits a tag definition mapped from the resolved extension when available.
     /// </summary>
     public void Apply(IRuleContext ctx, IRuleOutput output)
     {
@@ -83,12 +107,12 @@ internal sealed class DocumentTypeRule : IRule
             return;
         }
 
-        if (!ExtensionMappings.TryGetValue(extension, out var tagName))
+        if (!ExtensionMappings.TryGetValue(extension, out var tagDefinition))
         {
             return;
         }
 
-        output.AddTagName(tagName);
+        output.AddTag(tagDefinition);
     }
 
     private static bool TryResolveExtension(IRuleContext context, [NotNullWhen(true)] out string? extension)

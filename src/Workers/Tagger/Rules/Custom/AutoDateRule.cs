@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 using Ecm.Rules.Abstractions;
 
 using Tagger.Rules.Configuration;
@@ -9,6 +11,13 @@ namespace Tagger.Rules.Custom;
 /// </summary>
 internal sealed class AutoDateRule : IRule
 {
+    private static readonly IReadOnlyList<string> DatePathSegments = new[]
+    {
+        "LOS",
+        "CreditApplication",
+        "Dates",
+    };
+
     public string Name => "Auto Date";
 
     /// <summary>
@@ -32,6 +41,14 @@ internal sealed class AutoDateRule : IRule
         }
 
         var tagName = $"Uploaded {occurredAtUtc:yyyy-MM-dd}";
-        output.AddTagName(tagName);
+
+        output.AddTag(
+            TagDefinition.Create(
+                tagName,
+                DatePathSegments,
+                scope: TagScope.Group,
+                namespaceDisplayName: TagDefaults.DefaultNamespaceDisplayName,
+                color: "#2F855A",
+                iconKey: "calendar"));
     }
 }

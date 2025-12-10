@@ -73,7 +73,7 @@ internal sealed class TaggingEventProcessor(
     }
 
     /// <summary>
-    /// Executes a single ruleset against the rule context and applies resulting tag IDs or tag names.
+    /// Executes a single ruleset against the rule context and applies resulting tag IDs or tag definitions.
     /// </summary>
     private async Task EvaluateRuleSetAsync(
         ITaggingIntegrationEvent integrationEvent,
@@ -88,19 +88,19 @@ internal sealed class TaggingEventProcessor(
 
         var result = _ruleEngine.Execute(ruleSetName, context);
         var matchingTags = ExtractTagIds(result.Output);
-        var derivedTagNames = ExtractTagNames(result.Output);
+        var derivedTags = ExtractTagDefinitions(result.Output);
 
-        if (matchingTags.Count == 0 && derivedTagNames.Count == 0)
+        if (matchingTags.Count == 0 && derivedTags.Count == 0)
         {
             _logger.LogDebug(
-                "No tagging rules matched document {DocumentId} for ruleset {RuleSet} and no tag names were derived.",
+                "No tagging rules matched document {DocumentId} for ruleset {RuleSet} and no tag definitions were derived.",
                 integrationEvent.DocumentId,
                 ruleSetName);
             return;
         }
 
         var appliedCount = await _assignmentService
-            .AssignTagsAsync(integrationEvent.DocumentId, matchingTags, derivedTagNames, cancellationToken)
+            .AssignTagsAsync(integrationEvent.DocumentId, matchingTags, derivedTags, cancellationToken)
             .ConfigureAwait(false);
 
         if (appliedCount == 0)
@@ -142,20 +142,73 @@ internal sealed class TaggingEventProcessor(
         return Array.Empty<Guid>();
     }
 
-    private static IReadOnlyCollection<string> ExtractTagNames(IReadOnlyDictionary<string, object> output)
+    private static IReadOnlyCollection<TagDefinition> ExtractTagDefinitions(IReadOnlyDictionary<string, object> output)
     {
-        if (!output.TryGetValue("TagNames", out var value) || value is null)
+        var tags = new List<TagDefinition>();
+
+        if (output.TryGetValue("Tags", out var tagValues) && tagValues is not null)
         {
-            return Array.Empty<string>();
+            AddDefinitionsFromValue(tags, tagValues);
         }
 
+        if (output.TryGetValue("TagNames", out var tagNames) && tagNames is not null)
+        {
+            foreach (var name in ExtractTagNameStrings(tagNames))
+            {
+                if (TagDefinition.TryCreate(name, out var tag) && tag is not null)
+                {
+                    tags.Add(tag);
+                }
+            }
+        }
+
+        return tags
+            .Where(tag => tag is not null)
+            .Distinct(TagDefinition.Comparer)
+            .ToArray();
+    }
+
+    private static void AddDefinitionsFromValue(ICollection<TagDefinition> definitions, object value)
+    {
+        switch (value)
+        {
+            case IEnumerable<TagDefinition> typed:
+                foreach (var definition in typed)
+                {
+                    if (definition is not null)
+                    {
+                        definitions.Add(definition);
+                    }
+                }
+
+                break;
+            case IEnumerable<object> objects:
+                foreach (var entry in objects)
+                {
+                    if (TagDefinition.TryCreate(entry, out var parsed) && parsed is not null)
+                    {
+                        definitions.Add(parsed);
+                    }
+                }
+
+                break;
+            default:
+                if (TagDefinition.TryCreate(value, out var single) && single is not null)
+                {
+                    definitions.Add(single);
+                }
+
+                break;
+        }
+    }
+
+    private static IEnumerable<string> ExtractTagNameStrings(object value)
+    {
         if (value is IEnumerable<string> names)
         {
             return names
                 .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Select(name => name.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+                .Select(name => name.Trim());
         }
 
         if (value is IEnumerable<object> objects)
@@ -163,9 +216,7 @@ internal sealed class TaggingEventProcessor(
             return objects
                 .Select(obj => obj?.ToString())
                 .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Select(name => name!.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+                .Select(name => name!.Trim());
         }
 
         return Array.Empty<string>();
