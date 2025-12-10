@@ -18,7 +18,6 @@
     <ProjectReference Include="..\..\src\Modules\Rules\Rules.Engine\Rules.Engine.csproj" />
     <ProjectReference Include="..\..\src\Modules\Rules\Rules.Providers.Hardcoded\Rules.Providers.Hardcoded.csproj" />
     <ProjectReference Include="..\..\src\Modules\Rules\Rules.Providers.Json\Rules.Providers.Json.csproj" />
-    <ProjectReference Include="..\..\src\Modules\Rules\Rules.Providers.Lambda\Rules.Providers.Lambda.csproj" />
     <ProjectReference Include="..\..\src\Workers\Shared\Workers.Shared.csproj" />
     <ProjectReference Include="..\..\src\Workers\Tagger\Tagger.csproj" />
   </ItemGroup>

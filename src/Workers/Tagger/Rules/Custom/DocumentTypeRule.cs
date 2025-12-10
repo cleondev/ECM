@@ -1,15 +1,13 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 using Ecm.Rules.Abstractions;
-using Ecm.Rules.Providers.Lambda;
 
 using Tagger.Events;
 
 namespace Tagger.Rules.Custom;
 
-internal static class DocumentType
+internal sealed class DocumentTypeRule : IRule
 {
     private static readonly IReadOnlyDictionary<string, string> ExtensionMappings = new Dictionary<string, string>(
         StringComparer.OrdinalIgnoreCase)
@@ -40,14 +38,7 @@ internal static class DocumentType
         "ext",
     };
 
-    public static IRuleSet CreateRuleSet(string ruleSetName)
-    {
-        var builder = new LambdaRuleSetBuilder();
-
-        builder.Add("Document Type", _ => true, Apply);
-
-        return builder.Build(ruleSetName);
-    }
+    public string Name => "Document Type";
 
     public static string? ResolveExtension(ITaggingIntegrationEvent integrationEvent)
     {
@@ -70,9 +61,26 @@ internal static class DocumentType
         return null;
     }
 
-    private static void Apply(IRuleContext context, IRuleOutput output)
+    public bool Match(IRuleContext ctx) => TryResolveExtension(ctx, out _);
+
+    public void Apply(IRuleContext ctx, IRuleOutput output)
     {
-        var extension = context.Get("extension", default(string));
+        if (!TryResolveExtension(ctx, out var extension))
+        {
+            return;
+        }
+
+        if (!ExtensionMappings.TryGetValue(extension, out var tagName))
+        {
+            return;
+        }
+
+        output.AddTagName(tagName);
+    }
+
+    private static bool TryResolveExtension(IRuleContext context, [NotNullWhen(true)] out string? extension)
+    {
+        extension = NormalizeExtension(context.Get("extension", default(string)));
 
         if (string.IsNullOrWhiteSpace(extension))
         {
@@ -86,17 +94,7 @@ internal static class DocumentType
             }
         }
 
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            return;
-        }
-
-        if (!ExtensionMappings.TryGetValue(extension, out var tagName))
-        {
-            return;
-        }
-
-        output.AddTagName(tagName);
+        return !string.IsNullOrWhiteSpace(extension);
     }
 
     private static bool TryResolveFromMetadata(
