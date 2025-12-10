@@ -85,7 +85,13 @@ export function ExcelViewer({ file, excelJsonUrl }: ExcelViewerProps) {
         </div>
       ) : null}
       <div className="overflow-hidden rounded-lg border border-border bg-background">
-        <SpreadsheetComponent ref={spreadsheetRef} height={"75vh"} allowOpen allowSave allowEditing={false} />
+        <SpreadsheetComponent 
+        ref={spreadsheetRef} 
+        height={"75vh"} 
+        allowEditing={false} 
+        showRibbon={false}
+        showAggregateBar={false}
+        />
       </div>
     </div>
   )

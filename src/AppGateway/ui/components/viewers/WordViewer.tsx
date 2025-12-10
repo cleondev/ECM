@@ -88,7 +88,8 @@ export function WordViewer({ file, sfdtUrl }: WordViewerProps) {
       ) : null}
       <DocumentEditorContainerComponent
         ref={editorRef}
-        enableToolbar
+        enableToolbar={false}
+        showPropertiesPane={false}
         height="75vh"
         serviceUrl="https://services.syncfusion.com/react/production/api/documenteditor/"
         style={{ border: "1px solid hsl(var(--border))" }}
