@@ -5,9 +5,9 @@ using System.IO;
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Providers.Lambda;
 
-using Tagger.RulesConfiguration;
+using Tagger.Events;
 
-namespace Tagger;
+namespace Tagger.Rules.Custom;
 
 internal static class DocumentType
 {
@@ -147,17 +147,5 @@ internal static class DocumentType
         }
 
         return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed : $".{trimmed}";
-    }
-}
-
-internal sealed class DocumentTypeContextEnricher : ITaggingRuleContextEnricher
-{
-    public void Enrich(TaggingRuleContextBuilder builder, ITaggingIntegrationEvent integrationEvent)
-    {
-        var extension = DocumentType.ResolveExtension(integrationEvent);
-        if (!string.IsNullOrWhiteSpace(extension))
-        {
-            builder.AddField("extension", extension);
-        }
     }
 }

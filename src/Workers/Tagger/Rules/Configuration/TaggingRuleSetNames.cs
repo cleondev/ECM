@@ -1,4 +1,4 @@
-namespace Tagger.RulesConfiguration;
+namespace Tagger.Rules.Configuration;
 
 internal static class TaggingRuleSetNames
 {

@@ -1,9 +1,9 @@
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Providers.Lambda;
 
-using Tagger.RulesConfiguration;
+using Tagger.Rules.Configuration;
 
-namespace Tagger;
+namespace Tagger.Rules.Custom;
 
 internal static class AutoDate
 {

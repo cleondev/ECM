@@ -5,7 +5,10 @@ using Ecm.Sdk.Models.Tags;
 
 using Microsoft.Extensions.Options;
 
-namespace Tagger;
+using Tagger.Configuration;
+using Tagger.Rules.Configuration;
+
+namespace Tagger.Services;
 
 internal interface IDocumentTagAssignmentService
 {

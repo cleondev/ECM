@@ -7,7 +7,10 @@ using Serilog;
 
 using ServiceDefaults;
 
-using Tagger.RulesConfiguration;
+using Tagger.Configuration;
+using Tagger.Processing;
+using Tagger.Rules.Configuration;
+using Tagger.Services;
 
 using Workers.Shared.Messaging;
 

@@ -3,9 +3,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-using Tagger.RulesConfiguration;
+using Tagger.Rules.Enrichers;
 
-namespace Tagger;
+namespace Tagger.Rules.Configuration;
 
 internal static class RulesServiceCollectionExtensions
 {

@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.Options;
 
-using Tagger.RulesConfiguration;
-
-namespace Tagger;
+using Tagger.Events;
+using Tagger.Rules.Configuration;
+namespace Tagger.Rules.Configuration;
 
 internal sealed class TaggerRuleTriggersSetup : IConfigureOptions<TaggerRulesOptions>
 {

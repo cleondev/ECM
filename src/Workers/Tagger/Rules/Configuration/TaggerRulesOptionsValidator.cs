@@ -4,7 +4,7 @@ using System.Linq;
 using Ecm.Rules.Providers.Json;
 using Microsoft.Extensions.Options;
 
-namespace Tagger;
+namespace Tagger.Rules.Configuration;
 
 internal sealed class TaggerRulesOptionsValidator : IValidateOptions<TaggerRulesOptions>
 {
