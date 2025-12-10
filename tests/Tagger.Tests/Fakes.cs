@@ -40,6 +40,18 @@ internal sealed class TestOptionsMonitor<TOptions> : IOptionsMonitor<TOptions> w
     }
 }
 
+internal sealed class TestOptionsSnapshot<TOptions> : IOptionsSnapshot<TOptions> where TOptions : class
+{
+    public TestOptionsSnapshot(TOptions value)
+    {
+        Value = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    public TOptions Value { get; }
+
+    public TOptions Get(string? name) => Value;
+}
+
 internal sealed class RecordingRuleEngine : IRuleEngine
 {
     private readonly IReadOnlyCollection<Guid> _result;
