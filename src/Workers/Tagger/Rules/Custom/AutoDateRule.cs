@@ -1,5 +1,7 @@
 using Ecm.Rules.Abstractions;
 
+using Tagger.Rules.Configuration;
+
 namespace Tagger.Rules.Custom;
 
 internal sealed class AutoDateRule : IRule

@@ -16,7 +16,7 @@ internal sealed class TaggerRulesOptionsSetup : IConfigureOptions<TaggerRulesOpt
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var relativePath = Path.Combine("Rules", "JsonRules", "CustomerTag.json");
+        var relativePath = Path.Combine("Rules", "JsonRules");
         if (options.Files.Any(file => string.Equals(file, relativePath, StringComparison.OrdinalIgnoreCase)))
         {
             return;

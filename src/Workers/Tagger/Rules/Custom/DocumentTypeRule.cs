@@ -4,6 +4,7 @@ using System.IO;
 using Ecm.Rules.Abstractions;
 
 using Tagger.Events;
+using Tagger.Rules.Configuration;
 
 namespace Tagger.Rules.Custom;
 

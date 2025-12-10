@@ -6,6 +6,8 @@ using Ecm.Rules.Engine;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 using Tagger.RulesConfiguration;
+using Tagger.Events;
+using Tagger.Rules.Configuration;
 
 namespace Tagger.Tests;
 

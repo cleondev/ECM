@@ -9,6 +9,7 @@ using Ecm.Rules.Providers.Json;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
+using Tagger.Rules.Configuration;
 using Tagger.RulesConfiguration;
 
 using Xunit;
