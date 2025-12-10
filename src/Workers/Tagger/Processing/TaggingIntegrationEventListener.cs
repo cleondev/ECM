@@ -9,7 +9,9 @@ using Shared.Contracts.Messaging;
 using Workers.Shared.Messaging;
 using Workers.Shared.Messaging.Kafka;
 
-namespace Tagger;
+using Tagger.Events;
+
+namespace Tagger.Processing;
 
 internal sealed class TaggingIntegrationEventListener(
     IKafkaConsumer consumer,

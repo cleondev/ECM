@@ -2,7 +2,7 @@ using System;
 
 using Workers.Shared.Messaging;
 
-namespace Tagger;
+namespace Tagger.Events;
 
 internal sealed record DocumentIntegrationEventEnvelope(
     Guid EventId,

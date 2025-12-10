@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Tagger;
+namespace Tagger.Events;
 
 internal sealed record DocumentUploadedIntegrationEvent(
     Guid EventId,

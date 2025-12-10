@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Tagger;
+namespace Tagger.Rules.Configuration;
 
 public sealed class TaggerRuleTriggerOptions
 {

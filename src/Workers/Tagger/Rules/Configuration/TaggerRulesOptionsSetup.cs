@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace Tagger;
+namespace Tagger.Rules.Configuration;
 
 internal sealed class TaggerRulesOptionsSetup : IConfigureOptions<TaggerRulesOptions>
 {
@@ -16,7 +16,7 @@ internal sealed class TaggerRulesOptionsSetup : IConfigureOptions<TaggerRulesOpt
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var relativePath = Path.Combine("RulesConfiguration", "JsonRules", "CustomerTag.json");
+        var relativePath = Path.Combine("Rules", "JsonRules", "CustomerTag.json");
         if (options.Files.Any(file => string.Equals(file, relativePath, StringComparison.OrdinalIgnoreCase)))
         {
             return;

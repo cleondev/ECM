@@ -1,6 +1,6 @@
 using System;
 
-namespace Tagger;
+namespace Tagger.Events;
 
 internal static class TaggingIntegrationEventNames
 {

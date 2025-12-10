@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Ecm.Rules.Providers.Json;
 
-namespace Tagger;
+namespace Tagger.Rules.Configuration;
 
 public sealed class TaggerRulesOptions
 {

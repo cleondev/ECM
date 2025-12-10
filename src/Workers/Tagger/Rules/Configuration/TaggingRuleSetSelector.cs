@@ -6,7 +6,9 @@ using Ecm.Rules.Abstractions;
 
 using Microsoft.Extensions.Options;
 
-namespace Tagger.RulesConfiguration;
+using Tagger.Events;
+
+namespace Tagger.Rules.Configuration;
 
 internal interface ITaggingRuleSetSelector
 {
