@@ -1,14 +1,11 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-
-using AppGateway.Api.Auth;
+﻿using AppGateway.Api.Auth;
 using AppGateway.Infrastructure.Ecm;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
+
+using Newtonsoft.Json;
 
 using Syncfusion.EJ2.PdfViewer;
 
@@ -17,13 +14,18 @@ namespace AppGateway.Api.Controllers.Viewer;
 [ApiController]
 [Route("api/viewer/pdf/{versionId:guid}")]
 [Authorize(AuthenticationSchemes = GatewayAuthenticationSchemes.Default)]
-public sealed class PdfViewerController(IEcmApiClient ecmApiClient, ILogger<PdfViewerController> logger) : ControllerBase
+public sealed class PdfViewerController(
+    IEcmApiClient ecmApiClient,
+    IMemoryCache cache,
+    ILogger<PdfViewerController> logger) : ControllerBase
 {
-    private static readonly PdfRenderer Renderer = new();
-
     private readonly IEcmApiClient _ecmApiClient = ecmApiClient;
+    private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PdfViewerController> _logger = logger;
 
+    /// <summary>
+    /// Load PDF từ ECM vào PdfRenderer.
+    /// </summary>
     [HttpPost("load")]
     public async Task<IActionResult> LoadAsync(
         Guid versionId,
@@ -46,58 +48,115 @@ public sealed class PdfViewerController(IEcmApiClient ecmApiClient, ILogger<PdfV
             return NotFound();
         }
 
-        await using var stream = new MemoryStream(preview.Payload.Content);
-        var response = Renderer.Load(stream, jsonObject);
-        return Content(response, "application/json");
+        try
+        {
+            await using var stream = new MemoryStream(preview.Payload.Content);
+
+            // PdfRenderer cần IMemoryCache
+            var pdfViewer = new PdfRenderer(_cache);
+
+            // Load trả về object → phải serialize
+            var result = pdfViewer.Load(stream, jsonObject);
+
+            return Content(JsonConvert.SerializeObject(result), "application/json");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load PDF for version {VersionId}", versionId);
+            return StatusCode(500);
+        }
     }
 
+    /// <summary>
+    /// Render trang PDF.
+    /// </summary>
     [HttpPost("render")]
     public IActionResult RenderPdfPages([FromBody] Dictionary<string, string> jsonObject)
     {
-        return Content(Renderer.GetPage(jsonObject), "application/json");
+        var pdfViewer = new PdfRenderer(_cache);
+        var result = pdfViewer.GetPage(jsonObject);
+        return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
+    /// <summary>
+    /// Render text trong PDF.
+    /// LƯU Ý: API đúng là GetDocumentText, không phải GetText.
+    /// </summary>
     [HttpPost("render-text")]
     public IActionResult RenderPdfTexts([FromBody] Dictionary<string, string> jsonObject)
     {
-        return Content(Renderer.GetText(jsonObject), "application/json");
+        var pdfViewer = new PdfRenderer(_cache);
+        var result = pdfViewer.GetDocumentText(jsonObject);
+        return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
+    /// <summary>
+    /// Render thumbnail.
+    /// </summary>
     [HttpPost("render-thumbnails")]
     public IActionResult RenderThumbnails([FromBody] Dictionary<string, string> jsonObject)
     {
-        return Content(Renderer.GetThumbnailImages(jsonObject), "application/json");
+        var pdfViewer = new PdfRenderer(_cache);
+        var result = pdfViewer.GetThumbnailImages(jsonObject);
+        return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
+    /// <summary>
+    /// Lấy bookmarks.
+    /// </summary>
     [HttpPost("bookmarks")]
     public IActionResult Bookmarks([FromBody] Dictionary<string, string> jsonObject)
     {
-        return Content(Renderer.GetBookmarks(jsonObject), "application/json");
+        var pdfViewer = new PdfRenderer(_cache);
+        var result = pdfViewer.GetBookmarks(jsonObject);
+        return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
+    /// <summary>
+    /// Lấy annotation comments.
+    /// </summary>
     [HttpPost("annotations")]
     public IActionResult RenderAnnotations([FromBody] Dictionary<string, string> jsonObject)
     {
-        return Content(Renderer.GetAnnotationComments(jsonObject), "application/json");
+        var pdfViewer = new PdfRenderer(_cache);
+        var result = pdfViewer.GetAnnotationComments(jsonObject);
+        return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
+    /// <summary>
+    /// In: PdfViewer dùng GetPrintImage, không có Print().
+    /// </summary>
     [HttpPost("print")]
     public IActionResult Print([FromBody] Dictionary<string, string> jsonObject)
     {
-        return Content(Renderer.Print(jsonObject), "application/json");
+        var pdfViewer = new PdfRenderer(_cache);
+        var result = pdfViewer.GetPrintImage(jsonObject);
+        return Content(JsonConvert.SerializeObject(result), "application/json");
     }
 
+    /// <summary>
+    /// Download: dùng GetDocumentAsBase64, không có GetDocument().
+    /// FE sẽ decode base64 để tải file.
+    /// </summary>
     [HttpPost("download")]
     public IActionResult Download([FromBody] Dictionary<string, string> jsonObject)
     {
-        var document = Renderer.GetDocument(jsonObject);
-        return File(document.DocumentStream, "application/pdf", document.DocumentName);
+        var pdfViewer = new PdfRenderer(_cache);
+        var documentBase64 = pdfViewer.GetDocumentAsBase64(jsonObject);
+
+        // Syncfusion sample trả luôn base64 string (content-type mặc định text/plain).
+        // Nếu muốn rõ ràng:
+        return Content(documentBase64, "text/plain");
     }
 
+    /// <summary>
+    /// Giải phóng cache trên server.
+    /// </summary>
     [HttpPost("unload")]
     public IActionResult Unload([FromBody] Dictionary<string, string> jsonObject)
     {
-        Renderer.ClearCache(jsonObject);
+        var pdfViewer = new PdfRenderer(_cache);
+        pdfViewer.ClearCache(jsonObject);
         return Ok();
     }
 }

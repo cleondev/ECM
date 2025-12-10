@@ -1,22 +1,15 @@
-using System;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Text.Json;
-using AppGateway.Api.Auth;
-using AppGateway.Contracts.IAM.Groups;
-using AppGateway.Contracts.IAM.Roles;
-using AppGateway.Contracts.IAM.Users;
-using AppGateway.Infrastructure.Ecm;
-using AppGateway.Infrastructure.Auth;
 using System.Security.Claims;
+using System.Text.Json;
+
+using AppGateway.Api.Auth;
+using AppGateway.Contracts.IAM.Users;
+using AppGateway.Infrastructure.Auth;
+using AppGateway.Infrastructure.Ecm;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace AppGateway.Api.Controllers.IAM;

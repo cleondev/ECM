@@ -1,8 +1,8 @@
-using AppGateway.Contracts.Signatures;
 using AppGateway.Api.Auth;
+using AppGateway.Contracts.Signatures;
 using AppGateway.Infrastructure.Ecm;
+
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AppGateway.Api.Controllers;

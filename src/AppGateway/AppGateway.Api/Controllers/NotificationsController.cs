@@ -1,11 +1,8 @@
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using AppGateway.Api.Auth;
 using AppGateway.Api.Notifications;
 using AppGateway.Contracts.Notifications;
+
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Identity.Web;
 

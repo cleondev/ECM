@@ -1,13 +1,13 @@
-using System.Text;
+﻿using System.Text;
 
 using AppGateway.Infrastructure.Ecm;
 
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 
-using Syncfusion.DocIO.DLS;
+using Newtonsoft.Json;
+
+using Syncfusion.EJ2.DocumentEditor;
 using Syncfusion.EJ2.Spreadsheet;
-using Syncfusion.EJ2.WordEditor;
 
 namespace AppGateway.Api.Controllers.Viewer;
 
@@ -40,100 +40,88 @@ public sealed class ViewerConversionService(IMemoryCache cache, ILogger<ViewerCo
             });
     }
 
+    /// <summary>
+    /// Convert Word → SFDT JSON (DocumentEditor EJ2)
+    /// </summary>
     private DocumentFileContent? ConvertWordToSfdt(DocumentFileContent source)
     {
         try
         {
-            using var input = new MemoryStream(source.Content);
+            var stream = new MemoryStream(source.Content);
             var format = ResolveWordFormat(source);
-            using var document = WordDocument.Load(input, format);
 
-            using var output = new MemoryStream();
-            document.Save(output, FormatType.Sfdt);
+            // EJ2 WordDocument: KHÔNG IDisposable → không dùng using
+            var document = WordDocument.Load(stream, format);
 
+            var sfdt = JsonConvert.SerializeObject(document);
             var fileName = Path.ChangeExtension(source.FileName ?? "document", ".sfdt");
+
             return new DocumentFileContent(
-                output.ToArray(),
+                Encoding.UTF8.GetBytes(sfdt),
                 "application/json",
                 fileName,
                 source.LastModifiedUtc,
-                enableRangeProcessing: false);
+                EnableRangeProcessing: false);
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            _logger.LogError(exception, "Failed to convert Word document to SFDT");
+            _logger.LogError(ex, "Failed to convert Word to SFDT.");
             return null;
         }
     }
 
+    /// <summary>
+    /// Convert Excel → JSON (Spreadsheet EJ2)
+    /// </summary>
     private DocumentFileContent? ConvertExcelToJson(DocumentFileContent source)
     {
         try
         {
-            var base64 = Convert.ToBase64String(source.Content);
+            var stream = new MemoryStream(source.Content);
+
+            // Giả lập IFormFile → dùng lại API Workbook.Open(OpenRequest)
+            IFormFile formFile = new FormFile(
+                baseStream: stream,
+                baseStreamOffset: 0,
+                length: stream.Length,
+                name: "file",
+                fileName: source.FileName ?? "workbook.xlsx");
 
             var request = new OpenRequest
             {
-                File = new ImportRequest
-                {
-                    File = base64,
-                    FileName = source.FileName ?? "workbook.xlsx",
-                    Type = ResolveExcelType(source),
-                },
+                File = formFile
             };
 
-            var workbookJson = Workbook.Open(request);
+            var json = Workbook.Open(request);
             var fileName = Path.ChangeExtension(source.FileName ?? "workbook", ".json");
 
             return new DocumentFileContent(
-                Encoding.UTF8.GetBytes(workbookJson),
+                Encoding.UTF8.GetBytes(json),
                 "application/json",
                 fileName,
                 source.LastModifiedUtc,
-                enableRangeProcessing: false);
+                EnableRangeProcessing: false);
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            _logger.LogError(exception, "Failed to convert Excel document to Spreadsheet JSON");
+            _logger.LogError(ex, "Failed to convert Excel to JSON.");
             return null;
         }
     }
 
+    /// <summary>
+    /// EJ2 FormatType (không có DOT)
+    /// </summary>
     private static FormatType ResolveWordFormat(DocumentFileContent source)
     {
-        var extension = Path.GetExtension(source.FileName)?.TrimStart('.').ToLowerInvariant();
+        var ext = Path.GetExtension(source.FileName)?.TrimStart('.').ToLowerInvariant();
 
-        return extension switch
+        return ext switch
         {
             "doc" => FormatType.Doc,
-            "dot" => FormatType.Dot,
             "rtf" => FormatType.Rtf,
+            "txt" => FormatType.Txt,
             _ => FormatType.Docx,
-        };
-    }
-
-    private static string ResolveExcelType(DocumentFileContent source)
-    {
-        var contentType = source.ContentType?.ToLowerInvariant();
-        if (!string.IsNullOrEmpty(contentType))
-        {
-            if (contentType.Contains("csv"))
-            {
-                return "csv";
-            }
-
-            if (contentType.Contains("spreadsheetml"))
-            {
-                return "xlsx";
-            }
-        }
-
-        var extension = Path.GetExtension(source.FileName)?.TrimStart('.').ToLowerInvariant();
-        return extension switch
-        {
-            "csv" => "csv",
-            "xls" => "xls",
-            _ => "xlsx",
         };
     }
 }

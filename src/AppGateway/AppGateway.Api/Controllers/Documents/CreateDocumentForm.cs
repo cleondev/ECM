@@ -1,8 +1,4 @@
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
-
-using Microsoft.AspNetCore.Http;
 
 namespace AppGateway.Api.Controllers.Documents;
 

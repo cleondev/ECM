@@ -2,8 +2,8 @@ using AppGateway.Api.Auth;
 using AppGateway.Api.Fake;
 using AppGateway.Contracts.Workflows;
 using AppGateway.Infrastructure.Ecm;
+
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AppGateway.Api.Controllers;

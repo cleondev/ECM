@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using AppGateway.Api.Auth;
 using AppGateway.Contracts.Tags;
 using AppGateway.Infrastructure.Ecm;
+
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AppGateway.Api.Controllers;
