@@ -12,6 +12,9 @@ namespace Tagger.Services;
 
 internal interface IDocumentTagAssignmentService
 {
+    /// <summary>
+    /// Applies tag IDs and tag names (creating them if needed) to a document and returns how many assignments were made.
+    /// </summary>
     Task<int> AssignTagsAsync(
         Guid documentId,
         IReadOnlyCollection<Guid> tagIds,
@@ -19,6 +22,9 @@ internal interface IDocumentTagAssignmentService
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Uses the ECM SDK to ensure target namespaces exist and to assign tags produced by the rule engine to documents.
+/// </summary>
 internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentService
 {
     private readonly EcmFileClient _client;

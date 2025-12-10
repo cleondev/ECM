@@ -12,9 +12,15 @@ namespace Tagger.Rules.Configuration;
 
 internal interface ITaggingRuleSetSelector
 {
+    /// <summary>
+    /// Returns the unique rule set names that should be executed for the specified integration event.
+    /// </summary>
     IReadOnlyCollection<string> GetRuleSets(ITaggingIntegrationEvent integrationEvent);
 }
 
+/// <summary>
+/// Resolves which tagging rule sets are configured to run for a given integration event type.
+/// </summary>
 internal sealed class TaggingRuleSetSelector : ITaggingRuleSetSelector
 {
     private readonly IOptionsMonitor<TaggerRulesOptions> _options;

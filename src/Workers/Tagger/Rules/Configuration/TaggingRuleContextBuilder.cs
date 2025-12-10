@@ -4,6 +4,9 @@ using Tagger.Events;
 
 namespace Tagger.Rules.Configuration;
 
+/// <summary>
+/// Builds the dictionary passed into the rules engine so rule expressions can access event metadata consistently.
+/// </summary>
 internal sealed class TaggingRuleContextBuilder
 {
     private readonly Dictionary<string, object> _items;
@@ -43,6 +46,9 @@ internal sealed class TaggingRuleContextBuilder
 
     public string? EventName { get; private set; }
 
+    /// <summary>
+    /// Adds a human-readable summary from the event to the rule context if present.
+    /// </summary>
     public TaggingRuleContextBuilder WithSummary(string? summary)
     {
         if (!string.IsNullOrWhiteSpace(summary))
@@ -55,6 +61,9 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds content or OCR text to the rule context when available.
+    /// </summary>
     public TaggingRuleContextBuilder WithContent(string? content)
     {
         if (!string.IsNullOrWhiteSpace(content))
@@ -67,6 +76,9 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds all metadata key/value pairs from the integration event to the context.
+    /// </summary>
     public TaggingRuleContextBuilder AddMetadata(IDictionary<string, string>? metadata)
     {
         if (metadata is null)
@@ -82,6 +94,9 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds a single metadata entry into the context and derived fields dictionary.
+    /// </summary>
     public TaggingRuleContextBuilder AddMetadata(string? key, string? value)
     {
         if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
@@ -98,6 +113,9 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
+    /// <summary>
+    /// Records the logical event name so rules can branch on which integration event fired.
+    /// </summary>
     public TaggingRuleContextBuilder WithEvent(string eventName)
     {
         if (!string.IsNullOrWhiteSpace(eventName))
@@ -110,6 +128,9 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
+    /// <summary>
+    /// Adds a derived field for use in rule expressions; null/empty values are ignored.
+    /// </summary>
     public TaggingRuleContextBuilder AddField(string? key, string? value)
     {
         if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value))
@@ -121,6 +142,9 @@ internal sealed class TaggingRuleContextBuilder
         return this;
     }
 
+    /// <summary>
+    /// Finalizes the context, exposing metadata, derived fields, and base properties as a read-only dictionary.
+    /// </summary>
     public IReadOnlyDictionary<string, object> Build()
     {
         _items["Metadata"] = new ReadOnlyDictionary<string, string>(_metadata);
@@ -134,6 +158,9 @@ internal sealed class TaggingRuleContextBuilder
         return new ReadOnlyDictionary<string, object>(_items);
     }
 
+    /// <summary>
+    /// Seeds the builder from raw metadata values commonly present on integration events.
+    /// </summary>
     public static TaggingRuleContextBuilder FromMetadata(
         Guid documentId,
         string title,
@@ -150,6 +177,9 @@ internal sealed class TaggingRuleContextBuilder
         return builder;
     }
 
+    /// <summary>
+    /// Creates a builder from any tagging integration event, mapping common fields into context entries.
+    /// </summary>
     public static TaggingRuleContextBuilder FromIntegrationEvent(ITaggingIntegrationEvent integrationEvent)
     {
         ArgumentNullException.ThrowIfNull(integrationEvent);
