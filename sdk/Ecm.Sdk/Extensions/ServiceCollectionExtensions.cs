@@ -61,8 +61,7 @@ public static class ServiceCollectionExtensions
             .Validate(
                 options =>
                     options.Sso.Enabled || !string.IsNullOrWhiteSpace(options.ApiKey.ApiKey),
-                "Ecm:ApiKey:ApiKey must be configured when SSO is disabled.")
-            .ValidateOnStart();
+                "Ecm:ApiKey:ApiKey must be configured when SSO is disabled.");
     }
 
     private static IServiceCollection RegisterEcmIntegration(this IServiceCollection services)
