@@ -2,20 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BadgeCheck, Download, FileText, PanelRight, Share2 } from "lucide-react"
+import { ArrowLeft, Download, MoreHorizontal, PanelRight, Share2 } from "lucide-react"
 
 import { buildDocumentDownloadUrl, fetchFileDetails, fetchFlows } from "@/lib/api"
 import type { FileDetail, Flow } from "@/lib/types"
 import type { ViewerDescriptor } from "@/lib/viewer-types"
 import { resolveViewerConfig, type ViewerCategory } from "@/lib/viewer-utils"
 import { fetchViewerDescriptor } from "@/lib/viewer-api"
+import { BrandLogo } from "@/components/brand-logo"
 import { RightSidebar } from "@/components/right-sidebar"
 import { ResizableHandle } from "@/components/resizable-handle"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatBytes, formatDate, getExtension } from "@/components/shared/sidebar-tabs"
 import { Separator } from "@/components/ui/separator"
+import { UserIdentity } from "@/components/user/user-identity"
 import { ViewerPanel } from "@/components/viewers/ViewerPanel"
 
 const MAIN_APP_ROUTE = "/app/"
@@ -42,17 +45,18 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   const [viewerDescriptor, setViewerDescriptor] = useState<ViewerDescriptor | null>(null)
   const [viewerDescriptorError, setViewerDescriptorError] = useState<string | null>(null)
   const [viewerDescriptorLoading, setViewerDescriptorLoading] = useState(false)
+  const [selectedVersionId, setSelectedVersionId] = useState<string | undefined>(undefined)
 
   const previewUrl =
     viewerDescriptor?.view?.url ??
     viewerDescriptor?.previewUrl ??
-    (file?.latestVersionId ? buildDocumentDownloadUrl(file.latestVersionId) : undefined)
+    (selectedVersionId ? buildDocumentDownloadUrl(selectedVersionId) : undefined)
   const thumbnailUrl = viewerDescriptor?.thumbnailUrl ?? file?.thumbnail
   const wordViewerUrl = viewerDescriptor?.sfdtUrl ?? viewerDescriptor?.view?.url ?? viewerDescriptor?.previewUrl
   const excelViewerUrl = viewerDescriptor?.excelJsonUrl ?? viewerDescriptor?.view?.url ?? viewerDescriptor?.previewUrl
   const downloadUrl = useMemo(
-    () => viewerDescriptor?.downloadUrl ?? (file?.latestVersionId ? buildDocumentDownloadUrl(file.latestVersionId) : undefined),
-    [file?.latestVersionId, viewerDescriptor?.downloadUrl],
+    () => viewerDescriptor?.downloadUrl ?? (selectedVersionId ? buildDocumentDownloadUrl(selectedVersionId) : undefined),
+    [selectedVersionId, viewerDescriptor?.downloadUrl],
   )
 
   useEffect(() => {
@@ -102,7 +106,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   }, [isAuthenticated, fileId, targetPath])
 
   useEffect(() => {
-    if (!file?.latestVersionId) {
+    if (!selectedVersionId) {
       setViewerDescriptor(null)
       setViewerDescriptorError(null)
       return
@@ -112,7 +116,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
     setViewerDescriptorLoading(true)
     setViewerDescriptorError(null)
 
-    fetchViewerDescriptor(file.latestVersionId)
+    fetchViewerDescriptor(selectedVersionId)
       .then((descriptor) => {
         if (!cancelled) {
           setViewerDescriptor(descriptor)
@@ -121,7 +125,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
       .catch((err) => {
         console.error("[viewer] Failed to load viewer descriptor", err)
         if (!cancelled) {
-          setViewerDescriptorError("Không thể tải cấu hình trình xem từ máy chủ.")
+          setViewerDescriptorError("Không thể tải trình xem cho phiên bản đã chọn. Vui lòng thử lại sau.")
           setViewerDescriptor(null)
         }
       })
@@ -134,7 +138,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
     return () => {
       cancelled = true
     }
-  }, [file?.latestVersionId])
+  }, [selectedVersionId])
 
   useEffect(() => {
     if (!file?.id) return
@@ -150,6 +154,13 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
     if (!file) return
 
     setComments(file.comments)
+  }, [file])
+
+  useEffect(() => {
+    if (!file) return
+
+    const preferredVersion = file.latestVersionId ?? file.versions?.[0]?.id
+    setSelectedVersionId(preferredVersion)
   }, [file])
 
   const viewerConfig = useMemo(
@@ -208,6 +219,7 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   }
 
   const extension = getExtension(file.name)
+  const selectedVersion = file.versions.find((version) => version.id === selectedVersionId)
   const viewerLabelMap: Record<ViewerCategory, string> = {
     pdf: "PDF",
     image: "Hình ảnh",
@@ -221,29 +233,46 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="flex h-14 items-center gap-3 border-b border-border bg-background px-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push(MAIN_APP_ROUTE)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+      <header className="flex h-16 items-center gap-3 border-b border-border bg-background px-4">
+        <div className="flex items-center gap-3">
+          <BrandLogo size={32} />
+          <Button variant="ghost" size="icon" onClick={() => router.push(MAIN_APP_ROUTE)} aria-label="Quay lại thư viện">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-base font-semibold text-foreground">{file.name}</span>
             <Badge variant="secondary" className="capitalize">
               {viewerLabel}
             </Badge>
-            <span className="truncate text-sm font-semibold text-foreground">{file.name}</span>
           </div>
+          {selectedVersion ? (
+            <span className="text-xs text-muted-foreground">{selectedVersion.label}</span>
+          ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={file.ownerAvatar} alt={file.owner} />
-                <AvatarFallback>{file.owner.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-          </Button>
-          <Button variant="ghost" size="icon" disabled={!downloadUrl} onClick={handleDownload}>
+        <div className="hidden items-center gap-2 md:flex">
+          <Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
+            <SelectTrigger className="w-52">
+              <SelectValue placeholder="Chọn phiên bản" />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {file.versions.map((version) => (
+                <SelectItem key={version.id} value={version.id}>
+                  <div className="flex flex-col text-left">
+                    <span className="font-medium">{version.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(version.createdAt)} • {version.size}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="icon" disabled={!downloadUrl} onClick={handleDownload} aria-label="Tải xuống">
             <Download className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Chia sẻ">
             <Share2 className="h-4 w-4" />
           </Button>
           <Button
@@ -254,7 +283,60 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
           >
             <PanelRight className="h-4 w-4" />
           </Button>
+          <UserIdentity
+            userId={file.ownerId}
+            size="sm"
+            density="compact"
+            shape="circle"
+            interactive={false}
+            className="ml-2"
+          />
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden" aria-label="Thao tác khác">
+              <MoreHorizontal className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Phiên bản</div>
+            <div className="px-2 pb-2">
+              <Select value={selectedVersionId} onValueChange={setSelectedVersionId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn phiên bản" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {file.versions.map((version) => (
+                    <SelectItem key={version.id} value={version.id}>
+                      {version.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DropdownMenuItem onSelect={handleDownload} disabled={!downloadUrl}>
+              <Download className="mr-2 h-4 w-4" /> Tải xuống
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Share2 className="mr-2 h-4 w-4" /> Chia sẻ
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setIsRightSidebarOpen((previous) => !previous)}>
+              <PanelRight className="mr-2 h-4 w-4" /> {isRightSidebarOpen ? "Ẩn sidebar" : "Hiển thị sidebar"}
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <div className="mt-1 w-full cursor-default px-1 py-1.5">
+                <UserIdentity
+                  userId={file.ownerId}
+                  size="sm"
+                  density="compact"
+                  shape="circle"
+                  interactive={false}
+                  className="w-full"
+                />
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       <div className="flex flex-1 overflow-hidden bg-muted/40">
