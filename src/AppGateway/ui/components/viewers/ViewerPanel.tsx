@@ -35,6 +35,8 @@ export function ViewerPanel({
   const resolvedThumbnail = descriptor?.thumbnailUrl ?? thumbnailUrl ?? file.thumbnail
   const resolvedWordUrl = descriptor?.sfdtUrl ?? wordViewerUrl ?? resolvedPreviewUrl
   const resolvedExcelUrl = descriptor?.excelJsonUrl ?? excelViewerUrl ?? resolvedPreviewUrl
+  const resolvedPdfServiceUrl = descriptor?.pdfServiceUrl ?? descriptor?.view?.url ?? null
+  const documentPath = descriptor?.version.id ?? file.latestVersionId ?? file.id
 
   if (viewerType === "unsupported" || viewerCategory === "unsupported") {
     return <UnsupportedViewer file={file} />
@@ -43,7 +45,11 @@ export function ViewerPanel({
   switch (viewerCategory) {
     case "pdf":
       return resolvedPreviewUrl ? (
-        <PdfViewer documentUrl={resolvedPreviewUrl} />
+        <PdfViewer
+          documentUrl={resolvedPreviewUrl}
+          serviceUrl={resolvedPdfServiceUrl ?? undefined}
+          documentPath={documentPath}
+        />
       ) : (
         <UnsupportedViewer file={file} message="Không tìm thấy file PDF" />
       )

@@ -14,5 +14,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Identity.Web" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Syncfusion.EJ2.PdfViewer.AspNet.Core" />
+    <PackageReference Include="Syncfusion.EJ2.Spreadsheet.AspNet.Core" />
+    <PackageReference Include="Syncfusion.EJ2.WordEditor.AspNet.Core" />
   </ItemGroup>
 </Project>

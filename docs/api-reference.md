@@ -141,9 +141,7 @@ Tài liệu này tổng hợp các API mới của hệ thống ECM theo từng 
 | `DELETE /versions/{versionId}` | Xóa phiên bản (theo policy). | `versionId` |
 | `POST /versions/{versionId}/promote` | Đặt phiên bản làm hiện hành. | `versionId` |
 | `GET /files/download/{versionId}` | Tải file (redirect signed URL). | `versionId` |
-| `GET /files/preview/{versionId}` | Stream preview (PDF/image/video). | `versionId` |
-| `GET /files/viewer/word/{versionId}` | Mở tài liệu Word ở chế độ xem (trả về SFDT). | `versionId` |
-| `GET /files/viewer/excel/{versionId}` | Mở bảng tính Excel ở chế độ xem (trả về JSON Spreadsheet). | `versionId` |
+| `GET /files/preview/{versionId}` | Stream preview (PDF/image/video/file gốc). | `versionId` |
 | `GET /files/thumbnails/{versionId}` | Lấy thumbnail. | `versionId`, `w`, `h`, `fit=cover|contain` |
 
 ### App Gateway viewer BFF
@@ -152,9 +150,10 @@ Gateway cung cấp thêm lớp BFF để tổng hợp thông tin viewer và prox
 
 | Method & Path | Mô tả | Ghi chú |
 | --- | --- | --- |
-| `GET /api/viewer/{versionId}` | Trả về metadata phiên bản, `viewerType` (pdf/word/excel/image/video/unsupported) và các URL xem/tải sẵn có. | `viewerType` được suy luận từ `mimeType` hoặc đuôi file; trả về `wordViewerUrl`/`excelViewerUrl` khi phù hợp. |
-| `GET /api/viewer/word/{versionId}` | Proxy stream payload viewer Word (SFDT) từ ECM. | Yêu cầu quyền xem tương tự API preview/download. |
-| `GET /api/viewer/excel/{versionId}` | Proxy stream payload viewer Excel (JSON Spreadsheet) từ ECM. | Yêu cầu quyền xem tương tự API preview/download. |
+| `GET /api/viewer/{versionId}` | Trả về metadata phiên bản, `viewerType` (pdf/word/excel/image/video/unsupported) và các URL xem/tải sẵn có. | Bao gồm `pdfServiceUrl`, `sfdtUrl`, `excelJsonUrl` khi phù hợp. |
+| `POST /api/viewer/pdf/{versionId}/*` | Các endpoint PdfRenderer (load, render, render-text, render-thumbnails, bookmarks, annotations, print, download, unload). | FE trỏ `serviceUrl` vào đây, `documentPath` = `versionId`. |
+| `GET /api/viewer/word/{versionId}` | Proxy stream payload Word đã convert SFDT. | Yêu cầu quyền xem tương tự API preview/download; cache tại BFF. |
+| `GET /api/viewer/excel/{versionId}` | Proxy stream payload Excel JSON (Spreadsheet). | Yêu cầu quyền xem tương tự API preview/download; cache tại BFF. |
 
 Phản hồi `GET /api/viewer/{versionId}`:
 
@@ -165,8 +164,9 @@ Phản hồi `GET /api/viewer/{versionId}`:
   "previewUrl": "/api/documents/files/preview/<versionId>",
   "downloadUrl": "/api/documents/files/download/<versionId>",
   "thumbnailUrl": "/api/documents/files/thumbnails/<versionId>?w=400&h=400&fit=contain",
-  "wordViewerUrl": "/api/viewer/word/<versionId>",
-  "excelViewerUrl": null
+  "pdfServiceUrl": null,
+  "sfdtUrl": "/api/viewer/word/<versionId>",
+  "excelJsonUrl": null
 }
 ```
 

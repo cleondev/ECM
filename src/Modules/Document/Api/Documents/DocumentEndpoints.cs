@@ -123,16 +123,6 @@ public static class DocumentEndpoints
             .WithDescription("Streams the original file content for preview purposes.");
 
         group
-            .MapGet("/files/viewer/word/{versionId:guid}", GetWordViewerAsync)
-            .WithName("GetWordViewerPayload")
-            .WithDescription("Returns the payload used by the Word viewer.");
-
-        group
-            .MapGet("/files/viewer/excel/{versionId:guid}", GetExcelViewerAsync)
-            .WithName("GetExcelViewerPayload")
-            .WithDescription("Returns the payload used by the Excel viewer.");
-
-        group
             .MapGet("/files/thumbnails/{versionId:guid}", GetThumbnailAsync)
             .WithName("GetDocumentThumbnail")
             .WithDescription("Returns a generated thumbnail for the requested document version.");
@@ -904,20 +894,6 @@ public static class DocumentEndpoints
             lastModified: file.LastModifiedUtc
         );
     }
-
-    private static Task<IResult> GetWordViewerAsync(
-        Guid versionId,
-        IDocumentVersionReadService versionReadService,
-        IFileAccessGateway fileAccess,
-        CancellationToken cancellationToken
-    ) => PreviewFileAsync(versionId, versionReadService, fileAccess, cancellationToken);
-
-    private static Task<IResult> GetExcelViewerAsync(
-        Guid versionId,
-        IDocumentVersionReadService versionReadService,
-        IFileAccessGateway fileAccess,
-        CancellationToken cancellationToken
-    ) => PreviewFileAsync(versionId, versionReadService, fileAccess, cancellationToken);
 
     private static async Task<IResult> ShareFileAsync(
         Guid versionId,

@@ -477,22 +477,18 @@ internal sealed class EcmApiClient(
         return response.IsSuccessStatusCode;
     }
 
-    public async Task<DocumentFileContent?> GetDocumentVersionPreviewAsync(Guid versionId, CancellationToken cancellationToken = default)
+    public async Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionPreviewAsync(
+        Guid versionId,
+        CancellationToken cancellationToken = default)
     {
         using var request = await CreateRequestAsync(HttpMethod.Get, $"api/ecm/files/preview/{versionId}", cancellationToken);
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            return null;
-        }
+        var content = response.IsSuccessStatusCode
+            ? await CreateDocumentFileContentAsync(response, enableRangeProcessing: true, cancellationToken)
+            : null;
 
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await CreateDocumentFileContentAsync(response, enableRangeProcessing: true, cancellationToken);
+        return new EcmResponse<DocumentFileContent?>(response.StatusCode, content);
     }
 
     public async Task<DocumentFileContent?> GetDocumentVersionThumbnailAsync(
@@ -529,40 +525,6 @@ internal sealed class EcmApiClient(
         }
 
         return await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken);
-    }
-
-    public async Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionWordViewerAsync(
-        Guid versionId,
-        CancellationToken cancellationToken = default)
-    {
-        using var request = await CreateRequestAsync(
-            HttpMethod.Get,
-            $"api/ecm/files/viewer/word/{versionId}",
-            cancellationToken);
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-        var content = response.IsSuccessStatusCode
-            ? await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken)
-            : null;
-
-        return new EcmResponse<DocumentFileContent?>(response.StatusCode, content);
-    }
-
-    public async Task<EcmResponse<DocumentFileContent?>> GetDocumentVersionExcelViewerAsync(
-        Guid versionId,
-        CancellationToken cancellationToken = default)
-    {
-        using var request = await CreateRequestAsync(
-            HttpMethod.Get,
-            $"api/ecm/files/viewer/excel/{versionId}",
-            cancellationToken);
-        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-
-        var content = response.IsSuccessStatusCode
-            ? await CreateDocumentFileContentAsync(response, enableRangeProcessing: false, cancellationToken)
-            : null;
-
-        return new EcmResponse<DocumentFileContent?>(response.StatusCode, content);
     }
 
     public async Task<DocumentShareLinkDto?> CreateDocumentShareLinkAsync(

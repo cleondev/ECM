@@ -8,5 +8,9 @@ public sealed record ViewerResponse(
     string PreviewUrl,
     string DownloadUrl,
     string ThumbnailUrl,
-    string? WordViewerUrl,
-    string? ExcelViewerUrl);
+    ViewerView? View,
+    string? SfdtUrl,
+    string? ExcelJsonUrl,
+    string? PdfServiceUrl);
+
+public sealed record ViewerView(string? Url);
