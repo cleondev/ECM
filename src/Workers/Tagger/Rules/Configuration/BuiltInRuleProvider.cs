@@ -5,6 +5,9 @@ using Tagger.Rules.Custom;
 
 namespace Tagger.Rules.Configuration;
 
+/// <summary>
+/// Supplies the default tagging rulesets shipped with the worker so it functions without custom configuration.
+/// </summary>
 internal sealed class BuiltInRuleProvider : IRuleProvider
 {
     private readonly IReadOnlyCollection<IRuleSet> _ruleSets = new[]
@@ -13,6 +16,9 @@ internal sealed class BuiltInRuleProvider : IRuleProvider
         CreateRuleSet(TaggingRuleSetNames.OcrCompleted)
     };
 
+    /// <summary>
+    /// Identifies the provider when rules are merged within the engine.
+    /// </summary>
     public string Source => "Tagger.BuiltIn";
 
     public IEnumerable<IRuleSet> GetRuleSets() => _ruleSets;
