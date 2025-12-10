@@ -16,14 +16,14 @@ namespace Ecm.Sdk.Authentication;
 /// </summary>
 public sealed class EcmAuthenticator(
     HttpClient httpClient,
-    IOptionsSnapshot<EcmIntegrationOptions> options,
+    IOptions<EcmIntegrationOptions> options,
     IMemoryCache cache,
     ILogger<EcmAuthenticator> logger)
 {
     private const string TokenCachePrefix = "ecm_token_";
 
     private readonly HttpClient _httpClient = httpClient;
-    private readonly IOptionsSnapshot<EcmIntegrationOptions> _options = options;
+    private readonly EcmIntegrationOptions _options = options.Value;
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<EcmAuthenticator> _logger = logger;
 
@@ -65,12 +65,12 @@ public sealed class EcmAuthenticator(
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (string.IsNullOrWhiteSpace(_options.Value.ApiKey.ApiKey))
+        if (string.IsNullOrWhiteSpace(_options.ApiKey.ApiKey))
         {
             throw new InvalidOperationException("Ecm:ApiKey:ApiKey must be configured.");
         }
 
-        var baseUri = new Uri(_options.Value.BaseUrl, UriKind.Absolute);
+        var baseUri = new Uri(_options.BaseUrl, UriKind.Absolute);
 
         if (_httpClient.BaseAddress != baseUri)
         {
@@ -86,7 +86,7 @@ public sealed class EcmAuthenticator(
             }),
         };
 
-        request.Headers.Add("X-Api-Key", _options.Value.ApiKey.ApiKey);
+        request.Headers.Add("X-Api-Key", _options.ApiKey.ApiKey);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
