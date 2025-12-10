@@ -1,13 +1,12 @@
-using System.Collections.Generic;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Ecm.Rules.Engine;
+
 using Microsoft.Extensions.Logging.Abstractions;
-using Xunit;
-using Tagger.RulesConfiguration;
+
 using Tagger.Events;
+using Tagger.Processing;
 using Tagger.Rules.Configuration;
+
+using Xunit;
 
 namespace Tagger.Tests;
 

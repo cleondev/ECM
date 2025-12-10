@@ -142,11 +142,15 @@ internal sealed class MinioFileStorage(IMinioClient client, IOptions<FileStorage
         if (!string.IsNullOrEmpty(normalizedFileName))
         {
             var contentDisposition = BuildContentDisposition(normalizedFileName);
-            args = args.WithExtraQueryParams(new Dictionary<string, string>
+
+            var headers = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["response-content-disposition"] = contentDisposition,
-            });
+            };
+
+            args = args.WithHeaders(headers);
         }
+
 
         var url = await _client.PresignedGetObjectAsync(args);
         return Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null;

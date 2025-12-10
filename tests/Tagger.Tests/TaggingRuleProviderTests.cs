@@ -1,12 +1,8 @@
-using System;
-using System.IO;
-using System.Linq;
-
 using Ecm.Rules.Providers.Json;
 
 using Microsoft.Extensions.Logging.Abstractions;
 
-using Tagger.RulesConfiguration;
+using Tagger.Rules.Configuration;
 
 using Xunit;
 

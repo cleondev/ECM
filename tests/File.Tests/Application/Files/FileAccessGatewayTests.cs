@@ -1,9 +1,6 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using ECM.Abstractions.Files;
 using ECM.File.Application.Files;
+
 using Xunit;
 
 namespace File.Tests.Application.Files;
@@ -16,7 +13,7 @@ public class FileAccessGatewayTests
         var storage = new FakeFileStorage();
         var gateway = new FileAccessGateway(storage);
 
-        var result = await gateway.GetDownloadLinkAsync("   ", TimeSpan.FromMinutes(5), CancellationToken.None);
+        var result = await gateway.GetDownloadLinkAsync("   ", TimeSpan.FromMinutes(5), string.Empty, CancellationToken.None);
 
         Assert.True(result.IsFailure);
         Assert.Contains("StorageKeyRequired", result.Errors);
@@ -29,7 +26,7 @@ public class FileAccessGatewayTests
         var storage = new FakeFileStorage();
         var gateway = new FileAccessGateway(storage);
 
-        var result = await gateway.GetDownloadLinkAsync("file-key", TimeSpan.Zero, CancellationToken.None);
+        var result = await gateway.GetDownloadLinkAsync("file-key", TimeSpan.Zero, string.Empty, CancellationToken.None);
 
         Assert.True(result.IsFailure);
         Assert.Contains("LifetimeMustBePositive", result.Errors);
@@ -45,7 +42,7 @@ public class FileAccessGatewayTests
         };
         var gateway = new FileAccessGateway(storage);
 
-        var result = await gateway.GetDownloadLinkAsync("file-key", TimeSpan.FromMinutes(5), CancellationToken.None);
+        var result = await gateway.GetDownloadLinkAsync("file-key", TimeSpan.FromMinutes(5), string.Empty, CancellationToken.None);
 
         Assert.True(result.IsFailure);
         Assert.Contains("NotFound", result.Errors);
@@ -68,7 +65,7 @@ public class FileAccessGatewayTests
 
         var lifetime = TimeSpan.FromMinutes(10);
         var before = DateTimeOffset.UtcNow;
-        var result = await gateway.GetDownloadLinkAsync("file-key", lifetime, CancellationToken.None);
+        var result = await gateway.GetDownloadLinkAsync("file-key", lifetime, string.Empty, CancellationToken.None);
         var after = DateTimeOffset.UtcNow;
 
         Assert.True(result.IsSuccess);
@@ -273,6 +270,11 @@ public class FileAccessGatewayTests
             }
 
             return Task.FromResult<FileDownload?>(null);
+        }
+
+        public Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, string? downloadFileName = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
     }
 }

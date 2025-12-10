@@ -1,15 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-
 using Ecm.Rules.Abstractions;
 
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-using Tagger.RulesConfiguration;
+using Tagger.Events;
+using Tagger.Rules.Configuration;
+using Tagger.Services;
 
 namespace Tagger.Tests;
 

@@ -73,6 +73,11 @@ public class UploadFileCommandHandlerTests
 
         public Task<FileDownload?> DownloadThumbnailAsync(string storageKey, int width, int height, string fit, CancellationToken cancellationToken = default)
             => Task.FromResult<FileDownload?>(null);
+
+        public Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, string? downloadFileName = null, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class FakeStorageKeyGenerator : IStorageKeyGenerator

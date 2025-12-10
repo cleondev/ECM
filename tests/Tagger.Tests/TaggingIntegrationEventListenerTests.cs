@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 using Ecm.Rules.Abstractions;
 using Ecm.Rules.Engine;
@@ -12,7 +8,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 using Shared.Contracts.Messaging;
 
-using Tagger.RulesConfiguration;
+using Tagger.Processing;
+using Tagger.Rules.Configuration;
+using Tagger.Services;
 
 using Workers.Shared.Messaging;
 
