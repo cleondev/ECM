@@ -11,7 +11,7 @@ using Syncfusion.EJ2.WordEditor;
 
 namespace AppGateway.Api.Controllers.Viewer;
 
-internal sealed class ViewerConversionService(IMemoryCache cache, ILogger<ViewerConversionService> logger)
+public sealed class ViewerConversionService(IMemoryCache cache, ILogger<ViewerConversionService> logger)
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(20);
 

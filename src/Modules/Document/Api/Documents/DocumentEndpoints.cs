@@ -239,7 +239,7 @@ public static class DocumentEndpoints
             .AsNoTracking()
             .Where(version => version.DocumentId == documentIdValue)
             .OrderByDescending(version => version.VersionNo)
-            .Select(MapVersion)
+            .Select(version => MapVersion(version))
             .ToArrayAsync(cancellationToken);
 
         return TypedResults.Ok(versions);
@@ -300,7 +300,7 @@ public static class DocumentEndpoints
         var version = await context.DocumentVersions
             .AsNoTracking()
             .Where(candidate => candidate.Id == versionId && candidate.DocumentId == documentIdValue)
-            .Select(MapVersion)
+            .Select(candidate => MapVersion(candidate))
             .FirstOrDefaultAsync(cancellationToken);
 
         return version is null
@@ -316,7 +316,7 @@ public static class DocumentEndpoints
         var version = await context.DocumentVersions
             .AsNoTracking()
             .Where(candidate => candidate.Id == versionId)
-            .Select(MapVersion)
+            .Select(candidate => MapVersion(candidate))
             .FirstOrDefaultAsync(cancellationToken);
 
         return version is null
