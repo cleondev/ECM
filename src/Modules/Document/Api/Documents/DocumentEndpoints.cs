@@ -929,6 +929,7 @@ public static class DocumentEndpoints
         var linkResult = await fileAccess.GetDownloadLinkAsync(
             version.StorageKey,
             lifetime,
+            downloadFileName: null,
             cancellationToken
         );
         if (linkResult.IsFailure || linkResult.Value is null)

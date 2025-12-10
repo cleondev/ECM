@@ -54,7 +54,11 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
         await _client.PutObjectAsync(request, cancellationToken);
     }
 
-    public Task<Uri?> GetDownloadLinkAsync(string storageKey, TimeSpan lifetime, CancellationToken cancellationToken = default)
+    public Task<Uri?> GetDownloadLinkAsync(
+        string storageKey,
+        TimeSpan lifetime,
+        string? downloadFileName = null,
+        CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(storageKey))
         {
@@ -68,6 +72,12 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
             Key = storageKey,
             Expires = expiresAt,
         };
+
+        var normalizedFileName = NormalizeFileName(downloadFileName);
+        if (!string.IsNullOrEmpty(normalizedFileName))
+        {
+            request.ResponseHeaderOverrides.ContentDisposition = BuildContentDisposition(normalizedFileName);
+        }
 
         var url = _client.GetPreSignedURL(request);
         return Task.FromResult(Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri : null);
@@ -185,5 +195,11 @@ internal sealed class S3FileStorage(IAmazonS3 client, IOptions<FileStorageOption
         var normalized = Path.GetFileName(trimmed);
 
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
+
+    private static string BuildContentDisposition(string fileName)
+    {
+        var encoded = Uri.EscapeDataString(fileName);
+        return $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{encoded}";
     }
 }

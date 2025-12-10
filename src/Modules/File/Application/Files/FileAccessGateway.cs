@@ -13,6 +13,7 @@ public sealed class FileAccessGateway(IFileStorage storage) : IFileAccessGateway
     public async Task<OperationResult<FileDownloadLink>> GetDownloadLinkAsync(
         string storageKey,
         TimeSpan lifetime,
+        string? downloadFileName = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(storageKey))
@@ -25,7 +26,7 @@ public sealed class FileAccessGateway(IFileStorage storage) : IFileAccessGateway
             return OperationResult<FileDownloadLink>.Failure("LifetimeMustBePositive");
         }
 
-        var uri = await _storage.GetDownloadLinkAsync(storageKey, lifetime, cancellationToken);
+        var uri = await _storage.GetDownloadLinkAsync(storageKey, lifetime, downloadFileName, cancellationToken);
         if (uri is null)
         {
             return OperationResult<FileDownloadLink>.Failure("NotFound");

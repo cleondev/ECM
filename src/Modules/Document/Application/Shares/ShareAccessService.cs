@@ -159,7 +159,11 @@ public sealed class ShareAccessService(
         }
 
         var lifetime = _options.DefaultPresignLifetime;
-        var linkResult = await _fileAccess.GetDownloadLinkAsync(version.StorageKey, lifetime, cancellationToken);
+        var linkResult = await _fileAccess.GetDownloadLinkAsync(
+            version.StorageKey,
+            lifetime,
+            share.FileName,
+            cancellationToken);
         if (linkResult.IsFailure || linkResult.Value is null)
         {
             return OperationResult<FileDownloadLink>.Failure([.. linkResult.Errors]);
