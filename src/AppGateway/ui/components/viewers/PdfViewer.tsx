@@ -36,9 +36,10 @@ type PdfViewerProps = {
 }
 
 export function PdfViewer({ documentUrl, serviceUrl, documentPath }: PdfViewerProps) {
-  // Đặt path tới thư mục ej2-pdfviewer-lib trong public
+  // Đặt path tới thư mục ej2-pdfviewer-lib trong public hoặc CDN
   const resourceUrl =
-    process.env.NEXT_PUBLIC_PDFVIEWER_RESOURCE_URL ?? "/ej2-pdfviewer-lib"
+    process.env.NEXT_PUBLIC_PDFVIEWER_RESOURCE_URL ??
+    "https://cdn.syncfusion.com/ej2/31.2.15/dist/ej2-pdfviewer-lib"
 
   const pdfServiceUrl = serviceUrl ?? process.env.NEXT_PUBLIC_PDFVIEWER_SERVICE_URL
   const documentPathValue = documentPath ?? documentUrl
