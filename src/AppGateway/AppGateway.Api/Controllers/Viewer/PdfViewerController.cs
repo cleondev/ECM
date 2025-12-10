@@ -28,7 +28,7 @@ public sealed class PdfViewerController(
     /// <summary>
     /// Load PDF từ ECM vào PdfRenderer.
     /// </summary>
-    [HttpPost("load")]
+    [HttpPost("Load")]
     public async Task<IActionResult> LoadAsync(
         Guid versionId,
         [FromBody] JsonElement jsonObject,
@@ -72,7 +72,7 @@ public sealed class PdfViewerController(
     /// <summary>
     /// Render trang PDF.
     /// </summary>
-    [HttpPost("render")]
+    [HttpPost("RenderPdfPages")]
     public IActionResult RenderPdfPages([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -89,7 +89,7 @@ public sealed class PdfViewerController(
     /// Render text trong PDF.
     /// LƯU Ý: API đúng là GetDocumentText, không phải GetText.
     /// </summary>
-    [HttpPost("render-text")]
+    [HttpPost("RenderPdfTexts")]
     public IActionResult RenderPdfTexts([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -105,7 +105,7 @@ public sealed class PdfViewerController(
     /// <summary>
     /// Render thumbnail.
     /// </summary>
-    [HttpPost("render-thumbnails")]
+    [HttpPost("RenderThumbnailImages")]
     public IActionResult RenderThumbnails([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -121,7 +121,7 @@ public sealed class PdfViewerController(
     /// <summary>
     /// Lấy bookmarks.
     /// </summary>
-    [HttpPost("bookmarks")]
+    [HttpPost("Bookmarks")]
     public IActionResult Bookmarks([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -137,7 +137,7 @@ public sealed class PdfViewerController(
     /// <summary>
     /// Lấy annotation comments.
     /// </summary>
-    [HttpPost("annotations")]
+    [HttpPost("RenderAnnotationComments")]
     public IActionResult RenderAnnotations([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -153,7 +153,7 @@ public sealed class PdfViewerController(
     /// <summary>
     /// In: PdfViewer dùng GetPrintImage, không có Print().
     /// </summary>
-    [HttpPost("print")]
+    [HttpPost("PrintImages")]
     public IActionResult Print([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -170,7 +170,7 @@ public sealed class PdfViewerController(
     /// Download: dùng GetDocumentAsBase64, không có GetDocument().
     /// FE sẽ decode base64 để tải file.
     /// </summary>
-    [HttpPost("download")]
+    [HttpPost("Download")]
     public IActionResult Download([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
@@ -189,7 +189,7 @@ public sealed class PdfViewerController(
     /// <summary>
     /// Giải phóng cache trên server.
     /// </summary>
-    [HttpPost("unload")]
+    [HttpPost("Unload")]
     public IActionResult Unload([FromBody] JsonElement jsonObject)
     {
         if (jsonObject.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
