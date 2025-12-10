@@ -40,7 +40,7 @@ internal sealed class TestOptionsMonitor<TOptions> : IOptionsMonitor<TOptions> w
     }
 }
 
-internal sealed class TestOptionsSnapshot<TOptions> : IOptionsSnapshot<TOptions> where TOptions : class
+internal sealed class TestOptionsSnapshot<TOptions> : IOptions<TOptions> where TOptions : class
 {
     public TestOptionsSnapshot(TOptions value)
     {
