@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Download, MoreHorizontal, PanelRight, Share2 } from "lucide-react"
 
@@ -15,6 +15,7 @@ import { ResizableHandle } from "@/components/resizable-handle"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatBytes, formatDate, getExtension } from "@/components/shared/sidebar-tabs"
 import { Separator } from "@/components/ui/separator"
@@ -40,12 +41,14 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
   const [comments, setComments] = useState<FileDetail["comments"]>([])
   const [draftMessage, setDraftMessage] = useState("")
   const [activeTab, setActiveTab] = useState<"info" | "flow" | "form" | "chat">("info")
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true)
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false)
+  const [isMobileView, setIsMobileView] = useState(false)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [viewerDescriptor, setViewerDescriptor] = useState<ViewerDescriptor | null>(null)
   const [viewerDescriptorError, setViewerDescriptorError] = useState<string | null>(null)
   const [viewerDescriptorLoading, setViewerDescriptorLoading] = useState(false)
   const [selectedVersionId, setSelectedVersionId] = useState<string | undefined>(undefined)
+  const desktopSidebarInitializedRef = useRef(false)
 
   const previewUrl =
     viewerDescriptor?.view?.url ??
@@ -71,6 +74,23 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
       isChecking,
     )
   }, [isAuthenticated, isChecking, targetPath])
+
+  useEffect(() => {
+    const updateViewport = () => {
+      const isMobile = window.innerWidth < 1024
+      setIsMobileView(isMobile)
+
+      if (!isMobile && !desktopSidebarInitializedRef.current) {
+        setIsRightSidebarOpen(true)
+        desktopSidebarInitializedRef.current = true
+      }
+    }
+
+    updateViewport()
+    window.addEventListener("resize", updateViewport)
+
+    return () => window.removeEventListener("resize", updateViewport)
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -312,49 +332,66 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
         <main className="flex-1 overflow-auto p-6">
           <div className="mx-auto max-w-6xl space-y-4">
             <div className="rounded-2xl border border-border bg-background shadow-sm">
-            <div className="p-5">
-              {viewerDescriptorError ? (
-                <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {viewerDescriptorError}
-                </div>
-              ) : null}
-              <ViewerPanel
-                file={file}
-                viewerCategory={viewerConfig.category}
-                viewerType={viewerConfig.viewerType}
-                descriptor={viewerDescriptor}
-                previewUrl={previewUrl}
-                thumbnailUrl={thumbnailUrl ?? undefined}
-                wordViewerUrl={wordViewerUrl}
-                excelViewerUrl={excelViewerUrl}
-              />
+              <div className="p-5">
+                {viewerDescriptorError ? (
+                  <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {viewerDescriptorError}
+                  </div>
+                ) : null}
+                <ViewerPanel
+                  file={file}
+                  viewerCategory={viewerConfig.category}
+                  viewerType={viewerConfig.viewerType}
+                  descriptor={viewerDescriptor}
+                  previewUrl={previewUrl}
+                  thumbnailUrl={thumbnailUrl ?? undefined}
+                  wordViewerUrl={wordViewerUrl}
+                  excelViewerUrl={excelViewerUrl}
+                />
+              </div>
             </div>
           </div>
-        </div>
         </main>
 
-        {isRightSidebarOpen && (
-          <ResizableHandle
-            onResize={(delta) =>
-              setRightSidebarWidth((previous) => Math.max(300, Math.min(560, previous + delta)))
-            }
-          />
-        )}
-
-        {isRightSidebarOpen ? (
-          <aside
-            className="hidden h-full shrink-0 border-l border-border bg-background text-foreground lg:block"
-            style={{ width: rightSidebarWidth }}
-          >
-            <RightSidebar
-              selectedFile={file}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              onClose={() => setIsRightSidebarOpen(false)}
-              onFileUpdate={(updatedFile) => setFile(updatedFile)}
-              showTabShortcuts
+        {!isMobileView && isRightSidebarOpen ? (
+          <>
+            <ResizableHandle
+              onResize={(delta) =>
+                setRightSidebarWidth((previous) => Math.max(300, Math.min(560, previous + delta)))
+              }
             />
-          </aside>
+
+            <aside
+              className="h-full shrink-0 border-l border-border bg-background text-foreground"
+              style={{ width: rightSidebarWidth }}
+            >
+              <RightSidebar
+                selectedFile={file}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                onClose={() => setIsRightSidebarOpen(false)}
+                onFileUpdate={(updatedFile) => setFile(updatedFile)}
+                showTabShortcuts
+              />
+            </aside>
+          </>
+        ) : null}
+
+        {isMobileView ? (
+          <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
+            <SheetContent side="right" className="h-full w-full max-w-full p-0 sm:max-w-md">
+              <div className="h-full overflow-hidden">
+                <RightSidebar
+                  selectedFile={file}
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  onClose={() => setIsRightSidebarOpen(false)}
+                  onFileUpdate={(updatedFile) => setFile(updatedFile)}
+                  showTabShortcuts
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
         ) : null}
       </div>
     </div>
