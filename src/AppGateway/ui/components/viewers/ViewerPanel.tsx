@@ -1,9 +1,9 @@
 "use client"
 
-import { PdfViewer } from "@/app/viewer/pdf-viewer"
 import type { FileDetail } from "@/lib/types"
 import type { ViewerCategory } from "@/lib/viewer-utils"
 import type { ViewerDescriptor, ViewerType } from "@/lib/viewer-types"
+import { PdfViewer } from "./PdfViewer"
 import { ExcelViewer } from "./ExcelViewer"
 import { ImageViewer } from "./ImageViewer"
 import { UnsupportedViewer } from "./UnsupportedViewer"

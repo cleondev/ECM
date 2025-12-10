@@ -74,9 +74,9 @@ stages:
 
         TAG="$(Build.SourceBranchName)-$(Build.BuildId)"
         REGISTRY="registry.ists.corp/ecm"
-
+        
         echo "= Build AppGateway.Api + UI"
-        docker build -f src/AppGateway/AppGateway.Api/Dockerfile -t "$REGISTRY/appgateway-api:$TAG" .
+        docker build -f src/AppGateway/AppGateway.Api/Dockerfile --build-arg NEXT_PUBLIC_SYNCFUSION_KEY="$NEXT_PUBLIC_SYNCFUSION_KEY" -t "$REGISTRY/appgateway-api:$TAG" .
 
         echo "= Build ECM.Host"
         docker build -f src/ECM/ECM.Host/Dockerfile -t "$REGISTRY/ecm-host:$TAG" .

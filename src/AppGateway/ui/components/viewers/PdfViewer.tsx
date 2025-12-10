@@ -14,6 +14,7 @@ import {
   ThumbnailView,
   Toolbar,
 } from "@syncfusion/ej2-react-pdfviewer"
+
 import "@syncfusion/ej2-base/styles/material.css"
 import "@syncfusion/ej2-buttons/styles/material.css"
 import "@syncfusion/ej2-dropdowns/styles/material.css"
@@ -33,13 +34,16 @@ type PdfViewerProps = {
 }
 
 export function PdfViewer({ documentUrl }: PdfViewerProps) {
+  // Đặt path tới thư mục ej2-pdfviewer-lib trong public
+  const resourceUrl =
+    process.env.NEXT_PUBLIC_PDFVIEWER_RESOURCE_URL ?? "/ej2-pdfviewer-lib"
+
   return (
     <div className="h-[75vh] min-h-[520px] w-full overflow-hidden rounded-lg border border-border bg-background">
       <PdfViewerComponent
         id="ecm-ej2-pdf-viewer"
-        documentPath={documentUrl}
-        serviceUrl="https://services.syncfusion.com/react/production/api/pdfviewer"
-        enableToolbar
+        documentPath={documentUrl}  
+        resourceUrl={resourceUrl}
         height="100%"
         width="100%"
       >

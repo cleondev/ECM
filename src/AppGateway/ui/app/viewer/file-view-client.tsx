@@ -232,24 +232,14 @@ export default function FileViewClient({ fileId, targetPath, isAuthenticated, is
             </Badge>
             <span className="truncate text-sm font-semibold text-foreground">{file.name}</span>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <FileText className="h-3.5 w-3.5" />
-              <span>{extension ? `.${extension}` : "Định dạng chưa xác định"}</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center gap-2">
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon">
               <Avatar className="h-6 w-6">
                 <AvatarImage src={file.ownerAvatar} alt={file.owner} />
                 <AvatarFallback>{file.owner.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <span>{file.owner}</span>
-            </div>
-            <Separator orientation="vertical" className="h-4" />
-            <span>Cập nhật: {formatDate(file.modifiedAtUtc ?? file.modified)}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+          </Button>
           <Button variant="ghost" size="icon" disabled={!downloadUrl} onClick={handleDownload}>
             <Download className="h-4 w-4" />
           </Button>

@@ -1,14 +1,21 @@
-# syntax=docker/dockerfile:1
+﻿# syntax=docker/dockerfile:1
 
 # ===== UI build (Next.js static export) =====
 FROM node:20-bullseye AS ui
 WORKDIR /src
 
+ARG NEXT_PUBLIC_SYNCFUSION_KEY
+ENV NEXT_PUBLIC_SYNCFUSION_KEY=$NEXT_PUBLIC_SYNCFUSION_KEY
+
 COPY src/AppGateway/ui/package*.json ./
 RUN npm ci
 
 COPY src/AppGateway/ui/ ./
+
+RUN node -e "console.log('SYNCFUSION KEY LENGTH:', (process.env.NEXT_PUBLIC_SYNCFUSION_KEY || '').length)"
+
 RUN npm run build
+
 
 # ===== API publish (.NET 9) =====
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
