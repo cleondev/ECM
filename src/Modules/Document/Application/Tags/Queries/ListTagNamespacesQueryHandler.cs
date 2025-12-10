@@ -1,7 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using ECM.Document.Application.Tags.Repositories;
 using ECM.Document.Domain.Tags;
 

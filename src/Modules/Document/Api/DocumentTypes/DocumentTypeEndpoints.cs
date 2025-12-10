@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+
+using ECM.Document.Api.DocumentTypes.Requests;
+using ECM.Document.Api.DocumentTypes.Responses;
 using ECM.Document.Domain.DocumentTypes;
 using ECM.Document.Infrastructure.Persistence;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;

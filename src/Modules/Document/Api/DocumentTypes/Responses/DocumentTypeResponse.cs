@@ -1,7 +1,6 @@
-using System;
 using System.Text.Json;
 
-namespace ECM.Document.Api.DocumentTypes;
+namespace ECM.Document.Api.DocumentTypes.Responses;
 
 public sealed record DocumentTypeResponse(
     Guid Id,

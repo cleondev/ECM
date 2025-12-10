@@ -12,9 +12,7 @@ using ECM.Document.Api.Documents.Responses;
 using ECM.Document.Application.Documents.Commands;
 using ECM.Document.Application.Documents.Queries;
 using ECM.Document.Application.Documents.Repositories;
-using ECM.Document.Application.Documents.Summaries;
 using ECM.Document.Domain.Documents;
-using ECM.Document.Domain.Versions;
 using ECM.Document.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Builder;
@@ -26,9 +24,9 @@ using Microsoft.Extensions.Options;
 
 using Shared.Extensions.Http;
 
+using DocumentVersionSummary = ECM.Document.Application.Documents.Summaries.DocumentVersionResult;
 using DomainDocument = ECM.Document.Domain.Documents.Document;
 using DomainVersion = ECM.Document.Domain.Versions.DocumentVersion;
-using DocumentVersionSummary = ECM.Document.Application.Documents.Summaries.DocumentVersionResult;
 
 namespace ECM.Document.Api.Documents;
 

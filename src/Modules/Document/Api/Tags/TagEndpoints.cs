@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
+
 using ECM.Abstractions.Users;
 using ECM.Document.Api.Documents.Extensions;
 using ECM.Document.Api.Tags.Requests;
@@ -11,10 +7,10 @@ using ECM.Document.Api.Tags.Responses;
 using ECM.Document.Application.Tags.Commands;
 using ECM.Document.Application.Tags.Queries;
 using ECM.Document.Application.Tags.Repositories;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 
