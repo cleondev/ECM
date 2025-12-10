@@ -5,7 +5,17 @@
       {
         "name": "Customer ABC uploads",
         "condition": "customer == \"ABC\" || uploader == \"ABC\"",
-        "set": { "TagNames": ["Customer/ABC"] }
+        "set": {
+          "Tags": [
+            {
+              "name": "ABC",
+              "path": ["LOS", "CreditApplication", "Customer"],
+              "scope": "group",
+              "iconKey": "user",
+              "color": "#2B6CB0"
+            }
+          ]
+        }
       }
     ]
   },
@@ -15,7 +25,16 @@
       {
         "name": "Invoice classifications",
         "condition": "classification == \"invoice\"",
-        "set": { "TagNames": ["Document/Invoice"] }
+        "set": {
+          "Tags": [
+            {
+              "name": "Invoice",
+              "path": ["LOS", "CreditApplication", "Document"],
+              "scope": "group",
+              "iconKey": "file-invoice"
+            }
+          ]
+        }
       }
     ]
   }

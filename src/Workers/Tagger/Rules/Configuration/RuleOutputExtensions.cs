@@ -13,18 +13,26 @@ internal static class RuleOutputExtensions
             return;
         }
 
-        var tags = GetOrCreateTagSet(output);
-        tags.Add(tag.Trim());
-        output.Set("TagNames", tags);
+        AddTag(output, TagDefinition.Create(tag));
     }
 
-    private static HashSet<string> GetOrCreateTagSet(IRuleOutput output)
+    public static void AddTag(this IRuleOutput output, TagDefinition definition)
     {
-        if (output.TryGet<HashSet<string>>("TagNames", out var tagSet))
+        ArgumentNullException.ThrowIfNull(output);
+        ArgumentNullException.ThrowIfNull(definition);
+
+        var tagSet = GetOrCreateTagList(output);
+        tagSet.Add(definition);
+        output.Set("Tags", tagSet);
+    }
+
+    private static HashSet<TagDefinition> GetOrCreateTagList(IRuleOutput output)
+    {
+        if (output.TryGet<HashSet<TagDefinition>>("Tags", out var tagSet))
         {
             return tagSet;
         }
 
-        return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        return new HashSet<TagDefinition>(TagDefinition.Comparer);
     }
 }

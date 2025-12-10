@@ -245,11 +245,53 @@ public class TaggingRuleEngineTests
 
     private static IReadOnlyCollection<string> GetTagNames(RuleExecutionResult result)
     {
-        if (result.Output.TryGetValue("TagNames", out var value) && value is IEnumerable<string> names)
+        var names = new List<string>();
+
+        if (result.Output.TryGetValue("Tags", out var tags) && tags is not null)
         {
-            return names.ToArray();
+            switch (tags)
+            {
+                case IEnumerable<TagDefinition> definitions:
+                    names.AddRange(definitions.Select(definition => definition.Name));
+                    break;
+                case IEnumerable<object> objects:
+                    foreach (var entry in objects)
+                    {
+                        if (TagDefinition.TryCreate(entry, out var definition) && definition is not null)
+                        {
+                            names.Add(definition.Name);
+                        }
+                    }
+
+                    break;
+                default:
+                    if (TagDefinition.TryCreate(tags, out var definition) && definition is not null)
+                    {
+                        names.Add(definition.Name);
+                    }
+
+                    break;
+            }
         }
 
-        return Array.Empty<string>();
+        if (result.Output.TryGetValue("TagNames", out var value))
+        {
+            if (value is IEnumerable<string> tagNames)
+            {
+                names.AddRange(tagNames);
+            }
+            else if (value is IEnumerable<object> objects)
+            {
+                names.AddRange(objects
+                    .Select(obj => obj?.ToString())
+                    .Where(name => !string.IsNullOrWhiteSpace(name))!);
+            }
+        }
+
+        return names
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 }

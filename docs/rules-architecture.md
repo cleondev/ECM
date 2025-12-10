@@ -6,7 +6,7 @@ This document summarizes the shared rules infrastructure used across ECM workers
 
 - **`IRule`** – contract with `Match` and `Apply` methods. The first decides whether the rule is applicable for a given `IRuleContext`; the second writes outputs to `IRuleOutput` when matched.
 - **`IRuleContext` / `IRuleContextFactory`** – read-only view over contextual data. Factories create contexts from dictionaries so callers can normalize inputs before rule execution.
-- **`IRuleOutput`** – mutable dictionary-like target that rules use to surface values. Tagger relies on `TagIds` and `TagNames`, but any key can be emitted for downstream consumers.
+- **`IRuleOutput`** – mutable dictionary-like target that rules use to surface values. Tagger relies on `TagIds` and structured `Tags`, but any key can be emitted for downstream consumers.
 - **`IRuleSet`** – named collection of rules. Names allow multiple providers to contribute rules to the same logical set (for example, built-in and JSON-supplied rules for `Tagging.DocumentUploaded`).
 - **`IRuleProvider`** – supplies rule sets to the engine. Providers can be code-based (`BuiltInRuleProvider`) or file-based (`TaggerRuleProvider` via JSON definitions).
 - **`IRuleEngine`** – executes a named rule set against a context and returns the aggregated output. Engines combine all rule sets from registered providers that share the same name.
@@ -16,7 +16,7 @@ This document summarizes the shared rules infrastructure used across ECM workers
 1. **Context preparation**: call sites gather inputs into a dictionary and build an `IRuleContext` using `IRuleContextFactory`. The context acts as a normalized, case-insensitive lookup.
 2. **Rule set resolution**: the caller selects the rule set name(s) to run. Multiple providers may contribute rules to the same name; the engine merges them transparently.
 3. **Evaluation**: `IRuleEngine.Execute(ruleSetName, context)` iterates through each rule. For every rule that `Match` returns `true`, `Apply` is invoked to write to the shared `IRuleOutput`.
-4. **Consumption**: the caller inspects `IRuleOutput` to drive side effects (for example, Tagger turns `TagIds`/`TagNames` into document labels).
+4. **Consumption**: the caller inspects `IRuleOutput` to drive side effects (for example, Tagger turns `TagIds`/`Tags` into document labels and creates missing tag paths).
 
 ## JSON rule format
 
