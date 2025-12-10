@@ -13,12 +13,12 @@ namespace Tagger.Services;
 internal interface IDocumentTagAssignmentService
 {
     /// <summary>
-    /// Applies tag IDs and tag names (creating them if needed) to a document and returns how many assignments were made.
+    /// Applies tag IDs and tag definitions (creating them if needed) to a document and returns how many assignments were made.
     /// </summary>
     Task<int> AssignTagsAsync(
         Guid documentId,
         IReadOnlyCollection<Guid> tagIds,
-        IReadOnlyCollection<string> tagNames,
+        IReadOnlyCollection<TagDefinition> tagDefinitions,
         CancellationToken cancellationToken = default);
 }
 
@@ -32,8 +32,6 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     private readonly IOptionsMonitor<TaggerRulesOptions> _options;
     private readonly IOptionsMonitor<EcmUserOptions> _userOptions;
     private readonly SemaphoreSlim _userIdLock = new(1, 1);
-
-    private static readonly string[] TagPathSegments = ["LOS", "CreditApplication"];
 
     private Guid? _cachedUserId;
     private bool _userIdResolved;
@@ -53,12 +51,15 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     public async Task<int> AssignTagsAsync(
         Guid documentId,
         IReadOnlyCollection<Guid> tagIds,
-        IReadOnlyCollection<string> tagNames,
+        IReadOnlyCollection<TagDefinition> tagDefinitions,
         CancellationToken cancellationToken = default)
     {
         EnsureUserContext();
 
-        if ((tagIds is null || tagIds.Count == 0) && (tagNames is null || tagNames.Count == 0))
+        var hasIds = tagIds is not null && tagIds.Count > 0;
+        var hasDefinitions = tagDefinitions is not null && tagDefinitions.Count > 0;
+
+        if (!hasIds && !hasDefinitions)
         {
             return 0;
         }
@@ -77,19 +78,11 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
             ? new HashSet<Guid>()
             : document.Tags.Select(tag => tag.Id).ToHashSet();
 
-        var targetNamespace = await GetOrCreateTargetNamespaceAsync(document, appliedBy, cancellationToken)
-            .ConfigureAwait(false);
+        var namespaceCache = new Dictionary<string, TagNamespaceDto?>(StringComparer.OrdinalIgnoreCase);
+        var scopeTagCache = new Dictionary<string, List<TagLabelDto>>(StringComparer.OrdinalIgnoreCase);
+        var namespaceTagsCache = new Dictionary<Guid, List<TagLabelDto>>();
 
-        var namespaceTags = targetNamespace is not null
-            ? await LoadNamespaceTagsAsync(targetNamespace.Id, cancellationToken).ConfigureAwait(false)
-            : new List<TagLabelDto>();
-
-        var tagParentId = targetNamespace is null
-            ? null
-            : await EnsureTagPathAsync(targetNamespace.Id, namespaceTags, appliedBy, cancellationToken)
-                .ConfigureAwait(false);
-
-        foreach (var tagId in tagIds.Where(tagId => tagId != Guid.Empty))
+        foreach (var tagId in (tagIds ?? Array.Empty<Guid>()).Where(tagId => tagId != Guid.Empty))
         {
             if (!seen.Add(tagId))
             {
@@ -111,89 +104,156 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
             appliedCount++;
         }
 
-        if (tagNames is not null && tagNames.Count > 0)
+        if (!hasDefinitions)
         {
-            if (targetNamespace is null || tagParentId is null)
+            return appliedCount;
+        }
+
+        var normalizedDefinitions = (tagDefinitions ?? Array.Empty<TagDefinition>())
+            .Where(definition => definition is not null)
+            .Distinct(TagDefinition.Comparer)
+            .ToArray();
+
+        foreach (var definition in normalizedDefinitions)
+        {
+            var targetNamespace = await GetOrCreateNamespaceAsync(
+                    definition,
+                    document,
+                    appliedBy,
+                    namespaceCache,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (targetNamespace is null)
+            {
+                continue;
+            }
+
+            var scopeTags = await GetScopeTagsAsync(definition.Scope, scopeTagCache, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!namespaceTagsCache.TryGetValue(targetNamespace.Id, out var namespaceTags))
+            {
+                namespaceTags = scopeTags.Where(tag => tag.NamespaceId == targetNamespace.Id).ToList();
+                namespaceTagsCache[targetNamespace.Id] = namespaceTags;
+            }
+
+            var parentId = await EnsureTagPathAsync(
+                    definition.PathSegments,
+                    targetNamespace.Id,
+                    namespaceTags,
+                    appliedBy,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (parentId is null && definition.PathSegments.Count > 0)
+            {
+                continue;
+            }
+
+            var resolvedTagId = await EnsureTagAsync(
+                    definition,
+                    targetNamespace.Id,
+                    parentId,
+                    namespaceTags,
+                    appliedBy,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (resolvedTagId is null || resolvedTagId == Guid.Empty || !seen.Add(resolvedTagId.Value))
+            {
+                continue;
+            }
+
+            var assigned = await _client.AssignTagToDocumentAsync(documentId, resolvedTagId.Value, appliedBy, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!assigned)
             {
                 _logger.LogWarning(
-                    "Unable to create tags for document {DocumentId} because no target namespace or parent path was resolved.",
+                    "Skipping tag {TagName} for document {DocumentId}: assignment failed.",
+                    definition.Name,
                     documentId);
+                continue;
             }
-            else
-            {
-                foreach (var tagName in tagNames)
-                {
-                    var tagId = await ResolveTagIdAsync(
-                            tagName,
-                            targetNamespace.Id,
-                            tagParentId.Value,
-                            namespaceTags,
-                            appliedBy,
-                            cancellationToken)
-                        .ConfigureAwait(false);
 
-                    if (tagId is null || tagId == Guid.Empty || !seen.Add(tagId.Value))
-                    {
-                        continue;
-                    }
-
-                    var assigned = await _client.AssignTagToDocumentAsync(documentId, tagId.Value, appliedBy, cancellationToken)
-                        .ConfigureAwait(false);
-
-                    if (!assigned)
-                    {
-                        _logger.LogWarning(
-                            "Skipping tag {TagName} for document {DocumentId}: assignment failed.",
-                            tagName,
-                            documentId);
-                        continue;
-                    }
-
-                    appliedCount++;
-                }
-            }
+            appliedCount++;
         }
 
         return appliedCount;
     }
 
-    private async Task<TagNamespaceDto?> GetOrCreateTargetNamespaceAsync(
+    private async Task<TagNamespaceDto?> GetOrCreateNamespaceAsync(
+        TagDefinition definition,
         DocumentDto document,
         Guid? createdBy,
+        IDictionary<string, TagNamespaceDto?> cache,
         CancellationToken cancellationToken)
     {
-        var targetGroupId = document.GroupId;
+        var scope = definition.Scope ?? TagDefaults.DefaultScope;
+        Guid? ownerGroupId = null;
+        Guid? ownerUserId = null;
 
-        if (targetGroupId is null || targetGroupId == Guid.Empty)
+        switch (scope)
         {
-            var firstGroup = document.GroupIds.FirstOrDefault();
-            if (firstGroup != Guid.Empty)
-            {
-                targetGroupId = firstGroup;
-            }
+            case TagScope.Global:
+                break;
+            case TagScope.User:
+                ownerUserId = await ResolveOwnerUserIdAsync(definition.OwnerUserId, createdBy, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (ownerUserId is null || ownerUserId == Guid.Empty)
+                {
+                    _logger.LogWarning(
+                        "Unable to determine the user namespace for tag {TagName}; skipping creation.",
+                        definition.Name);
+                    cache[BuildNamespaceCacheKey(scope, ownerGroupId, ownerUserId, definition.NamespaceDisplayName)] = null;
+                    return null;
+                }
+
+                break;
+            default:
+                ownerGroupId = ResolveGroupId(document, definition.OwnerGroupId);
+
+                if (ownerGroupId is null || ownerGroupId == Guid.Empty)
+                {
+                    _logger.LogWarning(
+                        "Unable to determine the group namespace for document {DocumentId}; skipping tag {TagName}.",
+                        document.Id,
+                        definition.Name);
+                    cache[BuildNamespaceCacheKey(scope, ownerGroupId, ownerUserId, definition.NamespaceDisplayName)] = null;
+                    return null;
+                }
+
+                break;
         }
 
-        if (targetGroupId is null || targetGroupId == Guid.Empty)
+        var cacheKey = BuildNamespaceCacheKey(scope, ownerGroupId, ownerUserId, definition.NamespaceDisplayName);
+
+        if (cache.TryGetValue(cacheKey, out var cachedNamespace))
         {
-            _logger.LogWarning(
-               "Unable to determine the group for document {DocumentId}; skipping tag creation.",
-                document.Id);
-            return null;
+            return cachedNamespace;
         }
 
-        var namespaces = await _client.ListTagNamespacesAsync("group", cancellationToken).ConfigureAwait(false);
-        var existing = namespaces.FirstOrDefault(ns => ns.OwnerGroupId == targetGroupId);
+        var namespaces = await _client.ListTagNamespacesAsync(scope, cancellationToken).ConfigureAwait(false);
+        var existing = namespaces.FirstOrDefault(ns =>
+            ns.OwnerGroupId == ownerGroupId
+            && ns.OwnerUserId == ownerUserId
+            && string.Equals(ns.DisplayName, definition.NamespaceDisplayName, StringComparison.OrdinalIgnoreCase))
+            ?? namespaces.FirstOrDefault(ns => ns.OwnerGroupId == ownerGroupId && ns.OwnerUserId == ownerUserId);
+
         if (existing is not null)
         {
+            cache[cacheKey] = existing;
             return existing;
         }
 
         var created = await _client.CreateTagNamespaceAsync(
                 new TagNamespaceCreateRequest(
-                    Scope: "group",
-                    DisplayName: "LOS",
-                    OwnerGroupId: targetGroupId,
-                    OwnerUserId: null,
+                    Scope: scope,
+                    DisplayName: definition.NamespaceDisplayName,
+                    OwnerGroupId: ownerGroupId,
+                    OwnerUserId: ownerUserId,
                     CreatedBy: createdBy),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -201,21 +261,33 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         if (created is null)
         {
             _logger.LogWarning(
-               "Unable to create namespace for group {GroupId} when tagging document {DocumentId}.",
-                targetGroupId,
+                "Unable to create namespace for scope {Scope} when tagging document {DocumentId}.",
+                scope,
                 document.Id);
         }
 
+        cache[cacheKey] = created;
         return created;
     }
 
-    private async Task<List<TagLabelDto>> LoadNamespaceTagsAsync(Guid namespaceId, CancellationToken cancellationToken)
+    private async Task<List<TagLabelDto>> GetScopeTagsAsync(
+        string scope,
+        IDictionary<string, List<TagLabelDto>> cache,
+        CancellationToken cancellationToken)
     {
-        var tags = await _client.ListManagedTagsAsync("group", cancellationToken).ConfigureAwait(false);
-        return tags.Where(tag => tag.NamespaceId == namespaceId).ToList();
+        if (cache.TryGetValue(scope, out var cached))
+        {
+            return cached;
+        }
+
+        var tags = await _client.ListManagedTagsAsync(scope, cancellationToken).ConfigureAwait(false);
+        var list = tags.ToList();
+        cache[scope] = list;
+        return list;
     }
 
     private async Task<Guid?> EnsureTagPathAsync(
+        IReadOnlyList<string> pathSegments,
         Guid namespaceId,
         List<TagLabelDto> namespaceTags,
         Guid? createdBy,
@@ -223,8 +295,13 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
     {
         Guid? parentId = null;
 
-        foreach (var segment in TagPathSegments)
+        foreach (var segment in pathSegments)
         {
+            if (string.IsNullOrWhiteSpace(segment))
+            {
+                continue;
+            }
+
             var existing = FindTag(namespaceTags, segment, parentId);
             if (existing is not null)
             {
@@ -236,7 +313,7 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
                     new TagCreateRequest(
                         NamespaceId: namespaceId,
                         ParentId: parentId,
-                        Name: segment,
+                        Name: segment.Trim(),
                         SortOrder: null,
                         Color: null,
                         IconKey: null,
@@ -261,21 +338,15 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         return parentId;
     }
 
-    private async Task<Guid?> ResolveTagIdAsync(
-        string? tagName,
+    private async Task<Guid?> EnsureTagAsync(
+        TagDefinition definition,
         Guid namespaceId,
-        Guid parentId,
+        Guid? parentId,
         List<TagLabelDto> namespaceTags,
         Guid? createdBy,
         CancellationToken cancellationToken)
     {
-        var normalized = tagName?.Trim();
-        if (string.IsNullOrWhiteSpace(normalized))
-        {
-            return null;
-        }
-
-        var existing = FindTag(namespaceTags, normalized!, parentId);
+        var existing = FindTag(namespaceTags, definition.Name, parentId);
         if (existing is not null)
         {
             return existing.Id;
@@ -285,10 +356,10 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
                 new TagCreateRequest(
                     NamespaceId: namespaceId,
                     ParentId: parentId,
-                    Name: normalized!,
+                    Name: definition.Name,
                     SortOrder: null,
-                    Color: null,
-                    IconKey: null,
+                    Color: definition.Color,
+                    IconKey: definition.IconKey,
                     CreatedBy: createdBy,
                     IsSystem: true),
                 cancellationToken)
@@ -296,12 +367,61 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
 
         if (created is null)
         {
-            _logger.LogWarning("Failed to create managed tag {TagName}.", normalized);
+            _logger.LogWarning("Failed to create managed tag {TagName}.", definition.Name);
             return null;
         }
 
         namespaceTags.Add(created);
         return created.Id;
+    }
+
+    private static Guid? ResolveGroupId(DocumentDto document, Guid? explicitGroupId)
+    {
+        var targetGroupId = explicitGroupId;
+
+        if (targetGroupId is null || targetGroupId == Guid.Empty)
+        {
+            targetGroupId = document.GroupId;
+        }
+
+        if (targetGroupId is null || targetGroupId == Guid.Empty)
+        {
+            var firstGroup = document.GroupIds.FirstOrDefault();
+            if (firstGroup != Guid.Empty)
+            {
+                targetGroupId = firstGroup;
+            }
+        }
+
+        return targetGroupId == Guid.Empty ? null : targetGroupId;
+    }
+
+    private async Task<Guid?> ResolveOwnerUserIdAsync(
+        Guid? requestedOwnerId,
+        Guid? appliedBy,
+        CancellationToken cancellationToken)
+    {
+        if (requestedOwnerId is not null && requestedOwnerId != Guid.Empty)
+        {
+            return requestedOwnerId;
+        }
+
+        if (appliedBy is not null && appliedBy != Guid.Empty)
+        {
+            return appliedBy;
+        }
+
+        return await ResolveAppliedByAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string BuildNamespaceCacheKey(string scope, Guid? ownerGroupId, Guid? ownerUserId, string namespaceName)
+    {
+        return string.Join(
+            "|",
+            scope?.Trim().ToLowerInvariant() ?? string.Empty,
+            ownerGroupId?.ToString() ?? string.Empty,
+            ownerUserId?.ToString() ?? string.Empty,
+            namespaceName ?? string.Empty);
     }
 
     private static TagLabelDto? FindTag(IEnumerable<TagLabelDto> tags, string name, Guid? parentId)
