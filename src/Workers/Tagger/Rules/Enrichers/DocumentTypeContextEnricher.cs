@@ -8,7 +8,7 @@ internal sealed class DocumentTypeContextEnricher : ITaggingRuleContextEnricher
 {
     public void Enrich(TaggingRuleContextBuilder builder, ITaggingIntegrationEvent integrationEvent)
     {
-        var extension = DocumentType.ResolveExtension(integrationEvent);
+        var extension = DocumentTypeRule.ResolveExtension(integrationEvent);
         if (!string.IsNullOrWhiteSpace(extension))
         {
             builder.AddField("extension", extension);

@@ -22,6 +22,5 @@
     <ProjectReference Include="..\..\Modules\Rules\Rules.Engine\Rules.Engine.csproj" />
     <ProjectReference Include="..\..\Modules\Rules\Rules.Providers.Hardcoded\Rules.Providers.Hardcoded.csproj" />
     <ProjectReference Include="..\..\Modules\Rules\Rules.Providers.Json\Rules.Providers.Json.csproj" />
-    <ProjectReference Include="..\..\Modules\Rules\Rules.Providers.Lambda\Rules.Providers.Lambda.csproj" />
   </ItemGroup>
 </Project>
