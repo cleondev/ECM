@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Globalization;
+
 using Ecm.Rules.Abstractions;
 
 namespace Ecm.Rules.Engine;
@@ -26,19 +28,27 @@ public sealed class RuleContext : IRuleContext
             return cast;
         }
 
+        var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+
         try
         {
-            return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+            if (value is string s)
+            {
+                var converter = TypeDescriptor.GetConverter(targetType);
+                if (converter.CanConvertFrom(typeof(string)))
+                {
+                    var converted = converter.ConvertFromInvariantString(s);
+                    return converted is null ? defaultValue : (T)converted;
+                }
+            }
+
+            var convertedValue = Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
+            return (T)convertedValue;
         }
-        catch (InvalidCastException)
-        {
-            return defaultValue;
-        }
-        catch (FormatException)
-        {
-            return defaultValue;
-        }
-        catch (OverflowException)
+        catch (Exception e) when (
+            e is InvalidCastException ||
+            e is FormatException ||
+            e is OverflowException)
         {
             return defaultValue;
         }
