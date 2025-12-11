@@ -135,7 +135,7 @@ public static class Program
 
     #region Database & External Services
 
-    private static IDictionary<string, string> ConfigureModuleDatabaseResources(
+    private static Dictionary<string, string> ConfigureModuleDatabaseResources(
         IEnumerable<string> moduleDatabaseNames,
         IReadOnlyDictionary<string, string?> connectionStrings,
         IDictionary<string, string?> prefixedConnectionStrings)
@@ -198,7 +198,7 @@ public static class Program
         builder.Configuration.AddInMemoryCollection(prefixedConnectionStrings);
     }
 
-    private static IDictionary<string, IResourceBuilder<IResourceWithConnectionString>> CreateModuleDatabaseResources(
+    private static Dictionary<string, IResourceBuilder<IResourceWithConnectionString>> CreateModuleDatabaseResources(
         IDistributedApplicationBuilder builder,
         IDictionary<string, string> moduleDatabaseResourceNames)
     {

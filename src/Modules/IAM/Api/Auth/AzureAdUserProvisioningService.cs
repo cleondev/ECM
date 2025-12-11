@@ -197,7 +197,7 @@ public sealed class AzureAdUserProvisioningService(
         return ids.Count > 0 ? ids.ToArray() : [];
     }
 
-    private static IReadOnlyCollection<GroupAssignment> BuildAssignments(
+    private static List<GroupAssignment> BuildAssignments(
         IReadOnlyCollection<Guid> claimedGroupIds,
         Guid? primaryGroupId)
     {

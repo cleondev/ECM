@@ -23,8 +23,7 @@ public sealed class PdfViewerController(
     private readonly IMemoryCache _cache = cache;
     private readonly ILogger<PdfViewerController> _logger = logger;
 
-    private PdfRenderer CreateRenderer()
-        => new PdfRenderer(_cache);
+    private PdfRenderer CreateRenderer() => new(_cache);
 
 
     [HttpPost("Load")]

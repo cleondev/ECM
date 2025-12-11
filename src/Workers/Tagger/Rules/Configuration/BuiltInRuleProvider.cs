@@ -23,7 +23,7 @@ internal sealed class BuiltInRuleProvider : IRuleProvider
 
     public IEnumerable<IRuleSet> GetRuleSets() => _ruleSets;
 
-    private static IRuleSet CreateRuleSet(string name)
+    private static RuleSet CreateRuleSet(string name)
     {
         var rules = new IRule[]
         {
