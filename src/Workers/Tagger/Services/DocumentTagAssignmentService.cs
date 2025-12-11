@@ -197,9 +197,15 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         switch (scope)
         {
             case TagScope.Global:
+                ownerUserId = null;
+                ownerGroupId = null;
                 break;
             case TagScope.User:
-                ownerUserId = await ResolveOwnerUserIdAsync(definition.OwnerUserId, createdBy, cancellationToken)
+                var requestedOwnerId = definition.OwnerUserId
+                    ?? document.LatestVersion?.CreatedBy
+                    ?? document.CreatedBy;
+
+                ownerUserId = await ResolveOwnerUserIdAsync(requestedOwnerId, createdBy, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (ownerUserId is null || ownerUserId == Guid.Empty)
@@ -236,6 +242,17 @@ internal sealed class DocumentTagAssignmentService : IDocumentTagAssignmentServi
         }
 
         var namespaces = await _client.ListTagNamespacesAsync(scope, cancellationToken).ConfigureAwait(false);
+
+        if (scope == TagScope.Global)
+        {
+            var globalNamespace = namespaces.FirstOrDefault();
+            if (globalNamespace is not null)
+            {
+                cache[cacheKey] = globalNamespace;
+                return globalNamespace;
+            }
+        }
+
         var existing = namespaces.FirstOrDefault(ns =>
             ns.OwnerGroupId == ownerGroupId
             && ns.OwnerUserId == ownerUserId
