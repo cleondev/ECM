@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ECM - The complete platform for document management</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CDN cho phần cards -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- GSAP for hero text animation -->
+  <script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #1a1a1a;
+      --primary: #0066ff;
+      --gray: #666;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow: hidden;         /* không scroll */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      padding: 16px 40px;
+      display: grid;
+      grid-template-columns: auto 1fr auto; /* logo | nav | sign-in */
+      align-items: center;
+      column-gap: 24px;
+      flex: 0 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo img {
+      height: 40px;
+      width: 40px;
+      border-radius: 8px;
+      display: block;
+    }
+
+    nav {
+      text-align: center;
+    }
+    nav a {
+      margin: 0 18px;
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 500;
+      font-size: 15px;
+    }
+    nav a:hover { color: var(--primary); }
+
+    .header-buttons a {
+      display: inline-block;
+      padding: 10px 22px;
+      border-radius: 999px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      background: #000;
+      color: #fff;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .header-buttons a:hover {
+      background:#333;
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    .page-main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .hero {
+      flex: 1 1 auto;           /* chiếm phần lớn chiều cao còn lại */
+      padding: 24px 40px 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .hero-text h1 {
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    .hero-text p {
+      font-size: 16px;
+      color: var(--gray);
+      margin-bottom: 24px;
+      max-width: 520px;
+    }
+    .hero-text .buttons a {
+      display: inline-block;
+      padding: 10px 24px;
+      margin-right: 12px;
+      border-radius: 999px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #000;
+      color: #fff;
+    }
+    .btn-primary:hover { background:#333; }
+    .btn-secondary {
+      background:#fff;
+      color:#000;
+      border: 2px solid #000;
+    }
+    .btn-secondary:hover {
+      background:#000;
+      color:#fff;
+    }
+
+    .globe-container {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+      filter: drop-shadow(0 20px 40px rgba(0,0,0,0.1));
+    }
+    #globe-3d {
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+    }
+
+    /* ===== SLIDE / CARDS SECTION ===== */
+    .stats {
+      flex: 0 0 180px;        /* chiều cao vùng slide */
+      padding: 0 40px 16px;
+      display: flex;
+      align-items: center;
+    }
+
+    .cards-wrapper {
+      overflow: hidden;
+      width: 100%;
+      position: relative;
+    }
+
+    .cards-track {
+      display: inline-flex;
+      gap: 16px;
+      width: max-content;
+      align-items: stretch;
+      animation: cards-marquee 60s linear infinite;
+    }
+
+    .card-item {
+      flex: 0 0 22vw;     /* ~4–4.5 card / screen */
+      max-width: 22vw;
+      box-sizing: border-box;
+    }
+
+    .glow-card {
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+    .glow-card:hover {
+      box-shadow: 0 0 20px rgba(99,102,241,0.6);
+      transform: translateY(-4px);
+    }
+
+    .feature-card {
+      padding: 16px !important;
+    }
+    .feature-card h3 {
+      font-size: 15px !important;
+    }
+    .feature-card p {
+      font-size: 13px !important;
+    }
+
+    @keyframes cards-marquee {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 968px) {
+      header {
+        padding: 12px 20px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 24px;
+        padding: 16px 20px 0;
+      }
+      .hero-text h1 { font-size: 30px; }
+      .hero-text p  { margin-left:auto; margin-right:auto; font-size:14px; }
+      .globe-container { max-width: 320px; }
+
+      .stats {
+        padding: 0 20px 12px;
+        flex: 0 0 170px;
+      }
+
+      .card-item {
+        flex: 0 0 60vw;
+        max-width: 60vw;
+      }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        grid-template-columns: auto 1fr auto; /* vẫn 1 hàng */
+        padding: 10px 12px;
+      }
+      nav {
+        text-align: center;
+      }
+      nav a {
+        margin: 0 6px;
+        font-size: 13px;
+      }
+      .header-buttons a {
+        padding: 6px 14px;
+        font-size: 13px;
+      }
+
+      .hero-text h1 { font-size: 26px; }
+      .hero-text p  { font-size: 13px; }
+      .hero-text .buttons a {
+        padding: 8px 18px;
+        margin: 6px 4px;
+        font-size: 13px;
+      }
+
+      .stats {
+        flex: 0 0 150px;
+      }
+      .card-item {
+        flex: 0 0 70vw;
+        max-width: 70vw;
+      }
+      .feature-card {
+        padding: 12px !important;
+      }
+    }
+	.site-footer {
+  flex: 0 0 auto;               /* giữ vị trí cố định trong layout */
+  text-align: center;
+  padding: 12px 0;
+  font-size: 14px;
+  color: #999;
+  opacity: 0.9;
+  background: transparent;      /* giữ nền hiện tại, hoặc đổi nếu muốn */
+}
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <img src="https://ecm.ists.corp/logo/logo_256x256.png" alt="ECM Logo">
+    </div>
+    <nav>
+      <a href="#">Features</a>
+      <a href="#">AI</a>
+      <a href="#">Docs</a>
+    </nav>
+    <div class="header-buttons">
+      <a href="#">Sign In</a>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <section class="hero">
+      <div class="hero-text">
+        <h1>The complete platform for document management</h1>
+        <p>
+          Securely store, organize, and collaborate on documents.
+          Streamline your workflow with intelligent automation and enterprise-grade security.
+        </p>
+        <div class="buttons">
+          <a href="#" class="btn-primary">Get Started ↓</a>
+          <a href="#" class="btn-secondary">View Demo ▶</a>
+        </div>
+      </div>
+
+      <div class="globe-container">
+        <canvas id="globe-3d"></canvas>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="cards-wrapper">
+        <div class="cards-track">
+
+          <!-- ======= LẦN 1 ======= -->
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-chart-column h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
+                <path d="M18 17V9"></path>
+                <path d="M13 17V5"></path>
+                <path d="M8 17v-3"></path>
+              </svg>
+
+              <h3 class="font-semibold text-gray-900">
+                Analytics &amp; Insights
+              </h3>
+              <p class="text-gray-600 leading-relaxed">
+                Track document usage, team productivity, and compliance with detailed analytics.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-search h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+
+              <h3 class="font-semibold text-gray-900">
+                Intelligent Search
+              </h3>
+              <p class="text-gray-600 leading-relaxed">
+                Find any document instantly with AI-powered search across all your content and metadata.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-shield h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+              </svg>
+
+              <h3 class="font-semibold text-gray-900">
+                Enterprise Security
+              </h3>
+              <p class="text-gray-600 leading-relaxed">
+                Bank-level encryption, role-based access control, and compliance with global standards.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-zap h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path>
+              </svg>
+
+              <h3 class="font-semibold text-gray-900">
+                Workflow Automation
+              </h3>
+              <p class="text-gray-600 leading-relaxed">
+                Automate document routing, approvals, and notifications to save time and reduce errors.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-cloud h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+              </svg>
+
+              <h3 class="font-semibold text-gray-900">
+                Cloud Storage
+              </h3>
+              <p class="text-gray-600 leading-relaxed">
+                Unlimited scalable storage with automatic backups and disaster recovery built-in.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-users h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+
+              <h3 class="font-semibold text-gray-900">
+                Team Collaboration
+              </h3>
+              <p class="text-gray-600 leading-relaxed">
+                Work together seamlessly with version control, comments, and instant notifications.
+              </p>
+            </div>
+          </div>
+
+          <!-- ======= LẦN 2 (CLONE) ======= -->
+
+          <!-- clone nguyên 6 card để tạo hiệu ứng infinite -->
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-chart-column h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
+                <path d="M18 17V9"></path>
+                <path d="M13 17V5"></path>
+                <path d="M8 17v-3"></path>
+              </svg>
+              <h3 class="font-semibold text-gray-900">Analytics &amp; Insights</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Track document usage, team productivity, and compliance with detailed analytics.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-search h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+              <h3 class="font-semibold text-gray-900">Intelligent Search</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Find any document instantly with AI-powered search across all your content and metadata.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-shield h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+              </svg>
+              <h3 class="font-semibold text-gray-900">Enterprise Security</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Bank-level encryption, role-based access control, and compliance with global standards.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-zap h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path>
+              </svg>
+              <h3 class="font-semibold text-gray-900">Workflow Automation</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Automate document routing, approvals, and notifications to save time and reduce errors.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-cloud h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+              </svg>
+              <h3 class="font-semibold text-gray-900">Cloud Storage</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Unlimited scalable storage with automatic backups and disaster recovery built-in.
+              </p>
+            </div>
+          </div>
+
+          <div class="card-item">
+            <div data-slot="card"
+                 class="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                   class="lucide lucide-users h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <h3 class="font-semibold text-gray-900">Team Collaboration</h3>
+              <p class="text-gray-600 leading-relaxed">
+                Work together seamlessly with version control, comments, and instant notifications.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+<footer class="site-footer">
+  © 2025 ECM. All rights reserved.
+</footer>
+  <!-- ========== GLOBE SHADERS ========== -->
+  <script type="x-shader/x-fragment" id="fragment-shader-map">
+  uniform sampler2D u_map_tex;
+  varying float vOpacity;
+  varying vec2 vUv;
+
+  void main() {
+      vec3 texColor = texture2D(u_map_tex, vUv).rgb;
+      vec3 base = mix(vec3(0.85), texColor, 0.35);
+
+      float d = length(gl_PointCoord.xy - vec2(0.5));
+      base -= 0.12 * d;
+
+      float dot = 1.0 - smoothstep(0.42, 0.50, d);
+      if (dot < 0.4) discard;
+
+      vec3 inverted = vec3(1.0) - base;
+      vec3 color = mix(vec3(1.0), inverted, 0.7);
+
+      gl_FragColor = vec4(color, dot * vOpacity * 0.99);
+  }
+  </script>
+
+  <script type="x-shader/x-vertex" id="vertex-shader-map">
+  uniform sampler2D u_map_tex;
+  uniform float u_dot_size;
+  uniform float u_time_since_click;
+  uniform vec3 u_pointer;
+
+  varying float vOpacity;
+  varying vec2 vUv;
+
+  #define PI 3.14159265359
+
+  void main() {
+      vUv = uv;
+
+      float visibility = step(.2, texture2D(u_map_tex, uv).r);
+      gl_PointSize = visibility * u_dot_size;
+
+      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+      vOpacity = (1. / length(mvPosition.xyz) - .7);
+      vOpacity = clamp(vOpacity, .03, 1.);
+
+      float t = max(0., u_time_since_click - .1);
+      float dist = 1. - .5 * length(position - u_pointer);
+      float damping = 1. / (1. + 20. * t);
+      float delta = .15 * damping * sin(5. * t * (1. + 2. * dist) - PI);
+      delta *= 1. - smoothstep(.8, 1., dist);
+
+      vec3 pos = position * (1. + delta);
+
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.);
+  }
+  </script>
+
+  <!-- ========== MAIN SCRIPT ========== -->
+  <script type="module">
+  import * as THREE from "https://cdn.skypack.dev/three@0.133.1/build/three.module";
+  import { OrbitControls } from "https://cdn.skypack.dev/three@0.133.1/examples/jsm/controls/OrbitControls";
+
+  const wrapper  = document.querySelector(".globe-container");
+  const canvas3D = document.querySelector("#globe-3d");
+
+  let renderer, scene, camera, controls;
+  let globe, globeMesh, pointer, mapMaterial;
+  let clock = new THREE.Clock();
+
+  let landPoints = [];
+  let activeArcs = [];
+
+  const ARC_SEGMENTS  = 80;
+  const ARC_MIN_COUNT = 8;
+  const ARC_MAX_COUNT = 10;
+
+  init();
+  window.addEventListener("resize", resize);
+
+  function init() {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas3D, alpha: true, antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+
+    scene = new THREE.Scene();
+
+    camera = new THREE.OrthographicCamera(-1.1, 1.1, 1.1, -1.1, 0, 3);
+    camera.position.z = 1.1;
+
+    addControls();
+
+    new THREE.TextureLoader().load(
+      "https://ksenia-k.com/img/earth-map-colored.png",
+      (tex) => {
+        createGlobe(tex);
+        createPointer();
+        extractLandPoints(tex);
+        initArcs();
+        addEvents();
+        resize();
+        render();
+      }
+    );
+
+    initHeroRotation();
+  }
+
+  function addControls() {
+    controls = new OrbitControls(camera, canvas3D);
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.6;
+    controls.minPolarAngle = 0.4 * Math.PI;
+    controls.maxPolarAngle = 0.4 * Math.PI;
+  }
+
+  function createGlobe(tex) {
+    const geo = new THREE.IcosahedronGeometry(1, 50);
+
+    mapMaterial = new THREE.ShaderMaterial({
+      vertexShader:   document.getElementById("vertex-shader-map").textContent,
+      fragmentShader: document.getElementById("fragment-shader-map").textContent,
+      uniforms: {
+        u_map_tex:          { value: tex },
+        u_dot_size:         { value: 0 },
+        u_pointer:          { value: new THREE.Vector3(0, 0, 1) },
+        u_time_since_click: { value: 0 }
+      },
+      transparent: true
+    });
+
+    globe = new THREE.Points(geo, mapMaterial);
+    scene.add(globe);
+
+    globeMesh = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
+    );
+    scene.add(globeMesh);
+  }
+
+  function createPointer() {
+    pointer = new THREE.Mesh(
+      new THREE.SphereGeometry(0.04),
+      new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.1 })
+    );
+    scene.add(pointer);
+  }
+
+  function extractLandPoints(tex) {
+    const img = tex.image;
+    const c   = document.createElement("canvas");
+    c.width   = img.width;
+    c.height  = img.height;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, c.width, c.height).data;
+
+    const uvAttr  = globe.geometry.attributes.uv;
+    const posAttr = globe.geometry.attributes.position;
+
+    for (let i = 0; i < uvAttr.count; i++) {
+      const u = uvAttr.getX(i);
+      const v = uvAttr.getY(i);
+
+      const x   = Math.floor(u * c.width);
+      const y   = Math.floor((1 - v) * c.height);
+      const idx = (y * c.width + x) * 4;
+
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      const brightness = (r + g + b) / 3;
+
+      if (brightness > 130) continue; // vùng tối = đất
+
+      const vx = posAttr.getX(i);
+      const vy = posAttr.getY(i);
+      const vz = posAttr.getZ(i);
+      landPoints.push(new THREE.Vector3(vx, vy, vz));
+    }
+  }
+
+  class Arc {
+    constructor() {
+      this.mesh = null;
+      this.progress = 0;
+      this.speed = 0.01 + Math.random() * 0.01;
+      this.dead = false;
+      this.maxPoints = ARC_SEGMENTS + 1;
+      this.create();
+    }
+
+    create() {
+      if (landPoints.length < 2) return;
+
+      const p1 = landPoints[Math.floor(Math.random() * landPoints.length)];
+      let p2   = landPoints[Math.floor(Math.random() * landPoints.length)];
+
+      let tries = 0;
+      while (p1.distanceTo(p2) < 0.4 && tries++ < 10) {
+        p2 = landPoints[Math.floor(Math.random() * landPoints.length)];
+      }
+
+      const mid   = p1.clone().add(p2).normalize().multiplyScalar(1.4);
+      const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+
+      const pts = curve.getPoints(ARC_SEGMENTS);
+      const geometry = new THREE.BufferGeometry().setFromPoints(pts);
+      geometry.setDrawRange(0, 0);
+
+      const material = new THREE.LineBasicMaterial({
+        color: 0x33ccff,
+        transparent: true,
+        opacity: 0.85
+      });
+
+      this.geometry = geometry;
+      this.material = material;
+      this.mesh     = new THREE.Line(geometry, material);
+
+      scene.add(this.mesh);
+    }
+
+    update() {
+      this.progress += this.speed;
+
+      const max = this.maxPoints;
+      let start = 0;
+      let count = 0;
+
+      if (this.progress <= 1.0) {
+        const head = Math.floor(max * this.progress);
+        start = 0;
+        count = Math.max(0, head - start);
+      } else if (this.progress <= 2.0) {
+        const t    = this.progress - 1.0;
+        const tail = Math.floor(max * t);
+        const head = max;
+        start = tail;
+        count = Math.max(0, head - tail);
+      } else {
+        this.dead = true;
+      }
+
+      this.geometry.setDrawRange(start, count);
+
+      const life = Math.min(1.0, this.progress / 2.0);
+      const fade = life < 0.5 ? (life * 2.0) : (1.0 - (life - 0.5) * 2.0);
+      this.material.opacity = 0.15 + 0.7 * Math.max(0.0, fade);
+    }
+
+    dispose() {
+      if (!this.mesh) return;
+      scene.remove(this.mesh);
+      this.geometry.dispose();
+      this.material.dispose();
+    }
+  }
+
+  function initArcs() {
+    const initialCount =
+      ARC_MIN_COUNT + Math.floor(Math.random() * (ARC_MAX_COUNT - ARC_MIN_COUNT + 1));
+    for (let i = 0; i < initialCount; i++) {
+      setTimeout(() => activeArcs.push(new Arc()), i * 200);
+    }
+  }
+
+  function updateArcs() {
+    for (let i = activeArcs.length - 1; i >= 0; i--) {
+      const arc = activeArcs[i];
+      arc.update();
+      if (arc.dead) {
+        arc.dispose();
+        activeArcs.splice(i, 1);
+      }
+    }
+
+    while (activeArcs.length < ARC_MIN_COUNT) {
+      activeArcs.push(new Arc());
+    }
+    if (activeArcs.length < ARC_MAX_COUNT && Math.random() < 0.02) {
+      activeArcs.push(new Arc());
+    }
+  }
+
+  function addEvents() {
+    wrapper.addEventListener("click", () => {
+      if (!mapMaterial) return;
+      mapMaterial.uniforms.u_time_since_click.value = 0;
+      clock.start();
+    });
+  }
+
+  function render() {
+    if (mapMaterial) {
+      mapMaterial.uniforms.u_time_since_click.value = clock.getElapsedTime();
+    }
+
+    updateArcs();
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+
+  function resize() {
+    const rect = wrapper.getBoundingClientRect();
+    const size = Math.min(rect.width, rect.height || rect.width);
+
+    renderer.setSize(size, size);
+    canvas3D.style.width  = size + "px";
+    canvas3D.style.height = size + "px";
+
+    if (mapMaterial) {
+      mapMaterial.uniforms.u_dot_size.value = size * 0.010;
+    }
+  }
+
+  // ========= HERO TEXT ROTATION =========
+  function initHeroRotation() {
+    const titleEl = document.querySelector(".hero-text h1");
+    const bodyEl  = document.querySelector(".hero-text p");
+
+    if (!titleEl || !bodyEl || !window.gsap) return;
+
+    const variants = [
+      {
+        title: "The complete platform for document management",
+        body: "Securely store, organize, and collaborate on documents. Streamline your workflow with intelligent automation and enterprise-grade security."
+      },
+      {
+        title: "Everything you need to manage documents at scale",
+        body: "Built for modern teams. Powerful features that help you work faster and smarter."
+      }
+    ];
+
+    let current = 0;
+
+    function switchHero() {
+      const next = (current + 1) % variants.length;
+      const nextData = variants[next];
+
+      const tl = gsap.timeline();
+      tl.to([titleEl, bodyEl], {
+        duration: 0.45,
+        opacity: 0,
+        rotateY: -90,
+        transformOrigin: "left center",
+        ease: "power2.in"
+      })
+      .add(() => {
+        titleEl.textContent = nextData.title;
+        bodyEl.textContent  = nextData.body;
+      })
+      .fromTo(
+        [titleEl, bodyEl],
+        {
+          opacity: 0,
+          rotateY: 90,
+          transformOrigin: "right center"
+        },
+        {
+          duration: 1.5,
+          opacity: 1,
+          rotateY: 0,
+          ease: "power2.out"
+        }
+      );
+
+      current = next;
+    }
+
+    setInterval(switchHero, 8000);
+  }
+  </script>
+</body>
+</html>
