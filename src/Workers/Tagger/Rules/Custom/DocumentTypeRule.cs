@@ -22,7 +22,7 @@ internal sealed class DocumentTypeRule : IRule
     private static readonly TagDefinition DocumentTagDefinition = TagDefinition.Create(
         "Document",
         DocumentTypePathSegments,
-        scope: TagScope.Group,
+        scope: TagScope.Global,
         namespaceDisplayName: TagDefaults.DefaultNamespaceDisplayName,
         color: "#4A5568",
         iconKey: "file");
@@ -30,7 +30,7 @@ internal sealed class DocumentTypeRule : IRule
     private static readonly TagDefinition ImageTagDefinition = TagDefinition.Create(
         "Images",
         DocumentTypePathSegments,
-        scope: TagScope.Group,
+        scope: TagScope.Global,
         namespaceDisplayName: TagDefaults.DefaultNamespaceDisplayName,
         color: "#3182CE",
         iconKey: "image");
@@ -113,7 +113,7 @@ internal sealed class DocumentTypeRule : IRule
         output.AddTag(tagDefinition);
     }
 
-    private static bool TryResolveExtension(IRuleContext context, [NotNullWhen(true)] out string? extension)
+    internal static bool TryResolveExtension(IRuleContext context, [NotNullWhen(true)] out string? extension)
     {
         extension = NormalizeExtension(context.Get("extension", default(string)));
 
