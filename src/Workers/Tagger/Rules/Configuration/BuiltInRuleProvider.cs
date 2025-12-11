@@ -28,7 +28,8 @@ internal sealed class BuiltInRuleProvider : IRuleProvider
         var rules = new IRule[]
         {
             new AutoDateRule(),
-            new DocumentTypeRule()
+            new DocumentTypeRule(),
+            new UserDocumentTypeDateRule()
         };
 
         return new RuleSet(name, rules);
