@@ -369,6 +369,30 @@
     }
   }
 
+  .landing-theme .marquee {
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  }
+
+  .landing-theme .marquee-track {
+    display: inline-flex;
+    align-items: stretch;
+    animation: marquee 48s linear infinite;
+  }
+
+  .landing-theme .marquee:hover .marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
   .landing-theme .animate-fade-in {
     animation: fadeIn 1s ease-in-out;
   }
