@@ -37,7 +37,7 @@ public static class Program
                 .AddOptions<EcmUserOptions>()
                 .Bind(builder.Configuration.GetSection(EcmUserOptions.SectionName));
 
-            builder.Services.AddSingleton<IEcmUserContext, ManualEcmUserContext>();
+            builder.Services.AddConfiguredEcmUserContext(builder.Configuration);
 
             builder.Services.AddTaggerRules(builder.Configuration);
 
