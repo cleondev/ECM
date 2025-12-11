@@ -19,7 +19,7 @@ namespace AppGateway.Api.Controllers.IAM;
 public sealed class IamAuthenticationController(
     IUsersApiClient client,
     IUserProvisioningService provisioningService,
-    IOptionsSnapshot<CookieAuthenticationOptions> cookieOptions,
+    IOptionsMonitor<CookieAuthenticationOptions> cookieOptions,
     ILogger<IamAuthenticationController> logger) : ControllerBase
 {
     private readonly IUsersApiClient _client = client;

@@ -216,20 +216,34 @@ public class IamAuthenticationControllerTests
         }
     }
 
-    private sealed class CookieOptionsSnapshot : IOptionsSnapshot<CookieAuthenticationOptions>
+    private sealed class CookieOptionsSnapshot : IOptionsMonitor<CookieAuthenticationOptions>
     {
         private readonly CookieAuthenticationOptions _options = new();
 
         public CookieAuthenticationOptions Value => _options;
 
+        public CookieAuthenticationOptions CurrentValue => throw new NotImplementedException();
+
         public CookieAuthenticationOptions Get(string? name) => _options;
+
+        public IDisposable? OnChange(Action<CookieAuthenticationOptions, string?> listener)
+        {
+            throw new NotImplementedException();
+        }
     }
 
-    private sealed class TestOptionsSnapshot<T>(T options) : IOptionsSnapshot<T> where T : class, new()
+    private sealed class TestOptionsSnapshot<T>(T options) : IOptionsMonitor<T> where T : class, new()
     {
         public T Value { get; } = options;
 
+        public T CurrentValue => throw new NotImplementedException();
+
         public T Get(string? name) => Value;
+
+        public IDisposable? OnChange(Action<T, string?> listener)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class RecordingAuthenticationService : IAuthenticationService
