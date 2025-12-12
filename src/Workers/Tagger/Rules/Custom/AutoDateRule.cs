@@ -24,7 +24,7 @@ internal sealed class AutoDateRule : IRule
 
         output.AddTag(
             TagDefinition.Create(
-                dt.ToString("dd"),
+                dt.ToString("dd-MMM"),
                 BasePath.Concat(new[] { dt.ToString("yyyy"), dt.ToString("MMMM") }),
                 scope: TagScope.Group,
                 namespaceDisplayName: TagDefaults.DefaultNamespaceDisplayName,
