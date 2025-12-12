@@ -1,10 +1,11 @@
-// app/page.tsx
 "use client"
 
 import { useEffect } from "react"
 import gsap from "gsap"
 import Globe from "./Globe"
 import { BarChart3, Cloud, Search, Shield, Users, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { BrandLogo } from "@/components/brand-logo"
 
 import "./landing.css"
 
@@ -128,24 +129,29 @@ export default function Page() {
     return () => clearInterval(id)
   }, [])
 
-  // nhân đôi mảng card để match hiệu ứng infinite marquee trong CSS
   const marqueeCards = [...cards, ...cards]
 
   return (
     <div className="landing-page">
-      {/* HEADER – giống HTML gốc */}
       <header>
-        <div className="logo">
-          <img src="https://ecm.ists.corp/logo/logo_256x256.png" alt="ECM Logo" />
-        </div>
+          <Link href="/" className="flex items-center">
+            <BrandLogo
+              priority
+              textClassName="text-xl font-semibold text-foreground"
+              imageClassName="h-10 w-10"
+            />
+          </Link>
         <nav>
           <a href="#">Features</a>
           <a href="#">AI</a>
           <a href="#">Docs</a>
         </nav>
         <div className="header-buttons">
-          <a href="#">Sign In</a>
-        </div>
+         <Link href="/signin/?returnUrl=/app/">
+           <Button variant="outline" className="w-full border-border text-foreground hover:text-primary">
+             Sign In
+           </Button>
+         </Link>        </div>
       </header>
 
       {/* MAIN */}

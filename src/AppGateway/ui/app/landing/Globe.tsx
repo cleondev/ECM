@@ -83,8 +83,8 @@ export function Globe() {
     const activeArcs: Arc[] = []
 
     const ARC_SEGMENTS = 80
-    const ARC_MIN_COUNT = 8
-    const ARC_MAX_COUNT = 10
+    const ARC_MIN_COUNT = 10
+    const ARC_MAX_COUNT = 12
 
     init()
     window.addEventListener("resize", resize)
@@ -104,7 +104,6 @@ export function Globe() {
         "https://ksenia-k.com/img/earth-map-colored.png",
         (tex) => {
           createGlobe(tex)
-          createPointer()
           extractLandPoints(tex)
           initArcs()
           addEvents()
@@ -148,14 +147,6 @@ export function Globe() {
         new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
       )
       scene.add(globeMesh)
-    }
-
-    function createPointer() {
-      pointer = new THREE.Mesh(
-        new THREE.SphereGeometry(0.04),
-        new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.1 })
-      )
-      scene.add(pointer)
     }
 
     function extractLandPoints(tex: THREE.Texture) {

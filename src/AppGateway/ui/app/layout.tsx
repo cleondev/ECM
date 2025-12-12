@@ -10,8 +10,7 @@ import "file-icon-vectors/dist/file-icon-vectors.css"
 import "file-icon-vectors/dist/file-icon-square-o.min.css"
 import "./globals.css"
 
-const appDescription =
-  "Securely store, organize, and collaborate on documents with intelligent automation and enterprise-grade security."
+const appDescription = "Securely store, organize, and collaborate on documents with intelligent automation and enterprise-grade security."
 
 export const metadata: Metadata = {
   title: {
@@ -19,7 +18,6 @@ export const metadata: Metadata = {
     template: "%s | ECM",
   },
   description: appDescription,
-  generator: "v0.app",
   icons: {
     icon: [
       { url: "/favicon.ico" },
