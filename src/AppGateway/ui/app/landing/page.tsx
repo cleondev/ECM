@@ -6,6 +6,8 @@ import gsap from "gsap"
 import Globe from "./Globe"
 import { BarChart3, Cloud, Search, Shield, Users, Zap } from "lucide-react"
 
+import "./landing.css"
+
 type IconType = typeof BarChart3
 
 type CardItemProps = {
@@ -130,7 +132,7 @@ export default function Page() {
   const marqueeCards = [...cards, ...cards]
 
   return (
-    <>
+    <div className="landing-page">
       {/* HEADER – giống HTML gốc */}
       <header>
         <div className="logo">
@@ -189,6 +191,6 @@ export default function Page() {
 
       {/* FOOTER */}
       <footer className="site-footer">© 2025 ECM. All rights reserved.</footer>
-    </>
+    </div>
   )
 }
