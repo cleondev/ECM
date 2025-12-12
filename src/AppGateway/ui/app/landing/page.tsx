@@ -2,11 +2,15 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import gsap from "gsap"
 import Globe from "./Globe"
 import { BarChart3, Cloud, Search, Shield, Users, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BrandLogo } from "@/components/brand-logo"
+import { checkLogin } from "@/lib/api"
+import { getCachedAuthSnapshot } from "@/lib/auth-state"
+import { normalizeRedirectTarget } from "@/lib/utils"
 
 import "./landing.css"
 
@@ -23,11 +27,11 @@ function CardItem({ Icon, title, description }: CardItemProps) {
     <div className="card-item">
       <div
         data-slot="card"
-        className="bg-white text-gray-900 flex flex-col gap-4 rounded-xl border shadow-sm feature-card glow-card group"
+        className="flex flex-col gap-4 rounded-xl border border-border bg-card text-card-foreground shadow-sm feature-card glow-card group"
       >
-        <Icon className="h-8 w-8 text-indigo-500 mb-2 transition-transform group-hover:scale-110" />
-        <h3 className="font-semibold text-gray-900">{title}</h3>
-        <p className="text-gray-600 leading-relaxed">{description}</p>
+        <Icon className="h-8 w-8 text-primary mb-2 transition-transform group-hover:scale-110" />
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        <p className="text-muted-foreground leading-relaxed">{description}</p>
       </div>
     </div>
   )
@@ -73,6 +77,36 @@ const cards: CardItemProps[] = [
 ]
 
 export default function Page() {
+  const router = useRouter()
+
+  useEffect(() => {
+    let isMounted = true
+
+    const cached = getCachedAuthSnapshot()
+    if (cached?.isAuthenticated) {
+      router.replace(normalizeRedirectTarget(cached.redirectPath, "/app/"))
+      return () => {
+        isMounted = false
+      }
+    }
+
+    checkLogin("/app/")
+      .then((result) => {
+        if (!isMounted || !result.isAuthenticated) {
+          return
+        }
+
+        router.replace(normalizeRedirectTarget(result.redirectPath, "/app/"))
+      })
+      .catch((error) => {
+        console.error("[landing] Unable to verify sign-in state", error)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [router])
+
   // GSAP hero text rotation (giống HTML gốc nhưng viết trong useEffect)
   useEffect(() => {
     const titleEl = document.querySelector(".hero-text h1") as HTMLElement | null
@@ -148,11 +182,10 @@ export default function Page() {
           <a href="#">Docs</a>
         </nav>
         <div className="header-buttons">
-         <Link href="/signin/?returnUrl=/app/">
-           <Button variant="outline" className="w-full border-border text-foreground hover:text-primary">
-             Sign In
-           </Button>
-         </Link>        </div>
+          <Button asChild variant="outline" className="shadow-sm">
+            <Link href="/signin/?returnUrl=/app/">Sign In</Link>
+          </Button>
+        </div>
       </header>
 
       {/* MAIN */}
@@ -166,12 +199,12 @@ export default function Page() {
               intelligent automation and enterprise-grade security.
             </p>
             <div className="buttons">
-              <a href="#" className="btn-primary">
-                Get Started ↓
-              </a>
-              <a href="#" className="btn-secondary">
-                View Demo ▶
-              </a>
+              <Button asChild size="lg" className="btn-primary">
+                <Link href="/signup/?returnUrl=/app/">Get Started ↓</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="btn-secondary">
+                <Link href="#features">View Demo ▶</Link>
+              </Button>
             </div>
           </div>
 
@@ -180,7 +213,7 @@ export default function Page() {
         </section>
 
         {/* SLIDE / CARDS SECTION */}
-        <section className="stats">
+        <section className="stats" id="features">
           <div className="cards-wrapper">
             <div className="cards-track">
               {marqueeCards.map((card, index) => (
