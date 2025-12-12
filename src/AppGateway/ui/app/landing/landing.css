@@ -80,6 +80,41 @@
   align-items: center;
 }
 
+.landing-page .hero-with-grid {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.landing-page .hero-grid-bg {
+  position: absolute;
+  inset: -120px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.98;
+  background-color: #f5f6fb;
+  background-image: radial-gradient(
+      circle at center,
+      rgba(245, 246, 252, 0) 0%,
+      rgba(245, 246, 252, 0) 40%,
+      rgba(245, 246, 252, 0.75) 80%,
+      rgba(245, 246, 252, 1) 100%
+    ),
+    radial-gradient(
+      circle at center,
+      rgba(59, 130, 246, 0.32) 0%,
+      rgba(129, 140, 248, 0.24) 35%,
+      rgba(236, 72, 153, 0.12) 60%,
+      rgba(255, 255, 255, 0) 80%
+    ),
+    linear-gradient(to right, rgba(0, 0, 0, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 1px, transparent 1px);
+  background-size: 180% 180%, 140% 140%, 26px 26px, 26px 26px;
+  background-position: center center, center center, 0 0, 0 0;
+  animation: hero-grid-infinite-x 9s linear infinite;
+  filter: blur(0.18px);
+}
+
 .landing-page .hero-text h1 {
   font-size: 42px;
   font-weight: 900;
@@ -202,6 +237,15 @@
   }
 }
 
+@keyframes hero-grid-infinite-x {
+  0% {
+    background-position: center center, center center, 0 0, 0 0;
+  }
+  100% {
+    background-position: center center, center center, -220px 0, -220px 0;
+  }
+}
+
 .landing-page .site-footer {
   flex: 0 0 auto;
   text-align: center;
@@ -232,6 +276,11 @@
     margin-left: auto;
     margin-right: auto;
     font-size: 14px;
+  }
+
+  .landing-page .hero-text .buttons {
+    justify-content: center;
+    align-items: center;
   }
 
   .landing-page .globe-container {
