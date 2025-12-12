@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react"
 import * as THREE from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
+import { texture } from 'three/tsl';
 
 const FRAGMENT_SHADER_MAP = `
 uniform sampler2D u_map_tex;
@@ -100,8 +101,7 @@ export function Globe() {
 
       addControls()
 
-      new THREE.TextureLoader().load(
-        "https://ksenia-k.com/img/earth-map-colored.png",
+      new THREE.TextureLoader().load("/earth-map-colored.png",
         (tex) => {
           createGlobe(tex)
           extractLandPoints(tex)
