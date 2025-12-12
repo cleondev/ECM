@@ -12,9 +12,6 @@ import { checkLogin } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
 
-import "./../globals.css"
-import "./landing.css"
-
 type IconType = typeof BarChart3
 
 type CardItemProps = {
@@ -108,7 +105,6 @@ export default function Page() {
     }
   }, [router])
 
-  // GSAP hero text rotation (giống HTML gốc nhưng viết trong useEffect)
   useEffect(() => {
     const titleEl = document.querySelector(".hero-text h1") as HTMLElement | null
     const bodyEl = document.querySelector(".hero-text p") as HTMLElement | null
@@ -201,19 +197,16 @@ export default function Page() {
             </p>
             <div className="buttons">
               <Button asChild size="lg" className="btn-primary">
-                <Link href="/signup/?returnUrl=/app/">Get Started ↓</Link>
+                <Link href="#">Get Started ↓</Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="btn-secondary">
-                <Link href="#features">View Demo ▶</Link>
+                <Link href="#">View Demo ▶</Link>
               </Button>
             </div>
           </div>
-
-          {/* Globe đã tách ra component riêng, nhưng vẫn render trong hero cột phải */}
           <Globe />
         </section>
 
-        {/* SLIDE / CARDS SECTION */}
         <section className="stats" id="features">
           <div className="cards-wrapper">
             <div className="cards-track">
@@ -230,7 +223,6 @@ export default function Page() {
         </section>
       </main>
 
-      {/* FOOTER */}
       <footer className="site-footer">© 2025 ECM. All rights reserved.</footer>
     </div>
   )

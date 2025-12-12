@@ -9,7 +9,7 @@ import { SyncfusionLicenseLoader } from "@/components/syncfusion-license-loader.
 import "file-icon-vectors/dist/file-icon-vectors.css"
 import "file-icon-vectors/dist/file-icon-square-o.min.css"
 import "./globals.css"
-
+import "./landing.css"
 const appDescription = "Securely store, organize, and collaborate on documents with intelligent automation and enterprise-grade security."
 
 export const metadata: Metadata = {
