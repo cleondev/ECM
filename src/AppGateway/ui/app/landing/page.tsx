@@ -166,20 +166,20 @@ export default function Page() {
   return (
     <div className="landing-page">
       <header>
-          <Link href="/" className="flex items-center">
-            <BrandLogo
-              priority
-              textClassName="text-xl font-semibold text-foreground"
-              imageClassName="h-10 w-10"
-            />
-          </Link>
+        <Link href="/" className="flex items-center">
+          <BrandLogo
+            priority
+            textClassName="text-xl font-semibold text-foreground"
+            imageClassName="h-10 w-10"
+          />
+        </Link>
         <nav>
           <a href="#">Features</a>
           <a href="#">AI</a>
           <a href="#">Docs</a>
         </nav>
         <div className="header-buttons">
-          <Button asChild variant="outline" className="shadow-sm">
+          <Button asChild className="rounded-full bg-primary px-5 text-primary-foreground shadow-sm hover:bg-primary/90">
             <Link href="/signin/?returnUrl=/app/">Sign In</Link>
           </Button>
         </div>
@@ -188,7 +188,8 @@ export default function Page() {
       {/* MAIN */}
       <main className="page-main">
         {/* HERO */}
-        <section className="hero">
+        <section className="hero hero-with-grid">
+          <div className="hero-grid-bg" aria-hidden="true" />
           <div className="hero-text">
             <h1>The complete platform for document management</h1>
             <p>

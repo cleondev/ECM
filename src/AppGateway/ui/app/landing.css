@@ -1,4 +1,4 @@
-/* ========== PALETTE & BASE ========== */
+﻿/* ========== PALETTE & BASE ========== */
 
 .landing-page {
   /* Palette riêng cho landing (dựa trên shadcn) */
@@ -82,6 +82,37 @@
   min-height: 480px;
 }
 
+.landing-page .hero-with-grid {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.landing-page .hero-grid-bg {
+  position: absolute;
+  inset: -80px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.98;
+  background-color: #fcfcff;
+  background-image: radial-gradient(
+      circle at center,
+      rgba(245, 246, 252, 0.75) 80%,
+      rgba(245, 246, 252, 1) 100%
+    ),
+    radial-gradient(
+      circle at center,
+      rgba(238, 145, 192, 0.12) 60%,
+      rgba(255, 255, 255, 0) 80%
+    ),
+    linear-gradient(to right, rgba(0, 0, 0, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 1px, transparent 1px);
+  background-size: 180% 180%, 140% 140%, 26px 26px, 26px 26px;
+  background-position: center center, center center, 0 0, 0 0;
+  animation: hero-grid-infinite-x 9s linear infinite;
+  filter: blur(0.18px);
+}
+
 .landing-page .hero-text {
   position: relative;
   display: flex;
@@ -112,6 +143,8 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
 }
 
 
@@ -206,6 +239,16 @@
   box-shadow: 0 0 20px color-mix(in srgb, var(--lp-accent) 35%, transparent);
   transform: translateY(-4px);
 }
+
+@keyframes hero-grid-infinite-x {
+  0% {
+    background-position: center center, center center, 0 0, 0 0;
+  }
+  100% {
+    background-position: center center, center center, -220px 0, -220px 0;
+  }
+}
+
 
 @keyframes cards-marquee {
   0% {
