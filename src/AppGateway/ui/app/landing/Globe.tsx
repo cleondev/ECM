@@ -1,4 +1,3 @@
-// app/components/Globe.tsx
 "use client"
 
 import { useEffect, useRef } from "react"

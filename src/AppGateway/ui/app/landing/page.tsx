@@ -12,6 +12,7 @@ import { checkLogin } from "@/lib/api"
 import { getCachedAuthSnapshot } from "@/lib/auth-state"
 import { normalizeRedirectTarget } from "@/lib/utils"
 
+import "./../globals.css"
 import "./landing.css"
 
 type IconType = typeof BarChart3
