@@ -7,10 +7,8 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: "ECM - Enterprise Content Management",
-  description:
-    "Securely store, organize, and collaborate on documents with intelligent automation and enterprise-grade security.",
-  generator: "v0.app",
-}
+  description: "Securely store, organize, and collaborate on documents with intelligent automation and enterprise-grade security.",
+  }
 
 export default function LandingLayout({
   children,
