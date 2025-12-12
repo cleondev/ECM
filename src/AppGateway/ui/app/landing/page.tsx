@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Link from "next/link"
 import gsap from "gsap"
 import Globe from "./Globe"
 import { BarChart3, Cloud, Search, Shield, Users, Zap } from "lucide-react"
@@ -144,7 +145,7 @@ export default function Page() {
           <a href="#">Docs</a>
         </nav>
         <div className="header-buttons">
-          <a href="#">Sign In</a>
+          <Link href="/signin">Sign In</Link>
         </div>
       </header>
 
